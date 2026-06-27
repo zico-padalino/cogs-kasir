@@ -781,12 +781,6 @@
     }
 
     /* Pemesanan meja (pelanggan) */
-    .order-table-shell {
-        @apply min-h-screen bg-gradient-to-b from-brand-50 to-slate-100;
-        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
-        padding-top: max(1.5rem, env(safe-area-inset-top));
-    }
-
     .order-menu-item {
         @apply flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center;
     }
@@ -800,6 +794,142 @@
     }
 
     .order-cart-card {
-        @apply sticky bottom-4 rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:static sm:shadow-sm;
+        @apply rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:static sm:shadow-sm;
+    }
+
+    /* ── Halaman menu meja (pelanggan via QR) ── */
+    .order-table-body {
+        @apply bg-slate-100;
+    }
+
+    .order-table-shell {
+        @apply mx-auto flex min-h-screen max-w-lg flex-col;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    .order-table-header {
+        @apply sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur;
+        padding-top: max(1rem, env(safe-area-inset-top));
+    }
+
+    .order-table-header-badge {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-600 text-xl text-white;
+    }
+
+    .order-table-main {
+        @apply flex-1 space-y-4 px-4 py-4;
+    }
+
+    .order-table-footer {
+        @apply border-t border-slate-200 px-4 py-3 text-center text-[11px] leading-relaxed text-slate-400;
+    }
+
+    .order-alert {
+        @apply rounded-xl px-4 py-3 text-sm;
+    }
+
+    .order-alert-success {
+        @apply border border-green-200 bg-green-50 text-green-800;
+    }
+
+    .order-alert-error {
+        @apply border border-red-200 bg-red-50 text-red-800;
+    }
+
+    .order-section-head {
+        @apply mb-3;
+    }
+
+    .order-section-title {
+        @apply text-base font-bold text-slate-900;
+    }
+
+    .order-section-sub {
+        @apply text-xs text-slate-500;
+    }
+
+    .order-menu-list {
+        @apply space-y-3;
+    }
+
+    .order-add-btn {
+        @apply min-h-11 min-w-11 shrink-0 px-0 text-lg;
+    }
+
+    .order-empty {
+        @apply rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500;
+    }
+
+    .order-empty-hint {
+        @apply mt-2 text-xs text-slate-400;
+    }
+
+    .order-cart-head {
+        @apply mb-3 flex items-center justify-between gap-2;
+    }
+
+    .order-cart-items {
+        @apply divide-y divide-slate-100;
+    }
+
+    .order-cart-row {
+        @apply flex items-center gap-2 py-3 first:pt-0 last:pb-0;
+    }
+
+    .order-cart-total {
+        @apply mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-base font-bold;
+    }
+
+    .order-submit-wrap {
+        @apply sticky bottom-4 z-10;
+    }
+
+    .order-submit-btn {
+        @apply w-full py-3.5 text-base shadow-lg;
+    }
+
+    .order-status-card {
+        @apply rounded-2xl border px-4 py-5 text-center;
+    }
+
+    .order-status-waiting {
+        @apply border-amber-200 bg-amber-50;
+    }
+
+    .order-status-paid {
+        @apply border-green-200 bg-green-50;
+    }
+
+    .order-status-icon {
+        @apply text-3xl;
+    }
+
+    .order-status-meta {
+        @apply mt-4 grid grid-cols-2 gap-3 rounded-xl border border-amber-200/80 bg-white/80 p-3 text-left;
+    }
+
+    .order-info-box {
+        @apply rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3;
+    }
+
+    /* ── Kartu QR meja (kasir) ── */
+    .table-qr-card {
+        @apply overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .table-qr-card-head {
+        @apply flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3;
+    }
+
+    .table-qr-wrap {
+        @apply flex justify-center bg-slate-50 px-4 py-4;
+    }
+
+    .table-qr-url {
+        @apply break-all px-4 py-2 text-center text-[10px] leading-relaxed text-slate-500;
+    }
+
+    .table-qr-actions {
+        @apply grid gap-2 border-t border-slate-100 p-3;
     }
 }

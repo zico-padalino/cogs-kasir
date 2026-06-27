@@ -53,11 +53,9 @@ class PosOrderService
         ]);
     }
 
-    public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null): PosOrderItem
+    public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false): PosOrderItem
     {
-        if (! $order->isEditable()) {
-            throw new RuntimeException('Pesanan tidak bisa diubah.');
-        }
+        $this->assertOrderMutable($order, $fromKasir);
 
         $this->assertSellable($product, $quantity);
 
@@ -79,13 +77,11 @@ class PosOrderService
         return $item->load('product');
     }
 
-    public function updateItemQuantity(PosOrderItem $item, float $quantity): void
+    public function updateItemQuantity(PosOrderItem $item, float $quantity, bool $fromKasir = false): void
     {
         $order = $item->order;
 
-        if (! $order->isEditable()) {
-            throw new RuntimeException('Pesanan tidak bisa diubah.');
-        }
+        $this->assertOrderMutable($order, $fromKasir);
 
         $this->assertSellable($item->product, $quantity);
 
@@ -97,13 +93,11 @@ class PosOrderService
         $this->recalculateTotals($order);
     }
 
-    public function removeItem(PosOrderItem $item): void
+    public function removeItem(PosOrderItem $item, bool $fromKasir = false): void
     {
         $order = $item->order;
 
-        if (! $order->isEditable()) {
-            throw new RuntimeException('Pesanan tidak bisa diubah.');
-        }
+        $this->assertOrderMutable($order, $fromKasir);
 
         $item->delete();
         $this->recalculateTotals($order);
@@ -216,6 +210,19 @@ class PosOrderService
 
         if ($product->availableQuantity() < $quantity) {
             throw new RuntimeException("Stok {$product->name} tidak cukup (tersedia: {$product->availableQuantity()}).");
+        }
+    }
+
+    private function assertOrderMutable(PosOrder $order, bool $fromKasir = false): void
+    {
+        $mutable = $fromKasir ? $order->isKasirEditable() : $order->isEditable();
+
+        if (! $mutable) {
+            throw new RuntimeException(
+                $fromKasir
+                    ? 'Pesanan tidak bisa diubah.'
+                    : 'Pesanan sudah dikirim. Silakan bayar di kasir.'
+            );
         }
     }
 }

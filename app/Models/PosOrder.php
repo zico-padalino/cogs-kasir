@@ -58,6 +58,11 @@ class PosOrder extends Model
 
     public function isEditable(): bool
     {
+        return $this->status === PosOrderStatus::Open;
+    }
+
+    public function isKasirEditable(): bool
+    {
         return in_array($this->status, [PosOrderStatus::Open, PosOrderStatus::Submitted], true);
     }
 }

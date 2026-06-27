@@ -30,6 +30,7 @@ Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->
 
 Route::get('meja/{token}', [TableOrderController::class, 'show'])->name('order.table');
 Route::post('meja/{token}/items', [TableOrderController::class, 'addItem'])->name('order.table.items');
+Route::delete('meja/{token}/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.table.items.destroy');
 Route::post('meja/{token}/submit', [TableOrderController::class, 'submit'])->name('order.table.submit');
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
     Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
     Route::get('/tables', [KasirController::class, 'tables'])->name('tables');
+    Route::get('/tables/{table}/barcode', [KasirController::class, 'tableBarcode'])->name('tables.barcode');
     Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
     Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
     Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');

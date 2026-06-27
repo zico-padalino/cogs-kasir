@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserRole::class,
         ]);
 
+        $middleware->trustProxies(at: '*');
+
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {

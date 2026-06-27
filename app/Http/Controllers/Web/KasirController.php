@@ -72,6 +72,15 @@ class KasirController extends Controller
         ]);
     }
 
+    public function tableBarcode(PosTable $table)
+    {
+        abort_unless($table->is_active, 404);
+
+        return view('kasir.table-barcode', [
+            'table' => $table,
+        ]);
+    }
+
     public function storeTable(Request $request)
     {
         $validated = $request->validate([
@@ -116,7 +125,7 @@ class KasirController extends Controller
         $product = Product::findOrFail($validated['product_id']);
 
         try {
-            $posService->addItem($order, $product, (float) $validated['quantity']);
+            $posService->addItem($order, $product, (float) $validated['quantity'], fromKasir: true);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -127,7 +136,7 @@ class KasirController extends Controller
     public function removeItem(PosOrderItem $item, PosOrderService $posService)
     {
         try {
-            $posService->removeItem($item);
+            $posService->removeItem($item, fromKasir: true);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }

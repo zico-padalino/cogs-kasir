@@ -323,3 +323,100 @@ FROM cogs_calculations;
 --     `role` = VALUES(`role`),
 --     `password` = VALUES(`password`),
 --     `updated_at` = NOW();
+
+-- -----------------------------------------------------------------------------
+-- 18. POS — Daftar Meja Aktif
+-- -----------------------------------------------------------------------------
+SELECT
+    pt.id,
+    pt.table_number,
+    pt.label,
+    pt.barcode_token,
+    pt.is_active,
+    COUNT(po.id)                                        AS order_aktif
+FROM pos_tables pt
+LEFT JOIN pos_orders po
+    ON po.pos_table_id = pt.id
+   AND po.status = 'open'
+WHERE pt.is_active = 1
+GROUP BY pt.id, pt.table_number, pt.label, pt.barcode_token, pt.is_active
+ORDER BY pt.table_number;
+
+
+-- -----------------------------------------------------------------------------
+-- 19. POS — Order Terbuka & Detail Item
+-- -----------------------------------------------------------------------------
+SELECT
+    po.order_number,
+    po.status,
+    po.source,
+    COALESCE(pt.label, '-')                             AS meja,
+    u.name                                              AS kasir,
+    po.subtotal,
+    po.total,
+    po.payment_method,
+    po.paid_at,
+    po.created_at,
+    p.name                                              AS produk,
+    poi.quantity,
+    poi.unit_price,
+    poi.line_total,
+    poi.notes
+FROM pos_orders po
+LEFT JOIN pos_tables pt ON pt.id = po.pos_table_id
+LEFT JOIN users u ON u.id = po.user_id
+LEFT JOIN pos_order_items poi ON poi.pos_order_id = po.id
+LEFT JOIN products p ON p.id = poi.product_id
+WHERE po.status = 'open'
+ORDER BY po.created_at DESC, poi.id;
+
+
+-- -----------------------------------------------------------------------------
+-- 20. POS — Ringkasan Penjualan per Hari
+-- -----------------------------------------------------------------------------
+SELECT
+    DATE(COALESCE(po.paid_at, po.updated_at))           AS tanggal,
+    COUNT(*)                                            AS jumlah_order,
+    ROUND(SUM(po.total), 0)                             AS total_penjualan,
+    ROUND(AVG(po.total), 0)                             AS rata_order
+FROM pos_orders po
+WHERE po.status = 'paid'
+GROUP BY DATE(COALESCE(po.paid_at, po.updated_at))
+ORDER BY tanggal DESC;
+
+
+-- -----------------------------------------------------------------------------
+-- 21. POS — Produk Siap Jual (harga jual)
+-- -----------------------------------------------------------------------------
+SELECT
+    p.id,
+    p.sku,
+    p.name,
+    p.unit,
+    p.standard_cost,
+    p.selling_price,
+    ROUND(p.selling_price - p.standard_cost, 0)         AS margin_per_unit,
+    p.is_active
+FROM products p
+WHERE p.type IN ('finished_good', 'semi_finished')
+  AND p.is_active = 1
+ORDER BY p.name;
+
+
+-- -----------------------------------------------------------------------------
+-- 22. POS — Order POS vs Transaksi Penjualan
+-- -----------------------------------------------------------------------------
+SELECT
+    po.order_number,
+    po.status,
+    po.total                                              AS total_order,
+    st.invoice_number,
+    st.total_revenue,
+    p.name                                                AS produk,
+    st.quantity,
+    st.sold_at
+FROM pos_orders po
+LEFT JOIN sales_transactions st ON st.pos_order_id = po.id
+LEFT JOIN products p ON p.id = st.product_id
+WHERE po.status = 'paid'
+ORDER BY po.paid_at DESC, st.id;

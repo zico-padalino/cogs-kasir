@@ -1,0 +1,10 @@
+# Salin ke config.yml lalu isi tunnel ID & hostname Anda.
+# Setup: powershell -ExecutionPolicy Bypass -File scripts/setup-cloudflare-tunnel.ps1
+
+tunnel: GANTI_DENGAN_TUNNEL_ID
+credentials-file: GANTI_DENGAN_PATH_CREDENTIALS_JSON
+
+ingress:
+  - hostname: cogs.example.com
+    service: http://127.0.0.1:8900
+  - service: http_status:404

@@ -7,7 +7,7 @@
     <div class="page-toolbar">
         <div>
             <h1 class="hidden text-2xl font-bold md:block">Meja & Barcode</h1>
-            <p class="text-sm text-slate-500">Scan QR/barcode meja untuk pemesanan online pelanggan</p>
+            <p class="text-sm text-slate-500">Setiap meja punya QR/barcode menu sendiri. Pelanggan scan → pesan → bayar di kasir.</p>
         </div>
     </div>
 
@@ -29,47 +29,53 @@
         </div>
 
         <div class="lg:col-span-2">
-            <x-table-card title="Daftar Meja" subtitle="Bagikan link/QR ke pelanggan">
-                @if ($tables->isNotEmpty())
-                    <table class="table-default">
-                        <thead>
-                            <tr>
-                                <th>Meja</th>
-                                <th>Link Pemesanan</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($tables as $table)
-                                <tr>
-                                    <td>
-                                        <p class="font-semibold">{{ $table->label }}</p>
-                                        <p class="text-xs cell-muted">#{{ $table->table_number }}</p>
-                                    </td>
-                                    <td>
-                                        <a href="{{ $table->orderUrl() }}" target="_blank" class="break-all text-xs font-medium text-brand-600 hover:underline">
-                                            {{ $table->orderUrl() }}
-                                        </a>
-                                        <p class="mt-1 text-[10px] cell-muted">Token: {{ Str::limit($table->barcode_token, 18) }}</p>
-                                    </td>
-                                    <td>
-                                        @if ($table->open_orders_count > 0)
-                                            <span class="badge badge-amber">{{ $table->open_orders_count }} pesanan aktif</span>
-                                        @else
-                                            <span class="badge badge-green">Kosong</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @else
+            @if ($tables->isNotEmpty())
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach ($tables as $table)
+                        <div class="table-qr-card">
+                            <div class="table-qr-card-head">
+                                <div>
+                                    <p class="font-bold text-slate-900">{{ $table->label }}</p>
+                                    <p class="text-xs text-slate-500">Meja #{{ $table->table_number }}</p>
+                                </div>
+                                @if ($table->open_orders_count > 0)
+                                    <span class="badge badge-amber">{{ $table->open_orders_count }} aktif</span>
+                                @else
+                                    <span class="badge badge-green">Kosong</span>
+                                @endif
+                            </div>
+
+                            <div class="table-qr-wrap">
+                                <canvas
+                                    data-table-qr-url="{{ $table->orderUrl() }}"
+                                    data-table-qr-size="180"
+                                    width="180"
+                                    height="180"
+                                    aria-label="QR Code {{ $table->label }}"
+                                ></canvas>
+                            </div>
+
+                            <p class="table-qr-url">{{ $table->orderUrl() }}</p>
+
+                            <div class="table-qr-actions">
+                                <a href="{{ $table->orderUrl() }}" target="_blank" rel="noopener" class="btn-outline btn-sm w-full justify-center">
+                                    Buka Menu Meja
+                                </a>
+                                <a href="{{ route('kasir.tables.barcode', $table) }}" class="btn-primary btn-sm w-full justify-center">
+                                    Cetak Barcode
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="table-card">
                     <div class="empty-state">
                         <p>Belum ada meja.</p>
-                        <p class="empty-hint">Tambahkan meja atau jalankan database/kasir.sql</p>
+                        <p class="empty-hint">Tambahkan meja di form kiri atau jalankan seeder PosTableSeeder</p>
                     </div>
-                @endif
-            </x-table-card>
+                </div>
+            @endif
         </div>
     </div>
 @endsection

@@ -24,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useTailwind();
 
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         View::composer('layouts.app', function ($view) {
             $view->with('setupSteps', SetupProgress::steps());
             $view->with('setupCurrentStep', SetupProgress::currentStepNumber());

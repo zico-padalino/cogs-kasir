@@ -46,6 +46,6 @@ class PosTable extends Model
 
     public function orderUrl(): string
     {
-        return route('order.table', $this->barcode_token);
+        return url(route('order.table', $this->barcode_token, absolute: false));
     }
 }

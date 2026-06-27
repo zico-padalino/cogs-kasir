@@ -69,7 +69,47 @@ class KasirPageTest extends TestCase
 
         $this->get(route('order.table', $table->barcode_token))
             ->assertOk()
-            ->assertSee('Meja Test');
+            ->assertSee('Meja Test')
+            ->assertSee('Menu Meja')
+            ->assertDontSee('Silakan Bayar di Kasir');
+    }
+
+    public function test_submitted_table_order_shows_pay_at_cashier_message(): void
+    {
+        $product = $this->sellableProduct();
+        $table = PosTable::create([
+            'table_number' => '88',
+            'label' => 'Meja Bayar',
+            'barcode_token' => 'test-token-pay',
+        ]);
+
+        $this->post(route('order.table.items', $table->barcode_token), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ])->assertRedirect();
+
+        $this->post(route('order.table.submit', $table->barcode_token))
+            ->assertRedirect();
+
+        $this->get(route('order.table', $table->barcode_token))
+            ->assertOk()
+            ->assertSee('Silakan Bayar di Kasir')
+            ->assertDontSee('Kirim Pesanan');
+    }
+
+    public function test_kasir_can_open_table_barcode_page(): void
+    {
+        $table = PosTable::create([
+            'table_number' => '77',
+            'label' => 'Meja QR',
+            'barcode_token' => 'test-token-qr',
+        ]);
+
+        $this->actingAs($this->kasirUser())
+            ->get(route('kasir.tables.barcode', $table))
+            ->assertOk()
+            ->assertSee('Scan untuk Pesan')
+            ->assertSee('Meja QR');
     }
 
     public function test_kasir_checkout_reduces_inventory(): void
