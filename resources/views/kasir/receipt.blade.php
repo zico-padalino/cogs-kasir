@@ -1,9 +1,10 @@
 @extends('layouts.kasir')
 
 @section('title', 'Struk')
+@section('heading', 'Struk Pembayaran')
 
 @section('content')
-    <div class="mx-auto max-w-md">
+    <div class="mx-auto max-w-md px-1">
         <div class="card border-2 border-dashed border-slate-300 bg-white text-center" id="receipt">
             <p class="text-xs uppercase tracking-widest text-slate-500">Struk Pembayaran</p>
             <h1 class="mt-2 text-xl font-bold">COGS Sederhana</h1>
@@ -17,7 +18,7 @@
             <div class="my-6 border-t border-b border-slate-200 py-4 text-left text-sm">
                 @foreach ($order->items as $item)
                     <div class="mb-2 flex justify-between gap-2">
-                        <span>{{ $item->product->name }} × {{ $format::number($item->quantity, 0) }}</span>
+                        <span class="min-w-0">{{ $item->product->name }} × {{ $format::number($item->quantity, 0) }}</span>
                         <span class="shrink-0 font-medium">{{ $format::rupiah($item->line_total) }}</span>
                     </div>
                 @endforeach
@@ -28,16 +29,16 @@
             <p class="mt-4 text-xs text-slate-400">Stok & COGS tercatat otomatis</p>
         </div>
 
-        <div class="mt-4 flex flex-wrap justify-center gap-2">
-            <button type="button" onclick="window.print()" class="btn-primary">Cetak</button>
-            <a href="{{ route('kasir.index') }}" class="btn-secondary">Kasir Baru</a>
+        <div class="form-actions mt-4">
+            <button type="button" onclick="window.print()" class="btn-primary w-full sm:w-auto">Cetak</button>
+            <a href="{{ route('kasir.index') }}" class="btn-secondary w-full sm:w-auto">Kasir Baru</a>
         </div>
     </div>
 
     <style>
         @media print {
-            header, .btn-primary, .btn-secondary { display: none !important; }
-            main { padding: 0 !important; }
+            header, #bottom-nav, .bottom-nav-spacer, .btn-primary, .btn-secondary { display: none !important; }
+            main, .app-scroll { padding: 0 !important; overflow: visible !important; }
             #receipt { border: none !important; box-shadow: none !important; }
         }
     </style>

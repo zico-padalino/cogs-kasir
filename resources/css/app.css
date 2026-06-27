@@ -693,4 +693,113 @@
         }
 
     }
+
+    /* ── Kasir POS (mobile-first) ── */
+    .kasir-bottom-nav {
+        @apply grid-cols-4;
+    }
+
+    .kasir-bottom-nav form button {
+        @apply border-0 bg-transparent;
+    }
+
+    .kasir-tabs {
+        @apply mb-4 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm;
+    }
+
+    .kasir-tab {
+        @apply relative inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition active:scale-[0.98];
+    }
+
+    .kasir-tab.is-active {
+        @apply bg-brand-600 text-white shadow-sm;
+    }
+
+    .kasir-tab-badge {
+        @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px] font-bold;
+    }
+
+    .kasir-tab.is-active .kasir-tab-badge {
+        @apply bg-white text-brand-600;
+    }
+
+    .pos-product-grid {
+        @apply grid grid-cols-2 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-3;
+    }
+
+    .pos-product-btn {
+        @apply flex h-full w-full flex-col rounded-xl border border-slate-200 bg-white p-3 text-left transition active:scale-[0.98] sm:p-4;
+    }
+
+    .pos-product-btn:hover {
+        @apply border-brand-400 shadow-md md:hover:border-brand-400;
+    }
+
+    .pos-product-empty {
+        @apply col-span-full px-2 py-10 text-center text-sm text-slate-500 sm:px-4;
+    }
+
+    .kasir-cart-bar {
+        @apply fixed inset-x-0 z-20 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur xl:hidden;
+        bottom: var(--bottom-nav-height, 5.5rem);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .kasir-cart-bar-inner {
+        @apply mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3;
+    }
+
+    .kasir-cart-item {
+        @apply touch-manipulation;
+    }
+
+    @media (max-width: 1279px) {
+        .kasir-pos {
+            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 0.5rem);
+        }
+
+        .kasir-pos:has(.kasir-cart-bar) {
+            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.5rem);
+        }
+
+        .kasir-panel-menu.hidden,
+        .kasir-panel-cart.hidden {
+            @apply !hidden;
+        }
+
+        .kasir-panel-menu.flex,
+        .kasir-panel-cart.flex {
+            @apply !flex flex-col;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .kasir-panel-menu,
+        .kasir-panel-cart {
+            @apply !block;
+        }
+    }
+
+    /* Pemesanan meja (pelanggan) */
+    .order-table-shell {
+        @apply min-h-screen bg-gradient-to-b from-brand-50 to-slate-100;
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        padding-top: max(1.5rem, env(safe-area-inset-top));
+    }
+
+    .order-menu-item {
+        @apply flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center;
+    }
+
+    .order-menu-actions {
+        @apply flex items-center gap-2 sm:shrink-0;
+    }
+
+    .order-qty-input {
+        @apply block w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-center text-sm text-slate-900 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 sm:w-16;
+    }
+
+    .order-cart-card {
+        @apply sticky bottom-4 rounded-xl border border-slate-200 bg-white p-4 shadow-lg sm:static sm:shadow-sm;
+    }
 }

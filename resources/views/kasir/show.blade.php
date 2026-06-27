@@ -1,15 +1,16 @@
 @extends('layouts.kasir')
 
 @section('title', 'Detail Pesanan')
+@section('heading', $order->order_number)
 
 @section('content')
-    <div class="mb-6">
-        <a href="{{ route('kasir.orders') }}" class="text-sm text-brand-600">← Kembali</a>
-        <h1 class="mt-2 text-2xl font-bold">{{ $order->order_number }}</h1>
-        <p class="text-sm text-slate-500">{{ $order->source->label() }} · {{ $order->table?->label ?? 'Walk-in' }}</p>
+    <div class="mb-4 sm:mb-6">
+        <a href="{{ route('kasir.orders') }}" class="page-back">← Kembali ke Riwayat</a>
+        <h1 class="mt-2 hidden text-2xl font-bold md:block">{{ $order->order_number }}</h1>
+        <p class="mt-1 text-sm text-slate-500">{{ $order->source->label() }} · {{ $order->table?->label ?? 'Walk-in' }}</p>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
+    <div class="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <x-table-card title="Item Pesanan">
             <table class="table-default">
                 <thead>
@@ -32,20 +33,32 @@
                 </tbody>
             </table>
             <x-slot:footer>
-                <p class="text-lg font-bold">Total: {{ $format::rupiah($order->total) }}</p>
+                <p class="w-full text-lg font-bold">Total: {{ $format::rupiah($order->total) }}</p>
                 @if ($order->status->value === 'paid')
-                    <a href="{{ route('kasir.receipt', $order) }}" class="btn-primary">Lihat Struk</a>
+                    <a href="{{ route('kasir.receipt', $order) }}" class="btn-primary w-full sm:w-auto">Lihat Struk</a>
                 @endif
             </x-slot:footer>
         </x-table-card>
 
         <div class="card">
             <h2 class="font-semibold">Info Pembayaran</h2>
-            <dl class="mt-4 space-y-2 text-sm">
-                <div class="flex justify-between"><dt>Status</dt><dd><span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span></dd></div>
-                <div class="flex justify-between"><dt>Metode</dt><dd>{{ $order->payment_method?->label() ?? '-' }}</dd></div>
-                <div class="flex justify-between"><dt>Kasir</dt><dd>{{ $order->cashier?->name ?? '-' }}</dd></div>
-                <div class="flex justify-between"><dt>Dibayar</dt><dd>{{ $order->paid_at?->format('d/m/Y H:i') ?? '-' }}</dd></div>
+            <dl class="detail-meta mt-4">
+                <div class="flex justify-between gap-4 sm:block">
+                    <dt>Status</dt>
+                    <dd><span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span></dd>
+                </div>
+                <div class="flex justify-between gap-4 sm:block">
+                    <dt>Metode</dt>
+                    <dd>{{ $order->payment_method?->label() ?? '-' }}</dd>
+                </div>
+                <div class="flex justify-between gap-4 sm:block">
+                    <dt>Kasir</dt>
+                    <dd>{{ $order->cashier?->name ?? '-' }}</dd>
+                </div>
+                <div class="flex justify-between gap-4 sm:block">
+                    <dt>Dibayar</dt>
+                    <dd>{{ $order->paid_at?->format('d/m/Y H:i') ?? '-' }}</dd>
+                </div>
             </dl>
         </div>
     </div>

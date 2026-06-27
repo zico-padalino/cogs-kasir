@@ -1,9 +1,10 @@
 @extends('layouts.kasir')
 
 @section('title', 'Riwayat Pesanan')
+@section('heading', 'Riwayat Pesanan')
 
 @section('content')
-    <h1 class="mb-6 text-2xl font-bold">Riwayat Pesanan</h1>
+    <h1 class="mb-4 hidden text-2xl font-bold md:block sm:mb-6">Riwayat Pesanan</h1>
 
     <x-table-card title="Semua Pesanan Kasir & Online">
         @if ($orders->isNotEmpty())
@@ -29,10 +30,12 @@
                             <td><span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span></td>
                             <td class="text-xs cell-muted">{{ $order->created_at->format('d/m/Y H:i') }}</td>
                             <td class="col-actions">
-                                <a href="{{ route('kasir.orders.show', $order) }}" class="btn-sm btn-ghost text-brand-700">Detail</a>
-                                @if ($order->status->value === 'paid')
-                                    <a href="{{ route('kasir.receipt', $order) }}" class="btn-sm btn-outline">Struk</a>
-                                @endif
+                                <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                                    <a href="{{ route('kasir.orders.show', $order) }}" class="btn-sm btn-ghost text-brand-700">Detail</a>
+                                    @if ($order->status->value === 'paid')
+                                        <a href="{{ route('kasir.receipt', $order) }}" class="btn-sm btn-outline">Struk</a>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach

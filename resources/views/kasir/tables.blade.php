@@ -1,23 +1,24 @@
 @extends('layouts.kasir')
 
 @section('title', 'Meja & Barcode')
+@section('heading', 'Meja & Barcode')
 
 @section('content')
     <div class="page-toolbar">
         <div>
-            <h1 class="text-2xl font-bold">Meja & Barcode</h1>
+            <h1 class="hidden text-2xl font-bold md:block">Meja & Barcode</h1>
             <p class="text-sm text-slate-500">Scan QR/barcode meja untuk pemesanan online pelanggan</p>
         </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-3">
+    <div class="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div class="card lg:col-span-1">
             <h2 class="mb-4 text-lg font-semibold">Tambah Meja</h2>
             <form action="{{ route('kasir.tables.store') }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
                     <label class="form-label">No. Meja</label>
-                    <input type="text" name="table_number" class="form-input" required placeholder="01">
+                    <input type="text" name="table_number" class="form-input" required placeholder="01" inputmode="numeric">
                 </div>
                 <div>
                     <label class="form-label">Label</label>
