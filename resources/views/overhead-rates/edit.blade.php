@@ -37,7 +37,7 @@
                     <span class="text-sm">Aktif</span>
                 </label>
 
-                <div class="flex gap-3">
+                <div class="form-actions">
                     <button type="submit" class="btn-primary">Simpan</button>
                     <a href="{{ route('overhead-rates.index') }}" class="btn-secondary">Batal</a>
                 </div>

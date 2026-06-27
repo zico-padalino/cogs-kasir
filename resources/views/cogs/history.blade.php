@@ -5,9 +5,11 @@
 @section('subheading', 'Riwayat semua perhitungan biaya produksi')
 
 @section('content')
+    <x-step-header number="6" title="Hasil Perhitungan COGS"
+        description="Read & Delete riwayat. Create via produksi atau hitung manual." />
+
     <div class="page-toolbar">
-        <x-step-header number="6" title="Hasil Perhitungan COGS"
-            description="Read & Delete riwayat. Create via produksi atau hitung manual." />
+        <p class="text-sm text-slate-500 sm:flex-1">Kelola riwayat perhitungan biaya produksi.</p>
         <a href="{{ route('cogs.calculate') }}" class="btn-primary shrink-0">+ Hitung COGS Baru</a>
     </div>
 

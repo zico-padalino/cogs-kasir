@@ -9,7 +9,7 @@
         description="Tambah stok baru di form kiri. Edit/hapus per lot di tabel kanan." />
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <div class="card lg:col-span-1">
+        <div class="card order-2 lg:order-1 lg:col-span-1">
             <h2 class="mb-1 text-lg font-semibold">+ Tambah Stok</h2>
             <p class="mb-4 text-xs text-slate-500">Terima stok bahan baru</p>
             <form action="{{ route('inventory.receive') }}" method="POST" class="space-y-4">
@@ -38,7 +38,7 @@
             </form>
         </div>
 
-        <div class="lg:col-span-2">
+        <div class="order-1 lg:order-2 lg:col-span-2">
             <x-table-card title="Daftar Lot Stok" subtitle="{{ $lots->count() }} lot tersedia">
                 @if ($lots->isNotEmpty())
                     <table class="table-default">

@@ -12,5 +12,5 @@
 
 <div class="card border {{ $colors[$color] ?? $colors['brand'] }}">
     <p class="text-xs font-medium uppercase tracking-wide opacity-80">{{ $label }}</p>
-    <p class="mt-2 text-2xl font-bold">{{ $value }}</p>
+    <p class="mt-2 text-xl font-bold sm:text-2xl">{{ $value }}</p>
 </div>

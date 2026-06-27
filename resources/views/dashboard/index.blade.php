@@ -49,7 +49,7 @@
         </div>
 
         {{-- Progress --}}
-        <div class="mb-6 flex items-center gap-4">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div class="flex-1">
                 <div class="flex justify-between text-sm">
                     <span class="font-medium text-slate-700">Progress</span>
@@ -59,7 +59,7 @@
                     <div class="h-full rounded-full bg-brand-600 transition-all" style="width: {{ $progress['percent'] }}%"></div>
                 </div>
             </div>
-            <a href="{{ route($progress['current']['route']) }}" class="btn-primary shrink-0">Lanjut Langkah {{ $progress['current']['number'] }}</a>
+            <a href="{{ route($progress['current']['route']) }}" class="btn-primary w-full shrink-0 text-center sm:w-auto">Lanjut Langkah {{ $progress['current']['number'] }}</a>
         </div>
 
         {{-- 6 Langkah --}}
@@ -74,13 +74,13 @@
                                 {{ $step['number'] }}
                             @endif
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <h3 class="font-semibold text-slate-900">{{ $step['title'] }}</h3>
                             <p class="mt-1 text-sm text-slate-600">{{ $step['description'] }}</p>
                             <p class="mt-2 text-xs text-slate-500">💡 {{ $step['hint'] }}</p>
                         </div>
                     </div>
-                    <a href="{{ route($step['route']) }}" class="{{ $step['done'] ? 'btn-secondary' : 'btn-primary' }} shrink-0 text-center">
+                    <a href="{{ route($step['route']) }}" class="{{ $step['done'] ? 'btn-secondary' : 'btn-primary' }} w-full shrink-0 text-center sm:w-auto">
                         {{ $step['done'] ? 'Buka lagi' : 'Mulai' }}
                     </a>
                 </div>
@@ -127,12 +127,12 @@
     @endif
 
     <div class="mt-10 card border-slate-200">
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div>
                 <h3 class="font-semibold text-slate-800">Reset Data</h3>
                 <p class="mt-1 text-sm text-slate-500">Hapus semua data dan mulai ulang dari langkah 1.</p>
             </div>
-            <a href="{{ route('reset-data.show') }}" class="btn-danger">Reset Semua Data</a>
+            <a href="{{ route('reset-data.show') }}" class="btn-danger w-full sm:w-auto">Reset Semua Data</a>
         </div>
     </div>
 @endsection

@@ -16,7 +16,7 @@
     </div>
 
     <div class="card mb-6">
-        <dl class="grid gap-4 sm:grid-cols-2 text-sm">
+        <dl class="detail-meta">
             <div><dt class="text-slate-500">Produk</dt><dd class="font-medium">{{ $calculation->product->name }}</dd></div>
             <div><dt class="text-slate-500">Jumlah</dt><dd class="font-medium">{{ $format::number($calculation->quantity, 0) }} {{ $calculation->product->unit }}</dd></div>
             <div><dt class="text-slate-500">Overhead</dt><dd class="font-medium">{{ $format::rupiah($calculation->manufacturing_overhead) }}</dd></div>
@@ -25,12 +25,12 @@
         </dl>
     </div>
 
-    <div class="flex flex-wrap gap-3">
-        <a href="{{ route('cogs.history') }}" class="btn-secondary">← Kembali ke Daftar</a>
-        <a href="{{ route('cogs.calculate') }}" class="btn-primary">+ Hitung COGS Baru</a>
+    <x-page-actions>
+        <a href="{{ route('cogs.history') }}" class="btn-secondary">← Daftar</a>
+        <a href="{{ route('cogs.calculate') }}" class="btn-primary">+ Hitung Baru</a>
         <form action="{{ route('cogs.history.destroy', $calculation) }}" method="POST" onsubmit="return confirm('Hapus riwayat ini?')">
             @csrf @method('DELETE')
             <button type="submit" class="btn-danger">Hapus</button>
         </form>
-    </div>
+    </x-page-actions>
 @endsection

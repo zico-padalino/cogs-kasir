@@ -7,19 +7,36 @@
     $percent = \App\Support\SetupProgress::percentComplete();
 @endphp
 
-<div class="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-    <div class="mb-3 flex items-center justify-between gap-4">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-brand-600">Panduan Langkah demi Langkah</p>
-            <p class="text-sm text-slate-500">{{ $percent }}% selesai · Langkah {{ $current }} dari 6</p>
+<div class="step-progress mb-4 sm:mb-6">
+    <div class="step-progress-header">
+        <div class="min-w-0 flex-1">
+            <p class="step-progress-label">Langkah {{ $current }} dari 6</p>
+            <p class="step-progress-sub">{{ $percent }}% selesai</p>
         </div>
-        <a href="{{ route('dashboard') }}" class="text-xs font-medium text-brand-600 hover:text-brand-700">Lihat panduan →</a>
+        <a href="{{ route('dashboard') }}" class="step-progress-link hidden sm:inline-flex">Panduan lengkap →</a>
     </div>
 
-    <div class="mb-3 h-2 overflow-hidden rounded-full bg-slate-100">
-        <div class="h-full rounded-full bg-brand-600 transition-all" style="width: {{ $percent }}%"></div>
+    <div class="step-progress-bar">
+        <div class="step-progress-fill" style="width: {{ $percent }}%"></div>
     </div>
 
+    {{-- Mobile: grid 3×2 — semua langkah terlihat tanpa scroll --}}
+    <div class="step-grid-mobile sm:hidden">
+        @foreach ($steps as $s)
+            @php
+                $isActive = $s['number'] === $current;
+                $isDone = $s['done'];
+            @endphp
+            <a href="{{ route($s['route']) }}"
+               class="step-pill {{ $isDone ? 'is-done' : ($isActive ? 'is-active' : '') }}"
+               aria-current="{{ $isActive ? 'step' : 'false' }}">
+                <span class="step-pill-num">{{ $isDone ? '✓' : $s['number'] }}</span>
+                <span class="step-pill-text">{{ $s['short'] }}</span>
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Desktop --}}
     <div class="hidden gap-1 sm:grid sm:grid-cols-6">
         @foreach ($steps as $s)
             @php

@@ -38,8 +38,8 @@
                     </div>
                 </div>
 
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-slate-900">Masuk ke sistem</h2>
+                <div class="mb-6">
+                    <h2 class="text-lg font-bold text-slate-900 sm:text-2xl">Masuk ke sistem</h2>
                     <p class="mt-1 text-sm text-slate-500">Pilih modul, lalu masukkan email dan password Anda.</p>
                 </div>
 

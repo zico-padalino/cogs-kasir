@@ -37,10 +37,10 @@
                         </div>
                         <div id="labor-rows" class="space-y-3">
                             <p class="text-xs text-slate-500">Tenaga kerja langsung:</p>
-                        <div class="grid grid-cols-12 gap-2">
-                            <input type="text" name="labors[0][description]" class="form-input col-span-5" value="Operator" placeholder="Nama pekerjaan">
-                            <input type="number" name="labors[0][labor_hours]" class="form-input col-span-3" step="0.1" value="8" placeholder="Jam">
-                            <div class="col-span-4">
+                        <div class="labor-row">
+                            <input type="text" name="labors[0][description]" class="form-input labor-row-desc" value="Operator" placeholder="Nama pekerjaan">
+                            <input type="number" name="labors[0][labor_hours]" class="form-input labor-row-hours" step="0.1" value="8" placeholder="Jam">
+                            <div class="labor-row-rate">
                                 <x-rupiah-input name="labors[0][hourly_rate]" :value="20000" placeholder="20.000" class="text-sm" />
                             </div>
                         </div>
@@ -52,7 +52,7 @@
                     </div>
                 </details>
 
-                <div class="flex gap-3">
+                <div class="form-actions">
                     <button type="submit" class="btn-primary">Buat Order</button>
                     <a href="{{ route('production-orders.index') }}" class="btn-secondary">Batal</a>
                 </div>

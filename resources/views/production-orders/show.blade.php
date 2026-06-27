@@ -15,13 +15,13 @@
     @endphp
 
     <div class="card mb-6">
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-col gap-4">
             <div>
                 <span class="rounded-full px-3 py-1 text-sm font-medium {{ $statusInfo[2] }}">{{ $statusInfo[0] }}</span>
                 <p class="mt-2 text-sm text-slate-500">{{ $statusInfo[1] }}</p>
             </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-2">
+            <div class="page-actions-group">
                 @if ($order->status->value === 'draft')
                     <form action="{{ route('production-orders.start', $order) }}" method="POST">
                         @csrf
@@ -65,9 +65,9 @@
             <x-stat-card label="Biaya/Unit" :value="$format::rupiah($cogs->unit_cogs, 2)" color="slate" />
         </div>
 
-        <div class="mb-6 rounded-xl border-2 border-brand-200 bg-brand-50 p-6 text-center">
+        <div class="hero-stat mb-6">
             <p class="text-sm text-slate-600">Biaya per 1 {{ $order->product->unit }} {{ $order->product->name }}</p>
-            <p class="mt-2 text-4xl font-bold text-brand-700">{{ $format::rupiah($cogs->unit_cogs, 2) }}</p>
+            <p class="hero-stat-value">{{ $format::rupiah($cogs->unit_cogs, 2) }}</p>
             <p class="mt-2 text-xs text-slate-500">= Bahan + Tenaga Kerja + Overhead</p>
         </div>
     @else
@@ -126,7 +126,5 @@
         </div>
     </div>
 
-    <div class="mt-6">
-        <a href="{{ route('production-orders.index') }}" class="text-sm text-brand-600">← Kembali</a>
-    </div>
+    <x-page-actions :back="route('production-orders.index')" back-label="← Daftar produksi" />
 @endsection

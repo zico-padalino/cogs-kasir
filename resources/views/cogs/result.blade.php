@@ -55,7 +55,7 @@
         </div>
     @endif
 
-    <div class="mt-6 flex gap-4">
+    <div class="form-actions mt-6">
         <a href="{{ route('cogs.calculate') }}" class="btn-primary">Hitung Lagi</a>
         <a href="{{ route('cogs.history') }}" class="btn-secondary">Lihat Riwayat</a>
     </div>

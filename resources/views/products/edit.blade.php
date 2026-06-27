@@ -62,7 +62,7 @@
                     <span class="text-sm">Produk aktif</span>
                 </label>
 
-                <div class="flex gap-3">
+                <div class="form-actions">
                     <button type="submit" class="btn-primary">Simpan Perubahan</button>
                     <a href="{{ route('products.show', $product) }}" class="btn-secondary">Batal</a>
                 </div>

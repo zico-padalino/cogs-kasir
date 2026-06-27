@@ -5,23 +5,20 @@
 @section('subheading', $product->sku . ' · ' . $product->type->label())
 
 @section('content')
-    <div class="page-toolbar">
-        <a href="{{ route('products.index') }}" class="btn-ghost text-sm text-brand-600">← Kembali ke daftar</a>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('products.edit', $product) }}" class="btn-secondary btn-sm">Edit Produk</a>
-            <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Hapus produk ini?')">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn-outline-danger btn-sm">Hapus Produk</button>
-            </form>
-        </div>
-    </div>
+    <x-page-actions :back="route('products.index')" back-label="← Daftar produk">
+        <a href="{{ route('products.edit', $product) }}" class="btn-secondary btn-sm">Edit Produk</a>
+        <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Hapus produk ini?')">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn-outline-danger btn-sm">Hapus Produk</button>
+        </form>
+    </x-page-actions>
 
     @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
         <x-step-header number="3" title="Resep Produksi (BOM)"
             description="Tentukan bahan apa saja dan berapa banyak yang dibutuhkan untuk 1 {{ $product->unit }} {{ $product->name }}." />
     @endif
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <div class="card">
             <p class="text-xs text-slate-500">Stok Tersedia</p>
             <p class="mt-1 text-xl font-bold">{{ $format::number($product->availableQuantity(), 2) }} {{ $product->unit }}</p>
@@ -97,7 +94,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <label class="form-label">Jumlah per unit</label>
                         <input type="number" name="quantity" class="form-input" step="0.0001" min="0.0001" required placeholder="0.5">
@@ -107,12 +104,12 @@
                         <input type="number" name="scrap_percentage" class="form-input" step="0.1" min="0" value="0">
                     </div>
                 </div>
-                <button type="submit" class="btn-primary">Tambah ke Resep</button>
+                <button type="submit" class="btn-primary w-full sm:w-auto">Tambah ke Resep</button>
             </form>
 
             @if ($product->billOfMaterials->isNotEmpty())
                 <div class="mt-6 border-t border-slate-100 pt-4">
-                    <a href="{{ route('inventory.index') }}" class="btn-primary">Lanjut ke Langkah 4: Stok Bahan →</a>
+                    <a href="{{ route('inventory.index') }}" class="btn-primary w-full sm:w-auto">Lanjut ke Langkah 4: Stok Bahan →</a>
                 </div>
             @endif
         </div>
@@ -148,7 +145,5 @@
         </div>
     @endif
 
-    <div class="mt-6">
-        <a href="{{ route('products.index') }}" class="text-sm text-brand-600">← Kembali ke daftar produk</a>
-    </div>
+    <x-page-actions :back="route('products.index')" back-label="← Daftar produk" />
 @endsection

@@ -9,7 +9,7 @@
         description="Overhead = biaya yang tidak langsung terlihat di produk, tapi tetap dibutuhkan saat produksi. Contoh: 15% dari total biaya bahan baku." />
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <div class="card">
+        <div class="card order-2 lg:order-1">
             <h2 class="mb-1 text-lg font-semibold">Tambah Tarif</h2>
             <p class="mb-4 text-xs text-slate-500">Isi nama, cara hitung, dan nilainya.</p>
             <form action="{{ route('overhead-rates.store') }}" method="POST" class="space-y-4">
@@ -47,7 +47,7 @@
             </div>
         </div>
 
-        <div class="lg:col-span-2">
+        <div class="order-1 lg:order-2 lg:col-span-2">
             <x-table-card title="Daftar Overhead" subtitle="{{ $rates->count() }} tarif aktif">
                 @if ($rates->isNotEmpty())
                     <table class="table-default">

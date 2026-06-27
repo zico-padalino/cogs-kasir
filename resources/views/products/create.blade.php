@@ -61,7 +61,7 @@
                     </div>
                 </details>
 
-                <div class="flex gap-3 pt-2">
+                <div class="form-actions pt-2">
                     <button type="submit" class="btn-primary">Simpan Produk</button>
                     <a href="{{ route('products.index') }}" class="btn-secondary">Batal</a>
                 </div>

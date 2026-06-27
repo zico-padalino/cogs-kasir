@@ -39,26 +39,26 @@
                 <div class="space-y-3">
                     <p class="text-sm font-medium">Tenaga Kerja</p>
                     @foreach ($order->labors as $i => $labor)
-                        <div class="grid grid-cols-12 gap-2">
-                            <input type="text" name="labors[{{ $i }}][description]" class="form-input col-span-5" value="{{ $labor->description }}">
-                            <input type="number" name="labors[{{ $i }}][labor_hours]" class="form-input col-span-3" step="0.1" value="{{ $labor->labor_hours }}">
-                            <div class="col-span-4">
+                        <div class="labor-row">
+                            <input type="text" name="labors[{{ $i }}][description]" class="form-input labor-row-desc" value="{{ $labor->description }}">
+                            <input type="number" name="labors[{{ $i }}][labor_hours]" class="form-input labor-row-hours" step="0.1" value="{{ $labor->labor_hours }}">
+                            <div class="labor-row-rate">
                                 <x-rupiah-input name="labors[{{ $i }}][hourly_rate]" :value="$labor->hourly_rate" class="text-sm" />
                             </div>
                         </div>
                     @endforeach
                     @if ($order->labors->isEmpty())
-                        <div class="grid grid-cols-12 gap-2">
-                            <input type="text" name="labors[0][description]" class="form-input col-span-5" placeholder="Operator">
-                            <input type="number" name="labors[0][labor_hours]" class="form-input col-span-3" step="0.1" value="8">
-                            <div class="col-span-4">
+                        <div class="labor-row">
+                            <input type="text" name="labors[0][description]" class="form-input labor-row-desc" placeholder="Operator">
+                            <input type="number" name="labors[0][labor_hours]" class="form-input labor-row-hours" step="0.1" value="8">
+                            <div class="labor-row-rate">
                                 <x-rupiah-input name="labors[0][hourly_rate]" :value="20000" class="text-sm" />
                             </div>
                         </div>
                     @endif
                 </div>
 
-                <div class="flex gap-3">
+                <div class="form-actions">
                     <button type="submit" class="btn-primary">Simpan Perubahan</button>
                     <a href="{{ route('production-orders.show', $order) }}" class="btn-secondary">Batal</a>
                 </div>

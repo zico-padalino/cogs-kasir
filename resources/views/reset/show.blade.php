@@ -36,7 +36,7 @@
                     <input type="text" name="confirmation" class="form-input" placeholder="RESET" required autocomplete="off">
                 </div>
 
-                <div class="flex gap-3">
+                <div class="form-actions pt-2">
                     <button type="submit" class="btn-danger" onclick="return confirm('Yakin hapus SEMUA data?')">
                         Reset — Kosongkan Database
                     </button>

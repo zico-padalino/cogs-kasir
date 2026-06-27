@@ -10,6 +10,9 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
     --color-brand-50: #eef2ff;
     --color-brand-100: #e0e7ff;
+    --color-brand-200: #c7d2fe;
+    --color-brand-300: #a5b4fc;
+    --color-brand-400: #818cf8;
     --color-brand-500: #6366f1;
     --color-brand-600: #4f46e5;
     --color-brand-700: #4338ca;
@@ -259,11 +262,13 @@
     }
 
     .auth-panel {
-        @apply flex items-center justify-center px-4 py-10 sm:px-8;
+        @apply flex items-center justify-center px-4 py-8 sm:px-8 sm:py-10;
+        padding-bottom: max(2rem, env(safe-area-inset-bottom));
+        padding-top: max(1.5rem, env(safe-area-inset-top));
     }
 
     .auth-panel-inner {
-        @apply w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8;
+        @apply w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8;
     }
 
     .auth-module-tabs {
@@ -296,5 +301,338 @@
 
     .auth-demo-box {
         @apply rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm;
+    }
+
+    /* ── Mobile shell ── */
+    .mobile-topbar {
+        @apply sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+    }
+
+    .mobile-menu-btn {
+        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition active:scale-95;
+    }
+
+    .mobile-overlay {
+        @apply fixed inset-0 z-40 bg-slate-900/50 opacity-0 backdrop-blur-sm transition-opacity duration-200;
+    }
+
+    .bottom-nav {
+        @apply fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .bottom-nav-inner {
+        @apply mx-auto grid max-w-lg grid-cols-5 gap-0;
+    }
+
+    .bottom-nav-link {
+        @apply flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-500 transition active:bg-slate-50;
+    }
+
+    .bottom-nav-link.is-active {
+        @apply text-brand-600;
+    }
+
+    .bottom-nav-icon {
+        @apply text-lg leading-none;
+    }
+
+    .main-mobile-pad {
+        @apply md:pb-6;
+        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    @media (min-width: 768px) {
+        .main-mobile-pad {
+            padding-bottom: 1.5rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        html {
+            scroll-padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
+        }
+    }
+
+    /* ── Step progress (mobile-first) ── */
+    .step-progress {
+        @apply rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4;
+    }
+
+    .step-progress-header {
+        @apply mb-2 flex items-center justify-between gap-3;
+    }
+
+    .step-progress-label {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .step-progress-sub {
+        @apply text-xs text-slate-500;
+    }
+
+    .step-progress-link {
+        @apply shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700;
+    }
+
+    .step-progress-bar {
+        @apply mb-3 h-1.5 overflow-hidden rounded-full bg-slate-100;
+    }
+
+    .step-progress-fill {
+        @apply h-full rounded-full bg-brand-600 transition-all;
+    }
+
+    .step-grid-mobile {
+        @apply grid grid-cols-3 gap-1.5;
+    }
+
+    .step-pill {
+        @apply flex min-h-[4.25rem] flex-col items-center justify-center gap-1 rounded-xl border border-slate-100 bg-slate-50 px-1.5 py-2 text-center transition active:scale-[0.98];
+    }
+
+    .step-pill.is-active {
+        @apply border-brand-300 bg-brand-50 ring-2 ring-brand-400/40;
+    }
+
+    .step-pill.is-done {
+        @apply border-green-200 bg-green-50;
+    }
+
+    .step-pill-num {
+        @apply flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600;
+    }
+
+    .step-pill.is-active .step-pill-num {
+        @apply bg-brand-600 text-white;
+    }
+
+    .step-pill.is-done .step-pill-num {
+        @apply bg-green-600 text-white;
+    }
+
+    .step-pill-text {
+        @apply line-clamp-2 text-[10px] font-semibold leading-tight text-slate-600;
+    }
+
+    .step-pill.is-active .step-pill-text {
+        @apply text-brand-800;
+    }
+
+    .step-pill.is-done .step-pill-text {
+        @apply text-green-800;
+    }
+
+    /* ── Step header ── */
+    .step-header {
+        @apply flex gap-3 rounded-xl border border-brand-100 bg-brand-50/50 p-3 sm:p-4;
+    }
+
+    .step-header-badge {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white sm:h-10 sm:w-10;
+    }
+
+    .step-header-title {
+        @apply text-sm font-semibold text-slate-900 sm:text-base;
+    }
+
+    .step-header-desc {
+        @apply mt-1 text-xs leading-relaxed text-slate-600 sm:text-sm;
+    }
+
+    /* ── Page actions toolbar ── */
+    .page-actions {
+        @apply mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between;
+    }
+
+    .page-back {
+        @apply inline-flex min-h-10 items-center text-sm font-medium text-brand-600 hover:text-brand-700;
+    }
+
+    .page-actions-group {
+        @apply flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end;
+    }
+
+    .form-actions {
+        @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3;
+    }
+
+    .hero-stat {
+        @apply rounded-xl border-2 border-brand-200 bg-brand-50 p-4 text-center sm:p-6;
+    }
+
+    .hero-stat-value {
+        @apply mt-2 text-2xl font-bold text-brand-700 sm:text-4xl;
+    }
+
+    .detail-meta {
+        @apply grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:gap-4;
+    }
+
+    .detail-meta dt {
+        @apply text-slate-500;
+    }
+
+    .detail-meta dd {
+        @apply font-medium text-slate-900;
+    }
+
+    .labor-row {
+        @apply grid grid-cols-1 gap-2 sm:grid-cols-12;
+    }
+
+    .labor-row-desc {
+        @apply sm:col-span-5;
+    }
+
+    .labor-row-hours {
+        @apply sm:col-span-3;
+    }
+
+    .labor-row-rate {
+        @apply sm:col-span-4;
+    }
+
+    /* ── Responsive stacked tables ── */
+    @media (max-width: 767px) {
+        .table-stacked thead {
+            @apply hidden;
+        }
+
+        .table-stacked tbody {
+            @apply block p-3;
+        }
+
+        .table-stacked tbody tr {
+            @apply mb-3 block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm last:mb-0;
+        }
+
+        .table-stacked tbody tr:nth-child(even) {
+            @apply bg-white;
+        }
+
+        .table-stacked td {
+            @apply flex items-start justify-between gap-4 border-b border-slate-100 px-4 py-3 text-right last:border-b-0;
+        }
+
+        .table-stacked td::before {
+            content: attr(data-label);
+            @apply shrink-0 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+        }
+
+        .table-stacked td.col-actions {
+            @apply justify-end border-t border-slate-100 bg-slate-50/80 pt-3;
+        }
+
+        .table-stacked td.col-actions::before {
+            content: none;
+        }
+
+        .table-scroll {
+            @apply overflow-x-visible;
+        }
+
+        .card {
+            @apply p-4;
+        }
+
+        .table-card-header,
+        .table-card-footer {
+            @apply px-4 py-3;
+        }
+
+        .table-card-footer {
+            @apply flex-col items-stretch;
+        }
+
+        .table-card-footer .btn-primary,
+        .table-card-footer .btn-secondary {
+            @apply w-full justify-center;
+        }
+
+        .page-toolbar {
+            @apply flex-col items-stretch;
+        }
+
+        .page-toolbar .btn-primary,
+        .page-toolbar .btn-secondary,
+        .page-toolbar .btn-danger {
+            @apply w-full justify-center;
+        }
+
+        .form-input,
+        .form-input select,
+        select.form-input {
+            @apply min-h-11 text-base;
+        }
+
+        .btn-primary,
+        .btn-secondary,
+        .btn-danger {
+            @apply min-h-11;
+        }
+
+        .btn-sm {
+            @apply min-h-10 px-3 py-2 text-xs;
+        }
+
+        .inline-edit summary {
+            @apply min-h-10 px-3 py-2;
+        }
+
+        .empty-state {
+            @apply px-4 py-10;
+        }
+
+        .page-actions-group .btn-primary,
+        .page-actions-group .btn-secondary,
+        .page-actions-group .btn-danger,
+        .page-actions-group .btn-outline,
+        .page-actions-group .btn-outline-danger,
+        .page-actions-group .btn-sm,
+        .page-actions-group form {
+            @apply w-full;
+        }
+
+        .page-actions-group .btn-primary,
+        .page-actions-group .btn-secondary,
+        .page-actions-group .btn-danger,
+        .page-actions-group .btn-outline,
+        .page-actions-group .btn-outline-danger,
+        .page-actions-group .btn-sm {
+            @apply justify-center;
+        }
+
+        .page-actions-group form button {
+            @apply w-full justify-center;
+        }
+
+        .form-actions .btn-primary,
+        .form-actions .btn-secondary,
+        .form-actions .btn-danger {
+            @apply w-full justify-center;
+        }
+
+        .alert-tip {
+            @apply w-full text-xs leading-relaxed;
+        }
+
+        .table-stacked td {
+            @apply text-sm;
+        }
+
+        .table-stacked td .font-semibold {
+            @apply text-left;
+        }
+
+        .pagination-wrap nav a,
+        .pagination-wrap nav span {
+            @apply min-h-10 min-w-10;
+        }
+
+        .mobile-topbar + header + main .step-progress {
+            @apply -mt-1;
+        }
     }
 }
