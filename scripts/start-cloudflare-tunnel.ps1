@@ -76,16 +76,21 @@ function Test-Php {
     return [bool](Get-Command php -ErrorAction SilentlyContinue)
 }
 
-function Wait-QuickTunnelUrl([string]$logPath, [int]$timeoutSeconds = 90) {
+function Wait-QuickTunnelUrl([string]$logPath, [string]$errLogPath, [int]$timeoutSeconds = 90) {
     $deadline = (Get-Date).AddSeconds($timeoutSeconds)
 
     while ((Get-Date) -lt $deadline) {
-        if (Test-Path $logPath) {
-            $content = Get-Content $logPath -Raw -ErrorAction SilentlyContinue
-            if ($content -and $content -match '(https://[a-z0-9-]+\.trycloudflare\.com)') {
-                return $Matches[1]
+        $content = ""
+        foreach ($path in @($logPath, $errLogPath)) {
+            if ($path -and (Test-Path $path)) {
+                $content += Get-Content $path -Raw -ErrorAction SilentlyContinue
             }
         }
+
+        if ($content -and $content -match '(https://[a-z0-9-]+\.trycloudflare\.com)') {
+            return $Matches[1]
+        }
+
         Start-Sleep -Seconds 1
     }
 
@@ -94,7 +99,7 @@ function Wait-QuickTunnelUrl([string]$logPath, [int]$timeoutSeconds = 90) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  COGS Perhitungan — Cloudflare Tunnel" -ForegroundColor Cyan
+Write-Host "  COGS Perhitungan - Cloudflare Tunnel" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -128,11 +133,20 @@ if ($Mode -eq "Named" -and -not (Test-Path $configPath)) {
     throw "Named tunnel belum dikonfigurasi."
 }
 
-Write-Ok "[OK] PHP: $(php -r 'echo PHP_VERSION;')"
-Write-Ok "[OK] cloudflared: $(cloudflared --version)"
-Write-Ok "[OK] Laravel: $localUrl"
+$phpVersion = (php -r "echo PHP_VERSION;")
+$cfVersion = (cloudflared --version 2>&1 | Out-String).Trim()
+Write-Ok "OK PHP: $phpVersion"
+Write-Ok "OK cloudflared: $cfVersion"
+Write-Ok "OK Laravel: $localUrl"
+
+if ([string]::IsNullOrWhiteSpace((Get-EnvValue "APP_KEY"))) {
+    Write-Warn "APP_KEY kosong - generate otomatis..."
+    php artisan key:generate --force | Out-Null
+    Write-Ok "APP_KEY sudah dibuat."
+}
+
 Write-Host ""
-Write-Warn "Pastikan MySQL/XAMPP sudah berjalan — tunnel hanya membuka Laravel, bukan database."
+Write-Warn "Pastikan MySQL/XAMPP sudah berjalan - tunnel hanya membuka Laravel, bukan database."
 Write-Host ""
 
 Write-Info "Membersihkan cache config Laravel..."
@@ -155,8 +169,9 @@ if ($phpJob.State -eq "Failed") {
 Write-Ok "Laravel berjalan di $localUrl (Job ID: $($phpJob.Id))"
 Write-Host ""
 
-$tunnelJob = $null
+$tunnelProcess = $null
 $tunnelLog = Join-Path $env:TEMP "cogs-cloudflared.log"
+$tunnelErrLog = Join-Path $env:TEMP "cogs-cloudflared.err.log"
 
 try {
     if ($Mode -eq "Named") {
@@ -181,21 +196,33 @@ try {
         cloudflared tunnel --config $configPath run
     } else {
         Write-Info "Mode: Quick tunnel (URL sementara trycloudflare.com)"
-        Write-Host "Cocok untuk demo — URL berubah setiap kali dijalankan." -ForegroundColor Gray
+        Write-Host "Cocok untuk demo - URL berubah setiap kali dijalankan." -ForegroundColor Gray
         Write-Host ""
 
         if (Test-Path $tunnelLog) {
             Remove-Item $tunnelLog -Force -ErrorAction SilentlyContinue
         }
+        if (Test-Path $tunnelErrLog) {
+            Remove-Item $tunnelErrLog -Force -ErrorAction SilentlyContinue
+        }
 
-        $tunnelJob = Start-Job -ScriptBlock {
-            param($targetUrl, $logPath)
-            cloudflared tunnel --url $targetUrl --loglevel info 2>&1 |
-                Tee-Object -FilePath $logPath
-        } -ArgumentList $localUrl, $tunnelLog
+        $tunnelProcess = Start-Process -FilePath "cloudflared" `
+            -ArgumentList @("tunnel", "--url", $localUrl, "--loglevel", "info") `
+            -RedirectStandardOutput $tunnelLog `
+            -RedirectStandardError $tunnelErrLog `
+            -NoNewWindow `
+            -PassThru
+
+        Start-Sleep -Seconds 2
+
+        if ($tunnelProcess.HasExited) {
+            $errOutput = Get-Content $tunnelErrLog -Raw -ErrorAction SilentlyContinue
+            $outOutput = Get-Content $tunnelLog -Raw -ErrorAction SilentlyContinue
+            throw "cloudflared berhenti prematur: $($errOutput + $outOutput)"
+        }
 
         Write-Info "Menunggu URL publik dari Cloudflare..."
-        $publicUrl = Wait-QuickTunnelUrl $tunnelLog
+        $publicUrl = Wait-QuickTunnelUrl $tunnelLog $tunnelErrLog
 
         if ($publicUrl) {
             Write-Host ""
@@ -204,7 +231,9 @@ try {
             Write-Ok "APP_URL di .env diperbarui (QR meja & link kasir memakai URL ini)."
             Write-Host ""
         } else {
-            Write-Warn "URL belum terdeteksi otomatis. Lihat log: $tunnelLog"
+            Write-Warn "URL belum terdeteksi otomatis. Lihat log:"
+            Write-Host "  $tunnelLog" -ForegroundColor Gray
+            Write-Host "  $tunnelErrLog" -ForegroundColor Gray
             Write-Warn "Set manual APP_URL=https://....trycloudflare.com lalu php artisan config:clear"
             Write-Host ""
         }
@@ -212,15 +241,24 @@ try {
         Write-Warn "Tekan Ctrl+C untuk menghentikan tunnel + server."
         Write-Host ""
 
-        Wait-Job $tunnelJob
+        while (-not $tunnelProcess.HasExited) {
+            Start-Sleep -Seconds 1
+        }
+
+        if ($tunnelProcess.ExitCode -ne 0) {
+            $errOutput = Get-Content $tunnelErrLog -Raw -ErrorAction SilentlyContinue
+            Write-Warn "cloudflared exit code: $($tunnelProcess.ExitCode)"
+            if ($errOutput) {
+                Write-Host $errOutput -ForegroundColor Yellow
+            }
+        }
     }
 } finally {
     Write-Host ""
     Write-Info "Menghentikan proses..."
 
-    if ($tunnelJob) {
-        Stop-Job $tunnelJob -ErrorAction SilentlyContinue
-        Remove-Job $tunnelJob -Force -ErrorAction SilentlyContinue
+    if ($tunnelProcess -and -not $tunnelProcess.HasExited) {
+        Stop-Process -Id $tunnelProcess.Id -Force -ErrorAction SilentlyContinue
     }
 
     if ($phpJob) {

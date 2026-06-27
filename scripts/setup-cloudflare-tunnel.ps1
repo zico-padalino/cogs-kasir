@@ -13,7 +13,7 @@ function Test-Cloudflared {
 }
 
 if (-not (Test-Cloudflared)) {
-    Write-Host "[!] cloudflared belum terpasang." -ForegroundColor Yellow
+    Write-Host '[!] cloudflared belum terpasang.' -ForegroundColor Yellow
     Write-Host "    Install via winget:" -ForegroundColor Gray
     Write-Host "    winget install --id Cloudflare.cloudflared" -ForegroundColor White
     Write-Host ""
@@ -30,7 +30,7 @@ if (-not (Test-Cloudflared)) {
     throw "cloudflared masih tidak ditemukan di PATH. Restart terminal lalu coba lagi."
 }
 
-Write-Host "[OK] cloudflared: $(cloudflared --version)" -ForegroundColor Green
+Write-Host ('[OK] cloudflared: ' + (cloudflared --version)) -ForegroundColor Green
 Write-Host ""
 
 $tunnelName = Read-Host "Nama tunnel [cogs-perhitungan]"
@@ -73,9 +73,9 @@ if (-not (Test-Path $credFile)) {
     $defaultCred = Join-Path $env:USERPROFILE ".cloudflared\$tunnelId.json"
     if (Test-Path $defaultCred) {
         Copy-Item $defaultCred $credFile -Force
-        Write-Host "[OK] Credentials disalin ke scripts/cloudflare/" -ForegroundColor Green
+        Write-Host '[OK] Credentials disalin ke scripts/cloudflare/' -ForegroundColor Green
     } else {
-        Write-Host "[!] File credentials tidak ditemukan. Pastikan tunnel create berhasil." -ForegroundColor Yellow
+        Write-Host '[!] File credentials tidak ditemukan. Pastikan tunnel create berhasil.' -ForegroundColor Yellow
     }
 }
 
