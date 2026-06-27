@@ -9,7 +9,7 @@
     <title>@yield('title', 'Kasir') — POS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
+<body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased @yield('body_class')">
     <div class="app-shell">
         <div class="app-frame flex min-h-0 flex-1 flex-col">
             {{-- Mobile top bar --}}
@@ -46,7 +46,7 @@
             </header>
 
             <main class="app-content flex min-h-0 flex-1 flex-col">
-                <div class="app-scroll mx-auto w-full max-w-[1600px] flex-1 px-4 py-4 sm:px-6 sm:py-6">
+                <div class="app-scroll mx-auto w-full max-w-[1600px] flex-1 @yield('main_class', 'px-4 py-4 sm:px-6 sm:py-6')">
                     @if (session('success'))
                         <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">✓ {{ session('success') }}</div>
                     @endif

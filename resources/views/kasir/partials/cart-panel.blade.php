@@ -1,54 +1,83 @@
-<div class="table-card xl:sticky xl:top-24">
-    <div class="table-card-header">
+<div class="pos-receipt">
+    <div class="pos-receipt-head">
         <div>
-            <h2 class="text-base font-semibold">Keranjang</h2>
-            <p class="text-xs text-slate-500">{{ $order->items->count() }} item</p>
+            <h2 class="pos-receipt-title">Pesanan</h2>
+            <p class="pos-receipt-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
         </div>
         <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
     </div>
 
-    @if ($order->items->isNotEmpty())
-        <div class="divide-y divide-slate-100">
-            @foreach ($order->items as $item)
-                <div class="kasir-cart-item flex items-center gap-2 px-4 py-3 sm:gap-3" data-kasir-item>
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-medium text-slate-900">{{ $item->product->name }}</p>
-                        <p class="text-xs text-slate-500">{{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}</p>
-                    </div>
-                    <p class="shrink-0 text-sm font-semibold sm:text-base">{{ $format::rupiah($item->line_total) }}</p>
-                    <form action="{{ route('kasir.items.destroy', $item) }}" method="POST" class="shrink-0">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="btn-outline-danger btn-sm min-h-10 min-w-10 px-0" aria-label="Hapus {{ $item->product->name }}">×</button>
-                    </form>
-                </div>
-            @endforeach
+    @if ($order->table)
+        <div class="pos-receipt-table">
+            Meja: <strong>{{ $order->table->label }}</strong>
         </div>
+    @endif
 
-        <div class="border-t border-slate-200 bg-slate-50 px-4 py-4">
-            <div class="mb-4 flex items-center justify-between text-lg font-bold">
-                <span>Total</span>
-                <span class="text-brand-600">{{ $format::rupiah($order->total) }}</span>
+    <div class="pos-receipt-body">
+        @if ($order->items->isNotEmpty())
+            <ul class="pos-receipt-lines">
+                @foreach ($order->items as $item)
+                    <li class="pos-receipt-line" data-kasir-item>
+                        <div class="pos-receipt-line-main">
+                            <p class="pos-receipt-line-name">{{ $item->product->name }}</p>
+                            <p class="pos-receipt-line-qty">{{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}</p>
+                        </div>
+                        <div class="pos-receipt-line-side">
+                            <span class="pos-receipt-line-total">{{ $format::rupiah($item->line_total) }}</span>
+                            <form action="{{ route('kasir.items.destroy', $item) }}" method="POST">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="pos-line-remove" aria-label="Hapus">×</button>
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <div class="pos-receipt-empty">
+                <span class="pos-receipt-empty-icon">🧾</span>
+                <p>Belum ada item</p>
+                <p class="pos-receipt-empty-hint">Pilih menu di sebelah kiri</p>
+            </div>
+        @endif
+    </div>
+
+    @if ($order->items->isNotEmpty())
+        <div class="pos-receipt-foot">
+            <div class="pos-receipt-subtotal">
+                <span>Subtotal</span>
+                <span>{{ $format::rupiah($order->subtotal) }}</span>
+            </div>
+            <div class="pos-receipt-grand">
+                <span>Total Bayar</span>
+                <span data-kasir-total>{{ $format::rupiah($order->total) }}</span>
             </div>
 
-            <form action="{{ route('kasir.pay') }}" method="POST" class="space-y-3">
+            <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form">
                 @csrf
-                <div>
-                    <label class="form-label">Metode Bayar</label>
-                    <select name="payment_method" class="form-input" required>
-                        @foreach (\App\Enums\PaymentMethod::cases() as $method)
-                            <option value="{{ $method->value }}">{{ $method->label() }}</option>
-                        @endforeach
-                    </select>
+                <p class="pos-pay-label">Metode pembayaran</p>
+                <div class="pos-pay-grid">
+                    @foreach (\App\Enums\PaymentMethod::cases() as $index => $method)
+                        <label class="pos-pay-option {{ $index === 0 ? 'is-selected' : '' }}">
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="{{ $method->value }}"
+                                class="sr-only"
+                                {{ $index === 0 ? 'checked' : '' }}
+                                required
+                            >
+                            <span class="pos-pay-option-text">{{ $method->label() }}</span>
+                        </label>
+                    @endforeach
                 </div>
-                <button type="submit" class="btn-primary w-full py-3 text-base" onclick="return confirm('Proses pembayaran? Stok akan berkurang otomatis.')">
-                    Bayar & Cetak Struk
+                <button
+                    type="submit"
+                    class="pos-pay-submit"
+                    onclick="return confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')"
+                >
+                    Bayar {{ $format::rupiah($order->total) }}
                 </button>
             </form>
-        </div>
-    @else
-        <div class="empty-state">
-            <p>Keranjang kosong</p>
-            <p class="empty-hint">Klik produk untuk menambah item</p>
         </div>
     @endif
 </div>

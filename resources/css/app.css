@@ -694,7 +694,16 @@
 
     }
 
-    /* ── Kasir POS (mobile-first) ── */
+    /* ── Kasir POS (tampilan kasir sungguhan) ── */
+    .is-kasir-pos .app-scroll.pos-main-wrap {
+        @apply flex min-h-0 flex-col p-0 sm:p-0;
+    }
+
+    .is-kasir-pos .alert-tip,
+    .is-kasir-pos .mb-4.rounded-lg {
+        @apply mx-3 mt-3 sm:mx-4;
+    }
+
     .kasir-bottom-nav {
         @apply grid-cols-4;
     }
@@ -703,63 +712,291 @@
         @apply border-0 bg-transparent;
     }
 
-    .kasir-tabs {
-        @apply mb-4 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm;
+    .pos-shell {
+        @apply flex min-h-0 flex-1 flex-col bg-slate-200/80;
     }
 
-    .kasir-tab {
-        @apply relative inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition active:scale-[0.98];
+    .pos-toolbar {
+        @apply flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-300/80 bg-slate-900 px-3 py-3 text-white sm:px-5;
     }
 
-    .kasir-tab.is-active {
+    .pos-toolbar-left {
+        @apply flex min-w-0 flex-wrap items-center gap-2;
+    }
+
+    .pos-toolbar-right {
+        @apply shrink-0;
+    }
+
+    .pos-order-chip {
+        @apply inline-flex flex-col rounded-lg bg-white/10 px-3 py-1;
+    }
+
+    .pos-order-chip-label {
+        @apply text-[10px] uppercase tracking-wider text-slate-400;
+    }
+
+    .pos-order-chip-value {
+        @apply font-mono text-xs font-bold text-white sm:text-sm;
+    }
+
+    .pos-table-chip {
+        @apply rounded-full bg-brand-500/30 px-2.5 py-1 text-xs font-semibold text-brand-100;
+    }
+
+    .pos-btn-ghost {
+        @apply inline-flex min-h-10 items-center rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98];
+    }
+
+    .pos-pending {
+        @apply shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-3 sm:px-5;
+    }
+
+    .pos-pending-title {
+        @apply text-xs font-bold uppercase tracking-wide text-amber-900;
+    }
+
+    .pos-pending-list {
+        @apply mt-2 flex gap-2 overflow-x-auto pb-1;
+    }
+
+    .pos-pending-btn {
+        @apply inline-flex shrink-0 flex-col rounded-xl border border-amber-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition active:scale-[0.98];
+    }
+
+    .pos-pending-amount {
+        @apply font-bold text-brand-700;
+    }
+
+    .pos-view-tabs {
+        @apply grid shrink-0 grid-cols-2 gap-1 border-b border-slate-300 bg-white p-1;
+    }
+
+    .pos-view-tab {
+        @apply relative inline-flex min-h-12 items-center justify-center gap-2 rounded-lg text-sm font-semibold text-slate-600 transition active:scale-[0.98];
+    }
+
+    .pos-view-tab.is-active {
         @apply bg-brand-600 text-white shadow-sm;
     }
 
-    .kasir-tab-badge {
-        @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px] font-bold;
+    .pos-view-tab-icon {
+        @apply text-base;
     }
 
-    .kasir-tab.is-active .kasir-tab-badge {
+    .pos-view-tab-badge {
+        @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/25 px-1.5 text-[10px] font-bold;
+    }
+
+    .pos-view-tab.is-active .pos-view-tab-badge {
         @apply bg-white text-brand-600;
     }
 
+    .pos-workspace {
+        @apply flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden;
+    }
+
+    .pos-menu-panel {
+        @apply flex min-h-0 min-w-0 flex-1 flex-col bg-slate-100 lg:border-r lg:border-slate-300;
+    }
+
+    .pos-menu-head {
+        @apply shrink-0 space-y-3 border-b border-slate-200 bg-white px-3 py-3 sm:px-4;
+    }
+
+    .pos-panel-title {
+        @apply text-sm font-bold uppercase tracking-wider text-slate-500;
+    }
+
+    .pos-search {
+        @apply block w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+    }
+
     .pos-product-grid {
-        @apply grid grid-cols-2 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-3;
+        @apply grid flex-1 grid-cols-2 content-start gap-2 overflow-y-auto overscroll-contain p-3 sm:grid-cols-3 sm:gap-3 sm:p-4 lg:grid-cols-3 xl:grid-cols-4;
     }
 
-    .pos-product-btn {
-        @apply flex h-full w-full flex-col rounded-xl border border-slate-200 bg-white p-3 text-left transition active:scale-[0.98] sm:p-4;
+    .pos-product-tile.hidden {
+        @apply hidden;
     }
 
-    .pos-product-btn:hover {
-        @apply border-brand-400 shadow-md md:hover:border-brand-400;
+    .pos-product-tile-btn {
+        @apply relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    .pos-product-tile-btn:not(:disabled):hover {
+        @apply border-brand-400 shadow-md;
+    }
+
+    .pos-product-tile-top {
+        @apply flex flex-1 flex-col p-3 pb-2;
+    }
+
+    .pos-product-name {
+        @apply line-clamp-2 text-sm font-bold leading-snug text-slate-900;
+    }
+
+    .pos-product-sku {
+        @apply mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-product-tile-bottom {
+        @apply flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80 px-3 py-2.5;
+    }
+
+    .pos-product-price {
+        @apply text-sm font-bold text-brand-700;
+    }
+
+    .pos-product-add {
+        @apply flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-lg font-bold leading-none text-white;
+    }
+
+    .pos-product-stock {
+        @apply absolute right-2 top-2 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-semibold text-white;
     }
 
     .pos-product-empty {
-        @apply col-span-full px-2 py-10 text-center text-sm text-slate-500 sm:px-4;
+        @apply col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-16 text-center;
     }
 
-    .kasir-cart-bar {
-        @apply fixed inset-x-0 z-20 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur xl:hidden;
+    .pos-product-empty-hint {
+        @apply mt-2 text-xs text-slate-400;
+    }
+
+    .pos-order-panel {
+        @apply flex w-full shrink-0 flex-col bg-white lg:w-[min(100%,22rem)] xl:w-[min(100%,26rem)];
+    }
+
+    .pos-receipt {
+        @apply flex min-h-0 flex-1 flex-col;
+    }
+
+    .pos-receipt-head {
+        @apply flex shrink-0 items-start justify-between gap-2 border-b border-slate-700 bg-slate-900 px-4 py-3 text-white;
+    }
+
+    .pos-receipt-title {
+        @apply text-base font-bold;
+    }
+
+    .pos-receipt-meta {
+        @apply text-[11px] text-slate-400;
+    }
+
+    .pos-receipt-table {
+        @apply shrink-0 border-b border-brand-500/30 bg-brand-900 px-4 py-2 text-xs text-brand-100;
+    }
+
+    .pos-receipt-body {
+        @apply min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white;
+    }
+
+    .pos-receipt-lines {
+        @apply divide-y divide-slate-100;
+    }
+
+    .pos-receipt-line {
+        @apply flex items-start justify-between gap-2 px-4 py-3;
+    }
+
+    .pos-receipt-line-main {
+        @apply min-w-0 flex-1;
+    }
+
+    .pos-receipt-line-name {
+        @apply font-semibold text-slate-900;
+    }
+
+    .pos-receipt-line-qty {
+        @apply mt-0.5 text-xs text-slate-500;
+    }
+
+    .pos-receipt-line-side {
+        @apply flex shrink-0 items-start gap-2;
+    }
+
+    .pos-receipt-line-total {
+        @apply text-sm font-bold tabular-nums text-slate-900;
+    }
+
+    .pos-line-remove {
+        @apply flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-sm font-bold text-red-600 transition hover:bg-red-100;
+    }
+
+    .pos-receipt-empty {
+        @apply flex flex-col items-center justify-center px-4 py-16 text-center text-slate-500;
+    }
+
+    .pos-receipt-empty-icon {
+        @apply mb-2 text-3xl opacity-40;
+    }
+
+    .pos-receipt-empty-hint {
+        @apply mt-1 text-xs text-slate-400;
+    }
+
+    .pos-receipt-foot {
+        @apply shrink-0 border-t border-slate-200 bg-slate-50 p-4;
+    }
+
+    .pos-receipt-subtotal {
+        @apply flex justify-between text-sm text-slate-600;
+    }
+
+    .pos-receipt-grand {
+        @apply mt-1 flex items-baseline justify-between border-b border-slate-200 pb-3 text-lg font-bold text-slate-900;
+    }
+
+    .pos-receipt-grand span:last-child {
+        @apply text-2xl tabular-nums text-brand-700;
+    }
+
+    .pos-pay-label {
+        @apply mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .pos-pay-grid {
+        @apply mb-3 grid grid-cols-3 gap-2;
+    }
+
+    .pos-pay-option {
+        @apply flex cursor-pointer items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-2 py-2.5 text-center text-xs font-bold text-slate-700 transition;
+    }
+
+    .pos-pay-option.is-selected {
+        @apply border-brand-600 bg-brand-50 text-brand-800 ring-2 ring-brand-500/20;
+    }
+
+    .pos-pay-submit {
+        @apply flex w-full min-h-12 items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-base font-bold text-white shadow-lg transition hover:bg-green-700 active:scale-[0.98];
+    }
+
+    .pos-mobile-checkout {
+        @apply fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden;
         bottom: var(--bottom-nav-height, 5.5rem);
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
 
-    .kasir-cart-bar-inner {
-        @apply mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3;
+    .pos-mobile-checkout-label {
+        @apply block text-[11px] text-slate-400;
     }
 
-    .kasir-cart-item {
-        @apply touch-manipulation;
+    .pos-mobile-checkout-total {
+        @apply block text-lg font-bold tabular-nums text-white;
     }
 
-    @media (max-width: 1279px) {
-        .kasir-pos {
-            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 0.5rem);
+    .pos-mobile-checkout-btn {
+        @apply shrink-0 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white active:scale-[0.98];
+    }
+
+    @media (max-width: 1023px) {
+        .pos-shell {
+            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 0.25rem);
         }
 
-        .kasir-pos:has(.kasir-cart-bar) {
-            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.5rem);
+        .pos-shell:has(.pos-mobile-checkout) {
+            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.25rem);
         }
 
         .kasir-panel-menu.hidden,
@@ -771,12 +1008,36 @@
         .kasir-panel-cart.flex {
             @apply !flex flex-col;
         }
+
+        .pos-menu-panel.kasir-panel-menu.flex {
+            @apply min-h-[50vh];
+        }
+
+        .pos-order-panel.kasir-panel-cart.flex {
+            @apply min-h-[50vh];
+        }
     }
 
-    @media (min-width: 1280px) {
+    @media (min-width: 1024px) {
+        .is-kasir-pos .bottom-nav-spacer {
+            @apply hidden;
+        }
+
+        .pos-shell {
+            @apply min-h-[calc(100dvh-4rem)];
+        }
+
+        .pos-workspace {
+            @apply min-h-0 flex-1;
+        }
+
         .kasir-panel-menu,
         .kasir-panel-cart {
-            @apply !block;
+            @apply !flex;
+        }
+
+        .pos-order-panel {
+            @apply shadow-[-8px_0_24px_rgba(15,23,42,0.06)];
         }
     }
 

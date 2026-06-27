@@ -1,6 +1,8 @@
 /**
- * Kasir POS — tab Menu/Keranjang di mobile & cart bar.
+ * Kasir POS — tab Menu/Pesanan, pencarian menu, metode bayar.
  */
+const POS_DESKTOP_BP = 1024;
+
 export function initKasirPos() {
     const root = document.getElementById('kasir-pos');
     if (!root) {
@@ -10,6 +12,7 @@ export function initKasirPos() {
     const tabs = root.querySelectorAll('[data-kasir-tab]');
     const panels = root.querySelectorAll('[data-kasir-panel]');
     const cartCount = root.querySelector('[data-kasir-cart-count]');
+    const searchInput = root.querySelector('[data-kasir-search]');
 
     const setPanel = (name) => {
         tabs.forEach((tab) => {
@@ -23,10 +26,6 @@ export function initKasirPos() {
             panel.classList.toggle('hidden', !show);
             panel.classList.toggle('flex', show);
         });
-
-        if (name === 'cart') {
-            root.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
     };
 
     tabs.forEach((tab) => {
@@ -35,6 +34,27 @@ export function initKasirPos() {
 
     root.querySelectorAll('[data-kasir-go-cart]').forEach((btn) => {
         btn.addEventListener('click', () => setPanel('cart'));
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+
+            root.querySelectorAll('[data-kasir-product]').forEach((tile) => {
+                const key = tile.dataset.kasirProduct ?? '';
+                const match = query === '' || key.includes(query);
+                tile.classList.toggle('hidden', !match);
+            });
+        });
+    }
+
+    root.querySelectorAll('.pos-pay-option input[type="radio"]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            root.querySelectorAll('.pos-pay-option').forEach((option) => {
+                const input = option.querySelector('input[type="radio"]');
+                option.classList.toggle('is-selected', Boolean(input?.checked));
+            });
+        });
     });
 
     const updateCartBadge = () => {
@@ -47,10 +67,11 @@ export function initKasirPos() {
 
     updateCartBadge();
 
-    const syncDesktop = () => {
-        if (window.innerWidth >= 1280) {
+    const syncLayout = () => {
+        if (window.innerWidth >= POS_DESKTOP_BP) {
             panels.forEach((panel) => {
-                panel.classList.remove('hidden', 'flex');
+                panel.classList.remove('hidden');
+                panel.classList.add('flex');
             });
             return;
         }
@@ -59,8 +80,8 @@ export function initKasirPos() {
         setPanel(activeTab?.dataset.kasirTab ?? 'menu');
     };
 
-    window.addEventListener('resize', syncDesktop);
-    syncDesktop();
+    window.addEventListener('resize', syncLayout);
+    syncLayout();
 }
 
 document.addEventListener('DOMContentLoaded', initKasirPos);

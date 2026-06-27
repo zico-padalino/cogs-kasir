@@ -56,7 +56,8 @@ class KasirPageTest extends TestCase
         $this->actingAs($this->kasirUser())
             ->get(route('kasir.index'))
             ->assertOk()
-            ->assertSee('Point of Sale');
+            ->assertSee('Menu')
+            ->assertSee('Pesanan');
     }
 
     public function test_online_table_order_page_is_public(): void

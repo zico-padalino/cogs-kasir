@@ -22,7 +22,7 @@ class KasirController extends Controller
             session(['kasir_order_id' => $activeOrder->id]);
         }
 
-        $activeOrder->load(['items.product']);
+        $activeOrder->load(['items.product', 'table']);
 
         $pendingOrders = PosOrder::with(['table', 'items'])
             ->where('status', 'submitted')
