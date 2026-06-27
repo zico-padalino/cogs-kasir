@@ -631,8 +631,5 @@
             @apply min-h-10 min-w-10;
         }
 
-        .mobile-topbar + header + main .step-progress {
-            @apply -mt-1;
-        }
     }
 }
