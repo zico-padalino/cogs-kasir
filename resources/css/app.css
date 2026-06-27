@@ -304,8 +304,33 @@
     }
 
     /* ── Mobile shell ── */
+    :root {
+        --bottom-nav-height: 5.5rem;
+    }
+
+    .app-shell {
+        @apply flex min-h-0 w-full flex-1 flex-col md:min-h-screen;
+    }
+
+    .app-frame {
+        @apply min-h-0 w-full flex-1 md:min-h-screen;
+    }
+
+    .app-content {
+        @apply min-h-0 w-full flex-1;
+    }
+
+    .app-scroll {
+        @apply md:pb-6;
+    }
+
+    .bottom-nav-spacer {
+        @apply w-full shrink-0 md:hidden;
+        height: var(--bottom-nav-height, 5.5rem);
+    }
+
     .mobile-topbar {
-        @apply sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
+        @apply z-20 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
         padding-top: max(0.75rem, env(safe-area-inset-top));
     }
 
@@ -318,8 +343,8 @@
     }
 
     .bottom-nav {
-        @apply fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur;
-        padding-bottom: env(safe-area-inset-bottom);
+        @apply fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-4px_24px_rgba(15,23,42,0.08)];
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .bottom-nav-inner {
@@ -338,20 +363,56 @@
         @apply text-lg leading-none;
     }
 
-    .main-mobile-pad {
-        @apply md:pb-6;
-        padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
-    }
+    @media (max-width: 767px) {
+        .app-body {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+        }
 
-    @media (min-width: 768px) {
-        .main-mobile-pad {
-            padding-bottom: 1.5rem;
+        .app-shell {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .app-frame {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .app-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .app-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
         }
     }
 
-    @media (max-width: 767px) {
-        html {
-            scroll-padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
+    @media (min-width: 768px) {
+        .app-body {
+            display: block;
+            height: auto;
+            overflow: visible;
+        }
+
+        .app-scroll {
+            overflow: visible;
+            padding-bottom: 1.5rem;
         }
     }
 

@@ -9,10 +9,11 @@
     <title>@yield('title', 'Panduan') — COGS Sederhana</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
+<body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
 
-    <div class="flex min-h-screen">
+    <div class="app-shell">
+        <div class="app-frame flex min-h-0 flex-1 flex-col md:min-h-screen">
         <aside id="mobile-sidebar"
                class="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] -translate-x-full flex-col bg-slate-900 text-white transition-transform duration-300 ease-out md:z-30 md:w-64 md:translate-x-0">
             <div class="border-b border-slate-800 px-5 py-4">
@@ -103,7 +104,7 @@
             </div>
         </aside>
 
-        <div class="flex min-w-0 flex-1 flex-col md:pl-64">
+        <div class="app-content flex min-h-0 min-w-0 flex-1 flex-col md:pl-64">
             <div class="mobile-topbar md:hidden">
                 <button type="button" class="mobile-menu-btn" data-mobile-menu-toggle aria-label="Buka menu">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -131,7 +132,7 @@
                 </div>
             </header>
 
-            <main class="main-mobile-pad flex-1 px-4 py-4 sm:px-8 sm:py-6">
+            <main class="app-scroll min-h-0 flex-1 px-4 py-4 sm:px-8 sm:py-6">
                 @if (session('success'))
                     <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 sm:mb-6">
                         ✓ {{ session('success') }}
@@ -159,11 +160,14 @@
                 @endif
 
                 @yield('content')
+
+                <div id="bottom-nav-spacer" class="bottom-nav-spacer md:hidden" aria-hidden="true"></div>
             </main>
+        </div>
         </div>
     </div>
 
-    <nav class="bottom-nav md:hidden" aria-label="Navigasi utama">
+    <nav id="bottom-nav" class="bottom-nav md:hidden" aria-label="Navigasi utama">
         <div class="bottom-nav-inner">
             <a href="{{ route('dashboard') }}"
                class="bottom-nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">

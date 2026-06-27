@@ -12,6 +12,8 @@ class ResetDataService
     private array $cogsTables = [
         'cogs_calculations',
         'sales_transactions',
+        'pos_order_items',
+        'pos_orders',
         'production_order_labors',
         'production_order_materials',
         'production_orders',

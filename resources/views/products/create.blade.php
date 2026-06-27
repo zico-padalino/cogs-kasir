@@ -54,6 +54,9 @@
                     <label class="form-label">Biaya Standar (Rp)</label>
                     <x-rupiah-input name="standard_cost" :value="old('standard_cost', 0)" placeholder="0" />
                 </div>
+                <div>
+                    <x-rupiah-input name="selling_price" label="Harga Jual Kasir (Rp)" :value="old('selling_price', 0)" placeholder="25.000" />
+                </div>
                         <div>
                             <label class="form-label">Deskripsi</label>
                             <textarea name="description" rows="2" class="form-input">{{ old('description') }}</textarea>

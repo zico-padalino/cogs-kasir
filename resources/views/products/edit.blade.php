@@ -50,6 +50,9 @@
                         <label class="form-label">Biaya Standar (Rp)</label>
                         <x-rupiah-input name="standard_cost" :value="old('standard_cost', $product->standard_cost)" />
                     </div>
+                    <div class="sm:col-span-2">
+                        <x-rupiah-input name="selling_price" label="Harga Jual Kasir (Rp)" :value="old('selling_price', $product->selling_price)" />
+                    </div>
                 </div>
 
                 <div>

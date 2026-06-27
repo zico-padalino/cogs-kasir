@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CostingMethod;
 use App\Enums\ProductType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -15,6 +16,7 @@ class Product extends Model
         'type',
         'unit',
         'standard_cost',
+        'selling_price',
         'costing_method',
         'description',
         'is_active',
@@ -26,6 +28,7 @@ class Product extends Model
             'type' => ProductType::class,
             'costing_method' => CostingMethod::class,
             'standard_cost' => 'decimal:4',
+            'selling_price' => 'decimal:4',
             'is_active' => 'boolean',
         ];
     }
@@ -65,5 +68,12 @@ class Product extends Model
         return (float) $this->inventoryLots()
             ->where('quantity_remaining', '>', 0)
             ->sum('quantity_remaining');
+    }
+
+    public function scopeSellable(Builder $query): Builder
+    {
+        return $query
+            ->where('is_active', true)
+            ->whereIn('type', [ProductType::FinishedGood, ProductType::SemiFinished]);
     }
 }

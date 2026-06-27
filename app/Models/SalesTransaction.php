@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SalesTransaction extends Model
 {
     protected $fillable = [
+        'pos_order_id',
         'invoice_number',
         'product_id',
         'quantity',
@@ -29,5 +30,10 @@ class SalesTransaction extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function posOrder(): BelongsTo
+    {
+        return $this->belongsTo(PosOrder::class);
     }
 }

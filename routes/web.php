@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\OverheadRateController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ProductionOrderController;
 use App\Http\Controllers\Web\ResetDataController;
+use App\Http\Controllers\Web\TableOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/api', '/login');
@@ -27,8 +28,22 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
-Route::middleware(['auth', 'role:kasir'])->group(function () {
-    Route::get('kasir', [KasirController::class, 'index'])->name('kasir.index');
+Route::get('meja/{token}', [TableOrderController::class, 'show'])->name('order.table');
+Route::post('meja/{token}/items', [TableOrderController::class, 'addItem'])->name('order.table.items');
+Route::post('meja/{token}/submit', [TableOrderController::class, 'submit'])->name('order.table.submit');
+
+Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
+    Route::get('/', [KasirController::class, 'index'])->name('index');
+    Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
+    Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
+    Route::get('/tables', [KasirController::class, 'tables'])->name('tables');
+    Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
+    Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
+    Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
+    Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
+    Route::delete('/items/{item}', [KasirController::class, 'removeItem'])->name('items.destroy');
+    Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
+    Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
 });
 
 Route::middleware(['auth', 'role:cogs'])->group(function () {

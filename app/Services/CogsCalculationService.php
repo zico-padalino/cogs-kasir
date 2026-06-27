@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\DTOs\CogsResult;
+use App\Enums\ProductType;
 use App\Enums\ProductionOrderStatus;
 use App\Models\CogsCalculation;
 use App\Models\Product;
@@ -70,25 +71,41 @@ class CogsCalculationService
             throw new RuntimeException('Quantity harus lebih dari 0.');
         }
 
-        $bomRollUp = $this->bomCostService->rollUpCost($product, $quantity);
-        $directMaterial = $bomRollUp['total_cost'];
+        $consumptionDetails = [];
+        $directMaterial = 0.0;
 
-        if ($consumeInventory) {
-            $requirements = $this->bomCostService->explodeBom($product, $quantity);
-            $consumptionDetails = [];
+        if ($consumeInventory && $this->shouldConsumeFromInventory($product, $quantity)) {
+            $consumption = $this->inventoryCostService->consumeStock($product, $quantity);
+            $directMaterial = $consumption->totalCost;
+            $consumptionDetails[] = [
+                'product_id' => $product->id,
+                'sku' => $product->sku,
+                'quantity' => $quantity,
+                'cost' => round($consumption->totalCost, 4),
+                'lots' => $consumption->lotConsumptions,
+                'mode' => 'finished_goods_inventory',
+            ];
+        } else {
+            $bomRollUp = $this->bomCostService->rollUpCost($product, $quantity);
+            $directMaterial = $bomRollUp['total_cost'];
 
-            foreach ($requirements as $req) {
-                $consumption = $this->inventoryCostService->consumeStock($req['product'], $req['quantity']);
-                $consumptionDetails[] = [
-                    'product_id' => $req['product']->id,
-                    'sku' => $req['product']->sku,
-                    'quantity' => $req['quantity'],
-                    'cost' => round($consumption->totalCost, 4),
-                    'lots' => $consumption->lotConsumptions,
-                ];
+            if ($consumeInventory) {
+                $requirements = $this->bomCostService->explodeBom($product, $quantity);
+
+                foreach ($requirements as $req) {
+                    $consumption = $this->inventoryCostService->consumeStock($req['product'], $req['quantity']);
+                    $consumptionDetails[] = [
+                        'product_id' => $req['product']->id,
+                        'sku' => $req['product']->sku,
+                        'quantity' => $req['quantity'],
+                        'cost' => round($consumption->totalCost, 4),
+                        'lots' => $consumption->lotConsumptions,
+                        'mode' => 'bom_explosion',
+                    ];
+                }
+
+                $directMaterial = array_sum(array_column($consumptionDetails, 'cost'));
             }
-
-            $directMaterial = array_sum(array_column($consumptionDetails, 'cost'));
         }
 
         $overhead = $this->overheadAllocationService->allocateForSale(
@@ -106,11 +123,21 @@ class CogsCalculationService
             unitCogs: $totalCogs / $quantity,
             calculationMethod: $product->costing_method->value,
             breakdown: [
-                'bom_roll_up' => $bomRollUp,
-                'overhead' => $overhead,
+                'consumption_mode' => $consumptionDetails[0]['mode'] ?? 'bom_only',
                 'inventory_consumed' => $consumeInventory,
+                'consumption_details' => $consumptionDetails,
+                'overhead' => $overhead,
             ],
         );
+    }
+
+    private function shouldConsumeFromInventory(Product $product, float $quantity): bool
+    {
+        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+            return false;
+        }
+
+        return $product->availableQuantity() >= $quantity;
     }
 
     public function recordSaleCogs(SalesTransaction $sale): CogsCalculation
