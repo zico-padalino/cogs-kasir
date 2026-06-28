@@ -320,9 +320,18 @@
         @apply rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm;
     }
 
-    /* ── Mobile shell ── */
-    :root {
-        --bottom-nav-height: 5.5rem;
+    /* ── Mobile shell / sidebar ── */
+    .mobile-topbar {
+        @apply z-20 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+    }
+
+    .mobile-menu-btn {
+        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition active:scale-95;
+    }
+
+    .mobile-overlay {
+        @apply fixed inset-0 z-40 bg-slate-900/50 opacity-0 backdrop-blur-sm transition-opacity duration-200;
     }
 
     .app-shell {
@@ -339,45 +348,6 @@
 
     .app-scroll {
         @apply md:pb-6;
-    }
-
-    .bottom-nav-spacer {
-        @apply w-full shrink-0 md:hidden;
-        height: var(--bottom-nav-height, 5.5rem);
-    }
-
-    .mobile-topbar {
-        @apply z-20 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
-        padding-top: max(0.75rem, env(safe-area-inset-top));
-    }
-
-    .mobile-menu-btn {
-        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition active:scale-95;
-    }
-
-    .mobile-overlay {
-        @apply fixed inset-0 z-40 bg-slate-900/50 opacity-0 backdrop-blur-sm transition-opacity duration-200;
-    }
-
-    .bottom-nav {
-        @apply fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-4px_24px_rgba(15,23,42,0.08)];
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    .bottom-nav-inner {
-        @apply mx-auto grid max-w-lg grid-cols-5 gap-0;
-    }
-
-    .bottom-nav-link {
-        @apply flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-500 transition active:bg-slate-50;
-    }
-
-    .bottom-nav-link.is-active {
-        @apply text-brand-600;
-    }
-
-    .bottom-nav-icon {
-        @apply text-lg leading-none;
     }
 
     @media (max-width: 767px) {
@@ -739,7 +709,7 @@
     }
 
     /* ── Kasir POS (tampilan kasir sungguhan) ── */
-    .is-kasir-pos .mobile-topbar {
+    .is-kasir-pos .kasir-page-header {
         @apply hidden;
     }
 
@@ -766,10 +736,6 @@
         min-height: 0;
     }
 
-    .is-kasir-pos .bottom-nav-spacer {
-        @apply hidden;
-    }
-
     .is-kasir-pos .app-scroll.pos-main-wrap {
         @apply flex min-h-0 flex-1 flex-col overflow-hidden p-0 sm:p-0;
     }
@@ -777,14 +743,6 @@
     .is-kasir-pos .alert-tip,
     .is-kasir-pos .mb-4.rounded-lg {
         @apply mx-3 mt-3 shrink-0 sm:mx-4;
-    }
-
-    .kasir-bottom-nav {
-        @apply grid-cols-4;
-    }
-
-    .kasir-bottom-nav form button {
-        @apply border-0 bg-transparent;
     }
 
     .pos-shell {
@@ -1513,8 +1471,7 @@
     }
 
     .pos-mobile-checkout {
-        @apply fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden;
-        bottom: var(--bottom-nav-height, 5.5rem);
+        @apply fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden;
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
 
@@ -1550,11 +1507,10 @@
 
         .pos-shell {
             @apply flex min-h-0 flex-1 flex-col overflow-hidden;
-            padding-bottom: var(--bottom-nav-height, 5.5rem);
         }
 
         .pos-shell:has(.pos-mobile-checkout) {
-            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.5rem);
+            padding-bottom: 4.5rem;
         }
 
         .pos-order-bar {

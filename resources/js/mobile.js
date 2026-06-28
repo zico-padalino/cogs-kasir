@@ -1,5 +1,5 @@
 /**
- * Mobile navigation drawer & responsive table stacking.
+ * Sidebar navigation drawer & responsive table stacking.
  */
 export function initMobileNav() {
     const sidebar = document.getElementById('mobile-sidebar');
@@ -71,53 +71,7 @@ export function initResponsiveTables() {
     });
 }
 
-export function syncBottomNavHeight() {
-    const nav = document.getElementById('bottom-nav');
-    const spacer = document.getElementById('bottom-nav-spacer');
-
-    if (!nav) {
-        return;
-    }
-
-    const update = () => {
-        if (window.innerWidth >= 768) {
-            document.documentElement.style.removeProperty('--bottom-nav-height');
-
-            if (spacer) {
-                spacer.style.height = '';
-            }
-
-            return;
-        }
-
-        const height = `${nav.getBoundingClientRect().height}px`;
-        document.documentElement.style.setProperty('--bottom-nav-height', height);
-
-        if (spacer) {
-            spacer.style.height = height;
-        }
-    };
-
-    update();
-
-    window.addEventListener('resize', update);
-    window.addEventListener('orientationchange', () => {
-        window.setTimeout(update, 100);
-    });
-
-    if (typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(update).observe(nav);
-    }
-
-    if (document.fonts?.ready) {
-        document.fonts.ready.then(update);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     initMobileNav();
     initResponsiveTables();
-    syncBottomNavHeight();
 });
-
-window.addEventListener('load', syncBottomNavHeight);

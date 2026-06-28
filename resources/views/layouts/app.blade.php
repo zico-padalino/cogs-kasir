@@ -160,40 +160,9 @@
                 @endif
 
                 @yield('content')
-
-                <div id="bottom-nav-spacer" class="bottom-nav-spacer md:hidden" aria-hidden="true"></div>
             </main>
         </div>
         </div>
     </div>
-
-    <nav id="bottom-nav" class="bottom-nav md:hidden" aria-label="Navigasi utama">
-        <div class="bottom-nav-inner">
-            <a href="{{ route('dashboard') }}"
-               class="bottom-nav-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
-                <span class="bottom-nav-icon">🏠</span>
-                <span>{{ ($setupFullyComplete ?? false) ? 'Beranda' : 'Panduan' }}</span>
-            </a>
-            <a href="{{ route('products.index') }}"
-               class="bottom-nav-link {{ request()->routeIs('products.*') ? 'is-active' : '' }}">
-                <span class="bottom-nav-icon">📦</span>
-                <span>Produk</span>
-            </a>
-            <a href="{{ route('inventory.index') }}"
-               class="bottom-nav-link {{ request()->routeIs('inventory.*') ? 'is-active' : '' }}">
-                <span class="bottom-nav-icon">📋</span>
-                <span>Stok</span>
-            </a>
-            <a href="{{ route('production-orders.index') }}"
-               class="bottom-nav-link {{ request()->routeIs('production-orders.*') ? 'is-active' : '' }}">
-                <span class="bottom-nav-icon">🏭</span>
-                <span>Produksi</span>
-            </a>
-            <button type="button" class="bottom-nav-link" data-mobile-menu-toggle aria-label="Menu lainnya">
-                <span class="bottom-nav-icon">☰</span>
-                <span>Menu</span>
-            </button>
-        </div>
-    </nav>
 </body>
 </html>
