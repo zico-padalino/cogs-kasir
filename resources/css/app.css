@@ -823,11 +823,116 @@
     }
 
     .pos-order-bar {
-        @apply grid shrink-0 gap-3 border-b border-slate-200 bg-white px-3 py-3 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-end sm:px-5;
+        @apply shrink-0 space-y-3 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 py-3 sm:px-5;
     }
 
-    .pos-order-bar-types {
-        @apply flex gap-2;
+    .pos-order-bar-head {
+        @apply flex items-start justify-between gap-3;
+    }
+
+    .pos-order-bar-title {
+        @apply text-sm font-bold text-slate-900;
+    }
+
+    .pos-order-bar-sub {
+        @apply mt-0.5 text-xs text-slate-500;
+    }
+
+    .pos-order-save-status {
+        @apply shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold;
+    }
+
+    .pos-order-save-status.is-saving {
+        @apply bg-slate-100 text-slate-600;
+    }
+
+    .pos-order-save-status.is-success {
+        @apply bg-green-100 text-green-700;
+    }
+
+    .pos-order-save-status.is-error {
+        @apply bg-red-100 text-red-700;
+    }
+
+    .pos-order-type-grid {
+        @apply grid grid-cols-2 gap-2;
+    }
+
+    .pos-order-type-card {
+        @apply relative flex cursor-pointer flex-col items-center rounded-2xl border-2 border-slate-200 bg-white px-3 py-3 text-center shadow-sm transition active:scale-[0.98];
+    }
+
+    .pos-order-type-card.is-active {
+        @apply border-brand-600 bg-brand-50 shadow-md ring-2 ring-brand-500/20;
+    }
+
+    .pos-order-type-card[data-pos-order-type-card="takeaway"].is-active {
+        @apply border-amber-500 bg-amber-50 ring-amber-500/20;
+    }
+
+    .pos-order-type-icon-lg {
+        @apply text-2xl leading-none;
+    }
+
+    .pos-order-type-name {
+        @apply mt-2 text-sm font-bold text-slate-900;
+    }
+
+    .pos-order-type-hint {
+        @apply mt-0.5 text-[11px] leading-snug text-slate-500;
+    }
+
+    .pos-order-type-card.is-active .pos-order-type-name {
+        @apply text-brand-900;
+    }
+
+    .pos-order-type-card[data-pos-order-type-card="takeaway"].is-active .pos-order-type-name {
+        @apply text-amber-900;
+    }
+
+    .pos-order-bar-fields {
+        @apply space-y-3 rounded-xl border border-slate-200 bg-white p-3;
+    }
+
+    .pos-order-field-group {
+        @apply space-y-2;
+    }
+
+    .pos-order-field-head {
+        @apply flex items-center justify-between gap-2;
+    }
+
+    .pos-order-required {
+        @apply rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600;
+    }
+
+    .pos-order-field-hint {
+        @apply text-[11px] leading-snug text-slate-500;
+    }
+
+    .pos-order-field-error {
+        @apply text-xs font-semibold text-red-600;
+    }
+
+    .pos-table-picks {
+        @apply flex gap-2 overflow-x-auto pb-1;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pos-table-pill {
+        @apply inline-flex min-w-[5.5rem] shrink-0 flex-col items-center rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 text-center transition active:scale-[0.98];
+    }
+
+    .pos-table-pill.is-active {
+        @apply border-brand-600 bg-brand-600 text-white shadow-sm;
+    }
+
+    .pos-table-pill-num {
+        @apply text-[10px] font-bold uppercase tracking-wide opacity-80;
+    }
+
+    .pos-table-pill-label {
+        @apply mt-0.5 text-xs font-semibold leading-tight;
     }
 
     .pos-order-type {
@@ -850,7 +955,7 @@
     }
 
     .pos-order-bar-save {
-        @apply inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700;
+        @apply hidden;
     }
 
     .pos-panel-sub {
@@ -874,7 +979,23 @@
     }
 
     .pos-receipt-context {
-        @apply border-b border-slate-100 px-4 py-2 text-xs text-slate-600;
+        @apply flex flex-wrap gap-2 border-b border-slate-100 px-4 py-2.5;
+    }
+
+    .pos-context-badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold;
+    }
+
+    .pos-context-badge-type {
+        @apply bg-brand-50 text-brand-800;
+    }
+
+    .pos-context-badge-table {
+        @apply bg-emerald-50 text-emerald-800;
+    }
+
+    .pos-context-badge-customer {
+        @apply bg-slate-100 text-slate-700;
     }
 
     .pos-cash-panel {

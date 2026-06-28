@@ -279,17 +279,244 @@ function initPosOrderBar(root) {
         return;
     }
 
-    const tableField = bar.querySelector('[data-pos-table-field]');
+    const dineInFields = bar.querySelector('[data-pos-dine-in-fields]');
+    const tableSelect = bar.querySelector('[data-pos-table-select]');
+    const tableError = bar.querySelector('[data-pos-table-error]');
+    const customerInput = bar.querySelector('[data-pos-customer-note]');
+    const customerLabel = bar.querySelector('[data-pos-customer-label]');
+    const customerHint = bar.querySelector('[data-pos-customer-hint]');
+    const saveStatus = bar.querySelector('[data-pos-save-status]');
+    const tablePills = bar.querySelectorAll('[data-pos-table-pill]');
+    const typeCards = bar.querySelectorAll('[data-pos-order-type-card]');
+    const typeRadios = bar.querySelectorAll('[data-pos-order-type]');
 
-    bar.querySelectorAll('[data-pos-order-type]').forEach((radio) => {
+    const toolbarType = root.querySelector('[data-pos-toolbar-type]');
+    const toolbarTable = root.querySelector('[data-pos-toolbar-table]');
+    const toolbarCustomer = root.querySelector('[data-pos-toolbar-customer]');
+    const receiptContext = root.querySelector('[data-pos-receipt-context]');
+
+    let saveTimer = null;
+    let saving = false;
+
+    const activeType = () => bar.querySelector('[data-pos-order-type]:checked')?.value ?? 'takeaway';
+
+    const setSaveStatus = (state, message) => {
+        if (! saveStatus) {
+            return;
+        }
+
+        saveStatus.classList.remove('hidden', 'is-saving', 'is-success', 'is-error');
+        saveStatus.classList.add(state === 'saving' ? 'is-saving' : state === 'error' ? 'is-error' : 'is-success');
+        saveStatus.textContent = message;
+    };
+
+    const clearSaveStatus = () => {
+        saveStatus?.classList.add('hidden');
+    };
+
+    const syncTypeCards = () => {
+        const type = activeType();
+
+        typeCards.forEach((card) => {
+            card.classList.toggle('is-active', card.dataset.posOrderTypeCard === type);
+        });
+    };
+
+    const syncDineInPanel = () => {
+        const isDineIn = activeType() === 'dine_in';
+
+        dineInFields?.classList.toggle('hidden', ! isDineIn);
+
+        if (customerLabel) {
+            customerLabel.textContent = isDineIn ? 'Nama pelanggan' : 'Nama / nomor antrian';
+        }
+
+        if (customerInput) {
+            customerInput.placeholder = isDineIn
+                ? 'Opsional — untuk panggilan'
+                : 'Contoh: Budi / A-12';
+        }
+
+        if (customerHint) {
+            customerHint.textContent = isDineIn
+                ? 'Opsional jika sudah ada meja.'
+                : 'Memudahkan kasir memanggil saat pesanan siap.';
+        }
+
+        if (! isDineIn) {
+            tableError?.classList.add('hidden');
+            tablePills.forEach((pill) => pill.classList.remove('is-active'));
+            if (tableSelect) {
+                tableSelect.value = '';
+            }
+        }
+    };
+
+    const syncTablePills = () => {
+        const value = tableSelect?.value ?? '';
+
+        tablePills.forEach((pill) => {
+            pill.classList.toggle('is-active', pill.dataset.tableId === value);
+        });
+    };
+
+    const updateToolbar = (data) => {
+        if (toolbarType && data.order_type_label) {
+            toolbarType.textContent = `${data.order_type_icon ?? ''} ${data.order_type_label}`.trim();
+            toolbarType.classList.remove('hidden');
+        }
+
+        if (toolbarTable) {
+            if (data.table_label) {
+                toolbarTable.textContent = data.table_label;
+                toolbarTable.classList.remove('hidden');
+            } else {
+                toolbarTable.textContent = '';
+                toolbarTable.classList.add('hidden');
+            }
+        }
+
+        if (toolbarCustomer) {
+            if (data.customer_note) {
+                toolbarCustomer.textContent = data.customer_note;
+                toolbarCustomer.classList.remove('hidden');
+            } else {
+                toolbarCustomer.textContent = '';
+                toolbarCustomer.classList.add('hidden');
+            }
+        }
+    };
+
+    const updateReceiptContext = (data) => {
+        if (! receiptContext) {
+            return;
+        }
+
+        receiptContext.innerHTML = '';
+
+        if (data.order_type_label) {
+            const typeBadge = document.createElement('span');
+            typeBadge.className = 'pos-context-badge pos-context-badge-type';
+            typeBadge.dataset.posReceiptType = '';
+            typeBadge.textContent = `${data.order_type_icon ?? ''} ${data.order_type_label}`.trim();
+            receiptContext.append(typeBadge);
+        }
+
+        if (data.table_label) {
+            const tableBadge = document.createElement('span');
+            tableBadge.className = 'pos-context-badge pos-context-badge-table';
+            tableBadge.dataset.posReceiptTable = '';
+            tableBadge.textContent = `Meja ${data.table_label}`;
+            receiptContext.append(tableBadge);
+        }
+
+        if (data.customer_note) {
+            const customerBadge = document.createElement('span');
+            customerBadge.className = 'pos-context-badge pos-context-badge-customer';
+            customerBadge.dataset.posReceiptCustomer = '';
+            customerBadge.textContent = data.customer_note;
+            receiptContext.append(customerBadge);
+        }
+
+        receiptContext.classList.toggle('hidden', receiptContext.children.length === 0);
+    };
+
+    const canAutoSave = () => {
+        if (activeType() === 'dine_in') {
+            return Boolean(tableSelect?.value);
+        }
+
+        return true;
+    };
+
+    const saveOrderBar = async () => {
+        if (saving || ! canAutoSave()) {
+            if (activeType() === 'dine_in' && ! tableSelect?.value) {
+                tableError?.classList.remove('hidden');
+            }
+
+            return;
+        }
+
+        tableError?.classList.add('hidden');
+        saving = true;
+        setSaveStatus('saving', 'Menyimpan…');
+
+        const formData = new FormData(bar);
+
+        try {
+            const response = await fetch(bar.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            const data = await response.json();
+
+            if (! response.ok) {
+                throw new Error(data.message || 'Gagal menyimpan.');
+            }
+
+            updateToolbar(data);
+            updateReceiptContext(data);
+            setSaveStatus('success', 'Tersimpan');
+            window.setTimeout(clearSaveStatus, 1800);
+        } catch (error) {
+            setSaveStatus('error', error.message || 'Gagal menyimpan.');
+        } finally {
+            saving = false;
+        }
+    };
+
+    const queueSave = (delay = 0) => {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(saveOrderBar, delay);
+    };
+
+    typeRadios.forEach((radio) => {
         radio.addEventListener('change', () => {
             if (! radio.checked) {
                 return;
             }
 
-            tableField?.classList.toggle('hidden', radio.value !== 'dine_in');
+            syncTypeCards();
+            syncDineInPanel();
+
+            if (radio.value === 'takeaway') {
+                queueSave(0);
+                return;
+            }
+
+            if (tableSelect?.value) {
+                queueSave(0);
+            } else {
+                tableError?.classList.remove('hidden');
+            }
         });
     });
+
+    tablePills.forEach((pill) => {
+        pill.addEventListener('click', () => {
+            if (! tableSelect) {
+                return;
+            }
+
+            tableSelect.value = pill.dataset.tableId ?? '';
+            syncTablePills();
+            tableError?.classList.add('hidden');
+            queueSave(0);
+        });
+    });
+
+    customerInput?.addEventListener('input', () => queueSave(700));
+    customerInput?.addEventListener('blur', () => queueSave(0));
+
+    syncTypeCards();
+    syncDineInPanel();
+    syncTablePills();
 }
 
 function initPosCashPayment(root) {

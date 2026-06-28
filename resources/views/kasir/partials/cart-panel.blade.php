@@ -8,17 +8,19 @@
     </div>
 
     @if ($order->order_type || $order->table || $order->customer_note)
-        <div class="pos-receipt-context">
+        <div class="pos-receipt-context" data-pos-receipt-context>
             @if ($order->order_type)
-                <span>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+                <span class="pos-context-badge pos-context-badge-type" data-pos-receipt-type>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
             @endif
             @if ($order->table)
-                <span>· Meja <strong>{{ $order->table->label }}</strong></span>
+                <span class="pos-context-badge pos-context-badge-table" data-pos-receipt-table>Meja {{ $order->table->label }}</span>
             @endif
             @if ($order->customer_note)
-                <span>· {{ $order->customer_note }}</span>
+                <span class="pos-context-badge pos-context-badge-customer" data-pos-receipt-customer>{{ $order->customer_note }}</span>
             @endif
         </div>
+    @else
+        <div class="pos-receipt-context hidden" data-pos-receipt-context></div>
     @endif
 
     <div class="pos-receipt-body">

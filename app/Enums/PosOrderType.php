@@ -22,4 +22,12 @@ enum PosOrderType: string
             self::Takeaway => '🥡',
         };
     }
+
+    public function hint(): string
+    {
+        return match ($this) {
+            self::DineIn => 'Pelanggan makan di meja',
+            self::Takeaway => 'Bawa pulang / antrian',
+        };
+    }
 }

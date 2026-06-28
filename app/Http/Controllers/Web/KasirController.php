@@ -137,6 +137,10 @@ class KasirController extends Controller
         $tableId = $validated['pos_table_id'] ?? null;
 
         if ($orderType === PosOrderType::DineIn && ! $tableId && ! $order->pos_table_id) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Pilih meja untuk pesanan makan di tempat.'], 422);
+            }
+
             return back()->with('error', 'Pilih meja untuk pesanan makan di tempat.');
         }
 
@@ -148,7 +152,24 @@ class KasirController extends Controller
                 $validated['customer_note'] ?? null,
             );
         } catch (\RuntimeException $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
             return back()->with('error', $e->getMessage());
+        }
+
+        $order->refresh()->load('table');
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Info pesanan diperbarui.',
+                'order_type' => $order->order_type?->value,
+                'order_type_label' => $order->order_type?->label(),
+                'order_type_icon' => $order->order_type?->icon(),
+                'table_label' => $order->table?->label,
+                'customer_note' => $order->customer_note,
+            ]);
         }
 
         return back()->with('success', 'Info pesanan diperbarui.');
