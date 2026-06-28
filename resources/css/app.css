@@ -756,6 +756,83 @@
         @apply inline-flex min-h-10 items-center rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98];
     }
 
+    .pos-btn-danger {
+        @apply inline-flex min-h-10 items-center rounded-lg border border-red-400/40 bg-red-500/20 px-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/30 active:scale-[0.98];
+    }
+
+    .pos-type-chip,
+    .pos-customer-chip {
+        @apply rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200;
+    }
+
+    .pos-order-bar {
+        @apply grid shrink-0 gap-3 border-b border-slate-200 bg-white px-3 py-3 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-end sm:px-5;
+    }
+
+    .pos-order-bar-types {
+        @apply flex gap-2;
+    }
+
+    .pos-order-type {
+        @apply inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition;
+    }
+
+    .pos-order-type:has(input:checked),
+    .pos-order-type.is-active {
+        @apply border-brand-500 bg-brand-50 text-brand-700;
+    }
+
+    .pos-order-bar-label {
+        @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .pos-order-bar-select,
+    .pos-order-bar-input {
+        @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+        font-size: 16px;
+    }
+
+    .pos-order-bar-save {
+        @apply inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700;
+    }
+
+    .pos-panel-sub {
+        @apply mt-0.5 text-xs text-slate-500;
+    }
+
+    .pos-category-tabs {
+        @apply mb-3 flex gap-2 overflow-x-auto pb-1;
+    }
+
+    .pos-category-tab {
+        @apply shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300;
+    }
+
+    .pos-category-tab.is-active {
+        @apply border-brand-500 bg-brand-600 text-white;
+    }
+
+    .pos-product-category {
+        @apply absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white;
+    }
+
+    .pos-receipt-context {
+        @apply border-b border-slate-100 px-4 py-2 text-xs text-slate-600;
+    }
+
+    .pos-cash-panel {
+        @apply space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3;
+    }
+
+    .pos-cash-input {
+        @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+        font-size: 16px;
+    }
+
+    .pos-cash-change {
+        @apply text-sm text-slate-600;
+    }
+
     .pos-pending {
         @apply shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-3 sm:px-5;
     }
@@ -1091,86 +1168,68 @@
         @apply flex items-start gap-3;
     }
 
+    .pos-order-item-thumb-btn {
+        @apply shrink-0 overflow-hidden rounded-xl ring-1 ring-slate-200 transition active:scale-[0.98] hover:ring-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40;
+    }
+
     .pos-order-item-main {
         @apply min-w-0 flex-1;
     }
 
-    .pos-order-item-head {
-        @apply flex items-start gap-2;
+    .pos-order-item-note-form {
+        @apply mt-2 space-y-2;
     }
 
-    .pos-order-item-toggle {
-        @apply inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700 active:scale-[0.98];
+    .pos-cart-qty {
+        @apply mt-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5;
     }
 
-    .pos-order-item-toggle.is-open {
-        @apply border-brand-200 bg-brand-50 text-brand-700;
+    .pos-cart-qty-btn {
+        @apply flex h-8 w-8 items-center justify-center rounded-md text-base font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40;
     }
 
-    .pos-order-item-toggle-icon {
-        @apply text-[10px] transition-transform;
+    .pos-cart-qty-value {
+        @apply min-w-8 text-center text-sm font-bold text-slate-900;
     }
 
-    .pos-order-item-toggle.is-open .pos-order-item-toggle-icon {
-        transform: rotate(180deg);
-    }
-
-    .pos-order-item-detail {
-        @apply mt-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50/90 p-3;
-    }
-
-    .pos-order-item-detail-media {
-        @apply overflow-hidden rounded-xl bg-white;
-    }
-
-    .pos-order-item-detail-image {
-        @apply h-36 w-full object-cover sm:h-40;
-    }
-
-    .pos-order-item-meta {
-        @apply grid grid-cols-2 gap-2 text-xs sm:grid-cols-4;
-    }
-
-    .pos-order-item-meta dt {
-        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-400;
-    }
-
-    .pos-order-item-meta dd {
-        @apply mt-0.5 font-medium text-slate-800;
-    }
-
-    .pos-order-item-desc-block {
-        @apply rounded-lg bg-white px-3 py-2;
-    }
-
-    .pos-order-item-desc-label,
-    .pos-order-item-note-block .pos-item-note-label {
-        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-400;
-    }
-
-    .pos-order-item-desc-text,
-    .pos-order-item-note-text {
-        @apply mt-1 text-sm leading-relaxed text-slate-700;
-    }
-
-    .pos-order-item-price-block {
-        @apply space-y-1.5 rounded-lg bg-white px-3 py-2 text-sm;
-    }
-
-    .pos-order-item-price-row {
-        @apply flex items-center justify-between gap-2 text-slate-600;
-    }
-
-    .pos-order-item-price-total {
-        @apply border-t border-slate-100 pt-2 font-bold text-slate-900;
-    }
-
-    .pos-order-item-note-block {
-        @apply rounded-lg bg-amber-50 px-3 py-2;
+    .pos-receipt-line-qty-secondary {
+        @apply mt-0.5 text-xs text-slate-500;
     }
 
     .order-cart-row-wrap .order-cart-row.pos-order-item {
         @apply rounded-xl border border-slate-100 bg-slate-50/80 p-3;
+    }
+
+    .order-image-lightbox-open {
+        @apply overflow-hidden;
+    }
+
+    .order-image-lightbox {
+        @apply fixed inset-0 z-[60] flex items-center justify-center p-4;
+    }
+
+    .order-image-lightbox-backdrop {
+        @apply absolute inset-0 bg-slate-950/80 backdrop-blur-sm;
+    }
+
+    .order-image-lightbox-panel {
+        @apply relative z-10 w-full max-w-sm rounded-2xl bg-white p-3 shadow-2xl sm:max-w-md sm:p-4;
+    }
+
+    .order-image-lightbox-close {
+        @apply absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-2xl leading-none text-slate-600 shadow-sm hover:bg-white;
+    }
+
+    .order-image-lightbox-media {
+        @apply overflow-hidden rounded-xl bg-slate-100;
+    }
+
+    .order-image-lightbox-image {
+        @apply aspect-square w-full object-cover;
+    }
+
+    .order-image-lightbox-title {
+        @apply mt-3 text-center text-sm font-semibold text-slate-900;
     }
 
     .pos-receipt-line-side {

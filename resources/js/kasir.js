@@ -170,6 +170,9 @@ export function initKasirPos() {
     }
 
     initKasirModals(root);
+    initPosCategoryTabs(root);
+    initPosOrderBar(root);
+    initPosCashPayment(root);
 
     const tabs = root.querySelectorAll('[data-kasir-tab]');
     const panels = root.querySelectorAll('[data-kasir-panel]');
@@ -248,6 +251,82 @@ export function initKasirPos() {
 
     window.addEventListener('resize', syncLayout);
     syncLayout();
+}
+
+function initPosCategoryTabs(root) {
+    const tabs = root.querySelectorAll('[data-kasir-category]');
+    if (tabs.length === 0) {
+        return;
+    }
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            tabs.forEach((item) => item.classList.toggle('is-active', item === tab));
+
+            const category = tab.dataset.kasirCategory;
+
+            root.querySelectorAll('[data-menu-category]').forEach((card) => {
+                const match = category === 'all' || card.dataset.menuCategory === category;
+                card.classList.toggle('hidden', ! match);
+            });
+        });
+    });
+}
+
+function initPosOrderBar(root) {
+    const bar = root.querySelector('[data-pos-order-bar]');
+    if (! bar) {
+        return;
+    }
+
+    const tableField = bar.querySelector('[data-pos-table-field]');
+
+    bar.querySelectorAll('[data-pos-order-type]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            if (! radio.checked) {
+                return;
+            }
+
+            tableField?.classList.toggle('hidden', radio.value !== 'dine_in');
+        });
+    });
+}
+
+function initPosCashPayment(root) {
+    const form = root.querySelector('[data-pos-pay-form]');
+    if (! form) {
+        return;
+    }
+
+    const cashPanel = form.querySelector('[data-pos-cash-panel]');
+    const totalEl = form.querySelector('[data-pos-order-total]');
+    const total = parseFloat(totalEl?.dataset.posOrderTotal || root.dataset.posTotal || '0');
+    const receivedInput = form.querySelector('[data-pos-amount-received]');
+    const changeAmount = form.querySelector('[data-pos-change-amount]');
+
+    const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
+
+    const syncPaymentMethod = () => {
+        const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
+        cashPanel?.classList.toggle('hidden', method !== 'cash');
+    };
+
+    const syncChange = () => {
+        const received = parseFloat(receivedInput?.value || '0');
+        const change = Math.max(0, received - total);
+
+        if (changeAmount) {
+            changeAmount.textContent = formatRupiah(change);
+        }
+    };
+
+    form.querySelectorAll('[data-pos-payment-method]').forEach((radio) => {
+        radio.addEventListener('change', syncPaymentMethod);
+    });
+
+    receivedInput?.addEventListener('input', syncChange);
+    syncPaymentMethod();
+    syncChange();
 }
 
 document.addEventListener('DOMContentLoaded', initKasirPos);

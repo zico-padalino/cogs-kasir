@@ -19,6 +19,7 @@ class Product extends Model
         'selling_price',
         'costing_method',
         'description',
+        'menu_category',
         'image_path',
         'is_active',
     ];

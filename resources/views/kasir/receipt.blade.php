@@ -7,12 +7,20 @@
     <div class="mx-auto max-w-md px-1">
         <div class="card border-2 border-dashed border-slate-300 bg-white text-center" id="receipt">
             <p class="text-xs uppercase tracking-widest text-slate-500">Struk Pembayaran</p>
-            <h1 class="mt-2 text-xl font-bold">COGS Sederhana</h1>
+            <h1 class="mt-2 text-xl font-bold">{{ config('pos.shop_name', 'Coffee & Kitchen') }}</h1>
             <p class="mt-1 font-mono text-sm">{{ $order->order_number }}</p>
             <p class="text-xs text-slate-500">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
 
+            @if ($order->order_type)
+                <p class="mt-2 text-sm">{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</p>
+            @endif
+
             @if ($order->table)
-                <p class="mt-2 text-sm">Meja: <strong>{{ $order->table->label }}</strong></p>
+                <p class="text-sm">Meja: <strong>{{ $order->table->label }}</strong></p>
+            @endif
+
+            @if ($order->customer_note)
+                <p class="text-sm text-slate-600">Pelanggan: {{ $order->customer_note }}</p>
             @endif
 
             <div class="my-6 border-t border-b border-slate-200 py-4 text-left text-sm">
@@ -34,12 +42,20 @@
 
             <p class="text-2xl font-bold text-brand-600">{{ $format::rupiah($order->total) }}</p>
             <p class="mt-1 text-sm text-slate-500">{{ $order->payment_method?->label() }}</p>
+
+            @if ($order->payment_method?->value === 'cash' && $order->amount_received)
+                <div class="mt-3 space-y-1 text-sm text-slate-600">
+                    <p>Uang diterima: {{ $format::rupiah($order->amount_received) }}</p>
+                    <p>Kembalian: <strong>{{ $format::rupiah($order->change_amount) }}</strong></p>
+                </div>
+            @endif
+
             <p class="mt-4 text-xs text-slate-400">Stok & COGS tercatat otomatis</p>
         </div>
 
         <div class="form-actions mt-4">
             <button type="button" onclick="window.print()" class="btn-primary w-full sm:w-auto">Cetak</button>
-            <a href="{{ route('kasir.index') }}" class="btn-secondary w-full sm:w-auto">Kasir Baru</a>
+            <a href="{{ route('kasir.index') }}" class="btn-secondary w-full sm:w-auto">POS Baru</a>
         </div>
     </div>
 

@@ -130,6 +130,7 @@ class KasirPageTest extends TestCase
         $this->actingAs($kasir)
             ->post(route('kasir.pay'), [
                 'payment_method' => 'cash',
+                'amount_received' => 50000,
             ])
             ->assertRedirect();
 

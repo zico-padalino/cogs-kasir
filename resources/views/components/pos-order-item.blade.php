@@ -9,7 +9,7 @@
 
 @php
     $product = $item->product;
-    $detailId = 'order-item-detail-'.$item->id;
+    $maxQty = max(1, (int) $product->availableQuantity());
 @endphp
 
 <div
@@ -18,100 +18,58 @@
     data-kasir-item
     data-item-id="{{ $item->id }}"
 >
-    <x-product-image :product="$product" class="pos-receipt-thumb" />
+    <button
+        type="button"
+        class="pos-order-item-thumb-btn"
+        data-order-item-image-open
+        data-image-url="{{ $product->imageUrl() }}"
+        data-image-title="{{ $product->name }}"
+        aria-label="Lihat gambar {{ $product->name }}"
+    >
+        <x-product-image :product="$product" class="pos-receipt-thumb" />
+    </button>
 
     <div class="pos-receipt-line-main pos-order-item-main">
-        <div class="pos-order-item-head">
-            <div class="min-w-0 flex-1">
-                <p class="pos-receipt-line-name">{{ $product->name }}</p>
-                <p class="pos-receipt-line-qty">
-                    {{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}
-                </p>
-            </div>
-            <button
-                type="button"
-                class="pos-order-item-toggle"
-                data-order-item-toggle
-                aria-expanded="false"
-                aria-controls="{{ $detailId }}"
-            >
-                <span data-order-item-toggle-label>Detail</span>
-                <span class="pos-order-item-toggle-icon" aria-hidden="true">▾</span>
-            </button>
-        </div>
+        <p class="pos-receipt-line-name">{{ $product->name }}</p>
+        <p class="pos-receipt-line-qty">{{ $format::rupiah($item->unit_price) }} / {{ $product->unit }}</p>
 
-        @if ($item->notes && ! $editable)
-            <p class="pos-receipt-line-note">Catatan: {{ $item->notes }}</p>
-        @endif
-
-        <div id="{{ $detailId }}" class="pos-order-item-detail hidden" data-order-item-detail hidden>
-            <div class="pos-order-item-detail-media">
-                <x-product-image :product="$product" :eager="true" class="pos-order-item-detail-image" />
-            </div>
-
-            <dl class="pos-order-item-meta">
-                <div>
-                    <dt>SKU</dt>
-                    <dd>{{ $product->sku }}</dd>
-                </div>
-                <div>
-                    <dt>Satuan</dt>
-                    <dd>{{ $product->unit }}</dd>
-                </div>
-                <div>
-                    <dt>Jenis</dt>
-                    <dd>{{ $product->type->label() }}</dd>
-                </div>
-                <div>
-                    <dt>Stok</dt>
-                    <dd>{{ $format::number($product->availableQuantity(), 0) }}</dd>
-                </div>
-            </dl>
-
-            @if ($product->description)
-                <div class="pos-order-item-desc-block">
-                    <p class="pos-order-item-desc-label">Deskripsi menu</p>
-                    <p class="pos-order-item-desc-text">{{ $product->description }}</p>
-                </div>
-            @endif
-
-            <div class="pos-order-item-price-block">
-                <div class="pos-order-item-price-row">
-                    <span>Harga satuan</span>
-                    <span>{{ $format::rupiah($item->unit_price) }}</span>
-                </div>
-                <div class="pos-order-item-price-row">
-                    <span>Jumlah</span>
-                    <span>{{ $format::number($item->quantity, 0) }} {{ $product->unit }}</span>
-                </div>
-                <div class="pos-order-item-price-row pos-order-item-price-total">
-                    <span>Subtotal item</span>
-                    <span>{{ $format::rupiah($item->line_total) }}</span>
-                </div>
-            </div>
-
-            @if ($editable && $updateUrl)
-                <form action="{{ $updateUrl }}" method="POST" class="pos-item-note-form">
+        @if ($editable && $updateUrl)
+            <div class="pos-cart-qty">
+                <form action="{{ $updateUrl }}" method="POST">
                     @csrf
                     @method('PATCH')
-                    <label class="pos-item-note-label" for="note-{{ $item->id }}">Catatan pembelian</label>
-                    <textarea
-                        id="note-{{ $item->id }}"
-                        name="notes"
-                        rows="3"
-                        maxlength="255"
-                        class="order-item-note-input pos-item-note-input"
-                        placeholder="Contoh: tanpa gula, bungkus terpisah, level pedas..."
-                    >{{ old('notes', $item->notes) }}</textarea>
-                    <button type="submit" class="pos-item-note-save">Simpan catatan</button>
+                    <input type="hidden" name="quantity" value="{{ max(1, $item->quantity - 1) }}">
+                    <button type="submit" class="pos-cart-qty-btn" @disabled($item->quantity <= 1) aria-label="Kurangi">−</button>
                 </form>
-            @elseif ($item->notes)
-                <div class="pos-order-item-note-block">
-                    <p class="pos-item-note-label">Catatan pembelian</p>
-                    <p class="pos-order-item-note-text">{{ $item->notes }}</p>
-                </div>
+                <span class="pos-cart-qty-value">{{ $format::number($item->quantity, 0) }}</span>
+                <form action="{{ $updateUrl }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="quantity" value="{{ min($maxQty, $item->quantity + 1) }}">
+                    <button type="submit" class="pos-cart-qty-btn" @disabled($item->quantity >= $maxQty) aria-label="Tambah">+</button>
+                </form>
+            </div>
+
+            <form action="{{ $updateUrl }}" method="POST" class="pos-item-note-form pos-order-item-note-form">
+                @csrf
+                @method('PATCH')
+                <textarea
+                    name="notes"
+                    rows="2"
+                    maxlength="255"
+                    class="order-item-note-input pos-item-note-input"
+                    placeholder="Catatan: less sugar, hot, dll."
+                >{{ old('notes', $item->notes) }}</textarea>
+                <button type="submit" class="pos-item-note-save">Simpan catatan</button>
+            </form>
+        @else
+            <p class="pos-receipt-line-qty-secondary">
+                {{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}
+            </p>
+            @if ($item->notes)
+                <p class="pos-receipt-line-note">Catatan: {{ $item->notes }}</p>
             @endif
-        </div>
+        @endif
     </div>
 
     <div class="pos-receipt-line-side">

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderSource;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosOrderType;
 use App\Enums\ProductType;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
@@ -32,9 +33,36 @@ class PosOrderService
         return PosOrder::create([
             'order_number' => $this->generateOrderNumber(),
             'source' => PosOrderSource::Kasir,
+            'order_type' => PosOrderType::Takeaway,
             'status' => PosOrderStatus::Open,
             'user_id' => $cashier?->id,
         ]);
+    }
+
+    public function updateOrderContext(
+        PosOrder $order,
+        PosOrderType $orderType,
+        ?int $tableId = null,
+        ?string $customerNote = null,
+    ): PosOrder {
+        if (! $order->isKasirEditable()) {
+            throw new RuntimeException('Pesanan tidak bisa diubah.');
+        }
+
+        $data = [
+            'order_type' => $orderType,
+            'customer_note' => filled($customerNote) ? trim($customerNote) : null,
+        ];
+
+        if ($orderType === PosOrderType::DineIn) {
+            $data['pos_table_id'] = $tableId;
+        } elseif ($order->source === PosOrderSource::Kasir) {
+            $data['pos_table_id'] = null;
+        }
+
+        $order->update($data);
+
+        return $order->fresh(['table']);
     }
 
     public function getOrCreateOnlineOrder(PosTable $table): PosOrder
@@ -49,6 +77,7 @@ class PosOrderService
             'order_number' => $this->generateOrderNumber(),
             'pos_table_id' => $table->id,
             'source' => PosOrderSource::Online,
+            'order_type' => PosOrderType::DineIn,
             'status' => PosOrderStatus::Open,
         ]);
     }
@@ -122,8 +151,12 @@ class PosOrderService
     /**
      * @return array{order: PosOrder, invoice: string}
      */
-    public function payOrder(PosOrder $order, PaymentMethod $paymentMethod, ?User $cashier = null): array
-    {
+    public function payOrder(
+        PosOrder $order,
+        PaymentMethod $paymentMethod,
+        ?User $cashier = null,
+        ?float $amountReceived = null,
+    ): array {
         if (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Submitted], true)) {
             throw new RuntimeException('Pesanan sudah dibayar atau dibatalkan.');
         }
@@ -138,7 +171,18 @@ class PosOrderService
             $this->assertSellable($item->product, (float) $item->quantity);
         }
 
-        return DB::transaction(function () use ($order, $paymentMethod, $cashier) {
+        $total = (float) $order->total;
+        $changeAmount = null;
+
+        if ($paymentMethod === PaymentMethod::Cash) {
+            if ($amountReceived === null || $amountReceived < $total) {
+                throw new RuntimeException('Uang diterima harus minimal sebesar total tagihan.');
+            }
+
+            $changeAmount = round($amountReceived - $total, 4);
+        }
+
+        return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount) {
             $invoiceBase = 'POS-'.$order->order_number;
             $soldAt = now();
 
@@ -161,6 +205,8 @@ class PosOrderService
                 'payment_method' => $paymentMethod,
                 'paid_at' => $soldAt,
                 'user_id' => $cashier?->id ?? $order->user_id,
+                'amount_received' => $amountReceived,
+                'change_amount' => $changeAmount,
             ]);
 
             return [
@@ -183,10 +229,28 @@ class PosOrderService
     public function sellableProducts(): Collection
     {
         return Product::sellable()
+            ->orderBy('menu_category')
             ->orderBy('name')
             ->get()
             ->filter(fn (Product $product) => $product->availableQuantity() > 0)
             ->values();
+    }
+
+    /** @return list<string> */
+    public function menuCategories(Collection $products): array
+    {
+        $configured = array_keys(config('pos.menu_categories', []));
+        $used = $products
+            ->pluck('menu_category')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $ordered = array_values(array_intersect($configured, $used));
+        $extras = array_values(array_diff($used, $ordered));
+
+        return array_merge($ordered, $extras);
     }
 
     private function recalculateTotals(PosOrder $order): void

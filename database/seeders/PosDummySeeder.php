@@ -68,6 +68,7 @@ class PosDummySeeder extends Seeder
                     'standard_cost' => $cost,
                     'selling_price' => $price,
                     'image_path' => $this->demoImageForSku($sku),
+                    'menu_category' => $this->demoCategoryForSku($sku),
                     'costing_method' => CostingMethod::WeightedAverage,
                     'is_active' => true,
                 ]);
@@ -208,6 +209,17 @@ class PosDummySeeder extends Seeder
             'FG-DEMO-004', 'FG-DEMO-005' => 'images/products/donut.svg',
             'FG-DEMO-006', 'FG-DEMO-007', 'FG-DEMO-012' => 'images/products/cake-slice.svg',
             default => 'images/products/default-food.svg',
+        };
+    }
+
+    private function demoCategoryForSku(string $sku): ?string
+    {
+        return match ($sku) {
+            'FG-DEMO-003', 'FG-DEMO-010', 'FG-DEMO-011', 'FG-DEMO-004', 'FG-DEMO-005' => 'pastry',
+            'FG-DEMO-006', 'FG-DEMO-007', 'FG-DEMO-012', 'FG-DEMO-013' => 'makanan',
+            'FG-DEMO-014' => 'snack',
+            'FG-DEMO-001', 'FG-DEMO-002', 'FG-DEMO-009', 'FG-DEMO-015' => 'makanan',
+            default => 'lainnya',
         };
     }
 }

@@ -29,14 +29,14 @@
                     <div class="flex items-center gap-3">
                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold text-white">K</div>
                         <div>
-                            <p class="font-bold text-slate-900">Kasir POS</p>
-                            <p class="text-xs text-slate-500">{{ auth()->user()->name }}</p>
+                            <p class="font-bold text-slate-900">{{ config('pos.shop_name', 'Point of Sale') }}</p>
+                            <p class="text-xs text-slate-500">{{ auth()->user()->name }} · Tap menu, tanpa scan barcode</p>
                         </div>
                     </div>
                     <nav class="flex flex-wrap items-center gap-2 text-sm">
-                        <a href="{{ route('kasir.index') }}" class="rounded-lg px-3 py-2 font-medium {{ request()->routeIs('kasir.index') ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">Kasir</a>
+                        <a href="{{ route('kasir.index') }}" class="rounded-lg px-3 py-2 font-medium {{ request()->routeIs('kasir.index') ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">POS</a>
                         <a href="{{ route('kasir.orders') }}" class="rounded-lg px-3 py-2 font-medium {{ request()->routeIs('kasir.orders*') ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">Riwayat</a>
-                        <a href="{{ route('kasir.tables') }}" class="rounded-lg px-3 py-2 font-medium {{ request()->routeIs('kasir.tables') ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">Meja & Barcode</a>
+                        <a href="{{ route('kasir.tables') }}" class="rounded-lg px-3 py-2 font-medium {{ request()->routeIs('kasir.tables*') ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100' }}">Meja QR</a>
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn-outline btn-sm">Keluar</button>
@@ -65,7 +65,7 @@
             <a href="{{ route('kasir.index') }}"
                class="bottom-nav-link {{ request()->routeIs('kasir.index') ? 'is-active' : '' }}">
                 <span class="bottom-nav-icon">🛒</span>
-                <span>Kasir</span>
+                <span>POS</span>
             </a>
             <a href="{{ route('kasir.orders') }}"
                class="bottom-nav-link {{ request()->routeIs('kasir.orders*') ? 'is-active' : '' }}">

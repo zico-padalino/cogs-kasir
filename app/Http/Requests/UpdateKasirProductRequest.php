@@ -24,6 +24,7 @@ class UpdateKasirProductRequest extends FormRequest
     {
         return [
             'description' => ['nullable', 'string', 'max:1000'],
+            'menu_category' => ['nullable', 'string', Rule::in(array_keys(config('pos.menu_categories', [])))],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'preset_image' => ['nullable', 'string', Rule::in(array_keys(config('pos.product_presets', [])))],
             'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],

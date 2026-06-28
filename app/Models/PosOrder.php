@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PosOrderSource;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosOrderType;
 use App\Enums\PaymentMethod;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,10 +16,13 @@ class PosOrder extends Model
         'order_number',
         'pos_table_id',
         'source',
+        'order_type',
         'status',
         'customer_note',
         'subtotal',
         'total',
+        'amount_received',
+        'change_amount',
         'payment_method',
         'paid_at',
         'user_id',
@@ -28,10 +32,13 @@ class PosOrder extends Model
     {
         return [
             'source' => PosOrderSource::class,
+            'order_type' => PosOrderType::class,
             'status' => PosOrderStatus::class,
             'payment_method' => PaymentMethod::class,
             'subtotal' => 'decimal:4',
             'total' => 'decimal:4',
+            'amount_received' => 'decimal:4',
+            'change_amount' => 'decimal:4',
             'paid_at' => 'datetime',
         ];
     }

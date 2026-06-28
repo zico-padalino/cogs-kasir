@@ -18,6 +18,7 @@ class KasirProductController extends Controller
         return view('kasir.products.edit', [
             'product' => $product,
             'presets' => config('pos.product_presets', []),
+            'menuCategories' => config('pos.menu_categories', []),
             'format' => Format::class,
         ]);
     }
@@ -28,6 +29,7 @@ class KasirProductController extends Controller
 
         $data = [
             'description' => $request->input('description'),
+            'menu_category' => $request->input('menu_category'),
             'selling_price' => $request->input('selling_price'),
         ];
 

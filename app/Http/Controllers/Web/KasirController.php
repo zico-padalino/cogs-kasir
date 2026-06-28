@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\PosOrderType;
 use App\Http\Controllers\Controller;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
@@ -29,12 +30,17 @@ class KasirController extends Controller
             ->latest()
             ->get();
 
+        $products = $posService->sellableProducts();
+
         return view('kasir.index', [
             'order' => $activeOrder,
-            'products' => $posService->sellableProducts(),
+            'products' => $products,
+            'menuCategories' => $posService->menuCategories($products),
+            'orderTypes' => PosOrderType::cases(),
             'pendingOrders' => $pendingOrders,
             'tables' => PosTable::where('is_active', true)->orderBy('table_number')->get(),
             'presets' => config('pos.product_presets', []),
+            'shopName' => config('pos.shop_name'),
             'format' => Format::class,
         ]);
     }
@@ -113,6 +119,63 @@ class KasirController extends Controller
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dimuat.');
     }
 
+    public function updateOrder(Request $request, PosOrderService $posService)
+    {
+        $order = $this->activeKasirOrder();
+
+        if (! $order) {
+            return back()->with('error', 'Tidak ada order aktif.');
+        }
+
+        $validated = $request->validate([
+            'order_type' => ['required', 'in:dine_in,takeaway'],
+            'pos_table_id' => ['nullable', 'exists:pos_tables,id'],
+            'customer_note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $orderType = PosOrderType::from($validated['order_type']);
+        $tableId = $validated['pos_table_id'] ?? null;
+
+        if ($orderType === PosOrderType::DineIn && ! $tableId && ! $order->pos_table_id) {
+            return back()->with('error', 'Pilih meja untuk pesanan makan di tempat.');
+        }
+
+        try {
+            $posService->updateOrderContext(
+                $order,
+                $orderType,
+                $tableId ? (int) $tableId : $order->pos_table_id,
+                $validated['customer_note'] ?? null,
+            );
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Info pesanan diperbarui.');
+    }
+
+    public function cancelOrder(PosOrderService $posService)
+    {
+        $order = $this->activeKasirOrder();
+
+        if (! $order) {
+            return back()->with('error', 'Tidak ada order aktif.');
+        }
+
+        try {
+            $posService->cancelOrder($order);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        session()->forget('kasir_order_id');
+
+        $newOrder = $posService->createKasirOrder(auth()->user());
+        session(['kasir_order_id' => $newOrder->id]);
+
+        return redirect()->route('kasir.index')->with('success', 'Pesanan dibatalkan.');
+    }
+
     public function addItem(Request $request, PosOrderService $posService)
     {
         $validated = $request->validate([
@@ -145,6 +208,7 @@ class KasirController extends Controller
     {
         $validated = $request->validate([
             'notes' => ['nullable', 'string', 'max:255'],
+            'quantity' => ['nullable', 'numeric', 'min:0.01'],
         ]);
 
         try {
@@ -157,9 +221,15 @@ class KasirController extends Controller
                 throw new \RuntimeException('Pesanan tidak bisa diubah.');
             }
 
-            $item->update([
-                'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
-            ]);
+            if (array_key_exists('quantity', $validated) && $validated['quantity'] !== null) {
+                $posService->updateItemQuantity($item, (float) $validated['quantity'], fromKasir: true);
+            }
+
+            if (array_key_exists('notes', $validated)) {
+                $item->update([
+                    'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
+                ]);
+            }
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -182,6 +252,7 @@ class KasirController extends Controller
     {
         $validated = $request->validate([
             'payment_method' => ['required', 'in:cash,qris,transfer'],
+            'amount_received' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $order = $this->activeKasirOrder();
@@ -190,11 +261,15 @@ class KasirController extends Controller
             return back()->with('error', 'Tidak ada order aktif.');
         }
 
+        $paymentMethod = \App\Enums\PaymentMethod::from($validated['payment_method']);
+        $amountReceived = isset($validated['amount_received']) ? (float) $validated['amount_received'] : null;
+
         try {
             $result = $posService->payOrder(
                 $order,
-                \App\Enums\PaymentMethod::from($validated['payment_method']),
+                $paymentMethod,
                 auth()->user(),
+                $amountReceived,
             );
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());

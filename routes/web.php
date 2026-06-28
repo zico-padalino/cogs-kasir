@@ -43,6 +43,8 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::get('/tables/{table}/barcode', [KasirController::class, 'tableBarcode'])->name('tables.barcode');
     Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
     Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
+    Route::patch('/order', [KasirController::class, 'updateOrder'])->name('order.update');
+    Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
     Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
     Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
     Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');

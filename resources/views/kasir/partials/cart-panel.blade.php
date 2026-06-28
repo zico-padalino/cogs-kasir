@@ -7,9 +7,17 @@
         <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
     </div>
 
-    @if ($order->table)
-        <div class="pos-receipt-table">
-            Meja: <strong>{{ $order->table->label }}</strong>
+    @if ($order->order_type || $order->table || $order->customer_note)
+        <div class="pos-receipt-context">
+            @if ($order->order_type)
+                <span>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+            @endif
+            @if ($order->table)
+                <span>· Meja <strong>{{ $order->table->label }}</strong></span>
+            @endif
+            @if ($order->customer_note)
+                <span>· {{ $order->customer_note }}</span>
+            @endif
         </div>
     @endif
 
@@ -28,14 +36,14 @@
             </div>
         @else
             <div class="pos-receipt-empty">
-                <span class="pos-receipt-empty-icon">🧾</span>
+                <span class="pos-receipt-empty-icon">☕</span>
                 <p>Belum ada item</p>
-                <p class="pos-receipt-empty-hint">Pilih menu di sebelah kiri</p>
+                <p class="pos-receipt-empty-hint">Tap menu di kiri untuk mulai pesanan</p>
             </div>
         @endif
     </div>
 
-    @if ($order->items->isNotEmpty())
+    @if ($order->items->isNotEmpty() && $order->isKasirEditable())
         <div class="pos-receipt-foot">
             <div class="pos-receipt-subtotal">
                 <span>Subtotal</span>
@@ -43,10 +51,10 @@
             </div>
             <div class="pos-receipt-grand">
                 <span>Total Bayar</span>
-                <span data-kasir-total>{{ $format::rupiah($order->total) }}</span>
+                <span data-kasir-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</span>
             </div>
 
-            <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form">
+            <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form" data-pos-pay-form>
                 @csrf
                 <p class="pos-pay-label">Metode pembayaran</p>
                 <div class="pos-pay-grid">
@@ -57,6 +65,7 @@
                                 name="payment_method"
                                 value="{{ $method->value }}"
                                 class="sr-only"
+                                data-pos-payment-method
                                 {{ $index === 0 ? 'checked' : '' }}
                                 required
                             >
@@ -64,14 +73,42 @@
                         </label>
                     @endforeach
                 </div>
+
+                <div class="pos-cash-panel hidden" data-pos-cash-panel>
+                    <label class="pos-pay-label" for="pos-amount-received">Uang diterima</label>
+                    <input
+                        id="pos-amount-received"
+                        type="number"
+                        name="amount_received"
+                        min="0"
+                        step="1000"
+                        class="pos-cash-input"
+                        placeholder="0"
+                        data-pos-amount-received
+                    >
+                    <p class="pos-cash-change" data-pos-change-wrap>
+                        Kembalian: <strong data-pos-change-amount>Rp 0</strong>
+                    </p>
+                </div>
+
                 <button
                     type="submit"
                     class="pos-pay-submit"
+                    data-pos-pay-submit
                     onclick="return confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')"
                 >
                     Bayar {{ $format::rupiah($order->total) }}
                 </button>
             </form>
         </div>
+    @elseif ($order->items->isNotEmpty())
+        <div class="pos-receipt-foot">
+            <div class="pos-receipt-grand">
+                <span>Total</span>
+                <span>{{ $format::rupiah($order->total) }}</span>
+            </div>
+        </div>
     @endif
 </div>
+
+<x-product-image-lightbox />

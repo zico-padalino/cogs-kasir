@@ -1,25 +1,36 @@
 @extends('layouts.kasir')
 
-@section('title', 'Kasir POS')
-@section('heading', 'Kasir')
+@section('title', 'Point of Sale')
+@section('heading', 'Point of Sale')
 @section('body_class', 'is-kasir-pos')
 @section('main_class', 'pos-main-wrap')
 
 @section('content')
-    <div id="kasir-pos" class="pos-shell">
-        {{-- Toolbar --}}
+    <div id="kasir-pos" class="pos-shell" data-pos-total="{{ $order->total }}">
         <header class="pos-toolbar">
             <div class="pos-toolbar-left">
                 <div class="pos-order-chip">
-                    <span class="pos-order-chip-label">Order</span>
+                    <span class="pos-order-chip-label">POS</span>
                     <span class="pos-order-chip-value">{{ $order->order_number }}</span>
                 </div>
+                @if ($order->order_type)
+                    <span class="pos-type-chip">{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+                @endif
                 @if ($order->table)
                     <span class="pos-table-chip">{{ $order->table->label }}</span>
+                @endif
+                @if ($order->customer_note)
+                    <span class="pos-customer-chip">{{ $order->customer_note }}</span>
                 @endif
                 <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
             <div class="pos-toolbar-right">
+                @if ($order->isKasirEditable() && $order->items->isNotEmpty())
+                    <form action="{{ route('kasir.order.cancel') }}" method="POST" onsubmit="return confirm('Batalkan pesanan ini?')">
+                        @csrf
+                        <button type="submit" class="pos-btn-danger">Batal</button>
+                    </form>
+                @endif
                 <form action="{{ route('kasir.new-order') }}" method="POST">
                     @csrf
                     <button type="submit" class="pos-btn-ghost">+ Baru</button>
@@ -27,9 +38,18 @@
             </div>
         </header>
 
+        @if ($order->isKasirEditable())
+            @include('kasir.partials.pos-order-bar', [
+                'order' => $order,
+                'tables' => $tables,
+                'orderTypes' => $orderTypes,
+                'format' => $format,
+            ])
+        @endif
+
         @if ($pendingOrders->isNotEmpty())
             <div class="pos-pending">
-                <p class="pos-pending-title">Pesanan meja menunggu ({{ $pendingOrders->count() }})</p>
+                <p class="pos-pending-title">Pesanan meja QR menunggu bayar ({{ $pendingOrders->count() }})</p>
                 <div class="pos-pending-list">
                     @foreach ($pendingOrders as $pending)
                         <form action="{{ route('kasir.load-order', $pending) }}" method="POST">
@@ -44,10 +64,9 @@
             </div>
         @endif
 
-        {{-- Mobile: Menu | Pesanan --}}
         <div class="pos-view-tabs lg:hidden" role="tablist">
             <button type="button" class="pos-view-tab is-active" data-kasir-tab="menu" role="tab" aria-selected="true">
-                <span class="pos-view-tab-icon">🍽️</span>
+                <span class="pos-view-tab-icon">☕</span>
                 <span>Menu</span>
             </button>
             <button type="button" class="pos-view-tab" data-kasir-tab="cart" role="tab" aria-selected="false">
@@ -61,22 +80,35 @@
         </div>
 
         <div class="pos-workspace">
-            {{-- Panel Menu --}}
             <section class="pos-menu-panel kasir-panel-menu" data-kasir-panel="menu">
                 <div class="pos-menu-head">
-                    <h2 class="pos-panel-title">Menu</h2>
+                    <div>
+                        <h2 class="pos-panel-title">Menu</h2>
+                        <p class="pos-panel-sub">Tap menu untuk tambah — tanpa scan barcode</p>
+                    </div>
                     <input
                         type="search"
                         data-kasir-search
                         class="pos-search"
-                        placeholder="Cari produk..."
+                        placeholder="Cari menu..."
                         autocomplete="off"
                     >
                 </div>
+
+                @if ($menuCategories !== [])
+                    <div class="pos-category-tabs" role="tablist">
+                        <button type="button" class="pos-category-tab is-active" data-kasir-category="all">Semua</button>
+                        @foreach ($menuCategories as $category)
+                            <button type="button" class="pos-category-tab" data-kasir-category="{{ $category }}">
+                                {{ config('pos.menu_categories.'.$category, ucfirst($category)) }}
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+
                 @include('kasir.partials.menu-grid', ['products' => $products, 'format' => $format])
             </section>
 
-            {{-- Panel Pesanan --}}
             <aside class="pos-order-panel kasir-panel-cart hidden lg:flex" data-kasir-panel="cart">
                 @include('kasir.partials.cart-panel', ['order' => $order, 'format' => $format])
             </aside>
@@ -88,7 +120,7 @@
                     <span class="pos-mobile-checkout-label">{{ $order->items->count() }} item</span>
                     <span class="pos-mobile-checkout-total">{{ $format::rupiah($order->total) }}</span>
                 </div>
-                <button type="button" class="pos-mobile-checkout-btn" data-kasir-go-cart>Lihat Pesanan</button>
+                <button type="button" class="pos-mobile-checkout-btn" data-kasir-go-cart>Bayar</button>
             </div>
         @endif
     </div>

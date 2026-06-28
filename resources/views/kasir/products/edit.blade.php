@@ -56,6 +56,19 @@
                 </div>
 
                 <div>
+                    <label class="form-label">Kategori Menu (POS)</label>
+                    <select name="menu_category" class="form-input">
+                        <option value="">— Pilih kategori —</option>
+                        @foreach ($menuCategories as $key => $label)
+                            <option value="{{ $key }}" @selected(old('menu_category', $product->menu_category) === $key)>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="form-hint">Untuk filter tab Minuman, Makanan, Pastry, dll.</p>
+                </div>
+
+                <div>
                     <label class="form-label">Detail / Deskripsi Menu</label>
                     <textarea
                         name="description"
