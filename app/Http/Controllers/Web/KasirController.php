@@ -38,7 +38,6 @@ class KasirController extends Controller
             'menuCategories' => $posService->menuCategories($products),
             'orderTypes' => PosOrderType::cases(),
             'pendingOrders' => $pendingOrders,
-            'tables' => PosTable::where('is_active', true)->orderBy('table_number')->get(),
             'presets' => config('pos.product_presets', []),
             'shopName' => config('pos.shop_name'),
             'format' => Format::class,
@@ -129,26 +128,16 @@ class KasirController extends Controller
 
         $validated = $request->validate([
             'order_type' => ['required', 'in:dine_in,takeaway'],
-            'pos_table_id' => ['nullable', 'exists:pos_tables,id'],
             'customer_note' => ['nullable', 'string', 'max:255'],
         ]);
 
         $orderType = PosOrderType::from($validated['order_type']);
-        $tableId = $validated['pos_table_id'] ?? null;
-
-        if ($orderType === PosOrderType::DineIn && ! $tableId && ! $order->pos_table_id) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'Pilih meja untuk pesanan Dine In.'], 422);
-            }
-
-            return back()->with('error', 'Pilih meja untuk pesanan Dine In.');
-        }
 
         try {
             $posService->updateOrderContext(
                 $order,
                 $orderType,
-                $tableId ? (int) $tableId : $order->pos_table_id,
+                null,
                 $validated['customer_note'] ?? null,
             );
         } catch (\RuntimeException $e) {
@@ -167,7 +156,6 @@ class KasirController extends Controller
                 'order_type' => $order->order_type?->value,
                 'order_type_label' => $order->order_type?->label(),
                 'order_type_icon' => $order->order_type?->icon(),
-                'table_label' => $order->table?->label,
                 'customer_note' => $order->customer_note,
             ]);
         }

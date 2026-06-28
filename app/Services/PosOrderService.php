@@ -54,10 +54,10 @@ class PosOrderService
             'customer_note' => filled($customerNote) ? trim($customerNote) : null,
         ];
 
-        if ($orderType === PosOrderType::DineIn) {
-            $data['pos_table_id'] = $tableId;
-        } elseif ($order->source === PosOrderSource::Kasir) {
+        if ($order->source === PosOrderSource::Kasir) {
             $data['pos_table_id'] = null;
+        } elseif ($orderType === PosOrderType::DineIn) {
+            $data['pos_table_id'] = $tableId;
         }
 
         $order->update($data);

@@ -7,13 +7,10 @@
         <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
     </div>
 
-    @if ($order->order_type || $order->table || $order->customer_note)
+    @if ($order->order_type || $order->customer_note)
         <div class="pos-receipt-context" data-pos-receipt-context>
             @if ($order->order_type)
                 <span class="pos-context-badge pos-context-badge-type" data-pos-receipt-type>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
-            @endif
-            @if ($order->table)
-                <span class="pos-context-badge pos-context-badge-table" data-pos-receipt-table>Meja {{ $order->table->label }}</span>
             @endif
             @if ($order->customer_note)
                 <span class="pos-context-badge pos-context-badge-customer" data-pos-receipt-customer>{{ $order->customer_note }}</span>

@@ -23,11 +23,6 @@
                 @else
                     <span class="pos-type-chip hidden" data-pos-toolbar-type></span>
                 @endif
-                @if ($order->table)
-                    <span class="pos-table-chip max-lg:hidden" data-pos-toolbar-table>{{ $order->table->label }}</span>
-                @else
-                    <span class="pos-table-chip hidden" data-pos-toolbar-table></span>
-                @endif
                 @if ($order->customer_note)
                     <span class="pos-customer-chip max-lg:hidden" data-pos-toolbar-customer>{{ $order->customer_note }}</span>
                 @else
@@ -52,7 +47,6 @@
         @if ($order->isKasirEditable())
             @include('kasir.partials.pos-order-bar', [
                 'order' => $order,
-                'tables' => $tables,
                 'orderTypes' => $orderTypes,
                 'format' => $format,
             ])
@@ -64,17 +58,17 @@
             @endphp
             <div class="pos-pending" data-pos-pending>
                 <button type="button" class="pos-pending-toggle lg:hidden" data-pos-pending-toggle aria-expanded="false">
-                    <span>🪑 {{ $pendingOrders->count() }} meja menunggu bayar · {{ $format::rupiah($pendingTotal) }}</span>
+                    <span>{{ $pendingOrders->count() }} pesanan menunggu bayar · {{ $format::rupiah($pendingTotal) }}</span>
                     <span class="pos-pending-toggle-icon" aria-hidden="true">▼</span>
                 </button>
                 <div class="pos-pending-body" data-pos-pending-body>
-                    <p class="pos-pending-title">Pesanan meja QR menunggu bayar ({{ $pendingOrders->count() }})</p>
+                    <p class="pos-pending-title">Pesanan online menunggu bayar ({{ $pendingOrders->count() }})</p>
                     <div class="pos-pending-list">
                         @foreach ($pendingOrders as $pending)
                             <form action="{{ route('kasir.load-order', $pending) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="pos-pending-btn">
-                                    <span>{{ $pending->table?->label ?? 'Online' }}</span>
+                                    <span>{{ $pending->customer_note ?: $pending->order_number }}</span>
                                     <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
                                 </button>
                             </form>

@@ -328,14 +328,8 @@ function initPosOrderBar(root) {
         return;
     }
 
-    const dineInFields = bar.querySelector('[data-pos-dine-in-fields]');
-    const tableSelect = bar.querySelector('[data-pos-table-select]');
-    const tableError = bar.querySelector('[data-pos-table-error]');
     const customerInput = bar.querySelector('[data-pos-customer-note]');
-    const customerLabel = bar.querySelector('[data-pos-customer-label]');
-    const customerHint = bar.querySelector('[data-pos-customer-hint]');
     const saveStatus = bar.querySelector('[data-pos-save-status]');
-    const tablePills = bar.querySelectorAll('[data-pos-table-pill]');
     const typeCards = bar.querySelectorAll('[data-pos-order-type-card]');
     const typeRadios = bar.querySelectorAll('[data-pos-order-type]');
     const orderSummary = bar.querySelector('[data-pos-order-summary]');
@@ -343,14 +337,11 @@ function initPosOrderBar(root) {
     const orderBarBackdrop = root.querySelector('[data-pos-order-bar-backdrop]');
 
     const toolbarType = root.querySelector('[data-pos-toolbar-type]');
-    const toolbarTable = root.querySelector('[data-pos-toolbar-table]');
     const toolbarCustomer = root.querySelector('[data-pos-toolbar-customer]');
     const receiptContext = root.querySelector('[data-pos-receipt-context]');
 
     let saveTimer = null;
     let saving = false;
-
-    const activeType = () => bar.querySelector('[data-pos-order-type]:checked')?.value ?? 'takeaway';
 
     const setOrderBarExpanded = (expanded) => {
         const isMobile = window.innerWidth < POS_DESKTOP_BP;
@@ -381,10 +372,6 @@ function initPosOrderBar(root) {
             parts.push(`${data.order_type_icon ?? ''} ${data.order_type_label}`.trim());
         }
 
-        if (data.table_label) {
-            parts.push(data.table_label);
-        }
-
         if (data.customer_note) {
             parts.push(data.customer_note);
         }
@@ -413,48 +400,10 @@ function initPosOrderBar(root) {
     };
 
     const syncTypeCards = () => {
-        const type = activeType();
+        const type = bar.querySelector('[data-pos-order-type]:checked')?.value ?? 'takeaway';
 
         typeCards.forEach((card) => {
             card.classList.toggle('is-active', card.dataset.posOrderTypeCard === type);
-        });
-    };
-
-    const syncDineInPanel = () => {
-        const isDineIn = activeType() === 'dine_in';
-
-        dineInFields?.classList.toggle('hidden', ! isDineIn);
-
-        if (customerLabel) {
-            customerLabel.textContent = isDineIn ? 'Nama pelanggan' : 'Nama / nomor antrian';
-        }
-
-        if (customerInput) {
-            customerInput.placeholder = isDineIn
-                ? 'Opsional — untuk panggilan'
-                : 'Contoh: Budi / A-12';
-        }
-
-        if (customerHint) {
-            customerHint.textContent = isDineIn
-                ? 'Opsional jika sudah ada meja.'
-                : 'Memudahkan kasir memanggil saat pesanan siap.';
-        }
-
-        if (! isDineIn) {
-            tableError?.classList.add('hidden');
-            tablePills.forEach((pill) => pill.classList.remove('is-active'));
-            if (tableSelect) {
-                tableSelect.value = '';
-            }
-        }
-    };
-
-    const syncTablePills = () => {
-        const value = tableSelect?.value ?? '';
-
-        tablePills.forEach((pill) => {
-            pill.classList.toggle('is-active', pill.dataset.tableId === value);
         });
     };
 
@@ -462,16 +411,6 @@ function initPosOrderBar(root) {
         if (toolbarType && data.order_type_label) {
             toolbarType.textContent = `${data.order_type_icon ?? ''} ${data.order_type_label}`.trim();
             toolbarType.classList.remove('hidden');
-        }
-
-        if (toolbarTable) {
-            if (data.table_label) {
-                toolbarTable.textContent = data.table_label;
-                toolbarTable.classList.remove('hidden');
-            } else {
-                toolbarTable.textContent = '';
-                toolbarTable.classList.add('hidden');
-            }
         }
 
         if (toolbarCustomer) {
@@ -500,14 +439,6 @@ function initPosOrderBar(root) {
             receiptContext.append(typeBadge);
         }
 
-        if (data.table_label) {
-            const tableBadge = document.createElement('span');
-            tableBadge.className = 'pos-context-badge pos-context-badge-table';
-            tableBadge.dataset.posReceiptTable = '';
-            tableBadge.textContent = `Meja ${data.table_label}`;
-            receiptContext.append(tableBadge);
-        }
-
         if (data.customer_note) {
             const customerBadge = document.createElement('span');
             customerBadge.className = 'pos-context-badge pos-context-badge-customer';
@@ -519,24 +450,11 @@ function initPosOrderBar(root) {
         receiptContext.classList.toggle('hidden', receiptContext.children.length === 0);
     };
 
-    const canAutoSave = () => {
-        if (activeType() === 'dine_in') {
-            return Boolean(tableSelect?.value);
-        }
-
-        return true;
-    };
-
     const saveOrderBar = async () => {
-        if (saving || ! canAutoSave()) {
-            if (activeType() === 'dine_in' && ! tableSelect?.value) {
-                tableError?.classList.remove('hidden');
-            }
-
+        if (saving) {
             return;
         }
 
-        tableError?.classList.add('hidden');
         saving = true;
         setSaveStatus('saving', 'Menyimpan…');
 
@@ -604,35 +522,11 @@ function initPosOrderBar(root) {
             }
 
             syncTypeCards();
-            syncDineInPanel();
-
-            if (radio.value === 'takeaway') {
-                if (window.innerWidth < POS_DESKTOP_BP) {
-                    setOrderBarExpanded(false);
-                }
-                queueSave(0);
-
-                return;
-            }
-
-            if (tableSelect?.value) {
-                queueSave(0);
-            } else {
-                tableError?.classList.remove('hidden');
-            }
-        });
-    });
-
-    tablePills.forEach((pill) => {
-        pill.addEventListener('click', () => {
-            if (! tableSelect) {
-                return;
-            }
-
-            tableSelect.value = pill.dataset.tableId ?? '';
-            syncTablePills();
-            tableError?.classList.add('hidden');
             queueSave(0);
+
+            if (window.innerWidth < POS_DESKTOP_BP) {
+                setOrderBarExpanded(false);
+            }
         });
     });
 
@@ -640,8 +534,6 @@ function initPosOrderBar(root) {
     customerInput?.addEventListener('blur', () => queueSave(0));
 
     syncTypeCards();
-    syncDineInPanel();
-    syncTablePills();
     setOrderBarExpanded(false);
 }
 

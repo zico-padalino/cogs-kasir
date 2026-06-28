@@ -26,7 +26,7 @@ enum PosOrderType: string
     public function hint(): string
     {
         return match ($this) {
-            self::DineIn => 'Pelanggan makan di meja',
+            self::DineIn => 'Pelanggan makan di tempat',
             self::Takeaway => 'Bawa pulang / antrian',
         };
     }
