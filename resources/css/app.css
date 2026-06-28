@@ -1087,6 +1087,92 @@
         @apply mt-1 rounded-md bg-amber-50 px-2 py-1 text-[11px] leading-snug text-amber-900;
     }
 
+    .pos-order-item {
+        @apply flex items-start gap-3;
+    }
+
+    .pos-order-item-main {
+        @apply min-w-0 flex-1;
+    }
+
+    .pos-order-item-head {
+        @apply flex items-start gap-2;
+    }
+
+    .pos-order-item-toggle {
+        @apply inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:border-brand-300 hover:text-brand-700 active:scale-[0.98];
+    }
+
+    .pos-order-item-toggle.is-open {
+        @apply border-brand-200 bg-brand-50 text-brand-700;
+    }
+
+    .pos-order-item-toggle-icon {
+        @apply text-[10px] transition-transform;
+    }
+
+    .pos-order-item-toggle.is-open .pos-order-item-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    .pos-order-item-detail {
+        @apply mt-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50/90 p-3;
+    }
+
+    .pos-order-item-detail-media {
+        @apply overflow-hidden rounded-xl bg-white;
+    }
+
+    .pos-order-item-detail-image {
+        @apply h-36 w-full object-cover sm:h-40;
+    }
+
+    .pos-order-item-meta {
+        @apply grid grid-cols-2 gap-2 text-xs sm:grid-cols-4;
+    }
+
+    .pos-order-item-meta dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-order-item-meta dd {
+        @apply mt-0.5 font-medium text-slate-800;
+    }
+
+    .pos-order-item-desc-block {
+        @apply rounded-lg bg-white px-3 py-2;
+    }
+
+    .pos-order-item-desc-label,
+    .pos-order-item-note-block .pos-item-note-label {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-order-item-desc-text,
+    .pos-order-item-note-text {
+        @apply mt-1 text-sm leading-relaxed text-slate-700;
+    }
+
+    .pos-order-item-price-block {
+        @apply space-y-1.5 rounded-lg bg-white px-3 py-2 text-sm;
+    }
+
+    .pos-order-item-price-row {
+        @apply flex items-center justify-between gap-2 text-slate-600;
+    }
+
+    .pos-order-item-price-total {
+        @apply border-t border-slate-100 pt-2 font-bold text-slate-900;
+    }
+
+    .pos-order-item-note-block {
+        @apply rounded-lg bg-amber-50 px-3 py-2;
+    }
+
+    .order-cart-row-wrap .order-cart-row.pos-order-item {
+        @apply rounded-xl border border-slate-100 bg-slate-50/80 p-3;
+    }
+
     .pos-receipt-line-side {
         @apply flex shrink-0 items-start gap-2;
     }
