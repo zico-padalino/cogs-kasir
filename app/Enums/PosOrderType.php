@@ -10,7 +10,7 @@ enum PosOrderType: string
     public function label(): string
     {
         return match ($this) {
-            self::DineIn => 'Makan di Tempat',
+            self::DineIn => 'Dine In',
             self::Takeaway => 'Take Away',
         };
     }

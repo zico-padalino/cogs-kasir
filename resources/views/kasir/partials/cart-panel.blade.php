@@ -80,19 +80,20 @@
 
                 <div class="pos-cash-panel hidden" data-pos-cash-panel>
                     <label class="pos-pay-label" for="pos-amount-received">Uang diterima</label>
-                    <input
-                        id="pos-amount-received"
-                        type="number"
-                        name="amount_received"
-                        min="0"
-                        step="1000"
-                        inputmode="numeric"
-                        enterkeyhint="done"
-                        class="pos-cash-input"
-                        placeholder="0"
-                        data-pos-amount-received
-                        autocomplete="off"
-                    >
+                    <div class="relative">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
+                        <input
+                            id="pos-amount-received"
+                            type="text"
+                            inputmode="numeric"
+                            enterkeyhint="done"
+                            class="pos-cash-input pl-10"
+                            placeholder="0"
+                            data-pos-amount-received
+                            autocomplete="off"
+                        >
+                        <input type="hidden" name="amount_received" value="" data-pos-amount-received-value>
+                    </div>
                     <p class="pos-cash-change" data-pos-change-wrap>
                         Kembalian: <strong data-pos-change-amount>Rp 0</strong>
                     </p>

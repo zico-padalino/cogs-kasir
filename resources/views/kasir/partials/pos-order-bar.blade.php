@@ -31,7 +31,7 @@
         <div class="pos-order-bar-head">
             <div>
                 <p class="pos-order-bar-title">Tipe pesanan</p>
-                <p class="pos-order-bar-sub">Pilih makan di tempat atau take away</p>
+                <p class="pos-order-bar-sub">Pilih Dine In atau Take Away</p>
             </div>
             <span class="pos-order-save-status hidden" data-pos-save-status aria-live="polite"></span>
         </div>
@@ -100,7 +100,7 @@
                     @endforeach
                 </select>
 
-                <p class="pos-order-field-error hidden" data-pos-table-error>Pilih meja untuk makan di tempat.</p>
+                <p class="pos-order-field-error hidden" data-pos-table-error>Pilih meja untuk Dine In.</p>
             </div>
 
             <div class="pos-order-field-group" data-pos-customer-field>
@@ -125,3 +125,4 @@
         </div>
     </div>
 </form>
+<div class="pos-order-bar-backdrop lg:hidden hidden" data-pos-order-bar-backdrop aria-hidden="true"></div>

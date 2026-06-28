@@ -1591,6 +1591,24 @@
             @apply block space-y-2;
         }
 
+        .pos-order-bar.is-expanded {
+            @apply fixed inset-x-0 bottom-0 z-50 max-h-[min(85dvh,28rem)] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-slate-200 bg-white px-3 py-3 shadow-[0_-16px_48px_rgba(15,23,42,0.2)];
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .pos-order-bar.is-expanded .pos-order-bar-toggle {
+            @apply sticky top-0 z-10 -mx-3 -mt-3 mb-2 border-b border-slate-100 bg-white px-3 py-2.5;
+        }
+
+        .pos-order-bar-backdrop:not(.hidden) {
+            @apply fixed inset-0 z-40 bg-slate-900/45;
+        }
+
+        .is-kasir-pos.is-order-bar-open .pos-mobile-checkout {
+            @apply hidden;
+        }
+
         .pos-order-bar-sub,
         .pos-order-field-hint {
             @apply hidden;

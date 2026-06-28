@@ -1,6 +1,8 @@
 /**
  * Kasir POS — tab Menu/Pesanan, pencarian, modal tambah item, detail produk.
  */
+import { formatRupiahInput, parseRupiahInput } from './rupiah';
+
 const POS_DESKTOP_BP = 1024;
 
 function readProductCard(card) {
@@ -338,6 +340,7 @@ function initPosOrderBar(root) {
     const typeRadios = bar.querySelectorAll('[data-pos-order-type]');
     const orderSummary = bar.querySelector('[data-pos-order-summary]');
     const orderBarToggle = bar.querySelector('[data-pos-order-bar-toggle]');
+    const orderBarBackdrop = root.querySelector('[data-pos-order-bar-backdrop]');
 
     const toolbarType = root.querySelector('[data-pos-toolbar-type]');
     const toolbarTable = root.querySelector('[data-pos-toolbar-table]');
@@ -350,10 +353,24 @@ function initPosOrderBar(root) {
     const activeType = () => bar.querySelector('[data-pos-order-type]:checked')?.value ?? 'takeaway';
 
     const setOrderBarExpanded = (expanded) => {
+        const isMobile = window.innerWidth < POS_DESKTOP_BP;
+
         bar.classList.toggle('is-expanded', expanded);
+        root.classList.toggle('is-order-bar-open', isMobile && expanded);
 
         if (orderBarToggle) {
             orderBarToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+
+        if (orderBarBackdrop) {
+            orderBarBackdrop.classList.toggle('hidden', ! expanded || ! isMobile);
+            orderBarBackdrop.setAttribute('aria-hidden', expanded && isMobile ? 'false' : 'true');
+        }
+    };
+
+    const collapseOrderBarOnMobile = () => {
+        if (window.innerWidth < POS_DESKTOP_BP && bar.classList.contains('is-expanded')) {
+            setOrderBarExpanded(false);
         }
     };
 
@@ -545,10 +562,11 @@ function initPosOrderBar(root) {
             updateReceiptContext(data);
             updateOrderSummary(data);
             setSaveStatus('success', 'Tersimpan');
+            const collapseDelay = window.innerWidth < POS_DESKTOP_BP ? 350 : 1200;
             window.setTimeout(() => {
                 clearSaveStatus();
                 setOrderBarExpanded(false);
-            }, 1200);
+            }, collapseDelay);
         } catch (error) {
             setSaveStatus('error', error.message || 'Gagal menyimpan.');
         } finally {
@@ -565,6 +583,20 @@ function initPosOrderBar(root) {
         setOrderBarExpanded(! bar.classList.contains('is-expanded'));
     });
 
+    orderBarBackdrop?.addEventListener('click', () => {
+        setOrderBarExpanded(false);
+    });
+
+    const productGrid = root.querySelector('.pos-product-grid');
+    productGrid?.addEventListener('scroll', collapseOrderBarOnMobile, { passive: true });
+
+    const menuPanel = root.querySelector('[data-kasir-panel="menu"]');
+    menuPanel?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-kasir-product], [data-kasir-category], [data-kasir-search]')) {
+            collapseOrderBarOnMobile();
+        }
+    });
+
     typeRadios.forEach((radio) => {
         radio.addEventListener('change', () => {
             if (! radio.checked) {
@@ -574,12 +606,12 @@ function initPosOrderBar(root) {
             syncTypeCards();
             syncDineInPanel();
 
-            if (radio.value === 'dine_in') {
-                setOrderBarExpanded(true);
-            }
-
             if (radio.value === 'takeaway') {
+                if (window.innerWidth < POS_DESKTOP_BP) {
+                    setOrderBarExpanded(false);
+                }
                 queueSave(0);
+
                 return;
             }
 
@@ -655,9 +687,33 @@ function initPosCashPayment(root) {
     const totalEl = form.querySelector('[data-pos-order-total]');
     const total = parseFloat(totalEl?.dataset.posOrderTotal || root.dataset.posTotal || '0');
     const receivedInput = form.querySelector('[data-pos-amount-received]');
+    const receivedValue = form.querySelector('[data-pos-amount-received-value]');
     const changeAmount = form.querySelector('[data-pos-change-amount]');
 
     const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
+
+    const readReceivedAmount = () => parseRupiahInput(receivedInput?.value || '0');
+
+    const syncReceivedAmount = () => {
+        const numeric = readReceivedAmount();
+
+        if (receivedValue) {
+            receivedValue.value = receivedInput?.value === '' ? '' : numeric;
+        }
+
+        if (receivedInput) {
+            receivedInput.value = formatRupiahInput(receivedInput.value);
+        }
+    };
+
+    const syncChange = () => {
+        const received = readReceivedAmount();
+        const change = Math.max(0, received - total);
+
+        if (changeAmount) {
+            changeAmount.textContent = formatRupiah(change);
+        }
+    };
 
     const syncPaymentMethod = () => {
         const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
@@ -673,20 +729,20 @@ function initPosCashPayment(root) {
         }
     };
 
-    const syncChange = () => {
-        const received = parseFloat(receivedInput?.value || '0');
-        const change = Math.max(0, received - total);
-
-        if (changeAmount) {
-            changeAmount.textContent = formatRupiah(change);
-        }
-    };
-
     form.querySelectorAll('[data-pos-payment-method]').forEach((radio) => {
         radio.addEventListener('change', syncPaymentMethod);
     });
 
-    receivedInput?.addEventListener('input', syncChange);
+    receivedInput?.addEventListener('input', () => {
+        syncReceivedAmount();
+        syncChange();
+    });
+
+    receivedInput?.addEventListener('blur', syncReceivedAmount);
+
+    form.addEventListener('submit', () => {
+        syncReceivedAmount();
+    });
 
     const isMobilePay = () => window.innerWidth < 1024;
 

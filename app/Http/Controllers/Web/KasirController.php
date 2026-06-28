@@ -138,10 +138,10 @@ class KasirController extends Controller
 
         if ($orderType === PosOrderType::DineIn && ! $tableId && ! $order->pos_table_id) {
             if ($request->wantsJson()) {
-                return response()->json(['message' => 'Pilih meja untuk pesanan makan di tempat.'], 422);
+                return response()->json(['message' => 'Pilih meja untuk pesanan Dine In.'], 422);
             }
 
-            return back()->with('error', 'Pilih meja untuk pesanan makan di tempat.');
+            return back()->with('error', 'Pilih meja untuk pesanan Dine In.');
         }
 
         try {
