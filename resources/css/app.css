@@ -59,6 +59,23 @@
         @apply mb-1.5 block text-sm font-medium text-slate-700;
     }
 
+    .password-field {
+        @apply relative;
+    }
+
+    .password-field-input {
+        @apply pr-11;
+        font-size: 16px;
+    }
+
+    .password-field-toggle {
+        @apply absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-400 transition hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/30;
+    }
+
+    .password-field-icon svg {
+        @apply h-5 w-5;
+    }
+
     /* ── Cards ── */
     .card {
         @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
@@ -823,7 +840,31 @@
     }
 
     .pos-order-bar {
-        @apply shrink-0 space-y-3 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 py-3 sm:px-5;
+        @apply shrink-0 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 py-2 sm:px-5 sm:py-3;
+    }
+
+    .pos-order-bar-body {
+        @apply space-y-3;
+    }
+
+    .pos-order-bar-toggle {
+        @apply hidden w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition active:scale-[0.99];
+    }
+
+    .pos-order-bar-toggle-label {
+        @apply shrink-0 text-[10px] font-bold uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-order-bar-toggle-value {
+        @apply min-w-0 flex-1 truncate text-sm font-semibold text-slate-900;
+    }
+
+    .pos-order-bar-toggle-icon {
+        @apply shrink-0 text-[10px] text-slate-400 transition-transform;
+    }
+
+    .pos-order-bar.is-expanded .pos-order-bar-toggle-icon {
+        transform: rotate(180deg);
     }
 
     .pos-order-bar-head {
@@ -1068,7 +1109,7 @@
     }
 
     .pos-menu-panel {
-        @apply flex min-h-0 min-w-0 flex-1 flex-col bg-slate-100 lg:border-r lg:border-slate-300;
+        @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100 lg:border-r lg:border-slate-300;
     }
 
     .pos-menu-head {
@@ -1516,12 +1557,78 @@
             padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.5rem);
         }
 
+        .pos-order-bar {
+            @apply space-y-2 py-2;
+        }
+
+        .pos-order-bar-toggle {
+            @apply flex;
+        }
+
+        .pos-order-bar:not(.is-expanded) .pos-order-bar-body {
+            @apply hidden;
+        }
+
+        .pos-order-bar.is-expanded .pos-order-bar-body {
+            @apply block space-y-2;
+        }
+
+        .pos-order-bar-sub,
+        .pos-order-field-hint {
+            @apply hidden;
+        }
+
+        .pos-order-type-card {
+            @apply px-2 py-2.5;
+        }
+
+        .pos-order-type-icon-lg {
+            @apply text-xl;
+        }
+
+        .pos-order-type-hint {
+            @apply hidden;
+        }
+
+        .pos-order-bar-fields {
+            @apply p-2.5;
+        }
+
+        .pos-pending {
+            @apply px-3 py-2;
+        }
+
+        .pos-pending-title {
+            @apply text-[10px];
+        }
+
+        .pos-pending-btn {
+            @apply min-w-[8rem] px-2.5 py-1.5 text-xs;
+        }
+
+        .pos-view-tabs {
+            @apply py-0.5;
+        }
+
+        .pos-view-tab {
+            @apply min-h-10 py-2 text-xs;
+        }
+
         .pos-workspace {
             @apply min-h-0 flex-1 overflow-hidden;
+            min-height: 12rem;
         }
 
         .pos-menu-head {
-            @apply sticky top-0 z-10 shadow-sm;
+            @apply shrink-0 space-y-2 px-3 py-2;
+        }
+
+        .pos-panel-sub {
+            @apply hidden;
+        }
+
+        .pos-search {
+            @apply py-2;
         }
 
         .kasir-panel-menu.hidden,
@@ -1534,20 +1641,27 @@
             @apply !flex min-h-0 flex-1 flex-col overflow-hidden;
         }
 
+        .pos-menu-panel,
         .pos-menu-panel.kasir-panel-menu.flex {
-            @apply min-h-0;
+            @apply min-h-0 flex-1 overflow-hidden;
         }
 
         .pos-order-panel.kasir-panel-cart.flex {
-            @apply min-h-0 bg-white;
+            @apply min-h-0 overflow-hidden bg-white;
+        }
+
+        .pos-category-tabs {
+            @apply shrink-0 px-3;
         }
 
         .pos-product-grid {
-            @apply min-h-0 flex-1 pb-4;
+            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4;
+            -webkit-overflow-scrolling: touch;
         }
 
         .pos-receipt-body {
-            @apply min-h-0 flex-1;
+            @apply min-h-0 flex-1 overflow-y-auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .pos-receipt-foot {

@@ -88,15 +88,40 @@
 
                     <div>
                         <label class="form-label" for="password">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            id="password"
-                            class="form-input"
-                            placeholder="••••••••"
-                            autocomplete="current-password"
-                            required
-                        >
+                        <div class="password-field">
+                            <input
+                                type="password"
+                                name="password"
+                                id="password"
+                                class="form-input password-field-input"
+                                placeholder="••••••••"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <button
+                                type="button"
+                                class="password-field-toggle"
+                                data-password-toggle
+                                aria-label="Tampilkan password"
+                                aria-pressed="false"
+                                aria-controls="password"
+                            >
+                                <span class="password-field-icon password-field-icon-show" data-password-icon-show aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                </span>
+                                <span class="password-field-icon password-field-icon-hide hidden" data-password-icon-hide aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a18.34 18.34 0 0 1-2.16 3.19" />
+                                        <path d="M6.61 6.61A18.9 18.9 0 0 0 2 12s3.5 7 10 7a10.66 10.66 0 0 0 5.17-1.32" />
+                                        <line x1="2" x2="22" y1="2" y2="22" />
+                                    </svg>
+                                </span>
+                            </button>
+                        </div>
                     </div>
 
                     <label class="flex items-center gap-2 text-sm text-slate-600">
@@ -152,6 +177,21 @@
             });
 
             setModule(moduleInput.value || 'cogs');
+
+            const passwordInput = document.getElementById('password');
+            const passwordToggle = document.querySelector('[data-password-toggle]');
+            const iconShow = document.querySelector('[data-password-icon-show]');
+            const iconHide = document.querySelector('[data-password-icon-hide]');
+
+            passwordToggle?.addEventListener('click', () => {
+                const visible = passwordInput.type === 'text';
+
+                passwordInput.type = visible ? 'password' : 'text';
+                passwordToggle.setAttribute('aria-pressed', visible ? 'false' : 'true');
+                passwordToggle.setAttribute('aria-label', visible ? 'Tampilkan password' : 'Sembunyikan password');
+                iconShow?.classList.toggle('hidden', ! visible);
+                iconHide?.classList.toggle('hidden', visible);
+            });
         });
     </script>
 @endsection

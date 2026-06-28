@@ -289,6 +289,8 @@ function initPosOrderBar(root) {
     const tablePills = bar.querySelectorAll('[data-pos-table-pill]');
     const typeCards = bar.querySelectorAll('[data-pos-order-type-card]');
     const typeRadios = bar.querySelectorAll('[data-pos-order-type]');
+    const orderSummary = bar.querySelector('[data-pos-order-summary]');
+    const orderBarToggle = bar.querySelector('[data-pos-order-bar-toggle]');
 
     const toolbarType = root.querySelector('[data-pos-toolbar-type]');
     const toolbarTable = root.querySelector('[data-pos-toolbar-table]');
@@ -299,6 +301,38 @@ function initPosOrderBar(root) {
     let saving = false;
 
     const activeType = () => bar.querySelector('[data-pos-order-type]:checked')?.value ?? 'takeaway';
+
+    const setOrderBarExpanded = (expanded) => {
+        bar.classList.toggle('is-expanded', expanded);
+
+        if (orderBarToggle) {
+            orderBarToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+    };
+
+    const buildOrderSummary = (data) => {
+        const parts = [];
+
+        if (data.order_type_label) {
+            parts.push(`${data.order_type_icon ?? ''} ${data.order_type_label}`.trim());
+        }
+
+        if (data.table_label) {
+            parts.push(data.table_label);
+        }
+
+        if (data.customer_note) {
+            parts.push(data.customer_note);
+        }
+
+        return parts.length > 0 ? parts.join(' · ') : 'Atur tipe pesanan';
+    };
+
+    const updateOrderSummary = (data) => {
+        if (orderSummary) {
+            orderSummary.textContent = buildOrderSummary(data);
+        }
+    };
 
     const setSaveStatus = (state, message) => {
         if (! saveStatus) {
@@ -462,8 +496,12 @@ function initPosOrderBar(root) {
 
             updateToolbar(data);
             updateReceiptContext(data);
+            updateOrderSummary(data);
             setSaveStatus('success', 'Tersimpan');
-            window.setTimeout(clearSaveStatus, 1800);
+            window.setTimeout(() => {
+                clearSaveStatus();
+                setOrderBarExpanded(false);
+            }, 1200);
         } catch (error) {
             setSaveStatus('error', error.message || 'Gagal menyimpan.');
         } finally {
@@ -476,6 +514,10 @@ function initPosOrderBar(root) {
         saveTimer = window.setTimeout(saveOrderBar, delay);
     };
 
+    orderBarToggle?.addEventListener('click', () => {
+        setOrderBarExpanded(! bar.classList.contains('is-expanded'));
+    });
+
     typeRadios.forEach((radio) => {
         radio.addEventListener('change', () => {
             if (! radio.checked) {
@@ -484,6 +526,10 @@ function initPosOrderBar(root) {
 
             syncTypeCards();
             syncDineInPanel();
+
+            if (radio.value === 'dine_in') {
+                setOrderBarExpanded(true);
+            }
 
             if (radio.value === 'takeaway') {
                 queueSave(0);
@@ -517,6 +563,7 @@ function initPosOrderBar(root) {
     syncTypeCards();
     syncDineInPanel();
     syncTablePills();
+    setOrderBarExpanded(false);
 }
 
 function initPosCashPayment(root) {

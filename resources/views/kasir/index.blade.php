@@ -14,17 +14,17 @@
                     <span class="pos-order-chip-value">{{ $order->order_number }}</span>
                 </div>
                 @if ($order->order_type)
-                    <span class="pos-type-chip" data-pos-toolbar-type>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+                    <span class="pos-type-chip max-lg:hidden" data-pos-toolbar-type>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
                 @else
                     <span class="pos-type-chip hidden" data-pos-toolbar-type></span>
                 @endif
                 @if ($order->table)
-                    <span class="pos-table-chip" data-pos-toolbar-table>{{ $order->table->label }}</span>
+                    <span class="pos-table-chip max-lg:hidden" data-pos-toolbar-table>{{ $order->table->label }}</span>
                 @else
                     <span class="pos-table-chip hidden" data-pos-toolbar-table></span>
                 @endif
                 @if ($order->customer_note)
-                    <span class="pos-customer-chip" data-pos-toolbar-customer>{{ $order->customer_note }}</span>
+                    <span class="pos-customer-chip max-lg:hidden" data-pos-toolbar-customer>{{ $order->customer_note }}</span>
                 @else
                     <span class="pos-customer-chip hidden" data-pos-toolbar-customer></span>
                 @endif
