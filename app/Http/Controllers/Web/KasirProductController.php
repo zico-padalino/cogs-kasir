@@ -11,6 +11,21 @@ use Illuminate\Support\Facades\Storage;
 
 class KasirProductController extends Controller
 {
+    public function index()
+    {
+        $products = Product::query()
+            ->whereIn('type', [ProductType::FinishedGood, ProductType::SemiFinished])
+            ->orderBy('menu_category')
+            ->orderBy('name')
+            ->get();
+
+        return view('kasir.products.index', [
+            'products' => $products,
+            'menuCategories' => config('pos.menu_categories', []),
+            'format' => Format::class,
+        ]);
+    }
+
     public function edit(Product $product)
     {
         $this->assertSellable($product);
@@ -47,7 +62,7 @@ class KasirProductController extends Controller
         $product->update($data);
 
         return redirect()
-            ->route('kasir.index')
+            ->route('kasir.products.index')
             ->with('success', 'Menu "'.$product->name.'" diperbarui.');
     }
 

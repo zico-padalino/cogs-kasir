@@ -54,6 +54,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
     Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');
     Route::delete('/items/{item}', [KasirController::class, 'removeItem'])->name('items.destroy');
+    Route::get('/products', [KasirProductController::class, 'index'])->name('products.index');
     Route::get('/products/{product}/edit', [KasirProductController::class, 'edit'])->name('products.edit');
     Route::put('/products/{product}', [KasirProductController::class, 'update'])->name('products.update');
     Route::post('/pay', [KasirController::class, 'pay'])->name('pay');

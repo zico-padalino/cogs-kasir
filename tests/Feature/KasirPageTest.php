@@ -183,6 +183,23 @@ class KasirPageTest extends TestCase
             ->assertSee('Meja 77');
     }
 
+    public function test_kasir_can_manage_menu_items(): void
+    {
+        $product = $this->sellableProduct();
+
+        $this->actingAs($this->kasirUser())
+            ->get(route('kasir.products.index'))
+            ->assertOk()
+            ->assertSee('Kelola Menu')
+            ->assertSee('Roti Test');
+
+        $this->actingAs($this->kasirUser())
+            ->get(route('kasir.products.edit', $product))
+            ->assertOk()
+            ->assertSee('Atur Menu')
+            ->assertSee($product->sku);
+    }
+
     public function test_kasir_checkout_reduces_inventory(): void
     {
         $product = $this->sellableProduct();

@@ -6,7 +6,7 @@
 
 @section('content')
     <div class="mx-auto max-w-lg px-1">
-        <a href="{{ route('kasir.index') }}" class="page-back">← Kembali ke Kasir</a>
+        <a href="{{ route('kasir.products.index') }}" class="page-back">← Kembali ke Kelola Menu</a>
 
         <div class="card mt-4 overflow-hidden p-0">
             <div class="kasir-product-preview">
@@ -82,7 +82,7 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn-primary w-full sm:w-auto">Simpan Menu</button>
-                    <a href="{{ route('kasir.index') }}" class="btn-secondary w-full sm:w-auto">Batal</a>
+                    <a href="{{ route('kasir.products.index') }}" class="btn-secondary w-full sm:w-auto">Batal</a>
                 </div>
             </form>
         </div>

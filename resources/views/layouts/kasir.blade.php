@@ -42,6 +42,11 @@
                         <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🪑</span>
                         Meja QR
                     </a>
+                    <a href="{{ route('kasir.products.index') }}"
+                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.products*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
+                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🍽️</span>
+                        Kelola Menu
+                    </a>
                 </nav>
 
                 <div class="border-t border-slate-800 px-4 py-4">
