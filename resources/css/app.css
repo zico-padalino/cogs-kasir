@@ -414,6 +414,33 @@
             overflow: visible;
             padding-bottom: 1.5rem;
         }
+
+        .app-body.is-kasir-pos {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+        }
+
+        .app-body.is-kasir-pos .app-shell,
+        .app-body.is-kasir-pos .app-frame,
+        .app-body.is-kasir-pos .app-content {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .is-kasir-pos .app-scroll.pos-main-wrap {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            padding-bottom: 0;
+        }
     }
 
     /* ── Step progress (mobile-first) ── */
@@ -699,17 +726,40 @@
         @apply hidden;
     }
 
-    .is-kasir-pos .app-scroll.pos-main-wrap {
-        @apply flex min-h-0 flex-1 flex-col overflow-hidden p-0 sm:p-0;
+    .app-body.is-kasir-pos {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
+    }
+
+    .app-body.is-kasir-pos .app-shell,
+    .app-body.is-kasir-pos .app-frame,
+    .app-body.is-kasir-pos .app-content {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .app-body.is-kasir-pos .app-shell,
+    .app-body.is-kasir-pos .app-frame {
+        min-height: 0;
     }
 
     .is-kasir-pos .bottom-nav-spacer {
         @apply hidden;
     }
 
+    .is-kasir-pos .app-scroll.pos-main-wrap {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden p-0 sm:p-0;
+    }
+
     .is-kasir-pos .alert-tip,
     .is-kasir-pos .mb-4.rounded-lg {
-        @apply mx-3 mt-3 sm:mx-4;
+        @apply mx-3 mt-3 shrink-0 sm:mx-4;
     }
 
     .kasir-bottom-nav {
@@ -721,7 +771,14 @@
     }
 
     .pos-shell {
-        @apply flex min-h-0 flex-1 flex-col bg-slate-200/80;
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-200/80;
+    }
+
+    .pos-order-bar,
+    .pos-pending,
+    .pos-view-tabs,
+    .pos-category-tabs {
+        @apply shrink-0;
     }
 
     .pos-toolbar {
@@ -1028,6 +1085,7 @@
 
     .pos-receipt-body {
         @apply min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white;
+        -webkit-overflow-scrolling: touch;
     }
 
     .pos-receipt-lines {
@@ -1427,16 +1485,17 @@
     }
 
     @media (min-width: 1024px) {
-        .is-kasir-pos .bottom-nav-spacer {
-            @apply hidden;
-        }
-
         .pos-shell {
-            @apply min-h-[calc(100dvh-4rem)];
+            @apply min-h-0 flex-1;
         }
 
         .pos-workspace {
-            @apply min-h-0 flex-1;
+            @apply min-h-0 flex-1 overflow-hidden;
+        }
+
+        .pos-menu-panel,
+        .pos-order-panel {
+            @apply min-h-0 max-h-full;
         }
 
         .kasir-panel-menu,
@@ -1455,12 +1514,14 @@
     }
 
     .order-table-body {
-        @apply bg-slate-100;
+        @apply overflow-hidden bg-slate-100;
+        height: 100dvh;
+        max-height: 100dvh;
     }
 
     .order-table-shell {
-        @apply mx-auto flex min-h-screen max-w-6xl flex-col;
-        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        @apply mx-auto flex h-full max-w-6xl flex-col overflow-hidden;
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
     }
 
     .order-table-header {
@@ -1489,15 +1550,16 @@
     }
 
     .order-table-main {
-        @apply flex-1 space-y-4 px-4 py-4 sm:px-6 lg:py-6;
-    }
-
-    .order-table-footer {
-        @apply border-t border-slate-200 px-4 py-3 text-center text-[11px] leading-relaxed text-slate-400 sm:px-6;
+        @apply min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 lg:py-6;
+        -webkit-overflow-scrolling: touch;
     }
 
     .order-view-tabs {
-        @apply grid grid-cols-2 gap-2 rounded-xl bg-slate-200/80 p-1;
+        @apply grid shrink-0 grid-cols-2 gap-2 rounded-xl bg-slate-200/80 p-1;
+    }
+
+    .order-table-footer {
+        @apply shrink-0 border-t border-slate-200 px-4 py-3 text-center text-[11px] leading-relaxed text-slate-400 sm:px-6;
     }
 
     .order-view-tab {
