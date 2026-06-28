@@ -34,6 +34,7 @@ class KasirController extends Controller
             'products' => $posService->sellableProducts(),
             'pendingOrders' => $pendingOrders,
             'tables' => PosTable::where('is_active', true)->orderBy('table_number')->get(),
+            'presets' => config('pos.product_presets', []),
             'format' => Format::class,
         ]);
     }
@@ -117,6 +118,7 @@ class KasirController extends Controller
         $validated = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
             'quantity' => ['required', 'numeric', 'min:0.01'],
+            'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
         $order = $this->activeKasirOrder() ?? $posService->createKasirOrder(auth()->user());
@@ -125,12 +127,44 @@ class KasirController extends Controller
         $product = Product::findOrFail($validated['product_id']);
 
         try {
-            $posService->addItem($order, $product, (float) $validated['quantity'], fromKasir: true);
+            $posService->addItem(
+                $order,
+                $product,
+                (float) $validated['quantity'],
+                notes: $validated['notes'] ?? null,
+                fromKasir: true,
+            );
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
         return back()->with('success', $product->name.' ditambahkan.');
+    }
+
+    public function updateItem(Request $request, PosOrderItem $item, PosOrderService $posService)
+    {
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $order = $item->order;
+            if ($order->id !== ($this->activeKasirOrder()?->id)) {
+                throw new \RuntimeException('Item bukan bagian dari order aktif.');
+            }
+
+            if (! $order->isKasirEditable()) {
+                throw new \RuntimeException('Pesanan tidak bisa diubah.');
+            }
+
+            $item->update([
+                'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
+            ]);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Catatan item diperbarui.');
     }
 
     public function removeItem(PosOrderItem $item, PosOrderService $posService)

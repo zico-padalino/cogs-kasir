@@ -18,13 +18,32 @@
             <ul class="pos-receipt-lines">
                 @foreach ($order->items as $item)
                     <li class="pos-receipt-line" data-kasir-item>
+                        <x-product-image :product="$item->product" class="pos-receipt-thumb" />
+
                         <div class="pos-receipt-line-main">
                             <p class="pos-receipt-line-name">{{ $item->product->name }}</p>
                             <p class="pos-receipt-line-qty">{{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}</p>
-                            @if ($item->notes)
-                                <p class="pos-receipt-line-note">Catatan: {{ $item->notes }}</p>
+
+                            @if ($item->product->description)
+                                <p class="pos-receipt-line-detail">{{ Str::limit($item->product->description, 80) }}</p>
                             @endif
+
+                            <form action="{{ route('kasir.items.update', $item) }}" method="POST" class="pos-item-note-form">
+                                @csrf
+                                @method('PATCH')
+                                <label class="pos-item-note-label" for="kasir-note-{{ $item->id }}">Catatan item</label>
+                                <textarea
+                                    id="kasir-note-{{ $item->id }}"
+                                    name="notes"
+                                    rows="2"
+                                    maxlength="255"
+                                    class="order-item-note-input pos-item-note-input"
+                                    placeholder="Catatan pesanan item ini..."
+                                >{{ old('notes', $item->notes) }}</textarea>
+                                <button type="submit" class="pos-item-note-save">Simpan catatan</button>
+                            </form>
                         </div>
+
                         <div class="pos-receipt-line-side">
                             <span class="pos-receipt-line-total">{{ $format::rupiah($item->line_total) }}</span>
                             <form action="{{ route('kasir.items.destroy', $item) }}" method="POST">

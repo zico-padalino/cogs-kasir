@@ -17,9 +17,17 @@
 
             <div class="my-6 border-t border-b border-slate-200 py-4 text-left text-sm">
                 @foreach ($order->items as $item)
-                    <div class="mb-2 flex justify-between gap-2">
-                        <span class="min-w-0">{{ $item->product->name }} × {{ $format::number($item->quantity, 0) }}</span>
-                        <span class="shrink-0 font-medium">{{ $format::rupiah($item->line_total) }}</span>
+                    <div class="mb-3 flex gap-3">
+                        <x-product-image :product="$item->product" class="h-12 w-12 shrink-0 rounded-lg" />
+                        <div class="min-w-0 flex-1">
+                            <div class="flex justify-between gap-2">
+                                <span>{{ $item->product->name }} × {{ $format::number($item->quantity, 0) }}</span>
+                                <span class="shrink-0 font-medium">{{ $format::rupiah($item->line_total) }}</span>
+                            </div>
+                            @if ($item->notes)
+                                <p class="mt-1 text-xs text-amber-700">Catatan: {{ $item->notes }}</p>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>

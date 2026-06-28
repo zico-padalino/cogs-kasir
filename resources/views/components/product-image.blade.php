@@ -1,9 +1,9 @@
-@props(['product', 'class' => ''])
+@props(['product', 'class' => '', 'eager' => false])
 
 <img
     src="{{ $product->imageUrl() }}"
     alt="{{ $product->name }}"
-    loading="lazy"
+    loading="{{ $eager ? 'eager' : 'lazy' }}"
     decoding="async"
     {{ $attributes->merge(['class' => 'product-image '.$class]) }}
 >

@@ -24,7 +24,17 @@
                 <tbody>
                     @foreach ($order->items as $item)
                         <tr>
-                            <td class="font-medium">{{ $item->product->name }}</td>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <x-product-image :product="$item->product" class="h-10 w-10 rounded-lg" />
+                                    <div>
+                                        <p class="font-medium">{{ $item->product->name }}</p>
+                                        @if ($item->notes)
+                                            <p class="text-xs text-amber-700">Catatan: {{ $item->notes }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
                             <td>{{ $format::number($item->quantity, 0) }}</td>
                             <td>{{ $format::rupiah($item->unit_price) }}</td>
                             <td class="cell-money">{{ $format::rupiah($item->line_total) }}</td>

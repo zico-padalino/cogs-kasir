@@ -695,8 +695,16 @@
     }
 
     /* ── Kasir POS (tampilan kasir sungguhan) ── */
+    .is-kasir-pos .mobile-topbar {
+        @apply hidden;
+    }
+
     .is-kasir-pos .app-scroll.pos-main-wrap {
-        @apply flex min-h-0 flex-col p-0 sm:p-0;
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden p-0 sm:p-0;
+    }
+
+    .is-kasir-pos .bottom-nav-spacer {
+        @apply hidden;
     }
 
     .is-kasir-pos .alert-tip,
@@ -785,7 +793,15 @@
     }
 
     .pos-view-tab-badge {
-        @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/25 px-1.5 text-[10px] font-bold;
+        @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-200 px-1.5 text-[10px] font-bold text-slate-700;
+    }
+
+    .pos-view-tab-total {
+        @apply hidden text-[11px] font-bold tabular-nums sm:inline;
+    }
+
+    .pos-view-tab.is-active .pos-view-tab-total {
+        @apply text-white/90;
     }
 
     .pos-view-tab.is-active .pos-view-tab-badge {
@@ -813,7 +829,52 @@
     }
 
     .pos-product-grid {
-        @apply grid flex-1 grid-cols-2 content-start gap-2 overflow-y-auto overscroll-contain p-3 sm:grid-cols-3 sm:gap-3 sm:p-4 lg:grid-cols-3 xl:grid-cols-4;
+        @apply grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-2 xl:grid-cols-3;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pos-product-card {
+        @apply flex min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition active:scale-[0.98] hover:border-brand-200 hover:shadow-md;
+    }
+
+    .pos-product-card.hidden {
+        @apply hidden;
+    }
+
+    .pos-product-card-media {
+        @apply relative block aspect-[4/3] w-full overflow-hidden bg-slate-100;
+    }
+
+    .pos-product-card-image {
+        @apply h-full w-full object-cover transition group-hover:scale-105;
+    }
+
+    .pos-product-card-badge {
+        @apply absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white;
+    }
+
+    .pos-product-card-body {
+        @apply flex flex-1 flex-col p-3;
+    }
+
+    .pos-product-card-info {
+        @apply w-full text-left;
+    }
+
+    .pos-product-desc {
+        @apply mt-1 line-clamp-2 text-[11px] leading-snug text-slate-500;
+    }
+
+    .pos-product-card-foot {
+        @apply mt-auto flex items-end justify-between gap-2 pt-3;
+    }
+
+    .pos-product-card-actions {
+        @apply flex items-center gap-1.5;
+    }
+
+    .pos-product-edit {
+        @apply inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm transition hover:border-brand-300 hover:bg-brand-50;
     }
 
     .pos-product-tile.hidden {
@@ -849,11 +910,11 @@
     }
 
     .pos-product-add {
-        @apply flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-lg font-bold leading-none text-white;
+        @apply inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold leading-none text-white shadow-sm active:bg-brand-700;
     }
 
     .pos-product-stock {
-        @apply absolute right-2 top-2 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] font-semibold text-white;
+        @apply absolute right-2 top-2 rounded-md bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm;
     }
 
     .pos-product-empty {
@@ -897,7 +958,117 @@
     }
 
     .pos-receipt-line {
-        @apply flex items-start justify-between gap-2 px-4 py-3;
+        @apply flex items-start gap-3 px-4 py-3;
+    }
+
+    .pos-receipt-thumb {
+        @apply h-14 w-14 shrink-0 rounded-xl object-cover;
+    }
+
+    .pos-receipt-line-detail {
+        @apply mt-1 text-[11px] leading-snug text-slate-500;
+    }
+
+    .pos-item-note-form {
+        @apply mt-2 space-y-1.5;
+    }
+
+    .pos-item-note-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-item-note-input {
+        @apply text-xs;
+    }
+
+    .pos-item-note-save {
+        @apply text-[11px] font-semibold text-brand-600 hover:text-brand-700;
+    }
+
+    .pos-modal-open {
+        @apply overflow-hidden;
+    }
+
+    .pos-add-modal {
+        @apply fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4;
+    }
+
+    .pos-add-modal-backdrop {
+        @apply absolute inset-0 bg-slate-900/50 backdrop-blur-sm;
+    }
+
+    .pos-add-modal-panel {
+        @apply relative z-10 max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    .pos-add-modal-head {
+        @apply mb-4 flex items-start gap-3;
+    }
+
+    .pos-add-modal-image {
+        @apply h-20 w-20 shrink-0 rounded-2xl object-cover;
+    }
+
+    .pos-add-modal-title {
+        @apply text-lg font-bold text-slate-900;
+    }
+
+    .pos-add-modal-price {
+        @apply mt-1 text-sm font-bold text-brand-600;
+    }
+
+    .pos-add-modal-desc {
+        @apply mt-2 text-xs leading-relaxed text-slate-500;
+    }
+
+    .pos-add-modal-close {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-600;
+    }
+
+    .pos-add-modal-form,
+    .pos-detail-body {
+        @apply space-y-4;
+    }
+
+    .pos-add-modal-field {
+        @apply space-y-2;
+    }
+
+    .pos-add-modal-label {
+        @apply block text-sm font-semibold text-slate-700;
+    }
+
+    .pos-add-modal-submit {
+        @apply w-full py-3.5;
+    }
+
+    .pos-detail-text {
+        @apply text-sm leading-relaxed text-slate-600;
+    }
+
+    .pos-detail-meta {
+        @apply text-xs text-slate-500;
+    }
+
+    .kasir-product-preview {
+        @apply flex gap-4 border-b border-slate-100 bg-slate-50 p-4;
+    }
+
+    .kasir-product-preview-image {
+        @apply h-24 w-24 shrink-0 rounded-2xl object-cover;
+    }
+
+    .kasir-preset-grid {
+        @apply grid grid-cols-3 gap-2 sm:grid-cols-3;
+    }
+
+    .kasir-preset-option {
+        @apply flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-2 text-center text-[10px] font-medium text-slate-600 transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700;
+    }
+
+    .kasir-preset-thumb {
+        @apply h-14 w-full rounded-lg object-cover;
     }
 
     .pos-receipt-line-main {
@@ -995,12 +1166,38 @@
     }
 
     @media (max-width: 1023px) {
+        .is-kasir-pos .app-body {
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+        }
+
+        .is-kasir-pos .app-shell,
+        .is-kasir-pos .app-frame,
+        .is-kasir-pos .app-content {
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .is-kasir-pos .app-scroll.pos-main-wrap {
+            overflow: hidden;
+        }
+
         .pos-shell {
-            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 0.25rem);
+            @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+            padding-bottom: var(--bottom-nav-height, 5.5rem);
         }
 
         .pos-shell:has(.pos-mobile-checkout) {
-            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.25rem);
+            padding-bottom: calc(var(--bottom-nav-height, 5.5rem) + 4.5rem);
+        }
+
+        .pos-workspace {
+            @apply min-h-0 flex-1 overflow-hidden;
+        }
+
+        .pos-menu-head {
+            @apply sticky top-0 z-10 shadow-sm;
         }
 
         .kasir-panel-menu.hidden,
@@ -1010,15 +1207,77 @@
 
         .kasir-panel-menu.flex,
         .kasir-panel-cart.flex {
-            @apply !flex flex-col;
+            @apply !flex min-h-0 flex-1 flex-col overflow-hidden;
         }
 
         .pos-menu-panel.kasir-panel-menu.flex {
-            @apply min-h-[50vh];
+            @apply min-h-0;
         }
 
         .pos-order-panel.kasir-panel-cart.flex {
-            @apply min-h-[50vh];
+            @apply min-h-0 bg-white;
+        }
+
+        .pos-product-grid {
+            @apply min-h-0 flex-1 pb-4;
+        }
+
+        .pos-receipt-body {
+            @apply min-h-0 flex-1;
+        }
+
+        .pos-receipt-foot {
+            @apply sticky bottom-0 z-10 border-t border-slate-200 bg-white shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
+        }
+
+        .pos-receipt-thumb {
+            @apply h-16 w-16;
+        }
+
+        .pos-receipt-line {
+            @apply px-3 py-3.5;
+        }
+
+        .pos-pending-list {
+            @apply snap-x snap-mandatory;
+        }
+
+        .pos-pending-btn {
+            @apply min-w-[9.5rem] snap-start;
+        }
+
+        .pos-toolbar {
+            @apply px-3 py-2.5;
+        }
+
+        .pos-order-chip-value {
+            @apply max-w-[9rem] truncate text-[11px];
+        }
+
+        .pos-add-modal-panel {
+            @apply rounded-t-3xl;
+        }
+
+        .pos-item-note-input {
+            @apply min-h-[4.5rem] text-base;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .pos-product-grid {
+            @apply grid-cols-1;
+        }
+
+        .pos-product-card {
+            @apply min-h-0 flex-row;
+        }
+
+        .pos-product-card-media {
+            @apply aspect-auto h-28 w-28 shrink-0;
+        }
+
+        .pos-product-card-body {
+            @apply flex min-w-0 flex-1 flex-col justify-between py-2.5 pl-0 pr-3;
         }
     }
 
