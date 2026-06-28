@@ -141,7 +141,6 @@
                             <li><strong>COGS:</strong> cogs@local.test / password</li>
                             <li><strong>Kasir:</strong> kasir@local.test / password</li>
                         </ul>
-                        <p class="mt-2 text-xs text-slate-500">Login gagal? Jalankan <code class="rounded bg-white px-1">database/fix_users.sql</code> di MySQL.</p>
                     </div>
                 @endif
             </div>
