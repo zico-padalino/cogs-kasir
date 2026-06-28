@@ -709,8 +709,26 @@
     }
 
     /* ── Kasir POS (tampilan kasir sungguhan) ── */
-    .is-kasir-pos .kasir-page-header {
+    .is-kasir-pos .kasir-page-header,
+    .is-kasir-pos .mobile-topbar {
         @apply hidden;
+    }
+
+    .is-kasir-pos .app-scroll.pos-main-wrap > .pos-flash {
+        @apply pointer-events-none fixed inset-x-3 top-3 z-50 mx-auto mb-0 max-w-md shadow-lg sm:inset-x-4;
+        top: max(0.75rem, env(safe-area-inset-top));
+    }
+
+    .pos-flash {
+        @apply rounded-xl border px-3 py-2 text-xs font-medium sm:text-sm;
+    }
+
+    .pos-flash-success {
+        @apply border-green-200 bg-green-50 text-green-800;
+    }
+
+    .pos-flash-error {
+        @apply border-red-200 bg-red-50 text-red-800;
     }
 
     .app-body.is-kasir-pos {
@@ -741,8 +759,12 @@
     }
 
     .is-kasir-pos .alert-tip,
-    .is-kasir-pos .mb-4.rounded-lg {
+    .is-kasir-pos .app-scroll.pos-main-wrap > .mb-4.rounded-lg:not(.pos-flash) {
         @apply mx-3 mt-3 shrink-0 sm:mx-4;
+    }
+
+    .pos-toolbar-menu {
+        @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition active:scale-95;
     }
 
     .pos-shell {
@@ -1002,7 +1024,7 @@
     }
 
     .pos-cash-input {
-        @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+        @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base font-semibold text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
         font-size: 16px;
     }
 
@@ -1012,6 +1034,22 @@
 
     .pos-pending {
         @apply shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-3 sm:px-5;
+    }
+
+    .pos-pending-toggle {
+        @apply flex w-full items-center justify-between gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-xs font-semibold text-amber-900 shadow-sm transition active:scale-[0.99] lg:hidden;
+    }
+
+    .pos-pending-toggle-icon {
+        @apply shrink-0 text-[10px] text-amber-600 transition-transform;
+    }
+
+    .pos-pending.is-expanded .pos-pending-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    .pos-pending-body {
+        @apply mt-2 lg:mt-0 lg:block;
     }
 
     .pos-pending-title {
@@ -1471,7 +1509,7 @@
     }
 
     .pos-mobile-checkout {
-        @apply fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden;
+        @apply shrink-0 flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.2)] lg:hidden;
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
 
@@ -1507,10 +1545,6 @@
 
         .pos-shell {
             @apply flex min-h-0 flex-1 flex-col overflow-hidden;
-        }
-
-        .pos-shell:has(.pos-mobile-checkout) {
-            padding-bottom: 4.5rem;
         }
 
         .pos-order-bar {
@@ -1554,12 +1588,49 @@
             @apply px-3 py-2;
         }
 
+        .pos-pending:not(.is-expanded) .pos-pending-body {
+            @apply hidden;
+        }
+
+        .pos-pending.is-expanded .pos-pending-toggle {
+            @apply mb-0 border-amber-200 bg-amber-50;
+        }
+
         .pos-pending-title {
-            @apply text-[10px];
+            @apply hidden;
+        }
+
+        .pos-pending-list {
+            @apply mt-0;
         }
 
         .pos-pending-btn {
-            @apply min-w-[8rem] px-2.5 py-1.5 text-xs;
+            @apply min-w-[7.5rem] px-2 py-1.5 text-xs;
+        }
+
+        .pos-toolbar {
+            @apply gap-2 px-3 py-2;
+        }
+
+        .pos-toolbar-left {
+            @apply min-w-0 flex-1 gap-1.5;
+        }
+
+        .pos-order-chip {
+            @apply px-2 py-0.5;
+        }
+
+        .pos-order-chip-value {
+            @apply max-w-[7.5rem] truncate text-[10px];
+        }
+
+        .pos-btn-ghost,
+        .pos-btn-danger {
+            @apply min-h-8 px-2.5 text-xs;
+        }
+
+        .pos-toolbar .badge {
+            @apply hidden;
         }
 
         .pos-view-tabs {
@@ -1576,9 +1647,10 @@
         }
 
         .pos-menu-head {
-            @apply shrink-0 space-y-2 px-3 py-2;
+            @apply shrink-0 space-y-0 px-3 py-2;
         }
 
+        .pos-menu-head .pos-panel-title,
         .pos-panel-sub {
             @apply hidden;
         }
@@ -1604,6 +1676,35 @@
 
         .pos-order-panel.kasir-panel-cart.flex {
             @apply min-h-0 overflow-hidden bg-white;
+            padding-bottom: var(--keyboard-inset, 0px);
+            transition: padding-bottom 0.15s ease;
+        }
+
+        .pos-order-panel.kasir-panel-cart .pos-receipt {
+            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
+            -webkit-overflow-scrolling: touch;
+            scroll-padding-bottom: 1.5rem;
+        }
+
+        .pos-receipt-body {
+            @apply max-h-[min(42dvh,22rem)] min-h-0 flex-none overflow-y-auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .pos-receipt-foot {
+            @apply static border-t border-slate-200 bg-slate-50 shadow-none;
+        }
+
+        .pos-pay-form.is-cash-pay .pos-cash-panel {
+            @apply border-brand-300 bg-white;
+        }
+
+        .pos-cash-panel.is-input-focused {
+            @apply relative z-20 border-brand-500 bg-white shadow-lg ring-2 ring-brand-500/20;
+        }
+
+        .pos-pay-form.is-cash-pay .pos-pay-submit {
+            @apply mt-3;
         }
 
         .pos-category-tabs {
@@ -1611,17 +1712,8 @@
         }
 
         .pos-product-grid {
-            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4;
+            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6;
             -webkit-overflow-scrolling: touch;
-        }
-
-        .pos-receipt-body {
-            @apply min-h-0 flex-1 overflow-y-auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .pos-receipt-foot {
-            @apply sticky bottom-0 z-10 border-t border-slate-200 bg-white shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
         }
 
         .pos-receipt-thumb {

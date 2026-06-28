@@ -8,6 +8,11 @@
 @section('content')
     <div id="kasir-pos" class="pos-shell" data-pos-total="{{ $order->total }}">
         <header class="pos-toolbar">
+            <button type="button" class="pos-toolbar-menu lg:hidden" data-mobile-menu-toggle aria-label="Buka menu navigasi">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
             <div class="pos-toolbar-left">
                 <div class="pos-order-chip">
                     <span class="pos-order-chip-label">POS</span>
@@ -54,18 +59,27 @@
         @endif
 
         @if ($pendingOrders->isNotEmpty())
-            <div class="pos-pending">
-                <p class="pos-pending-title">Pesanan meja QR menunggu bayar ({{ $pendingOrders->count() }})</p>
-                <div class="pos-pending-list">
-                    @foreach ($pendingOrders as $pending)
-                        <form action="{{ route('kasir.load-order', $pending) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="pos-pending-btn">
-                                <span>{{ $pending->table?->label ?? 'Online' }}</span>
-                                <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
-                            </button>
-                        </form>
-                    @endforeach
+            @php
+                $pendingTotal = $pendingOrders->sum('total');
+            @endphp
+            <div class="pos-pending" data-pos-pending>
+                <button type="button" class="pos-pending-toggle lg:hidden" data-pos-pending-toggle aria-expanded="false">
+                    <span>🪑 {{ $pendingOrders->count() }} meja menunggu bayar · {{ $format::rupiah($pendingTotal) }}</span>
+                    <span class="pos-pending-toggle-icon" aria-hidden="true">▼</span>
+                </button>
+                <div class="pos-pending-body" data-pos-pending-body>
+                    <p class="pos-pending-title">Pesanan meja QR menunggu bayar ({{ $pendingOrders->count() }})</p>
+                    <div class="pos-pending-list">
+                        @foreach ($pendingOrders as $pending)
+                            <form action="{{ route('kasir.load-order', $pending) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="pos-pending-btn">
+                                    <span>{{ $pending->table?->label ?? 'Online' }}</span>
+                                    <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
+                                </button>
+                            </form>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         @endif

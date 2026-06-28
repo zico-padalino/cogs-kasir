@@ -173,6 +173,8 @@ export function initKasirPos() {
     initPosCategoryTabs(root);
     initPosOrderBar(root);
     initPosCashPayment(root);
+    initPosPendingPanel(root);
+    initPosFlash(root);
 
     const tabs = root.querySelectorAll('[data-kasir-tab]');
     const panels = root.querySelectorAll('[data-kasir-panel]');
@@ -566,6 +568,38 @@ function initPosOrderBar(root) {
     setOrderBarExpanded(false);
 }
 
+function initPosPendingPanel(root) {
+    const panel = root.querySelector('[data-pos-pending]');
+    const toggle = panel?.querySelector('[data-pos-pending-toggle]');
+
+    if (! panel || ! toggle) {
+        return;
+    }
+
+    const setExpanded = (expanded) => {
+        panel.classList.toggle('is-expanded', expanded);
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    };
+
+    toggle.addEventListener('click', () => {
+        setExpanded(! panel.classList.contains('is-expanded'));
+    });
+
+    setExpanded(false);
+}
+
+function initPosFlash(root) {
+    const flashes = document.querySelectorAll('[data-pos-flash]');
+
+    flashes.forEach((flash) => {
+        window.setTimeout(() => {
+            flash.style.opacity = '0';
+            flash.style.transition = 'opacity 0.3s ease';
+            window.setTimeout(() => flash.remove(), 320);
+        }, 3200);
+    });
+}
+
 function initPosCashPayment(root) {
     const form = root.querySelector('[data-pos-pay-form]');
     if (! form) {
@@ -582,7 +616,16 @@ function initPosCashPayment(root) {
 
     const syncPaymentMethod = () => {
         const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
-        cashPanel?.classList.toggle('hidden', method !== 'cash');
+        const isCash = method === 'cash';
+
+        cashPanel?.classList.toggle('hidden', ! isCash);
+        form.classList.toggle('is-cash-pay', isCash);
+
+        if (isCash && window.innerWidth < 1024) {
+            window.setTimeout(() => {
+                cashPanel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }, 80);
+        }
     };
 
     const syncChange = () => {
@@ -599,6 +642,61 @@ function initPosCashPayment(root) {
     });
 
     receivedInput?.addEventListener('input', syncChange);
+
+    const isMobilePay = () => window.innerWidth < 1024;
+
+    const syncKeyboardInset = () => {
+        if (! isMobilePay() || ! window.visualViewport) {
+            document.documentElement.style.removeProperty('--keyboard-inset');
+
+            return;
+        }
+
+        const inset = Math.max(
+            0,
+            window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop,
+        );
+
+        document.documentElement.style.setProperty('--keyboard-inset', `${inset}px`);
+    };
+
+    const scrollCashInputIntoView = () => {
+        if (! isMobilePay() || ! receivedInput) {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            receivedInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        });
+    };
+
+    receivedInput?.addEventListener('focus', () => {
+        cashPanel?.classList.add('is-input-focused');
+        syncKeyboardInset();
+        scrollCashInputIntoView();
+        window.setTimeout(scrollCashInputIntoView, 300);
+    });
+
+    receivedInput?.addEventListener('blur', () => {
+        cashPanel?.classList.remove('is-input-focused');
+
+        window.setTimeout(() => {
+            if (document.activeElement !== receivedInput) {
+                document.documentElement.style.removeProperty('--keyboard-inset');
+            }
+        }, 120);
+    });
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            syncKeyboardInset();
+
+            if (document.activeElement === receivedInput) {
+                scrollCashInputIntoView();
+            }
+        });
+    }
+
     syncPaymentMethod();
     syncChange();
 }

@@ -84,11 +84,18 @@
                 </header>
 
                 <main class="app-scroll min-h-0 flex-1 @yield('main_class', 'px-4 py-4 sm:px-6 sm:py-6')">
+                    @php $usePosFlash = request()->routeIs('kasir.index'); @endphp
                     @if (session('success'))
-                        <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">✓ {{ session('success') }}</div>
+                        <div @class([
+                            'pos-flash pos-flash-success' => $usePosFlash,
+                            'mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800' => ! $usePosFlash,
+                        ]) @if($usePosFlash) data-pos-flash @endif>✓ {{ session('success') }}</div>
                     @endif
                     @if (session('error'))
-                        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+                        <div @class([
+                            'pos-flash pos-flash-error' => $usePosFlash,
+                            'mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800' => ! $usePosFlash,
+                        ]) @if($usePosFlash) data-pos-flash @endif>{{ session('error') }}</div>
                     @endif
                     @yield('content')
                 </main>

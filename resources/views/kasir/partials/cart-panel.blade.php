@@ -84,9 +84,12 @@
                         name="amount_received"
                         min="0"
                         step="1000"
+                        inputmode="numeric"
+                        enterkeyhint="done"
                         class="pos-cash-input"
                         placeholder="0"
                         data-pos-amount-received
+                        autocomplete="off"
                     >
                     <p class="pos-cash-change" data-pos-change-wrap>
                         Kembalian: <strong data-pos-change-amount>Rp 0</strong>
