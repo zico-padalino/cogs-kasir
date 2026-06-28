@@ -1,4 +1,4 @@
-@props(['products', 'table', 'format'])
+@props(['products', 'format'])
 
 <div class="order-menu-toolbar">
     <input
@@ -69,7 +69,7 @@
             <button type="button" class="order-modal-close" data-order-close-modal aria-label="Tutup">×</button>
         </div>
 
-        <form action="{{ route('order.table.items', $table->barcode_token) }}" method="POST" class="order-modal-form">
+        <form action="{{ route('order.menu.items') }}" method="POST" class="order-modal-form">
             @csrf
             <input type="hidden" name="product_id" value="" data-order-modal-product-id>
 

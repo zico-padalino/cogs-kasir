@@ -779,15 +779,41 @@
     }
 
     .pos-toolbar {
-        @apply flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-300/80 bg-slate-900 px-3 py-3 text-white sm:px-5;
+        @apply flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-300/80 bg-slate-900 px-3 py-2.5 text-white sm:px-5 sm:py-3 lg:flex-nowrap lg:gap-3;
     }
 
     .pos-toolbar-left {
-        @apply flex min-w-0 flex-wrap items-center gap-2;
+        @apply flex min-w-0 flex-1 flex-wrap items-center gap-2;
     }
 
-    .pos-toolbar-right {
-        @apply shrink-0;
+    .pos-toolbar-actions {
+        @apply flex w-full basis-full items-stretch gap-2 lg:w-auto lg:basis-auto lg:shrink-0;
+    }
+
+    .pos-toolbar-action-form {
+        @apply flex flex-1 lg:flex-none;
+    }
+
+    .pos-btn-icon {
+        @apply h-4 w-4 shrink-0;
+    }
+
+    .pos-btn-ghost,
+    .pos-btn-new,
+    .pos-btn-danger {
+        @apply inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold transition active:scale-[0.98] lg:min-h-10 lg:w-auto lg:rounded-lg lg:px-3;
+    }
+
+    .pos-btn-new {
+        @apply border border-white/25 bg-white text-slate-900 shadow-sm hover:bg-slate-100;
+    }
+
+    .pos-btn-ghost {
+        @apply border border-white/20 bg-white/10 text-white hover:bg-white/20;
+    }
+
+    .pos-btn-danger {
+        @apply border border-red-300/50 bg-red-500/15 text-red-50 hover:bg-red-500/25;
     }
 
     .pos-order-chip {
@@ -804,14 +830,6 @@
 
     .pos-table-chip {
         @apply rounded-full bg-brand-500/30 px-2.5 py-1 text-xs font-semibold text-brand-100;
-    }
-
-    .pos-btn-ghost {
-        @apply inline-flex min-h-10 items-center rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98];
-    }
-
-    .pos-btn-danger {
-        @apply inline-flex min-h-10 items-center rounded-lg border border-red-400/40 bg-red-500/20 px-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/30 active:scale-[0.98];
     }
 
     .pos-type-chip,
@@ -1061,7 +1079,19 @@
     }
 
     .pos-pending-btn {
-        @apply inline-flex shrink-0 flex-col rounded-xl border border-amber-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition active:scale-[0.98];
+        @apply inline-flex shrink-0 flex-col gap-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition active:scale-[0.98];
+    }
+
+    .pos-pending-btn-main {
+        @apply min-w-0;
+    }
+
+    .pos-pending-btn-name {
+        @apply block truncate font-semibold text-slate-900;
+    }
+
+    .pos-pending-btn-meta {
+        @apply block truncate font-mono text-[10px] text-slate-500;
     }
 
     .pos-pending-amount {
@@ -1667,12 +1697,11 @@
         }
 
         .pos-order-chip-value {
-            @apply max-w-[7.5rem] truncate text-[10px];
+            @apply max-w-[9rem] truncate text-[11px];
         }
 
-        .pos-btn-ghost,
-        .pos-btn-danger {
-            @apply min-h-8 px-2.5 text-xs;
+        .pos-toolbar-actions {
+            @apply gap-2.5 pt-0.5;
         }
 
         .pos-toolbar .badge {
@@ -1960,6 +1989,54 @@
 
     .order-section-sub {
         @apply mt-1 text-sm text-slate-500;
+    }
+
+    .order-customer-card {
+        @apply rounded-2xl border border-brand-200 bg-brand-50/70 p-4;
+    }
+
+    .order-customer-label {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .order-customer-hint {
+        @apply mt-1 text-xs leading-relaxed text-slate-600;
+    }
+
+    .order-customer-row {
+        @apply mt-3 flex flex-col gap-2 sm:flex-row;
+    }
+
+    .order-customer-input {
+        @apply min-h-11 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+    }
+
+    .order-customer-save {
+        @apply min-h-11 shrink-0 px-5 sm:w-auto;
+    }
+
+    .order-new-order-wrap {
+        @apply max-w-xl pt-2;
+    }
+
+    .order-table-picks {
+        @apply flex flex-wrap gap-2;
+    }
+
+    .order-table-pill {
+        @apply inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition active:scale-[0.98];
+    }
+
+    .order-table-pill.is-active {
+        @apply border-brand-500 bg-brand-50 text-brand-800 ring-2 ring-brand-500/20;
+    }
+
+    .order-table-pill-num {
+        @apply font-mono text-xs font-bold text-slate-500;
+    }
+
+    .order-table-pill.is-active .order-table-pill-num {
+        @apply text-brand-700;
     }
 
     .order-menu-toolbar {

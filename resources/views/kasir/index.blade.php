@@ -28,18 +28,29 @@
                 @else
                     <span class="pos-customer-chip hidden" data-pos-toolbar-customer></span>
                 @endif
-                <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
+                <span class="badge max-lg:hidden {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
-            <div class="pos-toolbar-right">
+            <div class="pos-toolbar-actions">
                 @if ($order->isKasirEditable() && $order->items->isNotEmpty())
-                    <form action="{{ route('kasir.order.cancel') }}" method="POST" onsubmit="return confirm('Batalkan pesanan ini?')">
+                    <form action="{{ route('kasir.order.cancel') }}" method="POST" class="pos-toolbar-action-form" onsubmit="return confirm('Batalkan pesanan ini?')">
                         @csrf
-                        <button type="submit" class="pos-btn-danger">Batal</button>
+                        <button type="submit" class="pos-btn-danger">
+                            <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            <span>Batal</span>
+                        </button>
                     </form>
                 @endif
-                <form action="{{ route('kasir.new-order') }}" method="POST">
+                <form action="{{ route('kasir.new-order') }}" method="POST" class="pos-toolbar-action-form">
                     @csrf
-                    <button type="submit" class="pos-btn-ghost">+ Baru</button>
+                    <button type="submit" class="pos-btn-new">
+                        <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span class="max-sm:hidden">Pesanan Baru</span>
+                        <span class="sm:hidden">Baru</span>
+                    </button>
                 </form>
             </div>
         </header>
@@ -68,7 +79,10 @@
                             <form action="{{ route('kasir.load-order', $pending) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="pos-pending-btn">
-                                    <span>{{ $pending->customer_note ?: $pending->order_number }}</span>
+                                    <span class="pos-pending-btn-main">
+                                        <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
+                                        <span class="pos-pending-btn-meta">{{ $pending->table?->label }} · {{ $pending->order_number }}</span>
+                                    </span>
                                     <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
                                 </button>
                             </form>

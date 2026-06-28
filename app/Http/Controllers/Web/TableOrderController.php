@@ -8,30 +8,80 @@ use App\Models\PosTable;
 use App\Services\PosOrderService;
 use App\Support\Format;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class TableOrderController extends Controller
 {
-    public function show(string $token, PosOrderService $posService)
-    {
-        $table = PosTable::where('barcode_token', $token)
-            ->where('is_active', true)
-            ->firstOrFail();
+    private const SESSION_KEY = 'online_order_id';
 
-        $order = $posService->getOrCreateOnlineOrder($table);
-        $order->load(['items.product']);
+    public function show(PosOrderService $posService): View
+    {
+        $order = $this->currentOrder($posService);
+        $order->load(['items.product', 'table']);
 
         return view('order.table', [
-            'table' => $table,
             'order' => $order,
+            'tables' => PosTable::query()->where('is_active', true)->orderBy('table_number')->get(),
             'products' => $posService->sellableProducts(),
             'format' => Format::class,
         ]);
     }
 
-    public function addItem(string $token, Request $request, PosOrderService $posService)
+    public function newOrder(PosOrderService $posService): RedirectResponse
     {
-        $table = PosTable::where('barcode_token', $token)->where('is_active', true)->firstOrFail();
-        $order = $posService->getOrCreateOnlineOrder($table);
+        session()->forget(self::SESSION_KEY);
+
+        $order = $posService->createOnlineOrder();
+        session([self::SESSION_KEY => $order->id]);
+
+        return redirect()
+            ->route('order.menu')
+            ->with('success', 'Pesanan baru dibuat. Isi nama & pilih meja lalu pilih menu.');
+    }
+
+    public function updateCustomer(Request $request, PosOrderService $posService): RedirectResponse
+    {
+        $order = $this->currentOrder($posService);
+
+        $validated = $request->validate([
+            'customer_note' => ['required', 'string', 'max:255'],
+        ]);
+
+        try {
+            $posService->updateOnlineCustomerNote($order, $validated['customer_note']);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Nama pemesan disimpan.');
+    }
+
+    public function updateTable(Request $request, PosOrderService $posService): RedirectResponse
+    {
+        $order = $this->currentOrder($posService);
+
+        $validated = $request->validate([
+            'pos_table_id' => ['required', 'exists:pos_tables,id'],
+        ]);
+
+        $table = PosTable::query()
+            ->whereKey($validated['pos_table_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        try {
+            $posService->updateOnlineTable($order, $table);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Meja '.$table->label.' dipilih.');
+    }
+
+    public function addItem(Request $request, PosOrderService $posService): RedirectResponse
+    {
+        $order = $this->currentOrder($posService);
 
         $validated = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
@@ -55,10 +105,9 @@ class TableOrderController extends Controller
         return back()->with('success', $product->name.' ditambahkan.');
     }
 
-    public function removeItem(string $token, PosOrderItem $item, PosOrderService $posService)
+    public function removeItem(PosOrderItem $item, PosOrderService $posService): RedirectResponse
     {
-        $table = PosTable::where('barcode_token', $token)->where('is_active', true)->firstOrFail();
-        $order = $posService->getOrCreateOnlineOrder($table);
+        $order = $this->currentOrder($posService);
 
         if ($item->pos_order_id !== $order->id) {
             abort(404);
@@ -73,10 +122,9 @@ class TableOrderController extends Controller
         return back()->with('success', 'Item dihapus dari pesanan.');
     }
 
-    public function updateItem(string $token, PosOrderItem $item, Request $request, PosOrderService $posService)
+    public function updateItem(PosOrderItem $item, Request $request, PosOrderService $posService): RedirectResponse
     {
-        $table = PosTable::where('barcode_token', $token)->where('is_active', true)->firstOrFail();
-        $order = $posService->getOrCreateOnlineOrder($table);
+        $order = $this->currentOrder($posService);
 
         if ($item->pos_order_id !== $order->id) {
             abort(404);
@@ -101,10 +149,9 @@ class TableOrderController extends Controller
         return back()->with('success', 'Catatan item diperbarui.');
     }
 
-    public function submit(string $token, PosOrderService $posService)
+    public function submit(PosOrderService $posService): RedirectResponse
     {
-        $table = PosTable::where('barcode_token', $token)->where('is_active', true)->firstOrFail();
-        $order = $posService->getOrCreateOnlineOrder($table);
+        $order = $this->currentOrder($posService);
 
         try {
             $posService->submitOnlineOrder($order);
@@ -113,5 +160,14 @@ class TableOrderController extends Controller
         }
 
         return back()->with('success', 'Pesanan terkirim. Silakan bayar di kasir.');
+    }
+
+    private function currentOrder(PosOrderService $posService): \App\Models\PosOrder
+    {
+        $orderId = session(self::SESSION_KEY);
+        $order = $posService->resolveOnlineOrder(is_numeric($orderId) ? (int) $orderId : null);
+        session([self::SESSION_KEY => $order->id]);
+
+        return $order;
     }
 }

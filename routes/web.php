@@ -29,18 +29,23 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
-Route::get('meja/{token}', [TableOrderController::class, 'show'])->name('order.table');
-Route::post('meja/{token}/items', [TableOrderController::class, 'addItem'])->name('order.table.items');
-Route::patch('meja/{token}/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.table.items.update');
-Route::delete('meja/{token}/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.table.items.destroy');
-Route::post('meja/{token}/submit', [TableOrderController::class, 'submit'])->name('order.table.submit');
+Route::redirect('meja/{token}', '/pesan');
+
+Route::get('pesan', [TableOrderController::class, 'show'])->name('order.menu');
+Route::post('pesan/new-order', [TableOrderController::class, 'newOrder'])->name('order.menu.new');
+Route::patch('pesan/customer', [TableOrderController::class, 'updateCustomer'])->name('order.menu.customer');
+Route::patch('pesan/table', [TableOrderController::class, 'updateTable'])->name('order.menu.table');
+Route::post('pesan/items', [TableOrderController::class, 'addItem'])->name('order.menu.items');
+Route::patch('pesan/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.menu.items.update');
+Route::delete('pesan/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.menu.items.destroy');
+Route::post('pesan/submit', [TableOrderController::class, 'submit'])->name('order.menu.submit');
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
     Route::get('/', [KasirController::class, 'index'])->name('index');
     Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
     Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
     Route::get('/tables', [KasirController::class, 'tables'])->name('tables');
-    Route::get('/tables/{table}/barcode', [KasirController::class, 'tableBarcode'])->name('tables.barcode');
+    Route::get('/barcode', [KasirController::class, 'barcode'])->name('barcode');
     Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
     Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
     Route::patch('/order', [KasirController::class, 'updateOrder'])->name('order.update');

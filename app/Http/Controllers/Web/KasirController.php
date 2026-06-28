@@ -10,6 +10,7 @@ use App\Models\PosTable;
 use App\Models\Product;
 use App\Services\PosOrderService;
 use App\Support\Format;
+use App\Support\PosMenu;
 use Illuminate\Http\Request;
 
 class KasirController extends Controller
@@ -75,15 +76,16 @@ class KasirController extends Controller
 
         return view('kasir.tables', [
             'tables' => $tables,
+            'orderUrl' => PosMenu::orderUrl(),
+            'shopName' => config('pos.shop_name'),
         ]);
     }
 
-    public function tableBarcode(PosTable $table)
+    public function barcode()
     {
-        abort_unless($table->is_active, 404);
-
         return view('kasir.table-barcode', [
-            'table' => $table,
+            'orderUrl' => PosMenu::orderUrl(),
+            'shopName' => config('pos.shop_name'),
         ]);
     }
 

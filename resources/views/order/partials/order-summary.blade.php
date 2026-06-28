@@ -1,4 +1,4 @@
-@props(['editable' => false, 'table' => null])
+@props(['editable' => false])
 
 <div class="order-cart-card" data-order-cart>
     <div class="order-cart-head">
@@ -15,9 +15,9 @@
                 <x-pos-order-item
                     :item="$item"
                     :format="$format"
-                    :editable="$editable && $table"
-                    :update-url="$editable && $table ? route('order.table.items.update', [$table->barcode_token, $item]) : null"
-                    :destroy-url="$editable && $table ? route('order.table.items.destroy', [$table->barcode_token, $item]) : null"
+                    :editable="$editable"
+                    :update-url="$editable ? route('order.menu.items.update', $item) : null"
+                    :destroy-url="$editable ? route('order.menu.items.destroy', $item) : null"
                     line-class="order-cart-row"
                 />
             </div>

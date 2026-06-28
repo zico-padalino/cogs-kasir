@@ -38,7 +38,7 @@
                         Riwayat Pesanan
                     </a>
                     <a href="{{ route('kasir.tables') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.tables*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
+                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.tables', 'kasir.barcode') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
                         <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🪑</span>
                         Meja QR
                     </a>

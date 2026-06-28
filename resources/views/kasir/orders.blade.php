@@ -12,6 +12,7 @@
                 <thead>
                     <tr>
                         <th>No. Order</th>
+                        <th>Pemesan</th>
                         <th>Sumber</th>
                         <th>Meja</th>
                         <th>Total</th>
@@ -24,6 +25,7 @@
                     @foreach ($orders as $order)
                         <tr>
                             <td class="font-mono text-xs">{{ $order->order_number }}</td>
+                            <td>{{ $order->customer_note ?: '-' }}</td>
                             <td>{{ $order->source->label() }}</td>
                             <td>{{ $order->table?->label ?? '-' }}</td>
                             <td class="cell-money">{{ $format::rupiah($order->total) }}</td>

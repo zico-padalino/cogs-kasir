@@ -1,15 +1,23 @@
 @extends('layouts.order-table')
 
-@section('title', $table->label)
+@section('title', 'Pesan')
 
 @section('content')
     <div class="order-table-shell" data-order-table>
         <header class="order-table-header">
-            <div class="order-table-header-badge">🍽️</div>
+            <div class="order-table-header-badge">☕</div>
             <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold uppercase tracking-wider text-brand-600">Menu Meja</p>
-                <h1 class="truncate text-xl font-bold text-slate-900 sm:text-2xl">{{ $table->label }}</h1>
-                <p class="text-xs text-slate-500">Meja #{{ $table->table_number }} · Pesan dari HP atau tablet</p>
+                <p class="text-xs font-semibold uppercase tracking-wider text-brand-600">Pesan Online</p>
+                <h1 class="truncate text-xl font-bold text-slate-900 sm:text-2xl">{{ config('pos.shop_name') }}</h1>
+                <p class="text-xs text-slate-500">
+                    <span class="font-mono">{{ $order->order_number }}</span>
+                    @if ($order->customer_note)
+                        · {{ $order->customer_note }}
+                    @endif
+                    @if ($order->table)
+                        · {{ $order->table->label }}
+                    @endif
+                </p>
             </div>
             @if ($order->status->value === 'open' && $order->items->isNotEmpty())
                 <div class="order-header-total lg:hidden">
@@ -32,17 +40,25 @@
                     <div class="order-status-icon">💳</div>
                     <h2 class="text-lg font-bold text-slate-900">Silakan Bayar di Kasir</h2>
                     <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                        Pesanan Anda sudah masuk ke kasir. Datang ke kasir dan sebutkan nomor pesanan di bawah.
+                        Pesanan Anda sudah masuk ke kasir. Datang ke kasir dan sebutkan nomor pesanan & nama di bawah.
                     </p>
                     <div class="order-status-meta">
                         <div>
                             <p class="text-xs uppercase tracking-wide text-slate-500">Nomor Pesanan</p>
                             <p class="font-mono text-sm font-bold text-slate-900">{{ $order->order_number }}</p>
                         </div>
-                        <div>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Meja</p>
-                            <p class="text-sm font-semibold">{{ $table->label }}</p>
-                        </div>
+                        @if ($order->customer_note)
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-slate-500">Nama Pemesan</p>
+                                <p class="text-sm font-semibold">{{ $order->customer_note }}</p>
+                            </div>
+                        @endif
+                        @if ($order->table)
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-slate-500">Meja</p>
+                                <p class="text-sm font-semibold">{{ $order->table->label }}</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -65,7 +81,65 @@
                 <div class="order-layout-single">
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
+
+                <form action="{{ route('order.menu.new') }}" method="POST" class="order-new-order-wrap">
+                    @csrf
+                    <button type="submit" class="btn-secondary w-full">+ Pesan Baru</button>
+                </form>
             @else
+                @if ($order->isEditable())
+                    <div class="order-customer-card">
+                        <form action="{{ route('order.menu.customer') }}" method="POST" class="order-customer-form">
+                            @csrf
+                            @method('PATCH')
+                            <label class="order-customer-label" for="order-customer-note">Nama pemesan</label>
+                            <p class="order-customer-hint">Wajib — kasir membedakan pesanan lewat nama & nomor order.</p>
+                            <div class="order-customer-row">
+                                <input
+                                    id="order-customer-note"
+                                    type="text"
+                                    name="customer_note"
+                                    value="{{ old('customer_note', $order->customer_note) }}"
+                                    maxlength="255"
+                                    class="order-customer-input"
+                                    placeholder="Contoh: Budi"
+                                    required
+                                    autocomplete="name"
+                                >
+                                <button type="submit" class="btn-primary order-customer-save">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    @if ($tables->isNotEmpty())
+                        <div class="order-customer-card">
+                            <form action="{{ route('order.menu.table') }}" method="POST" class="order-customer-form">
+                                @csrf
+                                @method('PATCH')
+                                <label class="order-customer-label">Pilih meja</label>
+                                <p class="order-customer-hint">Wajib sebelum kirim ke kasir — pilih meja tempat Anda duduk.</p>
+                                <div class="order-table-picks mt-3" role="group" aria-label="Pilih meja">
+                                    @foreach ($tables as $tableOption)
+                                        <button
+                                            type="submit"
+                                            name="pos_table_id"
+                                            value="{{ $tableOption->id }}"
+                                            class="order-table-pill {{ $order->pos_table_id === $tableOption->id ? 'is-active' : '' }}"
+                                        >
+                                            <span class="order-table-pill-num">#{{ $tableOption->table_number }}</span>
+                                            <span>{{ $tableOption->label }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </form>
+                        </div>
+                    @else
+                        <div class="order-info-box">
+                            <p class="text-sm text-amber-800">Belum ada meja terdaftar. Hubungi staf kasir.</p>
+                        </div>
+                    @endif
+                @endif
+
                 <div class="order-view-tabs lg:hidden" role="tablist">
                     <button type="button" class="order-view-tab is-active" data-order-tab="menu" role="tab" aria-selected="true">
                         Menu
@@ -85,7 +159,6 @@
 
                         @include('order.partials.menu-grid', [
                             'products' => $products,
-                            'table' => $table,
                             'format' => $format,
                         ])
                     </section>
@@ -96,11 +169,10 @@
                                 'order' => $order,
                                 'format' => $format,
                                 'editable' => true,
-                                'table' => $table,
                             ])
 
                             @if ($order->items->isNotEmpty())
-                                <form action="{{ route('order.table.submit', $table->barcode_token) }}" method="POST" class="order-submit-wrap">
+                                <form action="{{ route('order.menu.submit') }}" method="POST" class="order-submit-wrap">
                                     @csrf
                                     <button type="submit" class="btn-primary order-submit-btn" onclick="return confirm('Kirim pesanan ke kasir? Setelah dikirim, bayar di kasir.')">
                                         Kirim Pesanan · Bayar di Kasir
@@ -116,7 +188,7 @@
         </main>
 
         <footer class="order-table-footer">
-            <p>Hanya untuk {{ $table->label }} · Scan ulang QR meja jika pindah tempat duduk</p>
+            <p>Satu barcode untuk semua meja · Tiap HP punya nomor pesanan sendiri</p>
         </footer>
     </div>
 @endsection

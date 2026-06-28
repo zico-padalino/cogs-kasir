@@ -35,17 +35,4 @@ class PosTable extends Model
     {
         return $this->hasMany(PosOrder::class);
     }
-
-    public function activeOrder(): ?PosOrder
-    {
-        return $this->orders()
-            ->whereIn('status', ['open', 'submitted'])
-            ->latest('id')
-            ->first();
-    }
-
-    public function orderUrl(): string
-    {
-        return url(route('order.table', $this->barcode_token, absolute: false));
-    }
 }
