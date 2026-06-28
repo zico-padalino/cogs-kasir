@@ -46,14 +46,16 @@
     </div>
 
     @if ($order->items->isNotEmpty() && $order->isKasirEditable())
-        <div class="pos-receipt-foot">
-            <div class="pos-receipt-subtotal">
-                <span>Subtotal</span>
-                <span>{{ $format::rupiah($order->subtotal) }}</span>
-            </div>
-            <div class="pos-receipt-grand">
-                <span>Total Bayar</span>
-                <span data-kasir-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</span>
+        <div class="pos-receipt-pay" data-pos-receipt-pay>
+            <div class="pos-receipt-pay-totals">
+                <div class="pos-receipt-subtotal">
+                    <span>Subtotal</span>
+                    <span>{{ $format::rupiah($order->subtotal) }}</span>
+                </div>
+                <div class="pos-receipt-grand">
+                    <span>Total Bayar</span>
+                    <span data-kasir-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</span>
+                </div>
             </div>
 
             <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form" data-pos-pay-form>

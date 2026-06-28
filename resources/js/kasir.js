@@ -194,9 +194,15 @@ export function initKasirPos() {
             panel.classList.toggle('flex', show);
         });
 
+        syncMobilePayChrome(root, name);
+
         if (window.innerWidth < POS_DESKTOP_BP && name === 'cart') {
-            root.querySelector('.pos-receipt-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+            window.setTimeout(() => scrollToPayDock(root), 120);
         }
+    };
+
+    const scrollToPayDock = (scope) => {
+        scope.querySelector('[data-pos-receipt-pay]')?.scrollIntoView({ block: 'end', behavior: 'smooth' });
     };
 
     tabs.forEach((tab) => {
@@ -204,7 +210,24 @@ export function initKasirPos() {
     });
 
     root.querySelectorAll('[data-kasir-go-cart]').forEach((btn) => {
-        btn.addEventListener('click', () => setPanel('cart'));
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const activeTab = root.querySelector('[data-kasir-tab].is-active')?.dataset.kasirTab;
+
+            if (activeTab !== 'cart') {
+                setPanel('cart');
+                return;
+            }
+
+            scrollToPayDock(root);
+
+            const submitBtn = root.querySelector('[data-pos-pay-submit]');
+            if (submitBtn) {
+                window.setTimeout(() => submitBtn.focus({ preventScroll: true }), 180);
+            }
+        });
     });
 
     if (searchInput) {
@@ -244,15 +267,37 @@ export function initKasirPos() {
                 panel.classList.remove('hidden');
                 panel.classList.add('flex');
             });
+            root.classList.remove('is-mobile-cart-tab', 'is-mobile-menu-tab');
+            root.querySelector('[data-pos-mobile-checkout]')?.classList.remove('hidden');
+
             return;
         }
 
         const activeTab = root.querySelector('[data-kasir-tab].is-active');
-        setPanel(activeTab?.dataset.kasirTab ?? 'menu');
+        const tabName = activeTab?.dataset.kasirTab ?? 'menu';
+        setPanel(tabName);
     };
 
     window.addEventListener('resize', syncLayout);
     syncLayout();
+    syncMobilePayChrome(root, root.querySelector('[data-kasir-tab].is-active')?.dataset.kasirTab ?? 'menu');
+}
+
+function syncMobilePayChrome(root, activeTab) {
+    const isMobile = window.innerWidth < POS_DESKTOP_BP;
+    const mobileCheckout = root.querySelector('[data-pos-mobile-checkout]');
+    const goCartLabel = root.querySelector('[data-kasir-go-cart-label]');
+
+    root.classList.toggle('is-mobile-cart-tab', isMobile && activeTab === 'cart');
+    root.classList.toggle('is-mobile-menu-tab', isMobile && activeTab === 'menu');
+
+    if (mobileCheckout) {
+        mobileCheckout.classList.toggle('hidden', ! isMobile || activeTab === 'cart');
+    }
+
+    if (goCartLabel) {
+        goCartLabel.textContent = 'Bayar';
+    }
 }
 
 function initPosCategoryTabs(root) {

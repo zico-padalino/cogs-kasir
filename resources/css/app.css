@@ -1472,8 +1472,13 @@
         @apply mt-1 text-xs text-slate-400;
     }
 
-    .pos-receipt-foot {
+    .pos-receipt-foot,
+    .pos-receipt-pay {
         @apply shrink-0 border-t border-slate-200 bg-slate-50 p-4;
+    }
+
+    .pos-receipt-pay-totals .pos-receipt-grand {
+        @apply border-b-0 pb-0;
     }
 
     .pos-receipt-subtotal {
@@ -1505,12 +1510,20 @@
     }
 
     .pos-pay-submit {
-        @apply flex w-full min-h-12 items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-base font-bold text-white shadow-lg transition hover:bg-green-700 active:scale-[0.98];
+        @apply relative z-10 flex w-full min-h-12 touch-manipulation cursor-pointer items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-base font-bold text-white shadow-lg transition hover:bg-green-700 active:scale-[0.98];
     }
 
     .pos-mobile-checkout {
-        @apply shrink-0 flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.2)] lg:hidden;
+        @apply relative z-50 flex shrink-0 touch-manipulation items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.25)] lg:hidden;
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+
+    .pos-mobile-checkout.hidden {
+        @apply !hidden;
+    }
+
+    .pos-mobile-checkout-btn {
+        @apply relative z-10 min-h-11 shrink-0 touch-manipulation cursor-pointer rounded-xl bg-green-500 px-5 py-3 text-sm font-bold text-white active:scale-[0.98];
     }
 
     .pos-mobile-checkout-label {
@@ -1521,8 +1534,23 @@
         @apply block text-lg font-bold tabular-nums text-white;
     }
 
-    .pos-mobile-checkout-btn {
-        @apply shrink-0 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-bold text-white active:scale-[0.98];
+    .is-kasir-pos.is-mobile-menu-tab .pos-mobile-checkout {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    .is-kasir-pos.is-mobile-menu-tab .pos-shell:has([data-pos-mobile-checkout]:not(.hidden)) {
+        padding-bottom: 5rem;
+    }
+
+    .is-kasir-pos.is-mobile-cart-tab .pos-receipt-head {
+        @apply px-3 py-2.5;
+    }
+
+    .is-kasir-pos.is-mobile-cart-tab .pos-receipt-meta {
+        @apply hidden;
     }
 
     @media (max-width: 1023px) {
@@ -1681,14 +1709,33 @@
         }
 
         .pos-order-panel.kasir-panel-cart .pos-receipt {
-            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
-            -webkit-overflow-scrolling: touch;
-            scroll-padding-bottom: 1.5rem;
+            @apply flex min-h-0 flex-1 flex-col overflow-hidden;
         }
 
         .pos-receipt-body {
-            @apply max-h-[min(42dvh,22rem)] min-h-0 flex-none overflow-y-auto;
+            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
             -webkit-overflow-scrolling: touch;
+        }
+
+        .pos-receipt-pay {
+            @apply shrink-0 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        }
+
+        .pos-receipt-pay-totals {
+            @apply mb-2;
+        }
+
+        .pos-receipt-pay .pos-receipt-subtotal {
+            @apply text-xs;
+        }
+
+        .pos-receipt-pay .pos-receipt-grand {
+            @apply mt-0 border-0 pb-2 text-base;
+        }
+
+        .pos-receipt-pay .pos-receipt-grand span:last-child {
+            @apply text-xl;
         }
 
         .pos-receipt-foot {
