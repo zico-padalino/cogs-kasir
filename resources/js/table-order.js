@@ -74,7 +74,10 @@ function initOrderModal() {
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('order-modal-open');
-        qtyInput.focus();
+
+        if (! window.matchMedia('(pointer: coarse)').matches) {
+            qtyInput.focus({ preventScroll: true });
+        }
     };
 
     const closeModal = () => {

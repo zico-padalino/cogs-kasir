@@ -92,16 +92,15 @@
             </div>
 
             <div class="order-modal-field">
-                <label class="order-modal-label" for="order-modal-notes">Catatan pembelian</label>
+                <label class="order-modal-label" for="order-modal-notes">Catatan</label>
                 <textarea
                     id="order-modal-notes"
                     name="notes"
-                    rows="3"
+                    rows="2"
                     maxlength="255"
                     class="order-item-note-input"
-                    placeholder="Contoh: tanpa gula, level pedas 2, bungkus terpisah..."
+                    placeholder="Opsional: tanpa gula, bungkus terpisah..."
                 ></textarea>
-                <p class="order-modal-hint">Opsional — catatan ini akan tampil di kasir saat pembayaran.</p>
             </div>
 
             <button type="submit" class="btn-primary order-modal-submit">
