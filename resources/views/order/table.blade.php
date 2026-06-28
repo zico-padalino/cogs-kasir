@@ -3,30 +3,36 @@
 @section('title', $table->label)
 
 @section('content')
-    <div class="order-table-shell">
+    <div class="order-table-shell" data-order-table>
         <header class="order-table-header">
             <div class="order-table-header-badge">🍽️</div>
             <div class="min-w-0 flex-1">
                 <p class="text-xs font-semibold uppercase tracking-wider text-brand-600">Menu Meja</p>
-                <h1 class="truncate text-xl font-bold text-slate-900">{{ $table->label }}</h1>
-                <p class="text-xs text-slate-500">Meja #{{ $table->table_number }} · Pesan dari HP Anda</p>
+                <h1 class="truncate text-xl font-bold text-slate-900 sm:text-2xl">{{ $table->label }}</h1>
+                <p class="text-xs text-slate-500">Meja #{{ $table->table_number }} · Pesan dari HP atau tablet</p>
             </div>
+            @if ($order->status->value === 'open' && $order->items->isNotEmpty())
+                <div class="order-header-total lg:hidden">
+                    <span class="text-[10px] uppercase tracking-wide text-slate-500">Total</span>
+                    <span class="text-sm font-bold text-brand-600">{{ $format::rupiah($order->total) }}</span>
+                </div>
+            @endif
         </header>
 
-        <main class="order-table-main">
-            @if (session('success'))
-                <div class="order-alert order-alert-success">{{ session('success') }}</div>
-            @endif
-            @if (session('error'))
-                <div class="order-alert order-alert-error">{{ session('error') }}</div>
-            @endif
+        @if (session('success'))
+            <div class="order-flash order-flash-success">{{ session('success') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="order-flash order-flash-error">{{ session('error') }}</div>
+        @endif
 
+        <main class="order-table-main">
             @if ($order->status->value === 'submitted')
                 <div class="order-status-card order-status-waiting">
                     <div class="order-status-icon">💳</div>
                     <h2 class="text-lg font-bold text-slate-900">Silakan Bayar di Kasir</h2>
                     <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                        Pesanan Anda sudah masuk ke sistem kasir. Datang ke kasir dan sebutkan nomor pesanan di bawah ini.
+                        Pesanan Anda sudah masuk ke kasir. Datang ke kasir dan sebutkan nomor pesanan di bawah.
                     </p>
                     <div class="order-status-meta">
                         <div>
@@ -40,11 +46,13 @@
                     </div>
                 </div>
 
-                @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                <div class="order-layout-single">
+                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                </div>
 
                 <div class="order-info-box">
                     <p class="font-semibold text-amber-900">Menunggu pembayaran</p>
-                    <p class="mt-1 text-sm text-amber-800">Kasir akan memproses pesanan ini. Stok akan berkurang setelah pembayaran di kasir.</p>
+                    <p class="mt-1 text-sm text-amber-800">Kasir akan memproses pesanan ini. Stok berkurang setelah pembayaran.</p>
                 </div>
             @elseif ($order->status->value === 'paid')
                 <div class="order-status-card order-status-paid">
@@ -54,52 +62,56 @@
                     <p class="mt-3 font-mono text-xs text-green-700">{{ $order->order_number }}</p>
                 </div>
 
-                @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                <div class="order-layout-single">
+                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                </div>
             @else
-                <section class="order-section">
-                    <div class="order-section-head">
-                        <h2 class="order-section-title">Menu</h2>
-                        <p class="order-section-sub">Tap + untuk menambah ke pesanan</p>
-                    </div>
+                <div class="order-view-tabs lg:hidden" role="tablist">
+                    <button type="button" class="order-view-tab is-active" data-order-tab="menu" role="tab" aria-selected="true">
+                        Menu
+                    </button>
+                    <button type="button" class="order-view-tab" data-order-tab="cart" role="tab" aria-selected="false">
+                        Pesanan
+                        <span data-order-cart-badge class="order-view-badge {{ $order->items->isEmpty() ? 'hidden' : '' }}">{{ $order->items->count() }}</span>
+                    </button>
+                </div>
 
-                    <div class="order-menu-list">
-                        @forelse ($products as $product)
-                            <form action="{{ route('order.table.items', $table->barcode_token) }}" method="POST" class="order-menu-item">
-                                @csrf
-                                <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                <div class="min-w-0 flex-1">
-                                    <p class="font-semibold text-slate-900">{{ $product->name }}</p>
-                                    <p class="mt-0.5 text-sm font-bold text-brand-600">
-                                        {{ $product->selling_price > 0 ? $format::rupiah($product->selling_price) : $format::rupiah($product->standard_cost) }}
-                                    </p>
-                                </div>
-                                <div class="order-menu-actions">
-                                    <label class="sr-only" for="qty-{{ $product->id }}">Jumlah</label>
-                                    <input id="qty-{{ $product->id }}" type="number" name="quantity" value="1" min="1" max="{{ max(1, (int) $product->availableQuantity()) }}" class="order-qty-input" inputmode="numeric">
-                                    <button type="submit" class="btn-primary order-add-btn" aria-label="Tambah {{ $product->name }}">+</button>
-                                </div>
-                            </form>
-                        @empty
-                            <div class="order-empty">
-                                <p>Menu belum tersedia.</p>
-                                <p class="order-empty-hint">Hubungi staf atau pesan langsung di kasir.</p>
-                            </div>
-                        @endforelse
-                    </div>
-                </section>
+                <div class="order-table-layout">
+                    <section class="order-panel-menu order-panel is-active" data-order-panel="menu">
+                        <div class="order-section-head">
+                            <h2 class="order-section-title">Pilih Menu</h2>
+                            <p class="order-section-sub">Tap produk untuk atur jumlah & catatan pembelian</p>
+                        </div>
 
-                @if ($order->items->isNotEmpty())
-                    <section class="order-section">
-                        @include('order.partials.order-summary', ['order' => $order, 'format' => $format, 'editable' => true, 'table' => $table])
+                        @include('order.partials.menu-grid', [
+                            'products' => $products,
+                            'table' => $table,
+                            'format' => $format,
+                        ])
                     </section>
 
-                    <form action="{{ route('order.table.submit', $table->barcode_token) }}" method="POST" class="order-submit-wrap">
-                        @csrf
-                        <button type="submit" class="btn-primary order-submit-btn" onclick="return confirm('Kirim pesanan ke kasir? Setelah dikirim, bayar di kasir.')">
-                            Kirim Pesanan · Bayar di Kasir
-                        </button>
-                    </form>
-                @endif
+                    <aside class="order-panel-cart order-panel" data-order-panel="cart">
+                        <div class="order-cart-sticky">
+                            @include('order.partials.order-summary', [
+                                'order' => $order,
+                                'format' => $format,
+                                'editable' => true,
+                                'table' => $table,
+                            ])
+
+                            @if ($order->items->isNotEmpty())
+                                <form action="{{ route('order.table.submit', $table->barcode_token) }}" method="POST" class="order-submit-wrap">
+                                    @csrf
+                                    <button type="submit" class="btn-primary order-submit-btn" onclick="return confirm('Kirim pesanan ke kasir? Setelah dikirim, bayar di kasir.')">
+                                        Kirim Pesanan · Bayar di Kasir
+                                    </button>
+                                </form>
+                            @else
+                                <p class="order-cart-hint">Tambah menu dulu, lalu kirim pesanan ke kasir.</p>
+                            @endif
+                        </div>
+                    </aside>
+                </div>
             @endif
         </main>
 

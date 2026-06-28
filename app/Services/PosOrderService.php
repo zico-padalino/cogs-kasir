@@ -53,7 +53,7 @@ class PosOrderService
         ]);
     }
 
-    public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false): PosOrderItem
+    public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false, ?string $notes = null): PosOrderItem
     {
         $this->assertOrderMutable($order, $fromKasir);
 
@@ -70,6 +70,7 @@ class PosOrderService
             'quantity' => $quantity,
             'unit_price' => $price,
             'line_total' => round($quantity * $price, 4),
+            'notes' => $notes ? trim($notes) : null,
         ]);
 
         $this->recalculateTotals($order);

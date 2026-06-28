@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Pastry">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff7ed"/>
+      <stop offset="100%" stop-color="#ffedd5"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#bg)"/>
+  <path d="M120 210 C140 120 180 90 200 110 C220 90 260 120 280 210 Z" fill="#f59e0b"/>
+  <path d="M145 205 C160 140 185 125 200 135 C215 125 240 140 255 205 Z" fill="#fcd34d"/>
+</svg>

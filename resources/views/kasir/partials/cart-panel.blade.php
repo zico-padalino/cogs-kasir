@@ -21,6 +21,9 @@
                         <div class="pos-receipt-line-main">
                             <p class="pos-receipt-line-name">{{ $item->product->name }}</p>
                             <p class="pos-receipt-line-qty">{{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}</p>
+                            @if ($item->notes)
+                                <p class="pos-receipt-line-note">Catatan: {{ $item->notes }}</p>
+                            @endif
                         </div>
                         <div class="pos-receipt-line-side">
                             <span class="pos-receipt-line-total">{{ $format::rupiah($item->line_total) }}</span>

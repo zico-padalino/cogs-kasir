@@ -30,6 +30,7 @@ Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->
 
 Route::get('meja/{token}', [TableOrderController::class, 'show'])->name('order.table');
 Route::post('meja/{token}/items', [TableOrderController::class, 'addItem'])->name('order.table.items');
+Route::patch('meja/{token}/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.table.items.update');
 Route::delete('meja/{token}/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.table.items.destroy');
 Route::post('meja/{token}/submit', [TableOrderController::class, 'submit'])->name('order.table.submit');
 

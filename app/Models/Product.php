@@ -19,6 +19,7 @@ class Product extends Model
         'selling_price',
         'costing_method',
         'description',
+        'image_path',
         'is_active',
     ];
 
@@ -75,5 +76,22 @@ class Product extends Model
         return $query
             ->where('is_active', true)
             ->whereIn('type', [ProductType::FinishedGood, ProductType::SemiFinished]);
+    }
+
+    public function imageUrl(): string
+    {
+        if ($this->image_path) {
+            if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
+                return $this->image_path;
+            }
+
+            if (str_starts_with($this->image_path, 'images/')) {
+                return asset($this->image_path);
+            }
+
+            return asset('storage/'.$this->image_path);
+        }
+
+        return asset('images/products/default-food.svg');
     }
 }

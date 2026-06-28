@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Roti">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#bg)"/>
+  <ellipse cx="200" cy="170" rx="130" ry="70" fill="#d97706"/>
+  <ellipse cx="200" cy="155" rx="125" ry="55" fill="#fbbf24"/>
+  <path d="M95 155 Q200 90 305 155" fill="none" stroke="#b45309" stroke-width="4" stroke-linecap="round"/>
+</svg>

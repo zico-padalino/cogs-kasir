@@ -67,6 +67,7 @@ class PosDummySeeder extends Seeder
                     'unit' => $unit,
                     'standard_cost' => $cost,
                     'selling_price' => $price,
+                    'image_path' => $this->demoImageForSku($sku),
                     'costing_method' => CostingMethod::WeightedAverage,
                     'is_active' => true,
                 ]);
@@ -196,5 +197,17 @@ class PosDummySeeder extends Seeder
             });
 
         PosTable::whereIn('table_number', ['D01', 'D02', 'D03', 'D04', 'D05'])->delete();
+    }
+
+    private function demoImageForSku(string $sku): string
+    {
+        return match ($sku) {
+            'FG-DEMO-001', 'FG-DEMO-015' => 'images/products/bread-loaf.svg',
+            'FG-DEMO-002', 'FG-DEMO-013' => 'images/products/bread-pack.svg',
+            'FG-DEMO-003', 'FG-DEMO-010', 'FG-DEMO-011' => 'images/products/croissant.svg',
+            'FG-DEMO-004', 'FG-DEMO-005' => 'images/products/donut.svg',
+            'FG-DEMO-006', 'FG-DEMO-007', 'FG-DEMO-012' => 'images/products/cake-slice.svg',
+            default => 'images/products/default-food.svg',
+        };
     }
 }
