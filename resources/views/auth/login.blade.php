@@ -184,13 +184,13 @@
             const iconHide = document.querySelector('[data-password-icon-hide]');
 
             passwordToggle?.addEventListener('click', () => {
-                const visible = passwordInput.type === 'text';
+                const isHidden = passwordInput.type === 'password';
 
-                passwordInput.type = visible ? 'password' : 'text';
-                passwordToggle.setAttribute('aria-pressed', visible ? 'false' : 'true');
-                passwordToggle.setAttribute('aria-label', visible ? 'Tampilkan password' : 'Sembunyikan password');
-                iconShow?.classList.toggle('hidden', ! visible);
-                iconHide?.classList.toggle('hidden', visible);
+                passwordInput.type = isHidden ? 'text' : 'password';
+                passwordToggle.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                passwordToggle.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+                iconShow?.classList.toggle('hidden', isHidden);
+                iconHide?.classList.toggle('hidden', ! isHidden);
             });
         });
     </script>
