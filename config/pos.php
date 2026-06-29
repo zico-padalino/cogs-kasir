@@ -19,4 +19,9 @@ return [
         'images/products/cake-slice.svg' => 'Kue Potong',
         'images/products/default-food.svg' => 'Default',
     ],
+
+    'notifications' => [
+        'poll_interval_seconds' => (int) env('POS_POLL_INTERVAL', 12),
+        'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
+    ],
 ];

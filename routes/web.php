@@ -42,6 +42,7 @@ Route::post('pesan/submit', [TableOrderController::class, 'submit'])->name('orde
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
     Route::get('/', [KasirController::class, 'index'])->name('index');
+    Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
     Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
     Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
     Route::get('/tables', [KasirController::class, 'tables'])->name('tables');

@@ -200,6 +200,34 @@ class KasirPageTest extends TestCase
             ->assertSee($product->sku);
     }
 
+    public function test_kasir_pending_poll_requires_kasir_role(): void
+    {
+        $cogsUser = User::factory()->cogs()->create();
+
+        $this->actingAs($cogsUser)
+            ->getJson(route('kasir.pending.poll'))
+            ->assertRedirect(route('dashboard'));
+    }
+
+    public function test_kasir_pending_poll_returns_submitted_orders(): void
+    {
+        $product = $this->sellableProduct();
+        $table = $this->activeTable();
+        $kasir = $this->kasirUser();
+
+        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
+        $this->patch(route('order.menu.table'), ['pos_table_id' => $table->id]);
+        $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
+        $this->post(route('order.menu.submit'));
+
+        $this->actingAs($kasir)
+            ->getJson(route('kasir.pending.poll'))
+            ->assertOk()
+            ->assertJsonPath('count', 1)
+            ->assertJsonPath('has_pending', true)
+            ->assertJsonStructure(['order_ids', 'html']);
+    }
+
     public function test_kasir_checkout_reduces_inventory(): void
     {
         $product = $this->sellableProduct();

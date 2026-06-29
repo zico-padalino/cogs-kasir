@@ -45,6 +45,27 @@ class KasirController extends Controller
         ]);
     }
 
+    public function pendingOrdersPoll()
+    {
+        $pendingOrders = PosOrder::with(['table'])
+            ->where('status', 'submitted')
+            ->latest()
+            ->get();
+
+        $format = Format::class;
+
+        return response()->json([
+            'count' => $pendingOrders->count(),
+            'total' => (float) $pendingOrders->sum('total'),
+            'order_ids' => $pendingOrders->pluck('id')->values(),
+            'has_pending' => $pendingOrders->isNotEmpty(),
+            'latest_order_id' => $pendingOrders->first()?->id,
+            'html' => $pendingOrders->isNotEmpty()
+                ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format'))->render()
+                : '',
+        ]);
+    }
+
     public function orders()
     {
         $orders = PosOrder::with(['table', 'items.product', 'cashier'])
@@ -109,13 +130,25 @@ class KasirController extends Controller
         return redirect()->route('kasir.index')->with('success', 'Order baru dibuat.');
     }
 
-    public function loadOrder(PosOrder $order)
+    public function loadOrder(Request $request, PosOrder $order)
     {
         if ($order->status === \App\Enums\PosOrderStatus::Paid) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Order sudah lunas.'], 422);
+            }
+
             return redirect()->route('kasir.index')->with('error', 'Order sudah lunas.');
         }
 
         session(['kasir_order_id' => $order->id]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Order #'.$order->order_number.' dimuat.',
+                'order_number' => $order->order_number,
+                'redirect' => route('kasir.index'),
+            ]);
+        }
 
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dimuat.');
     }

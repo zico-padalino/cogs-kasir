@@ -6,10 +6,18 @@
     <meta name="theme-color" content="#4f46e5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Kasir') — POS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased @yield('body_class')">
+<body
+    class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased @yield('body_class')"
+    data-kasir-notifications
+    data-kasir-poll-url="{{ route('kasir.pending.poll') }}"
+    data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 12) }}"
+    data-kasir-index-url="{{ route('kasir.index') }}"
+    data-kasir-auto-load="{{ config('pos.notifications.auto_load_new_order', true) ? '1' : '0' }}"
+>
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
 
     <div class="app-shell">
@@ -54,12 +62,25 @@
                         <p class="truncate text-xs font-medium text-white">{{ auth()->user()->name }}</p>
                         <p class="truncate text-[11px] text-slate-400">{{ auth()->user()->role->label() }}</p>
                     </div>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white">
-                            <span>↩</span> Keluar
+                    <div class="kasir-sidebar-foot-actions">
+                        <button
+                            type="button"
+                            class="kasir-sound-toggle"
+                            data-kasir-sound-toggle
+                            aria-pressed="true"
+                            title="Suara notifikasi"
+                        >
+                            <span class="kasir-sound-toggle-icon" aria-hidden="true">🔔</span>
+                            <span class="kasir-sound-toggle-label" data-kasir-sound-label>Suara aktif</span>
                         </button>
-                    </form>
+                        <form action="{{ route('logout') }}" method="POST" class="kasir-sidebar-foot-form">
+                            @csrf
+                            <button type="submit" class="kasir-sidebar-logout">
+                                <span aria-hidden="true">↩</span>
+                                <span>Keluar</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </aside>
 
@@ -94,7 +115,7 @@
                         <div @class([
                             'pos-flash pos-flash-success' => $usePosFlash,
                             'mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800' => ! $usePosFlash,
-                        ]) @if($usePosFlash) data-pos-flash @endif>✓ {{ session('success') }}</div>
+                        ]) @if($usePosFlash) data-pos-flash data-pos-flash-success @endif>✓ {{ session('success') }}</div>
                     @endif
                     @if (session('error'))
                         <div @class([

@@ -538,23 +538,21 @@ function initPosOrderBar(root) {
 }
 
 function initPosPendingPanel(root) {
-    const panel = root.querySelector('[data-pos-pending]');
-    const toggle = panel?.querySelector('[data-pos-pending-toggle]');
+    root.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-pos-pending-toggle]');
+        if (! toggle) {
+            return;
+        }
 
-    if (! panel || ! toggle) {
-        return;
-    }
+        const panel = toggle.closest('[data-pos-pending]');
+        if (! panel) {
+            return;
+        }
 
-    const setExpanded = (expanded) => {
+        const expanded = ! panel.classList.contains('is-expanded');
         panel.classList.toggle('is-expanded', expanded);
         toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    };
-
-    toggle.addEventListener('click', () => {
-        setExpanded(! panel.classList.contains('is-expanded'));
     });
-
-    setExpanded(false);
 }
 
 function initPosFlash(root) {
