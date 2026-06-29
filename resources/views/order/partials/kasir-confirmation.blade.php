@@ -4,6 +4,7 @@
     id="ke-kasir"
     class="order-kasir-confirmation"
     data-order-waiting-kasir
+    data-order-initial-status="submitted"
     data-order-status-url="{{ route('order.menu.status') }}"
 >
     <div class="order-kasir-confirmation-hero">
@@ -52,9 +53,9 @@
     </div>
 
     <div class="order-kasir-notice">
-        <p class="font-semibold text-amber-900">Menunggu konfirmasi & pembayaran di kasir</p>
+        <p class="font-semibold text-amber-900">Menunggu konfirmasi kasir</p>
         <p class="mt-1 text-sm leading-relaxed text-amber-800">
-            Halaman ini akan otomatis berubah setelah kasir memproses pembayaran Anda.
+            Kasir akan memverifikasi pesanan Anda. Halaman ini akan berubah setelah dikonfirmasi atau dibayar.
         </p>
     </div>
 </section>

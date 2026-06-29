@@ -95,7 +95,7 @@ class PosOrderService
                 ->where('source', PosOrderSource::Online)
                 ->first();
 
-            if ($order && in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Submitted, PosOrderStatus::Paid], true)) {
+            if ($order && in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Submitted, PosOrderStatus::Confirmed, PosOrderStatus::Paid], true)) {
                 return $order;
             }
         }
@@ -206,6 +206,29 @@ class PosOrderService
         return $order->fresh(['items.product', 'table']);
     }
 
+    public function confirmOrder(PosOrder $order, ?User $cashier = null): PosOrder
+    {
+        if ($order->source !== PosOrderSource::Online) {
+            throw new RuntimeException('Hanya pesanan online yang perlu dikonfirmasi kasir.');
+        }
+
+        if ($order->status !== PosOrderStatus::Submitted) {
+            throw new RuntimeException('Pesanan tidak bisa dikonfirmasi.');
+        }
+
+        if ($order->items()->count() === 0) {
+            throw new RuntimeException('Pesanan masih kosong.');
+        }
+
+        $order->update([
+            'status' => PosOrderStatus::Confirmed,
+            'confirmed_at' => now(),
+            'confirmed_by' => $cashier?->id,
+        ]);
+
+        return $order->fresh(['items.product', 'table']);
+    }
+
     /**
      * @return array{order: PosOrder, invoice: string}
      */
@@ -215,7 +238,15 @@ class PosOrderService
         ?User $cashier = null,
         ?float $amountReceived = null,
     ): array {
-        if (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Submitted], true)) {
+        if ($order->source === PosOrderSource::Online) {
+            if ($order->status === PosOrderStatus::Submitted) {
+                throw new RuntimeException('Konfirmasi pesanan selesai dulu sebelum bayar.');
+            }
+
+            if ($order->status !== PosOrderStatus::Confirmed) {
+                throw new RuntimeException('Pesanan sudah dibayar atau dibatalkan.');
+            }
+        } elseif ($order->status !== PosOrderStatus::Open) {
             throw new RuntimeException('Pesanan sudah dibayar atau dibatalkan.');
         }
 

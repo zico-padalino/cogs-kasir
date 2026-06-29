@@ -128,7 +128,7 @@
                     <span class="pos-mobile-checkout-total" data-kasir-mobile-total>{{ $format::rupiah($order->total) }}</span>
                 </div>
                 <button type="button" class="pos-mobile-checkout-btn" data-kasir-go-cart>
-                    <span data-kasir-go-cart-label>Bayar</span>
+                    <span data-kasir-go-cart-label>{{ $order->needsKasirConfirmation() ? 'Konfirmasi' : 'Bayar' }}</span>
                 </button>
             </div>
         @endif

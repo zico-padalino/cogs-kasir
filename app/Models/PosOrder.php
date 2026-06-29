@@ -26,6 +26,8 @@ class PosOrder extends Model
         'change_amount',
         'payment_method',
         'paid_at',
+        'confirmed_at',
+        'confirmed_by',
         'user_id',
     ];
 
@@ -42,6 +44,7 @@ class PosOrder extends Model
             'amount_received' => 'decimal:4',
             'change_amount' => 'decimal:4',
             'paid_at' => 'datetime',
+            'confirmed_at' => 'datetime',
         ];
     }
 
@@ -60,6 +63,11 @@ class PosOrder extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
     public function salesTransactions(): HasMany
     {
         return $this->hasMany(SalesTransaction::class);
@@ -72,6 +80,25 @@ class PosOrder extends Model
 
     public function isKasirEditable(): bool
     {
-        return in_array($this->status, [PosOrderStatus::Open, PosOrderStatus::Submitted], true);
+        if ($this->source === PosOrderSource::Online) {
+            return false;
+        }
+
+        return $this->status === PosOrderStatus::Open;
+    }
+
+    public function needsKasirConfirmation(): bool
+    {
+        return $this->source === PosOrderSource::Online
+            && $this->status === PosOrderStatus::Submitted;
+    }
+
+    public function canCheckoutAtKasir(): bool
+    {
+        return match ($this->source) {
+            PosOrderSource::Kasir => $this->status === PosOrderStatus::Open,
+            PosOrderSource::Online => $this->status === PosOrderStatus::Confirmed,
+            default => false,
+        };
     }
 }

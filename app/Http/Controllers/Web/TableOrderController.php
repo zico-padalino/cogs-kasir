@@ -150,6 +150,8 @@ class TableOrderController extends Controller
             'order_number' => $order->order_number,
             'customer_note' => $order->customer_note,
             'total' => (float) $order->total,
+            'is_submitted' => $order->status->value === 'submitted',
+            'is_confirmed' => $order->status->value === 'confirmed',
             'is_paid' => $order->status->value === 'paid',
         ]);
     }

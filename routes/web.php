@@ -52,6 +52,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::patch('/order', [KasirController::class, 'updateOrder'])->name('order.update');
     Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
     Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
+    Route::post('/orders/{order}/confirm', [KasirController::class, 'confirmOrder'])->name('orders.confirm');
     Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
     Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');
     Route::delete('/items/{item}', [KasirController::class, 'removeItem'])->name('items.destroy');

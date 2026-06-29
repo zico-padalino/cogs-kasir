@@ -269,4 +269,95 @@ class KasirPageTest extends TestCase
         $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-29')->count());
         $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-28')->count());
     }
+
+    public function test_kasir_cannot_pay_online_order_before_confirm(): void
+    {
+        $product = $this->sellableProduct();
+        $kasir = $this->kasirUser();
+
+        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
+        $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
+        $this->post(route('order.menu.submit'));
+
+        $order = PosOrder::where('status', 'submitted')->first();
+        $this->assertNotNull($order);
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.load-order', $order))
+            ->assertRedirect();
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.pay'), [
+                'payment_method' => 'cash',
+                'amount_received' => 50000,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('pos_orders', [
+            'id' => $order->id,
+            'status' => 'submitted',
+        ]);
+    }
+
+    public function test_kasir_can_confirm_and_pay_online_order(): void
+    {
+        $product = $this->sellableProduct();
+        $kasir = $this->kasirUser();
+
+        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
+        $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
+        $this->post(route('order.menu.submit'));
+
+        $order = PosOrder::where('status', 'submitted')->first();
+        $this->assertNotNull($order);
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.orders.confirm', $order))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('pos_orders', [
+            'id' => $order->id,
+            'status' => 'confirmed',
+            'confirmed_by' => $kasir->id,
+        ]);
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.pay'), [
+                'payment_method' => 'cash',
+                'amount_received' => 50000,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('pos_orders', [
+            'id' => $order->id,
+            'status' => 'paid',
+        ]);
+    }
+
+    public function test_online_order_status_shows_confirmed_after_kasir_confirm(): void
+    {
+        $product = $this->sellableProduct();
+        $kasir = $this->kasirUser();
+
+        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
+        $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
+        $this->post(route('order.menu.submit'));
+
+        $order = PosOrder::where('status', 'submitted')->first();
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.orders.confirm', $order));
+
+        $this->getJson(route('order.menu.status'))
+            ->assertOk()
+            ->assertJsonPath('is_confirmed', true)
+            ->assertJsonPath('status', 'confirmed');
+
+        $this->get(route('order.menu'))
+            ->assertOk()
+            ->assertSee('Pesanan dikonfirmasi')
+            ->assertSee('Silakan ke Kasir untuk Bayar');
+    }
 }

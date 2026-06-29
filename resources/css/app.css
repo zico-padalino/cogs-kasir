@@ -1082,6 +1082,35 @@
         @apply mt-2 flex gap-2 overflow-x-auto pb-1;
     }
 
+    .pos-pending-card {
+        @apply inline-flex shrink-0 flex-col gap-2 rounded-xl border border-amber-300 bg-white px-3 py-2 text-left text-sm shadow-sm;
+        min-width: 11rem;
+    }
+
+    .pos-pending-card-head {
+        @apply flex min-w-0 flex-col gap-0.5;
+    }
+
+    .pos-pending-status {
+        @apply mt-1 w-fit text-[10px];
+    }
+
+    .pos-pending-card-actions {
+        @apply flex gap-1.5;
+    }
+
+    .pos-pending-action {
+        @apply min-h-9 flex-1 touch-manipulation rounded-lg px-2 py-1.5 text-xs font-semibold transition active:scale-[0.98];
+    }
+
+    .pos-pending-action-confirm {
+        @apply bg-brand-600 text-white hover:bg-brand-700;
+    }
+
+    .pos-pending-action-open {
+        @apply border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100;
+    }
+
     .pos-pending-btn {
         @apply inline-flex shrink-0 flex-col gap-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition active:scale-[0.98];
     }
@@ -1680,6 +1709,30 @@
 
     .pos-pay-submit {
         @apply relative z-10 flex w-full min-h-12 touch-manipulation cursor-pointer items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-base font-bold text-white shadow-lg transition hover:bg-green-700 active:scale-[0.98];
+    }
+
+    .pos-receipt-confirm {
+        @apply border-t border-slate-200 bg-slate-50 p-4;
+    }
+
+    .pos-confirm-notice {
+        @apply mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5;
+    }
+
+    .pos-confirm-notice-title {
+        @apply text-sm font-semibold text-amber-900;
+    }
+
+    .pos-confirm-notice-text {
+        @apply mt-1 text-xs leading-relaxed text-amber-800;
+    }
+
+    .pos-confirm-submit {
+        @apply flex w-full min-h-12 touch-manipulation cursor-pointer items-center justify-center rounded-xl bg-brand-600 px-4 py-3 text-base font-bold text-white shadow-lg transition hover:bg-brand-700 active:scale-[0.98];
+    }
+
+    .order-kasir-notice-confirmed {
+        @apply border-brand-200 bg-brand-50 text-brand-900;
     }
 
     .pos-mobile-checkout {

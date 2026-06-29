@@ -144,6 +144,8 @@ function initOrderKasirConfirmation() {
         return;
     }
 
+    const initialStatus = section.dataset.orderInitialStatus || '';
+
     const poll = async () => {
         try {
             const response = await fetch(statusUrl, {
@@ -159,7 +161,7 @@ function initOrderKasirConfirmation() {
 
             const data = await response.json();
 
-            if (data.is_paid) {
+            if (data.is_paid || (initialStatus && data.status !== initialStatus)) {
                 window.location.reload();
             }
         } catch {

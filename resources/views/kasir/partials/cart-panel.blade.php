@@ -42,7 +42,36 @@
         @endif
     </div>
 
-    @if ($order->items->isNotEmpty() && $order->isKasirEditable())
+    @if ($order->items->isNotEmpty() && $order->needsKasirConfirmation())
+        <div class="pos-receipt-confirm" data-pos-receipt-confirm>
+            <div class="pos-receipt-pay-totals">
+                <div class="pos-receipt-subtotal">
+                    <span>Subtotal</span>
+                    <span>{{ $format::rupiah($order->subtotal) }}</span>
+                </div>
+                <div class="pos-receipt-grand">
+                    <span>Total Tagihan</span>
+                    <span>{{ $format::rupiah($order->total) }}</span>
+                </div>
+            </div>
+
+            <div class="pos-confirm-notice">
+                <p class="pos-confirm-notice-title">Pesanan online menunggu konfirmasi</p>
+                <p class="pos-confirm-notice-text">Pastikan pesanan sudah siap, lalu konfirmasi ke pelanggan sebelum pembayaran.</p>
+            </div>
+
+            <form action="{{ route('kasir.orders.confirm', $order) }}" method="POST" class="pos-confirm-form">
+                @csrf
+                <button
+                    type="submit"
+                    class="pos-confirm-submit"
+                    onclick="return confirm('Konfirmasi pesanan {{ $order->customer_note ?: $order->order_number }} sudah selesai?')"
+                >
+                    Konfirmasi Pesanan Selesai
+                </button>
+            </form>
+        </div>
+    @elseif ($order->items->isNotEmpty() && $order->canCheckoutAtKasir())
         <div class="pos-receipt-pay" data-pos-receipt-pay>
             <div class="pos-receipt-pay-totals">
                 <div class="pos-receipt-subtotal">

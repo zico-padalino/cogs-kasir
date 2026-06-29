@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\PosOrderSource;
+use App\Enums\PosOrderStatus;
 use App\Enums\PosOrderType;
 use App\Http\Controllers\Controller;
 use App\Models\PosOrder;
@@ -27,7 +29,8 @@ class KasirController extends Controller
         $activeOrder->load(['items.product', 'table']);
 
         $pendingOrders = PosOrder::with(['table', 'items'])
-            ->where('status', 'submitted')
+            ->where('source', PosOrderSource::Online)
+            ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed])
             ->latest()
             ->get();
 
@@ -48,7 +51,8 @@ class KasirController extends Controller
     public function pendingOrdersPoll()
     {
         $pendingOrders = PosOrder::with(['table'])
-            ->where('status', 'submitted')
+            ->where('source', PosOrderSource::Online)
+            ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed])
             ->latest()
             ->get();
 
@@ -69,7 +73,7 @@ class KasirController extends Controller
     public function orders()
     {
         $orders = PosOrder::with(['table', 'items.product', 'cashier'])
-            ->whereIn('status', ['submitted', 'paid'])
+            ->whereIn('status', ['submitted', 'confirmed', 'paid'])
             ->latest()
             ->paginate(20);
 
@@ -151,6 +155,33 @@ class KasirController extends Controller
         }
 
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dimuat.');
+    }
+
+    public function confirmOrder(PosOrder $order, PosOrderService $posService)
+    {
+        try {
+            $posService->confirmOrder($order, auth()->user());
+        } catch (\RuntimeException $e) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        session(['kasir_order_id' => $order->id]);
+
+        $message = 'Pesanan #'.$order->order_number.' dikonfirmasi selesai. Silakan proses pembayaran.';
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'order_number' => $order->order_number,
+                'redirect' => route('kasir.index'),
+            ]);
+        }
+
+        return redirect()->route('kasir.index')->with('success', $message);
     }
 
     public function updateOrder(Request $request, PosOrderService $posService)
@@ -349,7 +380,7 @@ class KasirController extends Controller
 
         return PosOrder::with('items.product')
             ->where('id', $orderId)
-            ->whereIn('status', ['open', 'submitted'])
+            ->whereIn('status', ['open', 'submitted', 'confirmed'])
             ->first();
     }
 }

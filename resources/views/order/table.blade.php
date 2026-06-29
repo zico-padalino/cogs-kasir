@@ -38,6 +38,12 @@
                 <div class="order-layout-single">
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
+            @elseif ($order->status->value === 'confirmed')
+                @include('order.partials.kasir-confirmed', ['order' => $order, 'format' => $format])
+
+                <div class="order-layout-single">
+                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                </div>
             @elseif ($order->status->value === 'paid')
                 <div class="order-status-card order-status-paid">
                     <div class="order-status-icon">✅</div>
