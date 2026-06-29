@@ -44,12 +44,11 @@
                 @endif
                 <form action="{{ route('kasir.new-order') }}" method="POST" class="pos-toolbar-action-form">
                     @csrf
-                    <button type="submit" class="pos-btn-new">
+                    <button type="submit" class="pos-btn-new" aria-label="Pesanan baru">
                         <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                         </svg>
-                        <span class="max-sm:hidden">Pesanan Baru</span>
-                        <span class="sm:hidden">Baru</span>
+                        <span class="hidden sm:inline">Pesanan Baru</span>
                     </button>
                 </form>
             </div>
@@ -108,7 +107,7 @@
         </div>
 
         <div class="pos-workspace">
-            <section class="pos-menu-panel kasir-panel-menu" data-kasir-panel="menu">
+            <section class="pos-menu-panel kasir-panel-menu flex" data-kasir-panel="menu">
                 <div class="pos-menu-head">
                     <div>
                         <h2 class="pos-panel-title">Menu</h2>

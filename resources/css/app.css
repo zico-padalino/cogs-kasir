@@ -787,11 +787,11 @@
     }
 
     .pos-toolbar-actions {
-        @apply flex w-full basis-full items-stretch gap-2 lg:w-auto lg:basis-auto lg:shrink-0;
+        @apply flex shrink-0 items-stretch gap-2 lg:gap-2;
     }
 
     .pos-toolbar-action-form {
-        @apply flex flex-1 lg:flex-none;
+        @apply flex shrink-0;
     }
 
     .pos-btn-icon {
@@ -801,11 +801,15 @@
     .pos-btn-ghost,
     .pos-btn-new,
     .pos-btn-danger {
-        @apply inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold transition active:scale-[0.98] lg:min-h-10 lg:w-auto lg:rounded-lg lg:px-3;
+        @apply inline-flex min-h-10 w-auto touch-manipulation items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition active:scale-[0.98] lg:min-h-10;
     }
 
     .pos-btn-new {
         @apply border border-white/25 bg-white text-slate-900 shadow-sm hover:bg-slate-100;
+    }
+
+    .pos-btn-danger span {
+        @apply hidden sm:inline;
     }
 
     .pos-btn-ghost {
@@ -1152,11 +1156,12 @@
 
     .pos-product-grid {
         @apply grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-2 xl:grid-cols-3;
+        grid-auto-rows: max-content;
         -webkit-overflow-scrolling: touch;
     }
 
     .pos-product-card {
-        @apply flex min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition active:scale-[0.98] hover:border-brand-200 hover:shadow-md;
+        @apply flex h-auto min-h-[11.5rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition active:scale-[0.98] hover:border-brand-200 hover:shadow-md;
     }
 
     .pos-product-card.hidden {
@@ -1724,8 +1729,8 @@
             @apply p-2.5;
         }
 
-        .pos-pending {
-            @apply px-3 py-2;
+        .pos-toolbar .badge {
+            @apply hidden;
         }
 
         .pos-pending:not(.is-expanded) .pos-pending-body {
@@ -1749,44 +1754,81 @@
         }
 
         .pos-toolbar {
-            @apply gap-2 px-3 py-2;
+            @apply flex-nowrap gap-1.5 px-2 py-1.5;
         }
 
         .pos-toolbar-left {
-            @apply min-w-0 flex-1 gap-1.5;
+            @apply min-w-0 flex-1 gap-1;
+        }
+
+        .pos-toolbar-menu {
+            @apply h-8 w-8;
         }
 
         .pos-order-chip {
             @apply px-2 py-0.5;
         }
 
-        .pos-order-chip-value {
-            @apply max-w-[9rem] truncate text-[11px];
-        }
-
-        .pos-toolbar-actions {
-            @apply gap-2.5 pt-0.5;
-        }
-
-        .pos-toolbar .badge {
+        .pos-order-chip-label {
             @apply hidden;
         }
 
+        .pos-order-chip-value {
+            @apply max-w-[7.5rem] truncate text-[10px] leading-tight;
+        }
+
+        .pos-toolbar-actions {
+            @apply gap-1;
+        }
+
+        .pos-btn-new,
+        .pos-btn-danger {
+            @apply min-h-8 min-w-8 px-2;
+        }
+
+        .pos-order-bar {
+            @apply space-y-1 border-b py-1;
+        }
+
+        .pos-order-bar-toggle {
+            @apply min-h-9 rounded-lg px-2.5 py-2;
+        }
+
+        .pos-order-bar-toggle-label {
+            @apply text-[9px];
+        }
+
+        .pos-order-bar-toggle-value {
+            @apply text-xs;
+        }
+
+        .pos-pending {
+            @apply px-2 py-1;
+        }
+
+        .pos-pending-toggle {
+            @apply min-h-9 rounded-lg px-2.5 py-2 text-xs;
+        }
+
         .pos-view-tabs {
-            @apply py-0.5;
+            @apply gap-0.5 p-0.5;
         }
 
         .pos-view-tab {
-            @apply min-h-10 py-2 text-xs;
+            @apply min-h-9 gap-1.5 py-1.5 text-xs;
+        }
+
+        .pos-view-tab-icon {
+            @apply text-sm;
         }
 
         .pos-workspace {
             @apply min-h-0 flex-1 overflow-hidden;
-            min-height: 12rem;
+            min-height: 0;
         }
 
         .pos-menu-head {
-            @apply shrink-0 space-y-0 px-3 py-2;
+            @apply shrink-0 border-b border-slate-200 bg-white px-2 py-1.5;
         }
 
         .pos-menu-head .pos-panel-title,
@@ -1795,7 +1837,7 @@
         }
 
         .pos-search {
-            @apply py-2;
+            @apply rounded-lg px-3 py-2 text-sm;
         }
 
         .kasir-panel-menu.hidden,
@@ -1810,7 +1852,7 @@
 
         .pos-menu-panel,
         .pos-menu-panel.kasir-panel-menu.flex {
-            @apply min-h-0 flex-1 overflow-hidden;
+            @apply min-h-0 flex-1 flex-col overflow-hidden;
         }
 
         .pos-order-panel.kasir-panel-cart.flex {
@@ -1866,12 +1908,83 @@
         }
 
         .pos-category-tabs {
-            @apply shrink-0 px-3;
+            @apply mb-0 shrink-0 border-b border-slate-200 bg-white px-2 py-1.5;
         }
 
+        .pos-category-tab {
+            @apply px-2.5 py-1 text-[11px];
+        }
+
+        /* Mobile: daftar 1 kolom — hindari grid flex-1 yang meruntuhkan kartu */
         .pos-product-grid {
-            @apply min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6;
+            display: flex;
+            flex: 1 1 0%;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 0.5rem;
+            padding-bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
             -webkit-overflow-scrolling: touch;
+        }
+
+        .pos-product-card {
+            display: flex;
+            flex: 0 0 auto;
+            flex-direction: row;
+            align-items: stretch;
+            width: 100%;
+            min-height: 5.25rem;
+            height: auto;
+            border-radius: 0.75rem;
+        }
+
+        .pos-product-card-media {
+            aspect-ratio: auto;
+            width: 5.25rem;
+            height: 5.25rem;
+            flex-shrink: 0;
+        }
+
+        .pos-product-card-image {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .pos-product-card-body {
+            display: flex;
+            min-width: 0;
+            flex: 1 1 auto;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.5rem 0.625rem 0.5rem 0;
+        }
+
+        .pos-product-card-foot {
+            padding-top: 0.25rem;
+        }
+
+        .pos-product-category {
+            @apply text-[9px];
+        }
+
+        .pos-product-desc {
+            @apply mt-0.5 line-clamp-1 text-[10px];
+        }
+
+        .pos-product-add {
+            @apply h-9 w-9 text-base;
+        }
+
+        .pos-product-edit {
+            @apply h-8 w-8;
+        }
+
+        .pos-product-empty {
+            @apply w-full py-10;
         }
 
         .pos-receipt-thumb {
@@ -1890,38 +2003,12 @@
             @apply min-w-[9.5rem] snap-start;
         }
 
-        .pos-toolbar {
-            @apply px-3 py-2.5;
-        }
-
-        .pos-order-chip-value {
-            @apply max-w-[9rem] truncate text-[11px];
-        }
-
         .pos-add-modal-panel {
             @apply rounded-t-3xl;
         }
 
         .pos-item-note-input {
             @apply min-h-[4.5rem] text-base;
-        }
-    }
-
-    @media (max-width: 380px) {
-        .pos-product-grid {
-            @apply grid-cols-1;
-        }
-
-        .pos-product-card {
-            @apply min-h-0 flex-row;
-        }
-
-        .pos-product-card-media {
-            @apply aspect-auto h-28 w-28 shrink-0;
-        }
-
-        .pos-product-card-body {
-            @apply flex min-w-0 flex-1 flex-col justify-between py-2.5 pl-0 pr-3;
         }
     }
 
