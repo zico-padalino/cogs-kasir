@@ -86,6 +86,7 @@
                             enterkeyhint="done"
                             class="pos-cash-input pl-10"
                             placeholder="0"
+                            value=""
                             data-pos-amount-received
                             autocomplete="off"
                         >

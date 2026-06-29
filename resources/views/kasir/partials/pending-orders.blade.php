@@ -18,7 +18,7 @@
                     <button type="submit" class="pos-pending-btn">
                         <span class="pos-pending-btn-main">
                             <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
-                            <span class="pos-pending-btn-meta">{{ $pending->table?->label }} · {{ $pending->order_number }}</span>
+                            <span class="pos-pending-btn-meta">{{ $pending->order_number }}</span>
                         </span>
                         <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
                     </button>

@@ -7,7 +7,7 @@
     <div class="page-toolbar">
         <div>
             <h1 class="hidden text-2xl font-bold md:block">Meja & Barcode</h1>
-            <p class="text-sm text-slate-500">Satu barcode untuk seluruh toko. Pelanggan scan → isi nama & pilih meja → pesan → bayar di kasir.</p>
+            <p class="text-sm text-slate-500">Satu barcode untuk seluruh toko. Pelanggan scan → isi nama → pesan → bayar di kasir.</p>
         </div>
         <a href="{{ route('kasir.barcode') }}" class="btn-primary shrink-0">Cetak Barcode</a>
     </div>
@@ -82,7 +82,7 @@
                 <div class="table-card">
                     <div class="empty-state">
                         <p>Belum ada meja.</p>
-                        <p class="empty-hint">Tambahkan meja di form kiri agar pelanggan bisa memilih nomor meja saat pesan.</p>
+                        <p class="empty-hint">Tambahkan meja untuk pelacakan internal kasir (opsional).</p>
                     </div>
                 </div>
             @endif

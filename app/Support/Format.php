@@ -26,7 +26,7 @@ class Format
 
         $string = trim((string) $value);
 
-        if (is_numeric($string)) {
+        if (preg_match('/^\d+$/', $string)) {
             return (float) $string;
         }
 

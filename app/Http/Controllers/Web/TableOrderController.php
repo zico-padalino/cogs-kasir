@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\PosOrderItem;
-use App\Models\PosTable;
 use App\Services\PosOrderService;
 use App\Support\Format;
 use Illuminate\Http\Request;
@@ -22,7 +21,6 @@ class TableOrderController extends Controller
 
         return view('order.table', [
             'order' => $order,
-            'tables' => PosTable::query()->where('is_active', true)->orderBy('table_number')->get(),
             'products' => $posService->sellableProducts(),
             'format' => Format::class,
         ]);
@@ -37,7 +35,7 @@ class TableOrderController extends Controller
 
         return redirect()
             ->route('order.menu')
-            ->with('success', 'Pesanan baru dibuat. Isi nama & pilih meja lalu pilih menu.');
+            ->with('success', 'Pesanan baru dibuat. Isi nama lalu pilih menu.');
     }
 
     public function updateCustomer(Request $request, PosOrderService $posService): RedirectResponse
@@ -55,28 +53,6 @@ class TableOrderController extends Controller
         }
 
         return back()->with('success', 'Nama pemesan disimpan.');
-    }
-
-    public function updateTable(Request $request, PosOrderService $posService): RedirectResponse
-    {
-        $order = $this->currentOrder($posService);
-
-        $validated = $request->validate([
-            'pos_table_id' => ['required', 'exists:pos_tables,id'],
-        ]);
-
-        $table = PosTable::query()
-            ->whereKey($validated['pos_table_id'])
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        try {
-            $posService->updateOnlineTable($order, $table);
-        } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        return back()->with('success', 'Meja '.$table->label.' dipilih.');
     }
 
     public function addItem(Request $request, PosOrderService $posService): RedirectResponse

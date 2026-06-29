@@ -86,14 +86,9 @@ class KasirPageTest extends TestCase
     public function test_submitted_online_order_shows_pay_at_cashier_message(): void
     {
         $product = $this->sellableProduct();
-        $table = $this->activeTable();
 
         $this->patch(route('order.menu.customer'), [
             'customer_note' => 'Budi',
-        ])->assertRedirect();
-
-        $this->patch(route('order.menu.table'), [
-            'pos_table_id' => $table->id,
         ])->assertRedirect();
 
         $this->post(route('order.menu.items'), [
@@ -127,10 +122,9 @@ class KasirPageTest extends TestCase
         $this->assertEquals(2, \App\Models\PosOrder::count());
     }
 
-    public function test_submit_online_order_requires_customer_name_and_table(): void
+    public function test_submit_online_order_requires_customer_name(): void
     {
         $product = $this->sellableProduct();
-        $table = $this->activeTable();
 
         $this->post(route('order.menu.items'), [
             'product_id' => $product->id,
@@ -143,14 +137,6 @@ class KasirPageTest extends TestCase
 
         $this->patch(route('order.menu.customer'), [
             'customer_note' => 'Ani',
-        ])->assertRedirect();
-
-        $this->post(route('order.menu.submit'))
-            ->assertRedirect()
-            ->assertSessionHas('error');
-
-        $this->patch(route('order.menu.table'), [
-            'pos_table_id' => $table->id,
         ])->assertRedirect();
 
         $this->post(route('order.menu.submit'))
@@ -212,11 +198,9 @@ class KasirPageTest extends TestCase
     public function test_kasir_pending_poll_returns_submitted_orders(): void
     {
         $product = $this->sellableProduct();
-        $table = $this->activeTable();
         $kasir = $this->kasirUser();
 
         $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
-        $this->patch(route('order.menu.table'), ['pos_table_id' => $table->id]);
         $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
         $this->post(route('order.menu.submit'));
 

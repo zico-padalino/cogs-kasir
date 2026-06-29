@@ -1,7 +1,7 @@
 /**
  * Kasir POS — tab Menu/Pesanan, pencarian, modal tambah item, detail produk.
  */
-import { formatRupiahInput, parseRupiahInput } from './rupiah';
+import { formatRupiahInput, formatRupiahInputLive, parseRupiahInput } from './rupiah';
 
 const POS_DESKTOP_BP = 1024;
 
@@ -624,7 +624,14 @@ function initPosCashPayment(root) {
     });
 
     receivedInput?.addEventListener('input', () => {
-        syncReceivedAmount();
+        const numeric = receivedInput.value === ''
+            ? 0
+            : formatRupiahInputLive(receivedInput);
+
+        if (receivedValue) {
+            receivedValue.value = receivedInput.value === '' ? '' : numeric;
+        }
+
         syncChange();
     });
 

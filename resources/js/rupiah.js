@@ -5,8 +5,8 @@ function parseRupiahInput(value) {
 
     const string = String(value).trim();
 
-    if (/^-?\d+(\.\d+)?$/.test(string)) {
-        return parseFloat(string);
+    if (/^\d+$/.test(string)) {
+        return parseInt(string, 10);
     }
 
     const cleaned = string
@@ -30,6 +30,42 @@ function formatRupiahInput(value, decimals = 0) {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
     }).format(number);
+}
+
+function formatRupiahInputLive(input, decimals = 0) {
+    if (! input) {
+        return 0;
+    }
+
+    const raw = input.value;
+
+    if (raw === '') {
+        return 0;
+    }
+
+    const selectionStart = input.selectionStart ?? raw.length;
+    const digitsBeforeCursor = raw.slice(0, selectionStart).replace(/\D/g, '').length;
+    const numeric = parseRupiahInput(raw);
+
+    input.value = formatRupiahInput(numeric, decimals);
+
+    let digitsSeen = 0;
+    let cursor = input.value.length;
+
+    for (let i = 0; i < input.value.length; i++) {
+        if (/\d/.test(input.value[i])) {
+            digitsSeen++;
+
+            if (digitsSeen >= digitsBeforeCursor) {
+                cursor = i + 1;
+                break;
+            }
+        }
+    }
+
+    input.setSelectionRange(cursor, cursor);
+
+    return numeric;
 }
 
 function syncRupiahInput(visibleInput) {
@@ -90,4 +126,4 @@ function initRupiahInputs(root = document) {
 
 document.addEventListener('DOMContentLoaded', () => initRupiahInputs());
 
-export { initRupiahInputs, parseRupiahInput, formatRupiahInput };
+export { initRupiahInputs, parseRupiahInput, formatRupiahInput, formatRupiahInputLive };

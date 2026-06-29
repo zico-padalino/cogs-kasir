@@ -34,7 +34,6 @@ Route::redirect('meja/{token}', '/pesan');
 Route::get('pesan', [TableOrderController::class, 'show'])->name('order.menu');
 Route::post('pesan/new-order', [TableOrderController::class, 'newOrder'])->name('order.menu.new');
 Route::patch('pesan/customer', [TableOrderController::class, 'updateCustomer'])->name('order.menu.customer');
-Route::patch('pesan/table', [TableOrderController::class, 'updateTable'])->name('order.menu.table');
 Route::post('pesan/items', [TableOrderController::class, 'addItem'])->name('order.menu.items');
 Route::patch('pesan/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.menu.items.update');
 Route::delete('pesan/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.menu.items.destroy');

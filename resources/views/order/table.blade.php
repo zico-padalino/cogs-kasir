@@ -14,9 +14,6 @@
                     @if ($order->customer_note)
                         · {{ $order->customer_note }}
                     @endif
-                    @if ($order->table)
-                        · {{ $order->table->label }}
-                    @endif
                 </p>
             </div>
             @if ($order->status->value === 'open' && $order->items->isNotEmpty())
@@ -51,12 +48,6 @@
                             <div>
                                 <p class="text-xs uppercase tracking-wide text-slate-500">Nama Pemesan</p>
                                 <p class="text-sm font-semibold">{{ $order->customer_note }}</p>
-                            </div>
-                        @endif
-                        @if ($order->table)
-                            <div>
-                                <p class="text-xs uppercase tracking-wide text-slate-500">Meja</p>
-                                <p class="text-sm font-semibold">{{ $order->table->label }}</p>
                             </div>
                         @endif
                     </div>
@@ -110,34 +101,6 @@
                             </div>
                         </form>
                     </div>
-
-                    @if ($tables->isNotEmpty())
-                        <div class="order-customer-card">
-                            <form action="{{ route('order.menu.table') }}" method="POST" class="order-customer-form">
-                                @csrf
-                                @method('PATCH')
-                                <label class="order-customer-label">Pilih meja</label>
-                                <p class="order-customer-hint">Wajib sebelum kirim ke kasir — pilih meja tempat Anda duduk.</p>
-                                <div class="order-table-picks mt-3" role="group" aria-label="Pilih meja">
-                                    @foreach ($tables as $tableOption)
-                                        <button
-                                            type="submit"
-                                            name="pos_table_id"
-                                            value="{{ $tableOption->id }}"
-                                            class="order-table-pill {{ $order->pos_table_id === $tableOption->id ? 'is-active' : '' }}"
-                                        >
-                                            <span class="order-table-pill-num">#{{ $tableOption->table_number }}</span>
-                                            <span>{{ $tableOption->label }}</span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </form>
-                        </div>
-                    @else
-                        <div class="order-info-box">
-                            <p class="text-sm text-amber-800">Belum ada meja terdaftar. Hubungi staf kasir.</p>
-                        </div>
-                    @endif
                 @endif
 
                 <div class="order-view-tabs lg:hidden" role="tablist">
@@ -188,7 +151,7 @@
         </main>
 
         <footer class="order-table-footer">
-            <p>Satu barcode untuk semua meja · Tiap HP punya nomor pesanan sendiri</p>
+            <p>Scan sekali · Isi nama · Tiap HP punya nomor pesanan sendiri</p>
         </footer>
     </div>
 @endsection

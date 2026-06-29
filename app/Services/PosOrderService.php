@@ -9,7 +9,6 @@ use App\Enums\PosOrderType;
 use App\Enums\ProductType;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
-use App\Models\PosTable;
 use App\Models\Product;
 use App\Models\SalesTransaction;
 use App\Models\User;
@@ -87,7 +86,7 @@ class PosOrderService
             'order_number' => $this->generateOrderNumber(),
             'pos_table_id' => $tableId,
             'source' => PosOrderSource::Online,
-            'order_type' => PosOrderType::DineIn,
+            'order_type' => PosOrderType::Takeaway,
             'status' => PosOrderStatus::Open,
         ]);
     }
@@ -107,23 +106,6 @@ class PosOrderService
         ]);
 
         return $order->fresh();
-    }
-
-    public function updateOnlineTable(PosOrder $order, PosTable $table): PosOrder
-    {
-        if ($order->source !== PosOrderSource::Online) {
-            throw new RuntimeException('Hanya pesanan online yang bisa diubah dari menu QR.');
-        }
-
-        if (! $order->isEditable()) {
-            throw new RuntimeException('Pesanan sudah dikirim. Silakan bayar di kasir.');
-        }
-
-        $order->update([
-            'pos_table_id' => $table->id,
-        ]);
-
-        return $order->fresh(['table']);
     }
 
     public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false, ?string $notes = null): PosOrderItem
@@ -189,10 +171,6 @@ class PosOrderService
 
         if (! filled($order->customer_note)) {
             throw new RuntimeException('Isi nama pemesan dulu sebelum kirim ke kasir.');
-        }
-
-        if (! $order->pos_table_id) {
-            throw new RuntimeException('Pilih nomor meja dulu sebelum kirim ke kasir.');
         }
 
         $order->update(['status' => PosOrderStatus::Submitted]);

@@ -20,7 +20,7 @@
         </div>
 
         <p class="mt-4 break-all px-2 text-xs text-slate-500">{{ $orderUrl }}</p>
-        <p class="mt-6 text-sm text-slate-600">Satu barcode untuk semua meja · Pelanggan pilih meja & nama saat pesan</p>
+        <p class="mt-6 text-sm text-slate-600">Satu barcode untuk seluruh toko · Pelanggan isi nama saat pesan</p>
     </div>
 
     <div class="form-actions mt-6">
