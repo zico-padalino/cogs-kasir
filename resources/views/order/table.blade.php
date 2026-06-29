@@ -33,33 +33,10 @@
 
         <main class="order-table-main">
             @if ($order->status->value === 'submitted')
-                <div class="order-status-card order-status-waiting">
-                    <div class="order-status-icon">💳</div>
-                    <h2 class="text-lg font-bold text-slate-900">Silakan Bayar di Kasir</h2>
-                    <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                        Pesanan Anda sudah masuk ke kasir. Datang ke kasir dan sebutkan nomor pesanan & nama di bawah.
-                    </p>
-                    <div class="order-status-meta">
-                        <div>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Nomor Pesanan</p>
-                            <p class="font-mono text-sm font-bold text-slate-900">{{ $order->order_number }}</p>
-                        </div>
-                        @if ($order->customer_note)
-                            <div>
-                                <p class="text-xs uppercase tracking-wide text-slate-500">Nama Pemesan</p>
-                                <p class="text-sm font-semibold">{{ $order->customer_note }}</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
+                @include('order.partials.kasir-confirmation', ['order' => $order, 'format' => $format])
 
                 <div class="order-layout-single">
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-
-                <div class="order-info-box">
-                    <p class="font-semibold text-amber-900">Menunggu pembayaran</p>
-                    <p class="mt-1 text-sm text-amber-800">Kasir akan memproses pesanan ini. Stok berkurang setelah pembayaran.</p>
                 </div>
             @elseif ($order->status->value === 'paid')
                 <div class="order-status-card order-status-paid">
@@ -135,10 +112,13 @@
                             ])
 
                             @if ($order->items->isNotEmpty())
+                                <div class="order-submit-note">
+                                    <p>Setelah dikirim, datang ke <strong>kasir</strong> untuk konfirmasi pesanan & pembayaran.</p>
+                                </div>
                                 <form action="{{ route('order.menu.submit') }}" method="POST" class="order-submit-wrap">
                                     @csrf
-                                    <button type="submit" class="btn-primary order-submit-btn" onclick="return confirm('Kirim pesanan ke kasir? Setelah dikirim, bayar di kasir.')">
-                                        Kirim Pesanan · Bayar di Kasir
+                                    <button type="submit" class="btn-primary order-submit-btn" onclick="return confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')">
+                                        Kirim ke Kasir
                                     </button>
                                 </form>
                             @else
@@ -151,7 +131,7 @@
         </main>
 
         <footer class="order-table-footer">
-            <p>Scan sekali · Isi nama · Tiap HP punya nomor pesanan sendiri</p>
+            <p>Isi nama · Pilih menu · Kirim pesanan · Konfirmasi & bayar di kasir</p>
         </footer>
     </div>
 @endsection

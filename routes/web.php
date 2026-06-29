@@ -38,6 +38,7 @@ Route::post('pesan/items', [TableOrderController::class, 'addItem'])->name('orde
 Route::patch('pesan/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.menu.items.update');
 Route::delete('pesan/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.menu.items.destroy');
 Route::post('pesan/submit', [TableOrderController::class, 'submit'])->name('order.menu.submit');
+Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
     Route::get('/', [KasirController::class, 'index'])->name('index');

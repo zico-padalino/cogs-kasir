@@ -22,20 +22,43 @@ class PosOrderService
         private readonly CogsCalculationService $cogsCalculationService,
     ) {}
 
-    public function generateOrderNumber(): string
+    public function generateOrderNumber(?string $orderDay = null): string
     {
-        return 'ORD-'.now()->format('YmdHis').'-'.random_int(100, 999);
+        $orderDay ??= now()->toDateString();
+
+        return DB::transaction(fn () => $this->nextOrderNumberForDay($orderDay));
+    }
+
+    private function nextOrderNumberForDay(string $orderDay): string
+    {
+        $max = PosOrder::query()
+            ->whereDate('order_day', $orderDay)
+            ->lockForUpdate()
+            ->pluck('order_number')
+            ->map(fn (string $number) => ctype_digit($number) ? (int) $number : 0)
+            ->max() ?? 0;
+
+        $next = $max + 1;
+
+        return $next < 1000
+            ? str_pad((string) $next, 3, '0', STR_PAD_LEFT)
+            : (string) $next;
     }
 
     public function createKasirOrder(?User $cashier = null): PosOrder
     {
-        return PosOrder::create([
-            'order_number' => $this->generateOrderNumber(),
-            'source' => PosOrderSource::Kasir,
-            'order_type' => PosOrderType::Takeaway,
-            'status' => PosOrderStatus::Open,
-            'user_id' => $cashier?->id,
-        ]);
+        return DB::transaction(function () use ($cashier) {
+            $orderDay = now()->toDateString();
+
+            return PosOrder::create([
+                'order_number' => $this->nextOrderNumberForDay($orderDay),
+                'order_day' => $orderDay,
+                'source' => PosOrderSource::Kasir,
+                'order_type' => PosOrderType::Takeaway,
+                'status' => PosOrderStatus::Open,
+                'user_id' => $cashier?->id,
+            ]);
+        });
     }
 
     public function updateOrderContext(
@@ -82,13 +105,18 @@ class PosOrderService
 
     public function createOnlineOrder(?int $tableId = null): PosOrder
     {
-        return PosOrder::create([
-            'order_number' => $this->generateOrderNumber(),
-            'pos_table_id' => $tableId,
-            'source' => PosOrderSource::Online,
-            'order_type' => PosOrderType::Takeaway,
-            'status' => PosOrderStatus::Open,
-        ]);
+        return DB::transaction(function () use ($tableId) {
+            $orderDay = now()->toDateString();
+
+            return PosOrder::create([
+                'order_number' => $this->nextOrderNumberForDay($orderDay),
+                'order_day' => $orderDay,
+                'pos_table_id' => $tableId,
+                'source' => PosOrderSource::Online,
+                'order_type' => PosOrderType::Takeaway,
+                'status' => PosOrderStatus::Open,
+            ]);
+        });
     }
 
     public function updateOnlineCustomerNote(PosOrder $order, string $customerNote): PosOrder

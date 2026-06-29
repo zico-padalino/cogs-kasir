@@ -14,6 +14,7 @@ class PosOrder extends Model
 {
     protected $fillable = [
         'order_number',
+        'order_day',
         'pos_table_id',
         'source',
         'order_type',
@@ -35,6 +36,7 @@ class PosOrder extends Model
             'order_type' => PosOrderType::class,
             'status' => PosOrderStatus::class,
             'payment_method' => PaymentMethod::class,
+            'order_day' => 'date',
             'subtotal' => 'decimal:4',
             'total' => 'decimal:4',
             'amount_received' => 'decimal:4',

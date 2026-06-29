@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PosOrderItem;
 use App\Services\PosOrderService;
 use App\Support\Format;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -135,7 +136,22 @@ class TableOrderController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Pesanan terkirim. Silakan bayar di kasir.');
+        return redirect()
+            ->to(route('order.menu').'#ke-kasir')
+            ->with('success', 'Pesanan terkirim. Silakan ke kasir untuk konfirmasi dan pembayaran.');
+    }
+
+    public function status(PosOrderService $posService): JsonResponse
+    {
+        $order = $this->currentOrder($posService);
+
+        return response()->json([
+            'status' => $order->status->value,
+            'order_number' => $order->order_number,
+            'customer_note' => $order->customer_note,
+            'total' => (float) $order->total,
+            'is_paid' => $order->status->value === 'paid',
+        ]);
     }
 
     private function currentOrder(PosOrderService $posService): \App\Models\PosOrder

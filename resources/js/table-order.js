@@ -124,4 +124,49 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderTableTabs();
     initOrderSearch();
     initOrderModal();
+    initOrderKasirConfirmation();
 });
+
+function initOrderKasirConfirmation() {
+    const section = document.querySelector('[data-order-waiting-kasir]');
+    if (! section) {
+        return;
+    }
+
+    if (window.location.hash === '#ke-kasir') {
+        window.requestAnimationFrame(() => {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    const statusUrl = section.dataset.orderStatusUrl;
+    if (! statusUrl) {
+        return;
+    }
+
+    const poll = async () => {
+        try {
+            const response = await fetch(statusUrl, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (! response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.is_paid) {
+                window.location.reload();
+            }
+        } catch {
+            // ignore transient network errors
+        }
+    };
+
+    window.setInterval(poll, 5000);
+    poll();
+}

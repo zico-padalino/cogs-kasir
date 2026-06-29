@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ProductType;
 use App\Enums\UserRole;
 use App\Models\InventoryLot;
+use App\Models\PosOrder;
 use App\Models\PosTable;
 use App\Models\Product;
 use App\Models\User;
@@ -97,13 +98,14 @@ class KasirPageTest extends TestCase
         ])->assertRedirect();
 
         $this->post(route('order.menu.submit'))
-            ->assertRedirect();
+            ->assertRedirect(route('order.menu').'#ke-kasir');
 
         $this->get(route('order.menu'))
             ->assertOk()
-            ->assertSee('Silakan Bayar di Kasir')
+            ->assertSee('Silakan ke Kasir')
+            ->assertSee('Konfirmasi pesanan dan pembayaran')
             ->assertSee('Budi')
-            ->assertDontSee('Kirim Pesanan');
+            ->assertDontSee('Kirim ke Kasir');
     }
 
     public function test_each_device_gets_separate_order(): void
@@ -237,5 +239,34 @@ class KasirPageTest extends TestCase
         $this->assertDatabaseHas('pos_orders', ['status' => 'paid']);
         $this->assertDatabaseHas('sales_transactions', ['product_id' => $product->id]);
         $this->assertDatabaseHas('cogs_calculations', ['product_id' => $product->id]);
+    }
+
+    public function test_pos_order_number_uses_short_sequential_format(): void
+    {
+        $kasir = $this->kasirUser();
+
+        $this->actingAs($kasir)->get(route('kasir.index'));
+
+        $this->assertDatabaseHas('pos_orders', ['order_number' => '001']);
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.new-order'))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('pos_orders', ['order_number' => '002']);
+    }
+
+    public function test_pos_order_number_resets_each_day(): void
+    {
+        $kasir = $this->kasirUser();
+
+        $this->travelTo('2026-06-28 10:00:00');
+        $this->actingAs($kasir)->get(route('kasir.index'));
+        $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-28')->count());
+
+        $this->travelTo('2026-06-29 09:00:00');
+        $this->actingAs($kasir)->post(route('kasir.new-order'))->assertRedirect();
+        $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-29')->count());
+        $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-28')->count());
     }
 }

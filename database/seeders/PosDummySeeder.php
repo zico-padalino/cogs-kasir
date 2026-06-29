@@ -139,6 +139,7 @@ class PosDummySeeder extends Seeder
             foreach ($orders as [$number, $table, $source, $status, $note, $total, $payment, $at, $lines]) {
                 $order = PosOrder::create([
                     'order_number' => $number,
+                    'order_day' => $at->toDateString(),
                     'pos_table_id' => $table?->id,
                     'source' => $source,
                     'status' => $status,
