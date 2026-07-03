@@ -360,4 +360,22 @@ class KasirPageTest extends TestCase
             ->assertSee('Pesanan dikonfirmasi')
             ->assertSee('Silakan ke Kasir untuk Bayar');
     }
+
+    public function test_pwa_manifest_for_kasir_is_available(): void
+    {
+        $this->get(route('pwa.manifest', 'kasir'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/manifest+json')
+            ->assertJsonPath('display', 'standalone')
+            ->assertJsonPath('start_url', '/kasir')
+            ->assertJsonStructure(['icons', 'name', 'short_name', 'theme_color']);
+    }
+
+    public function test_pwa_manifest_for_order_is_available(): void
+    {
+        $this->get(route('pwa.manifest', 'order'))
+            ->assertOk()
+            ->assertJsonPath('start_url', '/pesan')
+            ->assertJsonPath('scope', '/pesan');
+    }
 }

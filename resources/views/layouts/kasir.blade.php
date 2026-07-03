@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Kasir') — POS</title>
+    @include('layouts.partials.pwa-head', ['app' => 'kasir'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body
@@ -18,6 +19,7 @@
     data-kasir-index-url="{{ route('kasir.index') }}"
     data-kasir-auto-load="{{ config('pos.notifications.auto_load_new_order', true) ? '1' : '0' }}"
 >
+    @include('layouts.partials.pwa-install-banner', ['app' => 'kasir'])
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
 
     <div class="app-shell">

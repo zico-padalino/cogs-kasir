@@ -24,4 +24,9 @@ return [
         'poll_interval_seconds' => (int) env('POS_POLL_INTERVAL', 12),
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
     ],
+
+    'pwa' => [
+        'theme_color' => '#4f46e5',
+        'background_color' => '#f1f5f9',
+    ],
 ];

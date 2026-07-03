@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\KasirProductController;
 use App\Http\Controllers\Web\OverheadRateController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ProductionOrderController;
+use App\Http\Controllers\Web\PwaController;
 use App\Http\Controllers\Web\ResetDataController;
 use App\Http\Controllers\Web\TableOrderController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,10 @@ Route::patch('pesan/items/{item}', [TableOrderController::class, 'updateItem'])-
 Route::delete('pesan/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.menu.items.destroy');
 Route::post('pesan/submit', [TableOrderController::class, 'submit'])->name('order.menu.submit');
 Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
+
+Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
+    ->name('pwa.manifest')
+    ->where('app', 'kasir|order');
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
     Route::get('/', [KasirController::class, 'index'])->name('index');

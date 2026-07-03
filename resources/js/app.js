@@ -1,5 +1,6 @@
 import './rupiah';
 import './mobile';
+import './pwa-install';
 import './kasir';
 import './kasir-menu-admin';
 import './kasir-notifications';
