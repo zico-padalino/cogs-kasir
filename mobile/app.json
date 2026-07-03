@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Kasir POS",
+    "slug": "cogs-kasir",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "cogskasir",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4f46e5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cogsperhitungan.kasir"
+    },
+    "android": {
+      "package": "com.cogsperhitungan.kasir",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4f46e5"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "appUrl": "http://10.0.2.2:8000",
+      "eas": {
+        "projectId": "6dc3f059-47a8-4a74-904d-15ecf3cfe0b4"
+      }
+    },
+    "owner": "zico-padalino"
+  }
+}
