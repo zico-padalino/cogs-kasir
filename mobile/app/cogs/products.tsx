@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Badge,
+  Callout,
   Card,
   EmptyState,
   Field,
@@ -13,6 +14,7 @@ import {
   ScreenHeader,
   SectionTitle,
   Segmented,
+  StepHeader,
 } from '@/components/cogs-ui';
 import { parseRupiah } from '@/cogs/format';
 import { createProduct, listProducts } from '@/cogs/repo';
@@ -100,7 +102,7 @@ export default function ProductsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Langkah 2 · Daftar Produk" subtitle="Bahan baku & produk jadi" />
+      <ScreenHeader title="Daftar Produk" subtitle="Langkah 2 dari 6" />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -108,11 +110,14 @@ export default function ProductsScreen() {
           gap: spacing.lg,
         }}
       >
-        <View style={styles.tipCard}>
-          <Text style={styles.tipText}>
-            💡 Resep (BOM) diatur di dalam detail produk jadi. Tap produk untuk buka detail & resepnya.
-          </Text>
-        </View>
+        <StepHeader
+          number={2}
+          title="Daftar Produk"
+          description="Daftarkan bahan baku serta produk setengah jadi / jadi."
+        />
+        <Callout tone="tip">
+          Resep (BOM) diatur di dalam detail produk jadi. Tap produk untuk buka detail & resepnya.
+        </Callout>
 
         {showForm ? (
           <Card>
@@ -197,8 +202,6 @@ export default function ProductsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.slate100 },
-  tipCard: { borderRadius: radius.lg, backgroundColor: colors.brand50, padding: spacing.md },
-  tipText: { fontSize: 13, lineHeight: 18, color: colors.brand700 },
   row: { flexDirection: 'row', gap: spacing.md },
   formActions: { flexDirection: 'row', gap: spacing.md },
   productCard: {

@@ -11,6 +11,7 @@ import {
   RupiahInput,
   ScreenHeader,
   SectionTitle,
+  StepHeader,
 } from '@/components/cogs-ui';
 import { formatQty, formatRupiah, parseNumber, parseRupiah } from '@/cogs/format';
 import { deleteLot, listLots, listRawMaterials, receiveInventory, type LotView } from '@/cogs/repo';
@@ -84,7 +85,7 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Langkah 4 · Stok Bahan" subtitle="Catat pembelian bahan baku" />
+      <ScreenHeader title="Stok Bahan Baku" subtitle="Langkah 4 dari 6" />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -92,6 +93,11 @@ export default function InventoryScreen() {
           gap: spacing.lg,
         }}
       >
+        <StepHeader
+          number={4}
+          title="Stok Bahan Baku"
+          description="Catat pembelian bahan per lot (jumlah & harga) sebagai dasar FIFO / rata-rata."
+        />
         <Card>
           <SectionTitle>+ Tambah Stok</SectionTitle>
           {materials.length === 0 ? (

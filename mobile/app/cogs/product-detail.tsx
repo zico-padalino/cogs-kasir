@@ -12,6 +12,7 @@ import {
   ScreenHeader,
   SectionTitle,
   StatCard,
+  StepHeader,
 } from '@/components/cogs-ui';
 import { getCogsDb } from '@/cogs/db';
 import { rollUpCost } from '@/cogs/engine';
@@ -174,6 +175,11 @@ export default function ProductDetailScreen() {
 
         {isManufacturable ? (
           <>
+            <StepHeader
+              number={3}
+              title="Resep / BOM"
+              description="Susun bahan per 1 unit produk (dengan scrap %) untuk roll-up biaya."
+            />
             {rollup ? (
               <Card>
                 <SectionTitle>Estimasi Biaya per {product.unit}</SectionTitle>

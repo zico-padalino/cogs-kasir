@@ -11,6 +11,7 @@ import {
   ScreenHeader,
   SectionTitle,
   Segmented,
+  StepHeader,
 } from '@/components/cogs-ui';
 import { formatQty, formatRupiah, parseNumber } from '@/cogs/format';
 import {
@@ -84,7 +85,7 @@ export default function OverheadScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Langkah 1 · Biaya Overhead" subtitle="Biaya tidak langsung produksi" />
+      <ScreenHeader title="Biaya Overhead" subtitle="Langkah 1 dari 6" />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -92,6 +93,11 @@ export default function OverheadScreen() {
           gap: spacing.lg,
         }}
       >
+        <StepHeader
+          number={1}
+          title="Biaya Overhead"
+          description="Tarif biaya tidak langsung produksi, mis. 15% dari bahan atau Rp per jam."
+        />
         <Card>
           <SectionTitle>Tambah Tarif</SectionTitle>
           <Field label="Nama tarif">

@@ -12,6 +12,7 @@ import {
   RupiahInput,
   ScreenHeader,
   SectionTitle,
+  StepHeader,
 } from '@/components/cogs-ui';
 import { getCogsDb } from '@/cogs/db';
 import { createProductionFromBom } from '@/cogs/engine';
@@ -106,7 +107,7 @@ export default function ProductionScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Langkah 5 · Produksi" subtitle="Buat order, mulai, selesaikan" />
+      <ScreenHeader title="Produksi" subtitle="Langkah 5 dari 6" />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -114,6 +115,11 @@ export default function ProductionScreen() {
           gap: spacing.lg,
         }}
       >
+        <StepHeader
+          number={5}
+          title="Produksi"
+          description="Buat order produksi, mulai, lalu selesaikan — COGS dihitung otomatis."
+        />
         {showForm ? (
           <Card>
             <SectionTitle>Order Produksi Baru</SectionTitle>

@@ -2,7 +2,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card, EmptyState, PrimaryButton, ScreenHeader, SectionTitle } from '@/components/cogs-ui';
+import {
+  Card,
+  EmptyState,
+  PrimaryButton,
+  ScreenHeader,
+  SectionTitle,
+  StepHeader,
+} from '@/components/cogs-ui';
 import { formatQty, formatRupiah } from '@/cogs/format';
 import { deleteCogsCalculation, listCogsCalculations, type CogsCalculationView } from '@/cogs/repo';
 import { colors, radius, spacing } from '@/theme';
@@ -31,7 +38,7 @@ export default function CogsHistoryScreen() {
 
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Langkah 6 · Hasil COGS" subtitle="Rincian biaya per produk" />
+      <ScreenHeader title="Hasil COGS" subtitle="Langkah 6 dari 6" />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -39,6 +46,11 @@ export default function CogsHistoryScreen() {
           gap: spacing.lg,
         }}
       >
+        <StepHeader
+          number={6}
+          title="Hasil COGS"
+          description="Rincian Bahan + Tenaga Kerja + Overhead, per total dan per unit."
+        />
         <View style={styles.formulaCard}>
           <Text style={styles.formulaTitle}>Rumus sederhana</Text>
           <Text style={styles.formulaLine}>COGS = Bahan Baku + Tenaga Kerja + Overhead</Text>

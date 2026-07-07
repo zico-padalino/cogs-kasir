@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
   footerTotal: { fontSize: 18, fontWeight: '800', color: colors.white },
   submitBtn: {
     minHeight: 44,
-    borderRadius: radius.lg,
-    backgroundColor: colors.green600,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand600,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
