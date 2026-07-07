@@ -1,0 +1,30 @@
+# Konfigurasi deploy Netlify untuk aplikasi Expo (web) di folder ./mobile
+# Build menghasilkan situs statis via `expo export --platform web` (output: dist).
+
+[build]
+  base = "mobile"
+  command = "npm ci && npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# expo-sqlite di web memakai WASM + OPFS yang membutuhkan SharedArrayBuffer.
+# SharedArrayBuffer hanya aktif jika halaman "cross-origin isolated",
+# jadi seluruh situs harus dikirim dengan header COOP/COEP berikut.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+
+# Cache aset statis hasil build (immutable) selama 1 tahun.
+[[headers]]
+  for = "/_expo/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
