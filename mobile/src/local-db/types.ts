@@ -28,7 +28,13 @@ export type LocalOrder = {
   amount_received: number | null;
   change_amount: number | null;
   status: string;
+  source: string;
   created_at: string;
+};
+
+export type OnlineOrderInput = {
+  customerName?: string;
+  items: { productId: number; quantity: number }[];
 };
 
 export type LocalOrderItem = {

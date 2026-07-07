@@ -1,13 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLocalOrders } from '@/local-db/repository';
 import type { LocalOrder } from '@/local-db/types';
@@ -30,10 +23,6 @@ export default function LocalOrdersScreen() {
     }, [refresh]),
   );
 
-  if (Platform.OS !== 'android') {
-    return null;
-  }
-
   return (
     <View style={styles.root}>
       <View style={[styles.toolbar, { paddingTop: insets.top + spacing.sm }]}>
@@ -41,8 +30,8 @@ export default function LocalOrdersScreen() {
           <Text style={styles.iconBtnText}>←</Text>
         </Pressable>
         <View style={styles.toolbarCopy}>
-          <Text style={styles.toolbarTitle}>Riwayat Lokal</Text>
-          <Text style={styles.toolbarMeta}>Tersimpan di perangkat Android</Text>
+          <Text style={styles.toolbarTitle}>Riwayat Transaksi</Text>
+          <Text style={styles.toolbarMeta}>Transaksi lunas tersimpan di perangkat</Text>
         </View>
       </View>
 
@@ -56,7 +45,7 @@ export default function LocalOrdersScreen() {
         {orders.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>Belum ada transaksi</Text>
-            <Text style={styles.emptyText}>Pesanan dari Kasir Lokal akan muncul di sini.</Text>
+            <Text style={styles.emptyText}>Pesanan yang sudah dibayar di Kasir POS akan muncul di sini.</Text>
           </View>
         ) : (
           orders.map((order) => (

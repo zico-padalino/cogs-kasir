@@ -1,5 +1,11 @@
 import * as SQLite from 'expo-sqlite';
-import type { LocalCartItem, LocalOrder, LocalOrderItem, LocalProduct } from '@/local-db/types';
+import type {
+  LocalCartItem,
+  LocalOrder,
+  LocalOrderItem,
+  LocalProduct,
+  OnlineOrderInput,
+} from '@/local-db/types';
 import { ensureSchema, seedProductsIfEmpty } from '@/local-db/seed';
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -7,7 +13,7 @@ let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 export async function getLocalDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!databasePromise) {
     databasePromise = (async () => {
-      const db = await SQLite.openDatabaseAsync('cogs_local.db');
+      const db = await SQLite.openDatabaseAsync('pos_local.db');
       await ensureSchema(db);
       await seedProductsIfEmpty(db);
 
@@ -152,8 +158,8 @@ export async function checkoutLocalCart(input: {
     const result = await db.runAsync(
       `INSERT INTO local_orders (
         order_number, order_day, customer_name, subtotal, total,
-        payment_method, amount_received, change_amount, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)`,
+        payment_method, amount_received, change_amount, status, source, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'kasir', ?)`,
       orderNumber,
       orderDay,
       input.customerName?.trim() || null,
@@ -195,11 +201,141 @@ export async function checkoutLocalCart(input: {
   return order;
 }
 
+export async function submitOnlineOrder(input: OnlineOrderInput): Promise<LocalOrder> {
+  const db = await getLocalDatabase();
+
+  if (input.items.length === 0) {
+    throw new Error('Pilih minimal satu menu dulu.');
+  }
+
+  const products = await getLocalProducts();
+  const priceById = new Map(products.map((product) => [product.id, product]));
+
+  const lines = input.items
+    .map((item) => {
+      const product = priceById.get(item.productId);
+
+      if (!product || item.quantity <= 0) {
+        return null;
+      }
+
+      return {
+        name: product.name,
+        quantity: item.quantity,
+        unit_price: product.price,
+        line_total: product.price * item.quantity,
+      };
+    })
+    .filter((line): line is NonNullable<typeof line> => line !== null);
+
+  if (lines.length === 0) {
+    throw new Error('Menu yang dipilih tidak valid.');
+  }
+
+  const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0);
+  const now = new Date();
+  const orderDay = now.toISOString().slice(0, 10);
+  const orderNumber = await nextLocalOrderNumber(db, orderDay);
+  const createdAt = now.toISOString();
+
+  await db.withTransactionAsync(async () => {
+    const result = await db.runAsync(
+      `INSERT INTO local_orders (
+        order_number, order_day, customer_name, subtotal, total,
+        payment_method, amount_received, change_amount, status, source, created_at
+      ) VALUES (?, ?, ?, ?, ?, 'unpaid', NULL, NULL, 'submitted', 'online', ?)`,
+      orderNumber,
+      orderDay,
+      input.customerName?.trim() || null,
+      subtotal,
+      subtotal,
+      createdAt,
+    );
+
+    const orderId = result.lastInsertRowId;
+
+    for (const line of lines) {
+      await db.runAsync(
+        `INSERT INTO local_order_items (order_id, product_name, quantity, unit_price, line_total)
+         VALUES (?, ?, ?, ?, ?)`,
+        orderId,
+        line.name,
+        line.quantity,
+        line.unit_price,
+        line.line_total,
+      );
+    }
+  });
+
+  const order = await db.getFirstAsync<LocalOrder>(
+    'SELECT * FROM local_orders WHERE order_number = ? AND order_day = ?',
+    orderNumber,
+    orderDay,
+  );
+
+  if (!order) {
+    throw new Error('Gagal menyimpan pesanan online.');
+  }
+
+  return order;
+}
+
+export async function getIncomingOnlineOrders(): Promise<LocalOrder[]> {
+  const db = await getLocalDatabase();
+
+  return db.getAllAsync<LocalOrder>(
+    "SELECT * FROM local_orders WHERE status = 'submitted' ORDER BY datetime(created_at) ASC",
+  );
+}
+
+export async function getIncomingOnlineOrderCount(): Promise<number> {
+  const db = await getLocalDatabase();
+  const row = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) AS count FROM local_orders WHERE status = 'submitted'",
+  );
+
+  return row?.count ?? 0;
+}
+
+export async function payOnlineOrder(
+  orderId: number,
+  input: { paymentMethod: 'cash' | 'qris' | 'transfer'; amountReceived?: number },
+): Promise<void> {
+  const db = await getLocalDatabase();
+  const order = await db.getFirstAsync<LocalOrder>('SELECT * FROM local_orders WHERE id = ?', orderId);
+
+  if (!order) {
+    throw new Error('Pesanan tidak ditemukan.');
+  }
+
+  let changeAmount: number | null = null;
+
+  if (input.paymentMethod === 'cash') {
+    const received = input.amountReceived ?? 0;
+
+    if (received < order.total) {
+      throw new Error('Uang diterima harus minimal sebesar total tagihan.');
+    }
+
+    changeAmount = received - order.total;
+  }
+
+  await db.runAsync(
+    `UPDATE local_orders
+     SET status = 'paid', payment_method = ?, amount_received = ?, change_amount = ?
+     WHERE id = ?`,
+    input.paymentMethod,
+    input.amountReceived ?? null,
+    changeAmount,
+    orderId,
+  );
+}
+
 export async function getLocalOrders(): Promise<LocalOrder[]> {
   const db = await getLocalDatabase();
 
   return db.getAllAsync<LocalOrder>(
-    'SELECT * FROM local_orders ORDER BY datetime(created_at) DESC LIMIT 50',
+    "SELECT * FROM local_orders WHERE status = 'paid' ORDER BY datetime(created_at) DESC LIMIT 50",
   );
 }
 

@@ -1,16 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAppBaseUrl } from '@/config/appUrl';
-import { getLocalStorageStats } from '@/local-db/repository';
+import { getSetupProgress } from '@/cogs/repo';
 import { colors, radius, spacing } from '@/theme';
 
 type ModuleCardProps = {
@@ -46,27 +38,21 @@ function ModuleCard({ emoji, title, description, badge, onPress }: ModuleCardPro
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [serverUrl, setServerUrl] = useState('');
-  const [localStats, setLocalStats] = useState({ products: 0, orders: 0 });
-  const isAndroid = Platform.OS === 'android';
+  const [cogs, setCogs] = useState({ percent: 0, currentStep: 1, fullyComplete: false });
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
-      getAppBaseUrl().then((url) => {
+      getSetupProgress().then((progress) => {
         if (active) {
-          setServerUrl(url);
+          setCogs({
+            percent: progress.percent,
+            currentStep: progress.currentStep,
+            fullyComplete: progress.fullyComplete,
+          });
         }
       });
-
-      if (Platform.OS === 'android') {
-        getLocalStorageStats().then((stats) => {
-          if (active) {
-            setLocalStats(stats);
-          }
-        });
-      }
 
       return () => {
         active = false;
@@ -87,85 +73,67 @@ export default function HomeScreen() {
     >
       <View style={styles.hero}>
         <View style={styles.heroBadge}>
-          <Text style={styles.heroBadgeText}>K</Text>
+          <Text style={styles.heroBadgeText}>C</Text>
         </View>
-        <Text style={styles.heroEyebrow}>COGS PERHITUNGAN</Text>
-        <Text style={styles.heroTitle}>Kasir POS Mobile</Text>
+        <Text style={styles.heroEyebrow}>COGS SEDERHANA</Text>
+        <Text style={styles.heroTitle}>Hitung Biaya Produk</Text>
         <Text style={styles.heroLead}>
-          {isAndroid
-            ? 'Android: coba Kasir Lokal tanpa server. Data menu & transaksi tersimpan langsung di HP.'
-            : 'UI sama seperti versi web Laravel — drawer, tab menu, dan checkout mobile.'}
+          Aplikasi COGS lokal untuk uji coba. Hitung Harga Pokok Produksi lewat 6 langkah — semua
+          data tersimpan di perangkat, tanpa server.
         </Text>
       </View>
 
-      {isAndroid ? (
-        <View style={styles.androidHeroCard}>
-          <Text style={styles.androidHeroBadge}>Disarankan untuk uji coba</Text>
-          <Text style={styles.androidHeroTitle}>Kasir Lokal Android</Text>
-          <Text style={styles.androidHeroText}>
-            {localStats.products} menu demo · {localStats.orders} transaksi tersimpan di perangkat
-          </Text>
-          <View style={styles.androidHeroActions}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/local-kasir')}
-              style={({ pressed }) => [styles.androidPrimaryBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.androidPrimaryBtnText}>Buka Kasir Lokal</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/local-orders')}
-              style={({ pressed }) => [styles.androidSecondaryBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.androidSecondaryBtnText}>Riwayat</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
-      <View style={styles.serverCard}>
-        <Text style={styles.serverLabel}>Server aktif</Text>
-        <Text style={styles.serverUrl} numberOfLines={2}>
-          {serverUrl || 'Memuat…'}
+      <View style={styles.cogsHeroCard}>
+        <Text style={styles.cogsHeroBadge}>Aplikasi utama · Offline</Text>
+        <Text style={styles.cogsHeroTitle}>Aplikasi COGS</Text>
+        <Text style={styles.cogsHeroText}>
+          {cogs.fullyComplete
+            ? 'Setup selesai. Buka untuk lihat hasil & hitung COGS.'
+            : `Progress setup ${cogs.percent}% · lanjut ke langkah ${cogs.currentStep} dari 6`}
         </Text>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${cogs.percent}%` }]} />
+        </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/settings')}
-          style={({ pressed }) => [styles.serverBtn, pressed && styles.pressed]}
+          onPress={() => router.push('/cogs')}
+          style={({ pressed }) => [styles.cogsPrimaryBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.serverBtnText}>Ubah URL server</Text>
+          <Text style={styles.cogsPrimaryBtnText}>Buka Aplikasi COGS</Text>
         </Pressable>
       </View>
 
-      <Text style={styles.sectionTitle}>
-        {isAndroid ? 'Mode server Laravel' : 'Pilih modul'}
-      </Text>
+      <Text style={styles.sectionTitle}>Modul Kasir (lokal, tanpa server)</Text>
 
       <ModuleCard
         emoji="🛒"
         title="Kasir POS"
-        badge="Kasir"
-        description="Point of sale, konfirmasi pesanan online, dan pembayaran."
-        onPress={() => router.push('/kasir')}
+        badge="Offline"
+        description="Point of sale di perangkat: pilih menu, bayar, dan proses pesanan online masuk."
+        onPress={() => router.push('/local-kasir')}
       />
 
       <ModuleCard
         emoji="☕"
         title="Pesan Online"
-        badge="Pelanggan"
-        description="Menu QR untuk pelanggan memesan dari ponsel."
-        onPress={() => router.push('/pesan')}
+        badge="Offline"
+        description="Pelanggan pilih menu dan kirim pesanan langsung ke kasir di perangkat."
+        onPress={() => router.push('/pesan-online')}
+      />
+
+      <ModuleCard
+        emoji="🧾"
+        title="Riwayat Transaksi"
+        badge="Lokal"
+        description="Lihat daftar pesanan yang sudah dibayar beserta detailnya."
+        onPress={() => router.push('/local-orders')}
       />
 
       <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>
-          {isAndroid ? 'Cara coba di Android' : 'Tips instalasi APK'}
-        </Text>
+        <Text style={styles.noteTitle}>Untuk uji coba</Text>
         <Text style={styles.noteText}>
-          {isAndroid
-            ? 'Untuk uji cepat tanpa Laravel: pakai Kasir Lokal. Untuk sinkron server asli: build APK lalu set URL Laravel di Pengaturan.'
-            : 'Build APK dengan perintah `npm run build:apk` di folder mobile, lalu unduh dan install di Android.'}
+          Semua modul (COGS, Kasir POS, Pesan Online) berjalan penuh di perangkat tanpa Laravel.
+          Data demo sudah terisi dan tersimpan lokal di perangkat.
         </Text>
       </View>
     </ScrollView>
@@ -213,7 +181,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.slate600,
   },
-  androidHeroCard: {
+  cogsHeroCard: {
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.brand600,
@@ -221,7 +189,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
-  androidHeroBadge: {
+  cogsHeroBadge: {
     alignSelf: 'flex-start',
     borderRadius: 999,
     backgroundColor: colors.brand600,
@@ -232,85 +200,40 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
-  androidHeroTitle: {
+  cogsHeroTitle: {
     fontSize: 20,
     fontWeight: '800',
     color: colors.slate900,
   },
-  androidHeroText: {
+  cogsHeroText: {
     fontSize: 13,
     lineHeight: 18,
     color: colors.slate600,
   },
-  androidHeroActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
     marginTop: spacing.xs,
   },
-  androidPrimaryBtn: {
-    flex: 1,
-    minHeight: 44,
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.brand600,
+  },
+  cogsPrimaryBtn: {
+    minHeight: 48,
     borderRadius: radius.lg,
     backgroundColor: colors.brand600,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  androidPrimaryBtnText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  androidSecondaryBtn: {
-    minHeight: 44,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.brand600,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  androidSecondaryBtnText: {
-    color: colors.brand700,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  serverCard: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  serverLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: colors.slate500,
-  },
-  serverUrl: {
-    fontSize: 13,
-    color: colors.slate900,
-    fontFamily: 'monospace',
-  },
-  serverBtn: {
-    alignSelf: 'flex-start',
     marginTop: spacing.xs,
-    minHeight: 40,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.slate50,
   },
-  serverBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.slate900,
+  cogsPrimaryBtnText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: '800',
   },
   sectionTitle: {
     fontSize: 13,

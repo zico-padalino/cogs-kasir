@@ -1,54 +1,60 @@
-# Kasir POS — Aplikasi Mobile (Expo)
+# COGS Sederhana — Aplikasi Mobile (Expo)
 
-Aplikasi Android/iOS yang membungkus UI Laravel (kasir & pesan online) lewat WebView, dengan shell native yang mengikuti gaya mobile Laravel (warna brand, kartu, tombol besar).
+Aplikasi Android/iOS yang berjalan **penuh di perangkat (offline, tanpa server Laravel)**. Tiga modul semuanya lokal:
+
+- **COGS** — hitung Harga Pokok Produksi lewat wizard 6 langkah.
+- **Kasir POS** — point of sale di perangkat + proses pesanan online yang masuk.
+- **Pesan Online** — pelanggan pilih menu dan kirim pesanan langsung ke kasir.
+
+UI/UX mengikuti gaya web Laravel (kartu statistik, warna brand indigo) tapi diadaptasi untuk layar HP. **Tidak ada dependensi ke Laravel** — tidak perlu server, `.env` URL, atau koneksi jaringan.
 
 ## Prasyarat
 
 - Node.js 20+
 - Akun [Expo](https://expo.dev) (gratis) untuk build APK di cloud
-- Server Laravel sudah jalan dan bisa diakses dari HP
 
-## Mode Kasir Lokal (khusus Android)
+## Aplikasi COGS Lokal (utama, offline)
 
-Tanpa mengubah Laravel, Android bisa uji POS langsung dengan data tersimpan di HP:
+Tanpa mengubah Laravel, aplikasi menghitung COGS langsung di perangkat lewat 6 langkah:
+
+1. **Biaya Overhead** — tarif biaya tidak langsung (mis. 15% dari bahan, atau Rp/jam).
+2. **Daftar Produk** — bahan baku + produk jadi/setengah jadi.
+3. **Resep (BOM)** — susunan bahan per 1 unit produk (dengan scrap %).
+4. **Stok Bahan** — pembelian bahan per lot (jumlah & harga) → dasar FIFO / rata-rata.
+5. **Produksi** — buat order, mulai, lalu selesaikan → COGS dihitung otomatis.
+6. **Hasil COGS** — rincian Bahan + Tenaga Kerja + Overhead, per total & per unit.
+
+Detail teknis:
 
 - Database SQLite: `cogs_local.db` di perangkat
-- Menu demo (kopi, pastry, snack) otomatis terisi
-- Keranjang & riwayat transaksi tersimpan lokal
-- Nomor order `001`, `002`, … reset per hari (seperti web)
+- Data demo bakery (tepung, gula, mentega, adonan, roti tawar) otomatis terisi
+- Mesin perhitungan (FIFO, rata-rata tertimbang, roll-up BOM, overhead absorption) diport dari service Laravel
+- Reset ke data demo kapan saja dari dalam aplikasi
 
-Dari beranda aplikasi → **Buka Kasir Lokal**.
+Dari beranda aplikasi → **Buka Aplikasi COGS**.
 
-Mode server Laravel (WebView) tetap tersedia jika ingin terhubung ke backend asli.
+## Kasir POS & Pesan Online (lokal, offline)
+
+Kedua modul ini kini berjalan sepenuhnya di perangkat memakai SQLite `pos_local.db` (terpisah dari COGS):
+
+- **Pesan Online** — pelanggan memilih menu, isi nama, lalu **Kirim Pesanan**. Pesanan tersimpan berstatus `submitted`.
+- **Kasir POS** — tiga tab:
+  - **Menu** → tap produk untuk masuk keranjang.
+  - **Kasir** → atur qty, pilih metode bayar (Tunai/QRIS/Transfer), bayar → transaksi tersimpan.
+  - **Online** → daftar pesanan online masuk; kasir memproses pembayaran → status jadi `paid`.
+- **Riwayat Transaksi** — daftar pesanan yang sudah dibayar beserta detail item.
+
+Data menu demo (kopi, pastry, makanan) otomatis terisi dan bisa langsung dipakai.
 
 ## Setup cepat
 
 ```bash
 cd mobile
 npm install
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-# Emulator Android → host PC
-EXPO_PUBLIC_APP_URL=http://10.0.2.2:8000
-
-# HP fisik di WiFi yang sama → ganti IP komputer/server
-# EXPO_PUBLIC_APP_URL=http://192.168.1.10:8000
-
-# Production HTTPS
-# EXPO_PUBLIC_APP_URL=https://domain-anda.com
-```
-
-Jalankan untuk development:
-
-```bash
 npm start
 ```
 
-Scan QR dengan **Expo Go** di Android, atau tekan `a` untuk emulator.
+Scan QR dengan **Expo Go** di Android, atau tekan `a` untuk emulator. Tidak perlu `.env` atau server — semua data tersimpan di perangkat.
 
 ## Build APK (unduh & install di Android)
 
@@ -134,28 +140,13 @@ npm run build:aab
 
 | Layar | Isi |
 |-------|-----|
-| **Beranda** | Pilih Kasir POS atau Pesan Online |
-| **Kasir** | WebView → `/kasir` |
-| **Pesan** | WebView → `/pesan` |
-| **Pengaturan** | Ubah URL server Laravel |
+| **Beranda** (`/`) | Pintasan ke COGS, Kasir POS, Pesan Online, Riwayat |
+| **Aplikasi COGS** (`/cogs`) | Wizard 6 langkah + hasil COGS (lokal) |
+| **Kasir POS** (`/local-kasir`) | Menu, keranjang, pembayaran, pesanan online masuk (lokal) |
+| **Pesan Online** (`/pesan-online`) | Pelanggan pilih menu & kirim pesanan (lokal) |
+| **Riwayat** (`/local-orders`) | Daftar transaksi yang sudah dibayar (lokal) |
 
-URL server juga bisa diubah dari aplikasi tanpa rebuild (disimpan di perangkat).
-
-## Tips koneksi server
-
-| Situasi | URL |
-|---------|-----|
-| Emulator Android | `http://10.0.2.2:8000` |
-| HP fisik + `php artisan serve` | `http://IP-KOMPUTER:8000` |
-| Production | `https://domain-anda.com` |
-
-Pastikan Laravel dijalankan dengan host yang bisa diakses jaringan:
-
-```bash
-php artisan serve --host=0.0.0.0 --port=8000
-```
-
-Untuk production, gunakan **HTTPS** dan set `APP_URL` di `.env` Laravel sesuai domain.
+Semua data tersimpan di perangkat via SQLite — tidak ada koneksi ke Laravel.
 
 ## Regenerasi ikon
 

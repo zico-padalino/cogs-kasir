@@ -45,6 +45,7 @@ export async function ensureSchema(db: SQLiteDatabase): Promise<void> {
       amount_received INTEGER,
       change_amount INTEGER,
       status TEXT NOT NULL DEFAULT 'paid',
+      source TEXT NOT NULL DEFAULT 'kasir',
       created_at TEXT NOT NULL
     );
 

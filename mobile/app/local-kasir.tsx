@@ -1,29 +1,23 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   addProductToLocalCart,
   checkoutLocalCart,
+  getIncomingOnlineOrders,
   getLocalCart,
+  getLocalOrderItems,
   getLocalProducts,
+  payOnlineOrder,
   removeLocalCartItem,
   updateLocalCartQuantity,
 } from '@/local-db/repository';
-import type { LocalCartItem, LocalProduct } from '@/local-db/types';
+import type { LocalCartItem, LocalOrder, LocalOrderItem, LocalProduct } from '@/local-db/types';
 import { colors, radius, spacing } from '@/theme';
 import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
 
-type TabKey = 'menu' | 'cart';
+type TabKey = 'menu' | 'cart' | 'online';
 
 const CATEGORY_LABELS: Record<string, string> = {
   minuman: 'Minuman',
@@ -38,21 +32,33 @@ export default function LocalKasirScreen() {
   const [tab, setTab] = useState<TabKey>('menu');
   const [products, setProducts] = useState<LocalProduct[]>([]);
   const [cart, setCart] = useState<LocalCartItem[]>([]);
+  const [onlineOrders, setOnlineOrders] = useState<LocalOrder[]>([]);
+  const [onlineItems, setOnlineItems] = useState<Record<number, LocalOrderItem[]>>({});
   const [customerName, setCustomerName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris' | 'transfer'>('cash');
   const [amountReceived, setAmountReceived] = useState('');
+  const [payingId, setPayingId] = useState<number | null>(null);
+  const [onlinePayMethod, setOnlinePayMethod] = useState<'cash' | 'qris' | 'transfer'>('cash');
+  const [onlineAmount, setOnlineAmount] = useState('');
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
 
     try {
-      const [nextProducts, nextCart] = await Promise.all([
+      const [nextProducts, nextCart, nextOnline] = await Promise.all([
         getLocalProducts(),
         getLocalCart(),
+        getIncomingOnlineOrders(),
       ]);
       setProducts(nextProducts);
       setCart(nextCart);
+      setOnlineOrders(nextOnline);
+
+      const itemEntries = await Promise.all(
+        nextOnline.map(async (order) => [order.id, await getLocalOrderItems(order.id)] as const),
+      );
+      setOnlineItems(Object.fromEntries(itemEntries));
     } finally {
       setLoading(false);
     }
@@ -84,19 +90,46 @@ export default function LocalKasirScreen() {
     [products],
   );
 
-  if (Platform.OS !== 'android') {
-    return (
-      <View style={styles.blockedWrap}>
-        <Text style={styles.blockedTitle}>Khusus Android</Text>
-        <Text style={styles.blockedText}>
-          Mode kasir lokal dengan penyimpanan di perangkat hanya tersedia di Android.
-        </Text>
-        <Pressable onPress={() => router.back()} style={styles.blockedBtn}>
-          <Text style={styles.blockedBtnText}>Kembali</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const onlineChange = useMemo(() => {
+    if (onlinePayMethod !== 'cash' || payingId === null) {
+      return 0;
+    }
+
+    const order = onlineOrders.find((entry) => entry.id === payingId);
+
+    if (!order) {
+      return 0;
+    }
+
+    return Math.max(0, parseRupiahInput(onlineAmount) - order.total);
+  }, [onlineAmount, onlinePayMethod, onlineOrders, payingId]);
+
+  const startPaying = (order: LocalOrder) => {
+    setPayingId(order.id);
+    setOnlinePayMethod('cash');
+    setOnlineAmount('');
+  };
+
+  const handlePayOnline = async (order: LocalOrder) => {
+    try {
+      await payOnlineOrder(order.id, {
+        paymentMethod: onlinePayMethod,
+        amountReceived: onlinePayMethod === 'cash' ? parseRupiahInput(onlineAmount) : undefined,
+      });
+
+      setPayingId(null);
+      setOnlineAmount('');
+      setOnlinePayMethod('cash');
+      await refresh();
+
+      Alert.alert('Pembayaran berhasil', `Pesanan online #${order.order_number} sudah dibayar.`, [
+        { text: 'Riwayat', onPress: () => router.push('/local-orders') },
+        { text: 'OK' },
+      ]);
+    } catch (error) {
+      Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
+    }
+  };
 
   const handleAdd = async (productId: number) => {
     await addProductToLocalCart(productId, 1);
@@ -138,8 +171,8 @@ export default function LocalKasirScreen() {
           <Text style={styles.iconBtnText}>←</Text>
         </Pressable>
         <View style={styles.toolbarCopy}>
-          <Text style={styles.toolbarTitle}>Kasir Lokal</Text>
-          <Text style={styles.toolbarMeta}>Data tersimpan di perangkat Android</Text>
+          <Text style={styles.toolbarTitle}>Kasir POS</Text>
+          <Text style={styles.toolbarMeta}>Data tersimpan di perangkat</Text>
         </View>
         <View style={styles.localBadge}>
           <Text style={styles.localBadgeText}>OFFLINE</Text>
@@ -158,7 +191,15 @@ export default function LocalKasirScreen() {
           style={[styles.tab, tab === 'cart' && styles.tabActive]}
         >
           <Text style={[styles.tabText, tab === 'cart' && styles.tabTextActive]}>
-            🧾 Pesanan{cart.length > 0 ? ` (${cart.length})` : ''}
+            🧾 Kasir{cart.length > 0 ? ` (${cart.length})` : ''}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setTab('online')}
+          style={[styles.tab, tab === 'online' && styles.tabActive]}
+        >
+          <Text style={[styles.tabText, tab === 'online' && styles.tabTextActive]}>
+            🛎️ Online{onlineOrders.length > 0 ? ` (${onlineOrders.length})` : ''}
           </Text>
         </Pressable>
       </View>
@@ -201,7 +242,7 @@ export default function LocalKasirScreen() {
             </View>
           ))}
         </ScrollView>
-      ) : (
+      ) : tab === 'cart' ? (
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={[
@@ -321,6 +362,119 @@ export default function LocalKasirScreen() {
               </>
             )}
           </View>
+        </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.cartContent,
+            { paddingBottom: insets.bottom + spacing.xxl },
+          ]}
+        >
+          {onlineOrders.length === 0 ? (
+            <View style={styles.receiptCard}>
+              <View style={styles.emptyCart}>
+                <Text style={styles.emptyCartIcon}>🛎️</Text>
+                <Text style={styles.emptyCartTitle}>Belum ada pesanan online</Text>
+                <Text style={styles.emptyCartHint}>
+                  Pesanan dari layar "Pesan Online" akan muncul di sini untuk dibayar.
+                </Text>
+              </View>
+            </View>
+          ) : (
+            onlineOrders.map((order) => {
+              const lines = onlineItems[order.id] ?? [];
+              const isPaying = payingId === order.id;
+
+              return (
+                <View key={order.id} style={styles.onlineCard}>
+                  <View style={styles.onlineHead}>
+                    <View style={styles.onlineHeadCopy}>
+                      <Text style={styles.onlineNumber}>#{order.order_number}</Text>
+                      <Text style={styles.onlineCustomer}>{order.customer_name ?? 'Tanpa nama'}</Text>
+                    </View>
+                    <View style={styles.onlineTag}>
+                      <Text style={styles.onlineTagText}>MENUNGGU</Text>
+                    </View>
+                  </View>
+
+                  {lines.map((line) => (
+                    <View key={line.id} style={styles.onlineLine}>
+                      <Text style={styles.onlineLineName}>
+                        {line.quantity}× {line.product_name}
+                      </Text>
+                      <Text style={styles.onlineLineTotal}>{formatRupiah(line.line_total)}</Text>
+                    </View>
+                  ))}
+
+                  <View style={styles.onlineTotalRow}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>{formatRupiah(order.total)}</Text>
+                  </View>
+
+                  {isPaying ? (
+                    <View style={styles.payCardInline}>
+                      <Text style={styles.fieldLabel}>Metode pembayaran</Text>
+                      <View style={styles.payGrid}>
+                        {(['cash', 'qris', 'transfer'] as const).map((method) => (
+                          <Pressable
+                            key={method}
+                            onPress={() => setOnlinePayMethod(method)}
+                            style={[styles.payOption, onlinePayMethod === method && styles.payOptionActive]}
+                          >
+                            <Text
+                              style={[
+                                styles.payOptionText,
+                                onlinePayMethod === method && styles.payOptionTextActive,
+                              ]}
+                            >
+                              {method === 'cash' ? 'Tunai' : method === 'qris' ? 'QRIS' : 'Transfer'}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+
+                      {onlinePayMethod === 'cash' ? (
+                        <View style={styles.cashPanel}>
+                          <Text style={styles.fieldLabel}>Uang diterima</Text>
+                          <TextInput
+                            value={onlineAmount}
+                            onChangeText={setOnlineAmount}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            placeholderTextColor={colors.slate500}
+                            style={styles.input}
+                          />
+                          <Text style={styles.changeText}>
+                            Kembalian: <Text style={styles.changeStrong}>{formatRupiah(onlineChange)}</Text>
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      <View style={styles.onlineActions}>
+                        <Pressable onPress={() => setPayingId(null)} style={styles.cancelBtn}>
+                          <Text style={styles.cancelBtnText}>Batal</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handlePayOnline(order)}
+                          style={({ pressed }) => [styles.payBtnFlex, pressed && styles.pressed]}
+                        >
+                          <Text style={styles.payBtnText}>Bayar {formatRupiah(order.total)}</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => startPaying(order)}
+                      style={({ pressed }) => [styles.payBtn, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.payBtnText}>Proses Pembayaran</Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })
+          )}
         </ScrollView>
       )}
 
@@ -544,6 +698,68 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   payBtnText: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  onlineCard: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  onlineHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  onlineHeadCopy: { flex: 1, minWidth: 0 },
+  onlineNumber: { fontSize: 16, fontWeight: '800', color: colors.slate900 },
+  onlineCustomer: { fontSize: 13, color: colors.slate500, marginTop: 2 },
+  onlineTag: {
+    borderRadius: 999,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  onlineTagText: { fontSize: 10, fontWeight: '800', color: '#b45309' },
+  onlineLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingVertical: 2,
+  },
+  onlineLineName: { flex: 1, fontSize: 14, color: colors.slate700 },
+  onlineLineTotal: { fontSize: 14, fontWeight: '600', color: colors.slate900 },
+  onlineTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.slate100,
+    paddingTop: spacing.sm,
+  },
+  payCardInline: {
+    borderTopWidth: 1,
+    borderTopColor: colors.slate200,
+    paddingTop: spacing.md,
+    gap: spacing.md,
+  },
+  onlineActions: { flexDirection: 'row', gap: spacing.sm },
+  cancelBtn: {
+    minHeight: 48,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  cancelBtnText: { fontSize: 14, fontWeight: '700', color: colors.slate600 },
+  payBtnFlex: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: radius.lg,
+    backgroundColor: colors.green600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mobileCheckout: {
     position: 'absolute',
     left: 0,
@@ -572,25 +788,5 @@ const styles = StyleSheet.create({
   mobileCheckoutBtnText: { color: colors.white, fontSize: 14, fontWeight: '800' },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: colors.slate600 },
-  blockedWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xxl,
-    gap: spacing.md,
-    backgroundColor: colors.slate100,
-  },
-  blockedTitle: { fontSize: 20, fontWeight: '800', color: colors.slate900 },
-  blockedText: { fontSize: 14, lineHeight: 20, color: colors.slate600, textAlign: 'center' },
-  blockedBtn: {
-    marginTop: spacing.sm,
-    minHeight: 44,
-    borderRadius: radius.lg,
-    backgroundColor: colors.brand600,
-    paddingHorizontal: spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  blockedBtnText: { color: colors.white, fontWeight: '700' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
 });

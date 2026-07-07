@@ -1,18 +1,15 @@
 {
   "expo": {
-    "name": "Kasir POS",
+    "name": "COGS Sederhana",
     "slug": "cogs-kasir",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "cogskasir",
+    "scheme": "cogssederhana",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#ffffff",
+    "primaryColor": "#4f46e5",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#4f46e5"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cogsperhitungan.kasir"
@@ -33,6 +30,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#4f46e5"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
@@ -47,7 +53,6 @@
     },
     "extra": {
       "router": {},
-      "appUrl": "http://10.0.2.2:8000",
       "eas": {
         "projectId": "6dc3f059-47a8-4a74-904d-15ecf3cfe0b4"
       }
