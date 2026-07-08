@@ -11,9 +11,11 @@ use App\Models\PosOrderItem;
 use App\Models\PosTable;
 use App\Models\Product;
 use App\Services\PosOrderService;
+use App\Services\ReceiptPdfService;
 use App\Support\Format;
 use App\Support\PosMenu;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class KasirController extends Controller
 {
@@ -366,6 +368,17 @@ class KasirController extends Controller
         $validated = $request->validate([
             'payment_method' => ['required', 'in:cash,qris,transfer'],
             'amount_received' => ['nullable', 'numeric', 'min:0'],
+            'payment_proof' => [
+                'nullable',
+                'required_if:payment_method,qris,transfer',
+                'image',
+                'max:5120',
+                'mimes:jpg,jpeg,png,webp,heic,heif',
+            ],
+        ], [
+            'payment_proof.required_if' => 'Upload foto bukti pembayaran untuk QRIS / Transfer.',
+            'payment_proof.image' => 'Bukti pembayaran harus berupa gambar.',
+            'payment_proof.max' => 'Ukuran bukti pembayaran maksimal 5 MB.',
         ]);
 
         $order = $this->activeKasirOrder();
@@ -376,6 +389,7 @@ class KasirController extends Controller
 
         $paymentMethod = \App\Enums\PaymentMethod::from($validated['payment_method']);
         $amountReceived = isset($validated['amount_received']) ? (float) $validated['amount_received'] : null;
+        $paymentProof = $request->file('payment_proof');
 
         try {
             $result = $posService->payOrder(
@@ -383,9 +397,10 @@ class KasirController extends Controller
                 $paymentMethod,
                 auth()->user(),
                 $amountReceived,
+                $paymentProof,
             );
         } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', $e->getMessage())->withInput();
         }
 
         session()->forget('kasir_order_id');
@@ -394,17 +409,37 @@ class KasirController extends Controller
             ->with('success', 'Pembayaran berhasil.');
     }
 
-    public function receipt(PosOrder $order)
+    public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf)
     {
-        if ($order->status !== \App\Enums\PosOrderStatus::Paid) {
+        if ($order->status !== PosOrderStatus::Paid) {
             return redirect()->route('kasir.index');
         }
 
         $order->load(['items.product', 'table', 'cashier']);
+        $pdf = $receiptPdf->store($order);
 
         return view('kasir.receipt', [
             'order' => $order,
             'format' => Format::class,
+            'pdfUrl' => $pdf['url'],
+            'pdfRoute' => route('kasir.receipt.pdf', $order),
+            'waMessage' => $receiptPdf->whatsappMessage($order, $pdf['url']),
+        ]);
+    }
+
+    public function receiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
+    {
+        if ($order->status !== PosOrderStatus::Paid) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->store($order);
+        $inline = request()->boolean('print');
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
         ]);
     }
 

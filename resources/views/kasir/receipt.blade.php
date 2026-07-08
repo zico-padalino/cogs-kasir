@@ -6,46 +6,6 @@
 @section('content')
     @php
         $shopName = config('pos.shop_name', 'Coffee & Kitchen');
-        $waLines = [
-            '*'.$shopName.'*',
-            'Struk Pembayaran',
-            'No: '.$order->order_number,
-            'Waktu: '.($order->paid_at?->format('d/m/Y H:i') ?? '-'),
-        ];
-
-        if ($order->order_type) {
-            $waLines[] = 'Tipe: '.$order->order_type->label();
-        }
-        if ($order->table) {
-            $waLines[] = 'Meja: '.$order->table->label;
-        }
-        if ($order->customer_note) {
-            $waLines[] = 'Pelanggan: '.$order->customer_note;
-        }
-
-        $waLines[] = '';
-        $waLines[] = '*Pesanan*';
-
-        foreach ($order->items as $item) {
-            $line = '• '.$item->product->name.' x '.$format::number($item->quantity, 0).' = '.$format::rupiah($item->line_total);
-            if ($item->notes) {
-                $line .= ' ('.$item->notes.')';
-            }
-            $waLines[] = $line;
-        }
-
-        $waLines[] = '';
-        $waLines[] = '*Total: '.$format::rupiah($order->total).'*';
-        $waLines[] = 'Bayar: '.($order->payment_method?->label() ?? '-');
-
-        if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $waLines[] = 'Diterima: '.$format::rupiah($order->amount_received);
-            $waLines[] = 'Kembalian: '.$format::rupiah($order->change_amount);
-        }
-
-        $waLines[] = '';
-        $waLines[] = 'Terima kasih 🙏';
-        $waMessage = implode("\n", $waLines);
     @endphp
 
     <div class="mx-auto max-w-md px-1">
@@ -98,7 +58,13 @@
         </div>
 
         <div class="form-actions mt-4 no-print">
-            <button type="button" onclick="window.print()" class="btn-primary w-full">Cetak</button>
+            <a
+                href="{{ $pdfRoute }}?print=1"
+                target="_blank"
+                rel="noopener"
+                class="btn-primary w-full"
+                data-receipt-print
+            >Cetak PDF</a>
             <button type="button" class="btn-secondary w-full" data-receipt-wa-open>
                 Kirim WhatsApp
             </button>
@@ -116,7 +82,9 @@
                 autocomplete="tel"
                 data-receipt-wa-phone
             >
-            <p class="mt-1.5 text-xs text-slate-500">Contoh: 081234567890 — akan dibuka chat WhatsApp berisi ringkasan struk.</p>
+            <p class="mt-1.5 text-xs text-slate-500">
+                Chat WhatsApp langsung dibuka ke nomor ini dengan tautan PDF struk.
+            </p>
             <div class="mt-3 flex flex-col gap-2 sm:flex-row">
                 <button type="button" class="btn-primary w-full" data-receipt-wa-send>Kirim Sekarang</button>
                 <button type="button" class="btn-outline w-full" data-receipt-wa-cancel>Batal</button>
@@ -125,84 +93,89 @@
         </div>
     </div>
 
-    <script type="application/json" id="receipt-wa-payload">@json(['message' => $waMessage])</script>
+    @php
+        $receiptWaPayload = [
+            'message' => $waMessage,
+        ];
+    @endphp
 
-    <style>
-        @media print {
-            header, #bottom-nav, .bottom-nav-spacer, .no-print, .form-actions { display: none !important; }
-            main, .app-scroll { padding: 0 !important; overflow: visible !important; }
-            #receipt { border: none !important; box-shadow: none !important; }
-        }
-    </style>
+    <script type="application/json" id="receipt-wa-payload">{!! json_encode($receiptWaPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 
     <script>
-        (() => {
-            const openBtn = document.querySelector('[data-receipt-wa-open]');
-            const panel = document.querySelector('[data-receipt-wa-panel]');
-            const phoneInput = document.querySelector('[data-receipt-wa-phone]');
-            const sendBtn = document.querySelector('[data-receipt-wa-send]');
-            const cancelBtn = document.querySelector('[data-receipt-wa-cancel]');
-            const errorEl = document.querySelector('[data-receipt-wa-error]');
-            const payloadEl = document.getElementById('receipt-wa-payload');
+        (function () {
+            var openBtn = document.querySelector('[data-receipt-wa-open]');
+            var panel = document.querySelector('[data-receipt-wa-panel]');
+            var phoneInput = document.querySelector('[data-receipt-wa-phone]');
+            var sendBtn = document.querySelector('[data-receipt-wa-send]');
+            var cancelBtn = document.querySelector('[data-receipt-wa-cancel]');
+            var errorEl = document.querySelector('[data-receipt-wa-error]');
+            var payloadEl = document.getElementById('receipt-wa-payload');
 
-            if (! openBtn || ! panel || ! phoneInput || ! sendBtn || ! payloadEl) {
+            if (!payloadEl || !openBtn || !panel || !phoneInput || !sendBtn) {
                 return;
             }
 
-            let message = '';
+            var payload = { message: '' };
             try {
-                message = JSON.parse(payloadEl.textContent).message || '';
-            } catch (_) {
-                message = '';
+                Object.assign(payload, JSON.parse(payloadEl.textContent || '{}'));
+            } catch (e) {
+                // ignore parse error
             }
 
-            const showError = (text) => {
-                if (! errorEl) {
+            function showError(text) {
+                if (!errorEl) {
                     return;
                 }
                 errorEl.textContent = text;
-                errorEl.classList.toggle('hidden', ! text);
-            };
+                errorEl.classList.toggle('hidden', !text);
+            }
 
-            const normalizePhone = (raw) => {
-                let digits = String(raw || '').replace(/\D+/g, '');
-                if (digits.startsWith('0')) {
+            function normalizePhone(raw) {
+                var digits = String(raw || '').replace(/\D+/g, '');
+                if (digits.indexOf('0') === 0) {
                     digits = '62' + digits.slice(1);
-                } else if (digits.startsWith('8') && digits.length >= 9) {
+                } else if (digits.indexOf('8') === 0 && digits.length >= 9) {
                     digits = '62' + digits;
                 }
                 return digits;
-            };
+            }
 
-            openBtn.addEventListener('click', () => {
+            function openWhatsApp(phone, message) {
+                var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+                window.open(url, '_blank', 'noopener');
+            }
+
+            openBtn.addEventListener('click', function () {
                 panel.classList.remove('hidden');
                 showError('');
                 phoneInput.focus();
             });
 
-            cancelBtn?.addEventListener('click', () => {
-                panel.classList.add('hidden');
-                showError('');
-            });
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () {
+                    panel.classList.add('hidden');
+                    showError('');
+                });
+            }
 
-            sendBtn.addEventListener('click', () => {
-                const phone = normalizePhone(phoneInput.value);
-                if (! /^62\d{8,15}$/.test(phone)) {
+            sendBtn.addEventListener('click', function () {
+                var phone = normalizePhone(phoneInput.value);
+                if (!/^62\d{8,15}$/.test(phone)) {
                     showError('Nomor WhatsApp tidak valid. Pakai format 08xxxxxxxxxx.');
                     phoneInput.focus();
                     return;
                 }
 
-                if (! message) {
-                    showError('Isi struk belum siap dikirim.');
+                if (!payload.message) {
+                    showError('Pesan WhatsApp belum siap.');
                     return;
                 }
 
-                const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
-                window.open(url, '_blank', 'noopener');
+                showError('');
+                openWhatsApp(phone, payload.message);
             });
 
-            phoneInput.addEventListener('keydown', (event) => {
+            phoneInput.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     sendBtn.click();
@@ -211,3 +184,4 @@
         })();
     </script>
 @endsection
+

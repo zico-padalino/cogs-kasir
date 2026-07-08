@@ -13,8 +13,10 @@ use App\Models\PosOrderItem;
 use App\Models\Product;
 use App\Models\SalesTransaction;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 class PosOrderService
@@ -242,6 +244,7 @@ class PosOrderService
         PaymentMethod $paymentMethod,
         ?User $cashier = null,
         ?float $amountReceived = null,
+        ?UploadedFile $paymentProof = null,
     ): array {
         if ($order->source === PosOrderSource::Online) {
             if ($order->status === PosOrderStatus::Submitted) {
@@ -267,6 +270,7 @@ class PosOrderService
 
         $total = (float) $order->total;
         $changeAmount = null;
+        $needsProof = in_array($paymentMethod, [PaymentMethod::Qris, PaymentMethod::Transfer], true);
 
         if ($paymentMethod === PaymentMethod::Cash) {
             if ($amountReceived === null || $amountReceived < $total) {
@@ -276,38 +280,56 @@ class PosOrderService
             $changeAmount = round($amountReceived - $total, 4);
         }
 
-        return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount) {
-            $invoiceBase = 'POS-'.$order->order_number;
-            $soldAt = now();
+        if ($needsProof && ! $paymentProof) {
+            throw new RuntimeException('Upload foto bukti pembayaran untuk QRIS / Transfer.');
+        }
 
-            foreach ($order->items as $index => $item) {
-                $sale = SalesTransaction::create([
-                    'pos_order_id' => $order->id,
-                    'invoice_number' => $invoiceBase.'-'.($index + 1),
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
-                    'selling_price' => $item->unit_price,
-                    'total_revenue' => $item->line_total,
-                    'sold_at' => $soldAt,
+        $proofPath = null;
+        if ($needsProof && $paymentProof) {
+            $proofPath = $paymentProof->store('payment-proofs/'.now()->format('Y/m'), 'public');
+        }
+
+        try {
+            return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath) {
+                $invoiceBase = 'POS-'.$order->order_number;
+                $soldAt = now();
+
+                foreach ($order->items as $index => $item) {
+                    $sale = SalesTransaction::create([
+                        'pos_order_id' => $order->id,
+                        'invoice_number' => $invoiceBase.'-'.($index + 1),
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                        'selling_price' => $item->unit_price,
+                        'total_revenue' => $item->line_total,
+                        'sold_at' => $soldAt,
+                    ]);
+
+                    $this->cogsCalculationService->recordSaleCogs($sale);
+                }
+
+                $order->update([
+                    'status' => PosOrderStatus::Paid,
+                    'payment_method' => $paymentMethod,
+                    'payment_proof_path' => $proofPath,
+                    'paid_at' => $soldAt,
+                    'user_id' => $cashier?->id ?? $order->user_id,
+                    'amount_received' => $amountReceived,
+                    'change_amount' => $changeAmount,
                 ]);
 
-                $this->cogsCalculationService->recordSaleCogs($sale);
+                return [
+                    'order' => $order->fresh(['items.product', 'table', 'cashier']),
+                    'invoice' => $invoiceBase,
+                ];
+            });
+        } catch (\Throwable $e) {
+            if ($proofPath) {
+                Storage::disk('public')->delete($proofPath);
             }
 
-            $order->update([
-                'status' => PosOrderStatus::Paid,
-                'payment_method' => $paymentMethod,
-                'paid_at' => $soldAt,
-                'user_id' => $cashier?->id ?? $order->user_id,
-                'amount_received' => $amountReceived,
-                'change_amount' => $changeAmount,
-            ]);
-
-            return [
-                'order' => $order->fresh(['items.product', 'table', 'cashier']),
-                'invoice' => $invoiceBase,
-            ];
-        });
+            throw $e;
+        }
     }
 
     public function cancelOrder(PosOrder $order): void

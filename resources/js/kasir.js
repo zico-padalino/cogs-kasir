@@ -759,12 +759,76 @@ function initPosCashPayment(root) {
             }
         };
 
+        const proofPanel = form.querySelector('[data-pos-proof-panel]');
+        const proofInput = form.querySelector('[data-pos-payment-proof]');
+        const proofPreview = form.querySelector('[data-pos-proof-preview]');
+        const proofPreviewImage = form.querySelector('[data-pos-proof-preview-image]');
+        const proofTitle = form.querySelector('[data-pos-proof-title]');
+        const proofError = form.querySelector('[data-pos-proof-error]');
+        const proofClear = form.querySelector('[data-pos-proof-clear]');
+        const proofDrop = form.querySelector('.pos-proof-drop');
+        let proofObjectUrl = null;
+
+        const clearProofPreview = () => {
+            if (proofObjectUrl) {
+                URL.revokeObjectURL(proofObjectUrl);
+                proofObjectUrl = null;
+            }
+
+            if (proofInput) {
+                proofInput.value = '';
+            }
+
+            proofPreview?.classList.add('hidden');
+            proofDrop?.classList.remove('hidden');
+            proofError?.classList.add('hidden');
+
+            if (proofPreviewImage) {
+                proofPreviewImage.removeAttribute('src');
+            }
+
+            if (proofTitle) {
+                proofTitle.textContent = 'Ambil / unggah foto';
+            }
+        };
+
+        const showProofPreview = (file) => {
+            if (! file || ! proofPreviewImage) {
+                return;
+            }
+
+            if (proofObjectUrl) {
+                URL.revokeObjectURL(proofObjectUrl);
+            }
+
+            proofObjectUrl = URL.createObjectURL(file);
+            proofPreviewImage.src = proofObjectUrl;
+            proofPreview?.classList.remove('hidden');
+            proofDrop?.classList.add('hidden');
+            proofError?.classList.add('hidden');
+
+            if (proofTitle) {
+                proofTitle.textContent = file.name || 'Bukti terpilih';
+            }
+        };
+
         const syncPaymentMethod = () => {
             const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
             const isCash = method === 'cash';
+            const needsProof = method === 'qris' || method === 'transfer';
 
             cashPanel?.classList.toggle('hidden', ! isCash);
+            proofPanel?.classList.toggle('hidden', ! needsProof);
             form.classList.toggle('is-cash-pay', isCash);
+            form.classList.toggle('is-noncash-pay', needsProof);
+
+            if (proofInput) {
+                proofInput.required = needsProof;
+            }
+
+            if (! needsProof) {
+                clearProofPreview();
+            }
         };
 
         form.querySelectorAll('[data-pos-payment-method]').forEach((radio) => {
@@ -775,6 +839,39 @@ function initPosCashPayment(root) {
                 });
                 syncPaymentMethod();
             });
+        });
+
+        proofInput?.addEventListener('change', () => {
+            const file = proofInput.files?.[0];
+            if (! file) {
+                clearProofPreview();
+                return;
+            }
+
+            if (! file.type.startsWith('image/')) {
+                clearProofPreview();
+                proofError?.classList.remove('hidden');
+                if (proofError) {
+                    proofError.textContent = 'File harus berupa gambar.';
+                }
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                clearProofPreview();
+                proofError?.classList.remove('hidden');
+                if (proofError) {
+                    proofError.textContent = 'Ukuran maksimal 5 MB.';
+                }
+                return;
+            }
+
+            showProofPreview(file);
+        });
+
+        proofClear?.addEventListener('click', () => {
+            clearProofPreview();
+            proofInput?.click();
         });
 
         receivedInput?.addEventListener('input', () => {
@@ -791,8 +888,25 @@ function initPosCashPayment(root) {
 
         receivedInput?.addEventListener('blur', syncReceivedAmount);
 
-        form.addEventListener('submit', () => {
+        form.addEventListener('submit', (event) => {
             syncReceivedAmount();
+
+            const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
+            const needsProof = method === 'qris' || method === 'transfer';
+
+            if (needsProof && ! proofInput?.files?.length) {
+                event.preventDefault();
+                proofError?.classList.remove('hidden');
+                if (proofError) {
+                    proofError.textContent = 'Bukti pembayaran wajib untuk QRIS / Transfer.';
+                }
+                proofPanel?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                return;
+            }
+
+            if (! window.confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')) {
+                event.preventDefault();
+            }
         });
 
         const isMobilePay = () => window.innerWidth < 1024;

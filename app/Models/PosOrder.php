@@ -25,6 +25,7 @@ class PosOrder extends Model
         'amount_received',
         'change_amount',
         'payment_method',
+        'payment_proof_path',
         'paid_at',
         'confirmed_at',
         'confirmed_by',
@@ -100,5 +101,19 @@ class PosOrder extends Model
             PosOrderSource::Online => $this->status === PosOrderStatus::Confirmed,
             default => false,
         };
+    }
+
+    public function paymentProofUrl(): ?string
+    {
+        if (! filled($this->payment_proof_path)) {
+            return null;
+        }
+
+        return asset('storage/'.$this->payment_proof_path);
+    }
+
+    public function requiresPaymentProof(): bool
+    {
+        return in_array($this->payment_method, [PaymentMethod::Qris, PaymentMethod::Transfer], true);
     }
 }

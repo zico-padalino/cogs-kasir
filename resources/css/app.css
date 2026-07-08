@@ -1594,6 +1594,46 @@
         @apply mt-3;
     }
 
+    .pos-proof-panel {
+        @apply mt-3 space-y-2;
+    }
+
+    .pos-proof-drop {
+        @apply flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center transition hover:border-brand-400 hover:bg-brand-50/40;
+    }
+
+    .pos-proof-drop-icon {
+        @apply text-2xl;
+    }
+
+    .pos-proof-drop-title {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .pos-proof-drop-hint {
+        @apply text-[11px] text-slate-500;
+    }
+
+    .pos-proof-preview {
+        @apply space-y-2;
+    }
+
+    .pos-proof-preview-image {
+        @apply max-h-48 w-full rounded-xl border border-slate-200 object-contain bg-slate-50;
+    }
+
+    .pos-proof-clear {
+        @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50;
+    }
+
+    .pos-proof-error {
+        @apply text-xs font-medium text-red-600;
+    }
+
+    .pos-pay-form.is-noncash-pay .pos-proof-panel {
+        @apply block;
+    }
+
     .pos-detail-text {
         @apply text-sm leading-relaxed text-slate-600;
     }

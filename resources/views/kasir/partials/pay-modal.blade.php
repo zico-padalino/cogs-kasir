@@ -12,7 +12,14 @@
                 <button type="button" class="pos-add-modal-close" data-kasir-close-pay aria-label="Tutup">×</button>
             </div>
 
-            <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form" data-pos-pay-form data-pos-pay-form-modal>
+            <form
+                action="{{ route('kasir.pay') }}"
+                method="POST"
+                enctype="multipart/form-data"
+                class="pos-pay-form"
+                data-pos-pay-form
+                data-pos-pay-form-modal
+            >
                 @csrf
                 <p class="pos-pay-label">Metode pembayaran</p>
                 <div class="pos-pay-grid">
@@ -54,11 +61,33 @@
                     </p>
                 </div>
 
+                <div class="pos-proof-panel hidden" data-pos-proof-panel>
+                    <label class="pos-pay-label" for="pos-payment-proof">Foto bukti pembayaran</label>
+                    <label class="pos-proof-drop" for="pos-payment-proof">
+                        <input
+                            id="pos-payment-proof"
+                            type="file"
+                            name="payment_proof"
+                            accept="image/*"
+                            capture="environment"
+                            class="sr-only"
+                            data-pos-payment-proof
+                        >
+                        <span class="pos-proof-drop-icon" aria-hidden="true">📷</span>
+                        <span class="pos-proof-drop-title" data-pos-proof-title>Ambil / unggah foto</span>
+                        <span class="pos-proof-drop-hint">JPG, PNG, WEBP · maks. 5 MB</span>
+                    </label>
+                    <div class="pos-proof-preview hidden" data-pos-proof-preview>
+                        <img src="" alt="Pratinjau bukti bayar" class="pos-proof-preview-image" data-pos-proof-preview-image>
+                        <button type="button" class="pos-proof-clear" data-pos-proof-clear>Ganti foto</button>
+                    </div>
+                    <p class="pos-proof-error hidden" data-pos-proof-error>Bukti pembayaran wajib untuk QRIS / Transfer.</p>
+                </div>
+
                 <button
                     type="submit"
                     class="pos-pay-submit"
                     data-pos-pay-submit
-                    onclick="return confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')"
                 >
                     Bayar {{ $format::rupiah($order->total) }}
                 </button>

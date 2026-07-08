@@ -74,6 +74,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::get('/pembukuan/pdf', [PembukuanController::class, 'pdf'])->name('pembukuan.pdf');
     Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
     Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
+    Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
 });
 
 Route::middleware(['auth', 'role:cogs'])->group(function () {
