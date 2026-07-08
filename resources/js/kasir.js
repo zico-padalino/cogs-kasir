@@ -49,8 +49,12 @@ function initKasirModals(root) {
     let maxQty = 99;
 
     const openAddModal = (product) => {
+        if (! product || ! product.id || product.priceValue <= 0) {
+            return;
+        }
+
         activeProduct = product;
-        maxQty = product.max;
+        maxQty = Number.isFinite(product.max) && product.max > 0 ? product.max : 99;
 
         addProductId.value = product.id;
         addTitle.textContent = product.name;
@@ -72,13 +76,15 @@ function initKasirModals(root) {
         addModal.classList.remove('hidden');
         addModal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('pos-modal-open');
-        addQty.focus();
+        window.setTimeout(() => addQty?.focus(), 50);
     };
 
     const closeAddModal = () => {
         addModal.classList.add('hidden');
         addModal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('pos-modal-open');
+        if (detailModal.classList.contains('hidden')) {
+            document.body.classList.remove('pos-modal-open');
+        }
     };
 
     const openDetailModal = (product) => {
@@ -101,26 +107,37 @@ function initKasirModals(root) {
     const closeDetailModal = () => {
         detailModal.classList.add('hidden');
         detailModal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('pos-modal-open');
+        if (addModal.classList.contains('hidden')) {
+            document.body.classList.remove('pos-modal-open');
+        }
     };
 
-    root.querySelectorAll('[data-kasir-open-add]').forEach((button) => {
-        button.addEventListener('click', (event) => {
+    root.addEventListener('click', (event) => {
+        const addTrigger = event.target.closest('[data-kasir-open-add]');
+        if (addTrigger && root.contains(addTrigger)) {
+            event.preventDefault();
             event.stopPropagation();
-            const card = button.closest('[data-kasir-product]');
+
+            if (addTrigger.disabled || addTrigger.getAttribute('aria-disabled') === 'true') {
+                return;
+            }
+
+            const card = addTrigger.closest('[data-kasir-product]');
             if (card) {
                 openAddModal(readProductCard(card));
             }
-        });
-    });
 
-    root.querySelectorAll('[data-kasir-open-detail]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const card = button.closest('[data-kasir-product]');
+            return;
+        }
+
+        const detailTrigger = event.target.closest('[data-kasir-open-detail]');
+        if (detailTrigger && root.contains(detailTrigger)) {
+            event.preventDefault();
+            const card = detailTrigger.closest('[data-kasir-product]');
             if (card) {
                 openDetailModal(readProductCard(card));
             }
-        });
+        }
     });
 
     addModal.querySelectorAll('[data-kasir-close-modal]').forEach((el) => {

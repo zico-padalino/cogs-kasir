@@ -533,6 +533,10 @@
         @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3;
     }
 
+    .receipt-wa-panel {
+        @apply mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
     .hero-stat {
         @apply rounded-xl border-2 border-brand-200 bg-brand-50 p-4 text-center sm:p-6;
     }
@@ -1021,6 +1025,14 @@
         @apply absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white;
     }
 
+    .pos-product-category-label {
+        @apply mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-product-meta {
+        @apply mt-1 text-[11px] text-slate-500;
+    }
+
     .pos-receipt-context {
         @apply flex flex-wrap gap-2 border-b border-slate-100 px-4 py-2.5;
     }
@@ -1292,7 +1304,7 @@
     }
 
     .pos-product-card-foot {
-        @apply mt-auto flex items-end justify-between gap-2 pt-3;
+        @apply mt-auto flex items-center justify-between gap-2 pt-3;
     }
 
     .pos-product-card-actions {
@@ -1332,11 +1344,15 @@
     }
 
     .pos-product-price {
-        @apply text-sm font-bold text-brand-700;
+        @apply min-w-0 flex-1 truncate text-sm font-bold text-brand-700;
     }
 
     .pos-product-add {
-        @apply inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold leading-none text-white shadow-sm active:bg-brand-700;
+        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xl font-bold leading-none text-white shadow-sm transition hover:bg-brand-700 active:scale-95 active:bg-brand-700;
+    }
+
+    .pos-product-setup {
+        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800 transition hover:bg-amber-100;
     }
 
     .pos-product-stock {
@@ -1417,7 +1433,11 @@
     }
 
     .pos-add-modal {
-        @apply fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4;
+        @apply fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4;
+    }
+
+    .pos-detail-modal {
+        @apply fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4;
     }
 
     .pos-add-modal-backdrop {
@@ -2091,76 +2111,55 @@
             @apply px-2.5 py-1 text-[11px];
         }
 
-        /* Mobile: daftar 1 kolom — hindari grid flex-1 yang meruntuhkan kartu */
+        /* Mobile: grid 2 kolom seperti pemesanan barcode */
         .pos-product-grid {
-            display: flex;
+            display: grid;
             flex: 1 1 0%;
-            flex-direction: column;
-            gap: 0.5rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-content: start;
+            gap: 0.75rem;
             min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
             overscroll-behavior: contain;
-            padding: 0.5rem;
+            padding: 0.75rem;
             padding-bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
             -webkit-overflow-scrolling: touch;
         }
 
         .pos-product-card {
             display: flex;
-            flex: 0 0 auto;
-            flex-direction: row;
-            align-items: stretch;
-            width: 100%;
-            min-height: 5.25rem;
+            flex-direction: column;
+            min-height: 0;
             height: auto;
-            border-radius: 0.75rem;
+            border-radius: 1rem;
         }
 
         .pos-product-card-media {
-            aspect-ratio: auto;
-            width: 5.25rem;
-            height: 5.25rem;
-            flex-shrink: 0;
-        }
-
-        .pos-product-card-image {
-            height: 100%;
+            aspect-ratio: 4 / 3;
             width: 100%;
-            object-fit: cover;
+            height: auto;
         }
 
         .pos-product-card-body {
-            display: flex;
-            min-width: 0;
-            flex: 1 1 auto;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 0.5rem 0.625rem 0.5rem 0;
+            padding: 0.75rem;
         }
 
         .pos-product-card-foot {
-            padding-top: 0.25rem;
+            padding-top: 0.75rem;
         }
 
-        .pos-product-category {
-            @apply text-[9px];
+        .pos-product-add,
+        .pos-product-setup {
+            @apply h-9 w-9 text-lg;
         }
 
-        .pos-product-desc {
-            @apply mt-0.5 line-clamp-1 text-[10px];
-        }
-
-        .pos-product-add {
-            @apply h-9 w-9 text-base;
-        }
-
-        .pos-product-edit {
-            @apply h-8 w-8;
+        .pos-product-price {
+            @apply text-xs;
         }
 
         .pos-product-empty {
-            @apply w-full py-10;
+            @apply col-span-2 w-full py-10;
         }
 
         .pos-receipt-thumb {

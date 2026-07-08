@@ -90,8 +90,8 @@
             <section class="pos-menu-panel kasir-panel-menu flex" data-kasir-panel="menu">
                 <div class="pos-menu-head">
                     <div>
-                        <h2 class="pos-panel-title">Menu</h2>
-                        <p class="pos-panel-sub">Tap menu untuk tambah — tanpa scan barcode</p>
+                        <h2 class="pos-panel-title">Pilih Menu</h2>
+                        <p class="pos-panel-sub">Tap menu untuk atur jumlah & catatan</p>
                     </div>
                     <input
                         type="search"
@@ -136,5 +136,7 @@
                 </button>
             </div>
         @endif
+
+        @include('kasir.partials.item-modals')
     </div>
 @endsection
