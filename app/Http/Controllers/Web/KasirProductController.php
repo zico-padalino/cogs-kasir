@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateKasirProductRequest;
+use App\Models\MenuCategory;
 use App\Models\Product;
 use App\Support\Format;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ class KasirProductController extends Controller
 
         return view('kasir.products.index', [
             'products' => $products,
-            'menuCategories' => config('pos.menu_categories', []),
+            'menuCategories' => MenuCategory::options(),
             'format' => Format::class,
         ]);
     }
@@ -33,7 +34,7 @@ class KasirProductController extends Controller
         return view('kasir.products.edit', [
             'product' => $product,
             'presets' => config('pos.product_presets', []),
-            'menuCategories' => config('pos.menu_categories', []),
+            'menuCategories' => MenuCategory::options(),
             'format' => Format::class,
         ]);
     }

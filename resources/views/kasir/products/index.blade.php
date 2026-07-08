@@ -19,7 +19,7 @@
                 data-kasir-menu-admin-search
                 autocomplete="off"
             >
-            <div class="kasir-menu-admin-tabs" role="tablist">
+            <div class="kasir-menu-admin-tabs" role="tablist" data-kasir-menu-admin-tabs>
                 <button type="button" class="kasir-menu-admin-tab is-active" data-kasir-menu-admin-category="all">Semua</button>
                 @foreach ($menuCategories as $key => $label)
                     <button type="button" class="kasir-menu-admin-tab" data-kasir-menu-admin-category="{{ $key }}">{{ $label }}</button>

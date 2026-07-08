@@ -107,13 +107,17 @@
                         <button type="button" class="pos-category-tab is-active" data-kasir-category="all">Semua</button>
                         @foreach ($menuCategories as $category)
                             <button type="button" class="pos-category-tab" data-kasir-category="{{ $category }}">
-                                {{ config('pos.menu_categories.'.$category, ucfirst($category)) }}
+                                {{ $menuCategoryLabels[$category] ?? ucfirst($category) }}
                             </button>
                         @endforeach
                     </div>
                 @endif
 
-                @include('kasir.partials.menu-grid', ['products' => $products, 'format' => $format])
+                @include('kasir.partials.menu-grid', [
+                    'products' => $products,
+                    'format' => $format,
+                    'menuCategoryLabels' => $menuCategoryLabels,
+                ])
             </section>
 
             <aside class="pos-order-panel kasir-panel-cart hidden lg:flex" data-kasir-panel="cart">

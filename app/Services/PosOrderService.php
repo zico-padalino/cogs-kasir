@@ -7,6 +7,7 @@ use App\Enums\PosOrderSource;
 use App\Enums\PosOrderStatus;
 use App\Enums\PosOrderType;
 use App\Enums\ProductType;
+use App\Models\MenuCategory;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
 use App\Models\Product;
@@ -328,7 +329,7 @@ class PosOrderService
     /** @return list<string> */
     public function menuCategories(Collection $products): array
     {
-        $configured = array_keys(config('pos.menu_categories', []));
+        $configured = array_keys(MenuCategory::options());
         $used = $products
             ->pluck('menu_category')
             ->filter()
@@ -340,6 +341,12 @@ class PosOrderService
         $extras = array_values(array_diff($used, $ordered));
 
         return array_merge($ordered, $extras);
+    }
+
+    /** @return array<string, string> */
+    public function menuCategoryLabels(): array
+    {
+        return MenuCategory::options();
     }
 
     private function recalculateTotals(PosOrder $order): void

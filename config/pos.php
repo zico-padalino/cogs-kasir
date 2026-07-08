@@ -3,6 +3,7 @@
 return [
     'shop_name' => env('POS_SHOP_NAME', 'Coffee & Kitchen'),
 
+    // Default seed only — runtime categories live in menu_categories table.
     'menu_categories' => [
         'minuman' => 'Minuman',
         'makanan' => 'Makanan',

@@ -1,11 +1,11 @@
-@props(['products', 'format'])
+@props(['products', 'format', 'menuCategoryLabels' => []])
 
 <div class="pos-product-grid">
     @forelse ($products as $product)
         @php
             $price = $product->selling_price > 0 ? $product->selling_price : 0;
             $category = $product->menu_category ?: 'lainnya';
-            $categoryLabel = config('pos.menu_categories.'.$category, ucfirst($category));
+            $categoryLabel = $menuCategoryLabels[$category] ?? ucfirst($category);
             $searchKey = strtolower($product->name.' '.$product->sku.' '.$categoryLabel.' '.($product->description ?? ''));
             $maxQty = max(1, (int) $product->availableQuantity());
         @endphp

@@ -40,6 +40,7 @@ class KasirController extends Controller
             'order' => $activeOrder,
             'products' => $products,
             'menuCategories' => $posService->menuCategories($products),
+            'menuCategoryLabels' => $posService->menuCategoryLabels(),
             'orderTypes' => PosOrderType::cases(),
             'pendingOrders' => $pendingOrders,
             'presets' => config('pos.product_presets', []),

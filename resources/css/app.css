@@ -1562,6 +1562,83 @@
         @apply mt-4 text-center text-sm text-slate-500;
     }
 
+    .kasir-category-page {
+        @apply mx-auto max-w-lg space-y-4;
+    }
+
+    .kasir-category-create,
+    .kasir-category-manage {
+        @apply space-y-3 p-4 sm:p-5;
+    }
+
+    .kasir-category-section-title {
+        @apply text-base font-bold text-slate-900;
+    }
+
+    .kasir-category-section-hint {
+        @apply text-sm text-slate-500;
+    }
+
+    .kasir-category-manage-head {
+        @apply space-y-1 border-b border-slate-100 pb-3;
+    }
+
+    .kasir-category-add-row {
+        @apply flex flex-col gap-2 sm:flex-row sm:items-start;
+    }
+
+    .kasir-category-item {
+        @apply flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5;
+    }
+
+    .kasir-category-item-main {
+        @apply min-w-0 flex-1;
+    }
+
+    .kasir-category-item-name {
+        @apply block truncate text-sm font-semibold text-slate-800;
+    }
+
+    .kasir-category-item-meta {
+        @apply mt-0.5 block text-xs text-slate-500;
+    }
+
+    .kasir-category-empty {
+        @apply text-sm text-slate-500;
+    }
+
+    .pembukuan-filter {
+        @apply mb-4 space-y-2 p-4;
+    }
+
+    .pembukuan-filter-row {
+        @apply flex flex-col gap-2 sm:flex-row sm:items-center;
+    }
+
+    .pembukuan-stats {
+        @apply mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3;
+    }
+
+    .pembukuan-payments {
+        @apply mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3;
+    }
+
+    .pembukuan-payment-card {
+        @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .pembukuan-payment-label {
+        @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .pembukuan-payment-total {
+        @apply mt-1 text-lg font-bold text-slate-900;
+    }
+
+    .pembukuan-payment-count {
+        @apply mt-0.5 text-xs text-slate-500;
+    }
+
     .pos-receipt-line-main {
         @apply min-w-0 flex-1;
     }
