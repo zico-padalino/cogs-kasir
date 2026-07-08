@@ -107,10 +107,34 @@ export default function HomeScreen() {
 
       <ModuleCard
         emoji="🛒"
-        title="Kasir POS"
+        title="Point of Sale"
         badge="Offline"
-        description="Point of sale di perangkat: pilih menu, bayar, dan proses pesanan online masuk."
-        onPress={() => router.push('/local-kasir')}
+        description="Point of sale di perangkat: pilih menu, tipe pesanan, bayar, dan proses pesanan online."
+        onPress={() => router.push('/kasir')}
+      />
+
+      <ModuleCard
+        emoji="🧾"
+        title="Riwayat Pesanan"
+        badge="Lokal"
+        description="Daftar pesanan kasir & online beserta status, detail, dan struk."
+        onPress={() => router.push('/kasir/orders')}
+      />
+
+      <ModuleCard
+        emoji="🪑"
+        title="Meja QR"
+        badge="Lokal"
+        description="Kelola meja dan tampilkan QR untuk pelanggan memesan online."
+        onPress={() => router.push('/kasir/tables')}
+      />
+
+      <ModuleCard
+        emoji="🍽️"
+        title="Kelola Menu"
+        badge="Lokal"
+        description="Tambah, ubah, aktif/nonaktifkan, dan hapus item menu kasir."
+        onPress={() => router.push('/kasir/menu')}
       />
 
       <ModuleCard
@@ -119,14 +143,6 @@ export default function HomeScreen() {
         badge="Offline"
         description="Pelanggan pilih menu dan kirim pesanan langsung ke kasir di perangkat."
         onPress={() => router.push('/pesan-online')}
-      />
-
-      <ModuleCard
-        emoji="🧾"
-        title="Riwayat Transaksi"
-        badge="Lokal"
-        description="Lihat daftar pesanan yang sudah dibayar beserta detailnya."
-        onPress={() => router.push('/local-orders')}
       />
 
       <View style={styles.noteCard}>

@@ -76,7 +76,7 @@ export default function PesanOnlineScreen() {
         'Pesanan terkirim',
         `Pesanan #${order.order_number} atas nama ${order.customer_name ?? 'pelanggan'} sudah masuk ke kasir. Tunjukkan nomor ini saat membayar.`,
         [
-          { text: 'Ke Kasir', onPress: () => router.replace('/local-kasir') },
+          { text: 'Ke Kasir', onPress: () => router.replace('/kasir') },
           { text: 'Pesan lagi' },
         ],
       );

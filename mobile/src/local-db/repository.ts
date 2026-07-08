@@ -4,7 +4,10 @@ import type {
   LocalOrder,
   LocalOrderItem,
   LocalProduct,
+  LocalTable,
   OnlineOrderInput,
+  OrderType,
+  PaymentMethod,
 } from '@/local-db/types';
 import { ensureSchema, seedProductsIfEmpty } from '@/local-db/seed';
 
@@ -24,13 +27,121 @@ export async function getLocalDatabase(): Promise<SQLite.SQLiteDatabase> {
   return databasePromise;
 }
 
+const PRODUCT_COLUMNS = 'id, name, category, price, emoji, description, is_active';
+
+// Menu aktif untuk POS & Pesan Online.
 export async function getLocalProducts(): Promise<LocalProduct[]> {
   const db = await getLocalDatabase();
 
   return db.getAllAsync<LocalProduct>(
-    'SELECT id, name, category, price, emoji FROM products ORDER BY category, name',
+    `SELECT ${PRODUCT_COLUMNS} FROM products WHERE is_active = 1 ORDER BY category, name`,
   );
 }
+
+// Seluruh menu (termasuk nonaktif) untuk layar Kelola Menu.
+export async function getMenuProducts(): Promise<LocalProduct[]> {
+  const db = await getLocalDatabase();
+
+  return db.getAllAsync<LocalProduct>(
+    `SELECT ${PRODUCT_COLUMNS} FROM products ORDER BY category, name`,
+  );
+}
+
+export async function getLocalProduct(id: number): Promise<LocalProduct | null> {
+  const db = await getLocalDatabase();
+
+  return db.getFirstAsync<LocalProduct>(
+    `SELECT ${PRODUCT_COLUMNS} FROM products WHERE id = ?`,
+    id,
+  );
+}
+
+export async function createLocalProduct(input: {
+  name: string;
+  category: string;
+  price: number;
+  emoji: string;
+  description?: string | null;
+}): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync(
+    'INSERT INTO products (name, category, price, emoji, description, is_active) VALUES (?, ?, ?, ?, ?, 1)',
+    input.name,
+    input.category,
+    input.price,
+    input.emoji || '☕',
+    input.description?.trim() || null,
+  );
+}
+
+export async function updateLocalProduct(
+  id: number,
+  input: { name: string; category: string; price: number; emoji: string; description?: string | null },
+): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync(
+    'UPDATE products SET name = ?, category = ?, price = ?, emoji = ?, description = ? WHERE id = ?',
+    input.name,
+    input.category,
+    input.price,
+    input.emoji || '☕',
+    input.description?.trim() || null,
+    id,
+  );
+}
+
+export async function toggleLocalProduct(id: number, isActive: boolean): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync('UPDATE products SET is_active = ? WHERE id = ?', isActive ? 1 : 0, id);
+}
+
+export async function deleteLocalProduct(id: number): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync('DELETE FROM cart_items WHERE product_id = ?', id);
+  await db.runAsync('DELETE FROM products WHERE id = ?', id);
+}
+
+// ---- Meja (tables) ----
+
+export async function listTables(): Promise<LocalTable[]> {
+  const db = await getLocalDatabase();
+
+  return db.getAllAsync<LocalTable>(`
+    SELECT
+      t.id,
+      t.table_number,
+      t.label,
+      t.is_active,
+      (
+        SELECT COUNT(*) FROM local_orders o
+        WHERE o.table_label = t.label AND o.status IN ('open', 'submitted', 'confirmed')
+      ) AS open_orders
+    FROM pos_tables t
+    ORDER BY t.id ASC
+  `);
+}
+
+export async function createTable(input: { table_number: string; label: string }): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync(
+    'INSERT INTO pos_tables (table_number, label, is_active, created_at) VALUES (?, ?, 1, ?)',
+    input.table_number.trim(),
+    input.label.trim() || `Meja ${input.table_number.trim()}`,
+    new Date().toISOString(),
+  );
+}
+
+export async function toggleTable(id: number, isActive: boolean): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync('UPDATE pos_tables SET is_active = ? WHERE id = ?', isActive ? 1 : 0, id);
+}
+
+export async function deleteTable(id: number): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync('DELETE FROM pos_tables WHERE id = ?', id);
+}
+
+// ---- Keranjang kasir ----
 
 export async function getLocalCart(): Promise<LocalCartItem[]> {
   const db = await getLocalDatabase();
@@ -55,7 +166,7 @@ export async function getLocalCart(): Promise<LocalCartItem[]> {
 export async function addProductToLocalCart(productId: number, quantity = 1): Promise<void> {
   const db = await getLocalDatabase();
   const product = await db.getFirstAsync<LocalProduct>(
-    'SELECT id, name, category, price, emoji FROM products WHERE id = ?',
+    `SELECT ${PRODUCT_COLUMNS} FROM products WHERE id = ?`,
     productId,
   );
 
@@ -118,14 +229,14 @@ async function nextLocalOrderNumber(db: SQLite.SQLiteDatabase, orderDay: string)
 
   const next = (row?.max_number ?? 0) + 1;
 
-  return next < 1000
-    ? String(next).padStart(3, '0')
-    : String(next);
+  return next < 1000 ? String(next).padStart(3, '0') : String(next);
 }
 
 export async function checkoutLocalCart(input: {
   customerName?: string;
-  paymentMethod: 'cash' | 'qris' | 'transfer';
+  orderType?: OrderType;
+  tableLabel?: string | null;
+  paymentMethod: PaymentMethod;
   amountReceived?: number;
 }): Promise<LocalOrder> {
   const db = await getLocalDatabase();
@@ -157,17 +268,20 @@ export async function checkoutLocalCart(input: {
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
       `INSERT INTO local_orders (
-        order_number, order_day, customer_name, subtotal, total,
-        payment_method, amount_received, change_amount, status, source, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'kasir', ?)`,
+        order_number, order_day, customer_name, order_type, table_label, subtotal, total,
+        payment_method, amount_received, change_amount, status, source, paid_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'kasir', ?, ?)`,
       orderNumber,
       orderDay,
       input.customerName?.trim() || null,
+      input.orderType ?? 'takeaway',
+      input.tableLabel ?? null,
       subtotal,
       total,
       input.paymentMethod,
       input.amountReceived ?? null,
       changeAmount,
+      createdAt,
       createdAt,
     );
 
@@ -188,11 +302,7 @@ export async function checkoutLocalCart(input: {
     await db.runAsync('DELETE FROM cart_items');
   });
 
-  const order = await db.getFirstAsync<LocalOrder>(
-    'SELECT * FROM local_orders WHERE order_number = ? AND order_day = ?',
-    orderNumber,
-    orderDay,
-  );
+  const order = await getOrderByNumber(db, orderNumber, orderDay);
 
   if (!order) {
     throw new Error('Gagal menyimpan pesanan lokal.');
@@ -241,9 +351,9 @@ export async function submitOnlineOrder(input: OnlineOrderInput): Promise<LocalO
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
       `INSERT INTO local_orders (
-        order_number, order_day, customer_name, subtotal, total,
+        order_number, order_day, customer_name, order_type, table_label, subtotal, total,
         payment_method, amount_received, change_amount, status, source, created_at
-      ) VALUES (?, ?, ?, ?, ?, 'unpaid', NULL, NULL, 'submitted', 'online', ?)`,
+      ) VALUES (?, ?, ?, 'takeaway', NULL, ?, ?, 'unpaid', NULL, NULL, 'submitted', 'online', ?)`,
       orderNumber,
       orderDay,
       input.customerName?.trim() || null,
@@ -267,11 +377,7 @@ export async function submitOnlineOrder(input: OnlineOrderInput): Promise<LocalO
     }
   });
 
-  const order = await db.getFirstAsync<LocalOrder>(
-    'SELECT * FROM local_orders WHERE order_number = ? AND order_day = ?',
-    orderNumber,
-    orderDay,
-  );
+  const order = await getOrderByNumber(db, orderNumber, orderDay);
 
   if (!order) {
     throw new Error('Gagal menyimpan pesanan online.');
@@ -280,29 +386,72 @@ export async function submitOnlineOrder(input: OnlineOrderInput): Promise<LocalO
   return order;
 }
 
+const ORDER_COLUMNS =
+  'id, order_number, customer_name, order_type, table_label, subtotal, total, payment_method, amount_received, change_amount, status, source, confirmed_at, paid_at, created_at';
+
+async function getOrderByNumber(
+  db: SQLite.SQLiteDatabase,
+  orderNumber: string,
+  orderDay: string,
+): Promise<LocalOrder | null> {
+  return db.getFirstAsync<LocalOrder>(
+    `SELECT ${ORDER_COLUMNS} FROM local_orders WHERE order_number = ? AND order_day = ?`,
+    orderNumber,
+    orderDay,
+  );
+}
+
+export async function getOrder(orderId: number): Promise<LocalOrder | null> {
+  const db = await getLocalDatabase();
+
+  return db.getFirstAsync<LocalOrder>(
+    `SELECT ${ORDER_COLUMNS} FROM local_orders WHERE id = ?`,
+    orderId,
+  );
+}
+
 export async function getIncomingOnlineOrders(): Promise<LocalOrder[]> {
   const db = await getLocalDatabase();
 
   return db.getAllAsync<LocalOrder>(
-    "SELECT * FROM local_orders WHERE status = 'submitted' ORDER BY datetime(created_at) ASC",
+    `SELECT ${ORDER_COLUMNS} FROM local_orders WHERE status IN ('submitted', 'confirmed') AND source = 'online' ORDER BY datetime(created_at) ASC`,
   );
 }
 
 export async function getIncomingOnlineOrderCount(): Promise<number> {
   const db = await getLocalDatabase();
   const row = await db.getFirstAsync<{ count: number }>(
-    "SELECT COUNT(*) AS count FROM local_orders WHERE status = 'submitted'",
+    "SELECT COUNT(*) AS count FROM local_orders WHERE status = 'submitted' AND source = 'online'",
   );
 
   return row?.count ?? 0;
 }
 
+export async function confirmOnlineOrder(orderId: number): Promise<void> {
+  const db = await getLocalDatabase();
+  const order = await getOrder(orderId);
+
+  if (!order) {
+    throw new Error('Pesanan tidak ditemukan.');
+  }
+
+  if (order.status !== 'submitted') {
+    throw new Error('Pesanan ini sudah dikonfirmasi atau diproses.');
+  }
+
+  await db.runAsync(
+    "UPDATE local_orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?",
+    new Date().toISOString(),
+    orderId,
+  );
+}
+
 export async function payOnlineOrder(
   orderId: number,
-  input: { paymentMethod: 'cash' | 'qris' | 'transfer'; amountReceived?: number },
+  input: { paymentMethod: PaymentMethod; amountReceived?: number },
 ): Promise<void> {
   const db = await getLocalDatabase();
-  const order = await db.getFirstAsync<LocalOrder>('SELECT * FROM local_orders WHERE id = ?', orderId);
+  const order = await getOrder(orderId);
 
   if (!order) {
     throw new Error('Pesanan tidak ditemukan.');
@@ -320,14 +469,37 @@ export async function payOnlineOrder(
     changeAmount = received - order.total;
   }
 
+  const now = new Date().toISOString();
+
   await db.runAsync(
     `UPDATE local_orders
-     SET status = 'paid', payment_method = ?, amount_received = ?, change_amount = ?
+     SET status = 'paid', payment_method = ?, amount_received = ?, change_amount = ?, paid_at = ?
      WHERE id = ?`,
     input.paymentMethod,
     input.amountReceived ?? null,
     changeAmount,
+    now,
     orderId,
+  );
+}
+
+export async function cancelOrder(orderId: number): Promise<void> {
+  const db = await getLocalDatabase();
+  await db.runAsync(
+    "UPDATE local_orders SET status = 'cancelled' WHERE id = ? AND status != 'paid'",
+    orderId,
+  );
+}
+
+// Riwayat lengkap (submitted, confirmed, paid) — seperti kasir.orders di Laravel.
+export async function getOrdersHistory(): Promise<LocalOrder[]> {
+  const db = await getLocalDatabase();
+
+  return db.getAllAsync<LocalOrder>(
+    `SELECT ${ORDER_COLUMNS} FROM local_orders
+     WHERE status IN ('submitted', 'confirmed', 'paid')
+     ORDER BY datetime(created_at) DESC
+     LIMIT 100`,
   );
 }
 
@@ -335,7 +507,7 @@ export async function getLocalOrders(): Promise<LocalOrder[]> {
   const db = await getLocalDatabase();
 
   return db.getAllAsync<LocalOrder>(
-    "SELECT * FROM local_orders WHERE status = 'paid' ORDER BY datetime(created_at) DESC LIMIT 50",
+    `SELECT ${ORDER_COLUMNS} FROM local_orders WHERE status = 'paid' ORDER BY datetime(created_at) DESC LIMIT 50`,
   );
 }
 

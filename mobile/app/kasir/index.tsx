@@ -5,16 +5,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   addProductToLocalCart,
   checkoutLocalCart,
+  confirmOnlineOrder,
   getIncomingOnlineOrders,
   getLocalCart,
   getLocalOrderItems,
   getLocalProducts,
+  listTables,
   payOnlineOrder,
   removeLocalCartItem,
   updateLocalCartQuantity,
 } from '@/local-db/repository';
-import type { LocalCartItem, LocalOrder, LocalOrderItem, LocalProduct } from '@/local-db/types';
-import { colors, radius, spacing } from '@/theme';
+import type {
+  LocalCartItem,
+  LocalOrder,
+  LocalOrderItem,
+  LocalProduct,
+  LocalTable,
+  OrderType,
+  PaymentMethod,
+} from '@/local-db/types';
+import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
 
 type TabKey = 'menu' | 'cart' | 'online';
@@ -24,21 +34,36 @@ const CATEGORY_LABELS: Record<string, string> = {
   makanan: 'Makanan',
   pastry: 'Pastry',
   snack: 'Snack',
+  lainnya: 'Lainnya',
 };
 
-export default function LocalKasirScreen() {
+const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cash: 'Tunai',
+  qris: 'QRIS',
+  transfer: 'Transfer',
+};
+
+const ORDER_TYPES: { value: OrderType; label: string; icon: string; hint: string }[] = [
+  { value: 'dine_in', label: 'Dine In', icon: '🪑', hint: 'Makan di tempat' },
+  { value: 'takeaway', label: 'Take Away', icon: '🥡', hint: 'Bawa pulang' },
+];
+
+export default function KasirPosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<TabKey>('menu');
   const [products, setProducts] = useState<LocalProduct[]>([]);
   const [cart, setCart] = useState<LocalCartItem[]>([]);
+  const [tables, setTables] = useState<LocalTable[]>([]);
   const [onlineOrders, setOnlineOrders] = useState<LocalOrder[]>([]);
   const [onlineItems, setOnlineItems] = useState<Record<number, LocalOrderItem[]>>({});
   const [customerName, setCustomerName] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris' | 'transfer'>('cash');
+  const [orderType, setOrderType] = useState<OrderType>('takeaway');
+  const [tableLabel, setTableLabel] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [payingId, setPayingId] = useState<number | null>(null);
-  const [onlinePayMethod, setOnlinePayMethod] = useState<'cash' | 'qris' | 'transfer'>('cash');
+  const [onlinePayMethod, setOnlinePayMethod] = useState<PaymentMethod>('cash');
   const [onlineAmount, setOnlineAmount] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -46,14 +71,16 @@ export default function LocalKasirScreen() {
     setLoading(true);
 
     try {
-      const [nextProducts, nextCart, nextOnline] = await Promise.all([
+      const [nextProducts, nextCart, nextOnline, nextTables] = await Promise.all([
         getLocalProducts(),
         getLocalCart(),
         getIncomingOnlineOrders(),
+        listTables(),
       ]);
       setProducts(nextProducts);
       setCart(nextCart);
       setOnlineOrders(nextOnline);
+      setTables(nextTables.filter((table) => table.is_active === 1));
 
       const itemEntries = await Promise.all(
         nextOnline.map(async (order) => [order.id, await getLocalOrderItems(order.id)] as const),
@@ -70,19 +97,14 @@ export default function LocalKasirScreen() {
     }, [refresh]),
   );
 
-  const total = useMemo(
-    () => cart.reduce((sum, item) => sum + item.line_total, 0),
-    [cart],
-  );
+  const total = useMemo(() => cart.reduce((sum, item) => sum + item.line_total, 0), [cart]);
 
   const changeAmount = useMemo(() => {
     if (paymentMethod !== 'cash') {
       return 0;
     }
 
-    const received = parseRupiahInput(amountReceived);
-
-    return Math.max(0, received - total);
+    return Math.max(0, parseRupiahInput(amountReceived) - total);
   }, [amountReceived, paymentMethod, total]);
 
   const categories = useMemo(
@@ -97,17 +119,23 @@ export default function LocalKasirScreen() {
 
     const order = onlineOrders.find((entry) => entry.id === payingId);
 
-    if (!order) {
-      return 0;
-    }
-
-    return Math.max(0, parseRupiahInput(onlineAmount) - order.total);
+    return order ? Math.max(0, parseRupiahInput(onlineAmount) - order.total) : 0;
   }, [onlineAmount, onlinePayMethod, onlineOrders, payingId]);
 
   const startPaying = (order: LocalOrder) => {
     setPayingId(order.id);
     setOnlinePayMethod('cash');
     setOnlineAmount('');
+  };
+
+  const handleConfirmOnline = async (order: LocalOrder) => {
+    try {
+      await confirmOnlineOrder(order.id);
+      await refresh();
+      startPaying(order);
+    } catch (error) {
+      Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
+    }
   };
 
   const handlePayOnline = async (order: LocalOrder) => {
@@ -123,7 +151,7 @@ export default function LocalKasirScreen() {
       await refresh();
 
       Alert.alert('Pembayaran berhasil', `Pesanan online #${order.order_number} sudah dibayar.`, [
-        { text: 'Riwayat', onPress: () => router.push('/local-orders') },
+        { text: 'Lihat Struk', onPress: () => router.push({ pathname: '/kasir/order-detail', params: { id: String(order.id) } }) },
         { text: 'OK' },
       ]);
     } catch (error) {
@@ -141,6 +169,8 @@ export default function LocalKasirScreen() {
     try {
       const order = await checkoutLocalCart({
         customerName,
+        orderType,
+        tableLabel: orderType === 'dine_in' ? tableLabel : null,
         paymentMethod,
         amountReceived: paymentMethod === 'cash' ? parseRupiahInput(amountReceived) : undefined,
       });
@@ -148,17 +178,15 @@ export default function LocalKasirScreen() {
       setCustomerName('');
       setAmountReceived('');
       setPaymentMethod('cash');
+      setOrderType('takeaway');
+      setTableLabel(null);
       await refresh();
       setTab('menu');
 
-      Alert.alert(
-        'Pembayaran berhasil',
-        `Pesanan #${order.order_number} tersimpan di perangkat.`,
-        [
-          { text: 'Riwayat', onPress: () => router.push('/local-orders') },
-          { text: 'OK' },
-        ],
-      );
+      Alert.alert('Pembayaran berhasil', `Pesanan #${order.order_number} tersimpan di perangkat.`, [
+        { text: 'Lihat Struk', onPress: () => router.push({ pathname: '/kasir/order-detail', params: { id: String(order.id) } }) },
+        { text: 'OK' },
+      ]);
     } catch (error) {
       Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
     }
@@ -167,37 +195,34 @@ export default function LocalKasirScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.toolbar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => router.back()} style={styles.iconBtn}>
+        <Pressable onPress={() => router.replace('/')} style={styles.iconBtn}>
           <Text style={styles.iconBtnText}>←</Text>
         </Pressable>
         <View style={styles.toolbarCopy}>
-          <Text style={styles.toolbarTitle}>Kasir POS</Text>
-          <Text style={styles.toolbarMeta}>Data tersimpan di perangkat</Text>
+          <Text style={styles.toolbarTitle}>Point of Sale</Text>
+          <Text style={styles.toolbarMeta}>Modul Kasir · offline</Text>
         </View>
-        <View style={styles.localBadge}>
-          <Text style={styles.localBadgeText}>OFFLINE</Text>
-        </View>
+        <Pressable onPress={() => router.push('/kasir/orders')} style={styles.navChip}>
+          <Text style={styles.navChipText}>🧾</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/kasir/tables')} style={styles.navChip}>
+          <Text style={styles.navChipText}>🪑</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/kasir/menu')} style={styles.navChip}>
+          <Text style={styles.navChipText}>🍽️</Text>
+        </Pressable>
       </View>
 
       <View style={styles.tabs}>
-        <Pressable
-          onPress={() => setTab('menu')}
-          style={[styles.tab, tab === 'menu' && styles.tabActive]}
-        >
+        <Pressable onPress={() => setTab('menu')} style={[styles.tab, tab === 'menu' && styles.tabActive]}>
           <Text style={[styles.tabText, tab === 'menu' && styles.tabTextActive]}>☕ Menu</Text>
         </Pressable>
-        <Pressable
-          onPress={() => setTab('cart')}
-          style={[styles.tab, tab === 'cart' && styles.tabActive]}
-        >
+        <Pressable onPress={() => setTab('cart')} style={[styles.tab, tab === 'cart' && styles.tabActive]}>
           <Text style={[styles.tabText, tab === 'cart' && styles.tabTextActive]}>
             🧾 Kasir{cart.length > 0 ? ` (${cart.length})` : ''}
           </Text>
         </Pressable>
-        <Pressable
-          onPress={() => setTab('online')}
-          style={[styles.tab, tab === 'online' && styles.tabActive]}
-        >
+        <Pressable onPress={() => setTab('online')} style={[styles.tab, tab === 'online' && styles.tabActive]}>
           <Text style={[styles.tabText, tab === 'online' && styles.tabTextActive]}>
             🛎️ Online{onlineOrders.length > 0 ? ` (${onlineOrders.length})` : ''}
           </Text>
@@ -218,9 +243,7 @@ export default function LocalKasirScreen() {
         >
           {categories.map((category) => (
             <View key={category} style={styles.categoryBlock}>
-              <Text style={styles.categoryTitle}>
-                {CATEGORY_LABELS[category] ?? category}
-              </Text>
+              <Text style={styles.categoryTitle}>{CATEGORY_LABELS[category] ?? category}</Text>
               {products
                 .filter((product) => product.category === category)
                 .map((product) => (
@@ -245,10 +268,7 @@ export default function LocalKasirScreen() {
       ) : tab === 'cart' ? (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[
-            styles.cartContent,
-            { paddingBottom: insets.bottom + spacing.xxl },
-          ]}
+          contentContainerStyle={[styles.cartContent, { paddingBottom: insets.bottom + spacing.xxl }]}
         >
           <View style={styles.receiptCard}>
             <View style={styles.receiptHead}>
@@ -295,13 +315,64 @@ export default function LocalKasirScreen() {
                   </View>
                 ))}
 
+                <View style={styles.section}>
+                  <Text style={styles.fieldLabel}>Tipe pesanan</Text>
+                  <View style={styles.payGrid}>
+                    {ORDER_TYPES.map((type) => (
+                      <Pressable
+                        key={type.value}
+                        onPress={() => setOrderType(type.value)}
+                        style={[styles.typeOption, orderType === type.value && styles.typeOptionActive]}
+                      >
+                        <Text style={styles.typeIcon}>{type.icon}</Text>
+                        <Text
+                          style={[styles.typeLabel, orderType === type.value && styles.typeLabelActive]}
+                        >
+                          {type.label}
+                        </Text>
+                        <Text style={styles.typeHint}>{type.hint}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {orderType === 'dine_in' ? (
+                    <View style={styles.tablePickerWrap}>
+                      <Text style={styles.fieldLabel}>Meja</Text>
+                      {tables.length === 0 ? (
+                        <Text style={styles.mutedText}>Belum ada meja. Tambah di menu Meja QR.</Text>
+                      ) : (
+                        <View style={styles.chipWrap}>
+                          {tables.map((table) => (
+                            <Pressable
+                              key={table.id}
+                              onPress={() =>
+                                setTableLabel(tableLabel === table.label ? null : table.label)
+                              }
+                              style={[styles.chip, tableLabel === table.label && styles.chipActive]}
+                            >
+                              <Text
+                                style={[
+                                  styles.chipText,
+                                  tableLabel === table.label && styles.chipTextActive,
+                                ]}
+                              >
+                                {table.label}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  ) : null}
+                </View>
+
                 <View style={styles.customerCard}>
                   <Text style={styles.fieldLabel}>Nama pelanggan</Text>
                   <TextInput
                     value={customerName}
                     onChangeText={setCustomerName}
                     placeholder="Contoh: Budi"
-                    placeholderTextColor={colors.slate500}
+                    placeholderTextColor={colors.slate400}
                     style={styles.input}
                   />
                 </View>
@@ -313,10 +384,7 @@ export default function LocalKasirScreen() {
                       <Pressable
                         key={method}
                         onPress={() => setPaymentMethod(method)}
-                        style={[
-                          styles.payOption,
-                          paymentMethod === method && styles.payOptionActive,
-                        ]}
+                        style={[styles.payOption, paymentMethod === method && styles.payOptionActive]}
                       >
                         <Text
                           style={[
@@ -324,7 +392,7 @@ export default function LocalKasirScreen() {
                             paymentMethod === method && styles.payOptionTextActive,
                           ]}
                         >
-                          {method === 'cash' ? 'Tunai' : method === 'qris' ? 'QRIS' : 'Transfer'}
+                          {PAYMENT_LABEL[method]}
                         </Text>
                       </Pressable>
                     ))}
@@ -338,7 +406,7 @@ export default function LocalKasirScreen() {
                         onChangeText={setAmountReceived}
                         keyboardType="numeric"
                         placeholder="0"
-                        placeholderTextColor={colors.slate500}
+                        placeholderTextColor={colors.slate400}
                         style={styles.input}
                       />
                       <Text style={styles.changeText}>
@@ -366,10 +434,7 @@ export default function LocalKasirScreen() {
       ) : (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[
-            styles.cartContent,
-            { paddingBottom: insets.bottom + spacing.xxl },
-          ]}
+          contentContainerStyle={[styles.cartContent, { paddingBottom: insets.bottom + spacing.xxl }]}
         >
           {onlineOrders.length === 0 ? (
             <View style={styles.receiptCard}>
@@ -377,7 +442,7 @@ export default function LocalKasirScreen() {
                 <Text style={styles.emptyCartIcon}>🛎️</Text>
                 <Text style={styles.emptyCartTitle}>Belum ada pesanan online</Text>
                 <Text style={styles.emptyCartHint}>
-                  Pesanan dari layar "Pesan Online" akan muncul di sini untuk dibayar.
+                  Pesanan dari layar "Pesan Online" akan muncul di sini untuk dikonfirmasi & dibayar.
                 </Text>
               </View>
             </View>
@@ -385,6 +450,7 @@ export default function LocalKasirScreen() {
             onlineOrders.map((order) => {
               const lines = onlineItems[order.id] ?? [];
               const isPaying = payingId === order.id;
+              const isConfirmed = order.status === 'confirmed';
 
               return (
                 <View key={order.id} style={styles.onlineCard}>
@@ -393,8 +459,10 @@ export default function LocalKasirScreen() {
                       <Text style={styles.onlineNumber}>#{order.order_number}</Text>
                       <Text style={styles.onlineCustomer}>{order.customer_name ?? 'Tanpa nama'}</Text>
                     </View>
-                    <View style={styles.onlineTag}>
-                      <Text style={styles.onlineTagText}>MENUNGGU</Text>
+                    <View style={[styles.onlineTag, isConfirmed && styles.onlineTagConfirmed]}>
+                      <Text style={[styles.onlineTagText, isConfirmed && styles.onlineTagTextConfirmed]}>
+                        {isConfirmed ? 'SIAP BAYAR' : 'MENUNGGU'}
+                      </Text>
                     </View>
                   </View>
 
@@ -412,7 +480,14 @@ export default function LocalKasirScreen() {
                     <Text style={styles.totalValue}>{formatRupiah(order.total)}</Text>
                   </View>
 
-                  {isPaying ? (
+                  {!isConfirmed ? (
+                    <Pressable
+                      onPress={() => handleConfirmOnline(order)}
+                      style={({ pressed }) => [styles.confirmBtn, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.payBtnText}>Konfirmasi Pesanan</Text>
+                    </Pressable>
+                  ) : isPaying ? (
                     <View style={styles.payCardInline}>
                       <Text style={styles.fieldLabel}>Metode pembayaran</Text>
                       <View style={styles.payGrid}>
@@ -428,7 +503,7 @@ export default function LocalKasirScreen() {
                                 onlinePayMethod === method && styles.payOptionTextActive,
                               ]}
                             >
-                              {method === 'cash' ? 'Tunai' : method === 'qris' ? 'QRIS' : 'Transfer'}
+                              {PAYMENT_LABEL[method]}
                             </Text>
                           </Pressable>
                         ))}
@@ -442,7 +517,7 @@ export default function LocalKasirScreen() {
                             onChangeText={setOnlineAmount}
                             keyboardType="numeric"
                             placeholder="0"
-                            placeholderTextColor={colors.slate500}
+                            placeholderTextColor={colors.slate400}
                             style={styles.input}
                           />
                           <Text style={styles.changeText}>
@@ -498,34 +573,38 @@ const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.slate200,
-    backgroundColor: colors.white,
+    borderBottomColor: colors.slate800,
+    backgroundColor: colors.slate900,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
   iconBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.slate200,
+    borderColor: colors.slate700,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.slate800,
   },
-  iconBtnText: { fontSize: 20, color: colors.slate900 },
+  iconBtnText: { fontSize: 20, color: colors.white },
   toolbarCopy: { flex: 1, minWidth: 0 },
-  toolbarTitle: { fontSize: 16, fontWeight: '700', color: colors.slate900 },
-  toolbarMeta: { fontSize: 11, color: colors.slate500, marginTop: 2 },
-  localBadge: {
-    borderRadius: 999,
-    backgroundColor: colors.brand50,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  toolbarTitle: { fontSize: 16, color: colors.white, ...font('700') },
+  toolbarMeta: { fontSize: 11, color: colors.slate400, marginTop: 2 },
+  navChip: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.slate800,
+    borderWidth: 1,
+    borderColor: colors.slate700,
   },
-  localBadgeText: { fontSize: 10, fontWeight: '800', color: colors.brand700 },
+  navChipText: { fontSize: 18 },
   tabs: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -538,28 +617,25 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     minHeight: 44,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.slate200,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.slate50,
   },
-  tabActive: {
-    borderColor: colors.brand600,
-    backgroundColor: colors.brand50,
-  },
-  tabText: { fontSize: 13, fontWeight: '600', color: colors.slate600 },
+  tabActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
+  tabText: { fontSize: 13, color: colors.slate600, ...font('600') },
   tabTextActive: { color: colors.brand700 },
   scroll: { flex: 1 },
   menuContent: { padding: spacing.lg, gap: spacing.lg },
   categoryBlock: { gap: spacing.sm },
   categoryTitle: {
     fontSize: 12,
-    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     color: colors.slate500,
+    ...font('700'),
   },
   productCard: {
     flexDirection: 'row',
@@ -581,19 +657,19 @@ const styles = StyleSheet.create({
   },
   productEmoji: { fontSize: 26 },
   productCopy: { flex: 1, minWidth: 0 },
-  productName: { fontSize: 15, fontWeight: '700', color: colors.slate900 },
-  productPrice: { marginTop: 2, fontSize: 13, fontWeight: '600', color: colors.brand600 },
+  productName: { fontSize: 15, color: colors.slate900, ...font('700') },
+  productPrice: { marginTop: 2, fontSize: 13, color: colors.brand600, ...font('600') },
   productAdd: {
     width: 36,
     height: 36,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: colors.brand600,
     color: colors.white,
     textAlign: 'center',
     lineHeight: 34,
     fontSize: 22,
-    fontWeight: '700',
     overflow: 'hidden',
+    ...font('700'),
   },
   cartContent: { padding: spacing.lg },
   receiptCard: {
@@ -611,11 +687,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.slate200,
     padding: spacing.lg,
   },
-  receiptTitle: { fontSize: 18, fontWeight: '800', color: colors.slate900 },
+  receiptTitle: { fontSize: 18, color: colors.slate900, ...font('700') },
   receiptMeta: { fontSize: 12, color: colors.slate500 },
   emptyCart: { alignItems: 'center', padding: spacing.xxl, gap: spacing.sm },
   emptyCartIcon: { fontSize: 36 },
-  emptyCartTitle: { fontSize: 16, fontWeight: '700', color: colors.slate900 },
+  emptyCartTitle: { fontSize: 16, color: colors.slate900, ...font('700') },
   emptyCartHint: { fontSize: 13, color: colors.slate500, textAlign: 'center' },
   cartLine: {
     borderBottomWidth: 1,
@@ -625,7 +701,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   cartLineCopy: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  cartLineName: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.slate900 },
+  cartLineName: { flex: 1, fontSize: 14, color: colors.slate900, ...font('700') },
   cartLinePrice: { fontSize: 12, color: colors.slate500 },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   qtyBtn: {
@@ -638,31 +714,61 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.white,
   },
-  qtyBtnText: { fontSize: 18, fontWeight: '700', color: colors.slate900 },
-  qtyValue: { minWidth: 24, textAlign: 'center', fontWeight: '700', color: colors.slate900 },
+  qtyBtnText: { fontSize: 18, color: colors.slate900, ...font('700') },
+  qtyValue: { minWidth: 24, textAlign: 'center', color: colors.slate900, ...font('700') },
   removeBtn: {
     marginLeft: 'auto',
     borderRadius: radius.md,
-    backgroundColor: '#fef2f2',
+    backgroundColor: colors.red50,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  removeBtnText: { fontSize: 12, fontWeight: '700', color: '#b91c1c' },
-  cartLineTotal: { fontSize: 14, fontWeight: '700', color: colors.brand600 },
-  customerCard: { padding: spacing.lg, gap: spacing.sm },
+  removeBtnText: { fontSize: 12, color: colors.red700, ...font('700') },
+  cartLineTotal: { fontSize: 14, color: colors.brand600, ...font('700') },
+  section: { borderTopWidth: 1, borderTopColor: colors.slate200, padding: spacing.lg, gap: spacing.md },
+  customerCard: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm },
   payCard: { borderTopWidth: 1, borderTopColor: colors.slate200, padding: spacing.lg, gap: spacing.md },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: colors.slate500 },
+  fieldLabel: { fontSize: 13, color: colors.slate600, ...font('600') },
+  mutedText: { fontSize: 13, color: colors.slate500 },
   input: {
-    minHeight: 48,
+    minHeight: 46,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.slate50,
+    borderColor: colors.slate300,
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.slate900,
   },
   payGrid: { flexDirection: 'row', gap: spacing.sm },
+  typeOption: {
+    flex: 1,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    gap: 2,
+  },
+  typeOptionActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
+  typeIcon: { fontSize: 20 },
+  typeLabel: { fontSize: 14, color: colors.slate700, ...font('700') },
+  typeLabelActive: { color: colors.brand700 },
+  typeHint: { fontSize: 11, color: colors.slate500 },
+  tablePickerWrap: { gap: spacing.sm },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  chip: {
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  chipActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
+  chipText: { fontSize: 13, color: colors.slate600 },
+  chipTextActive: { color: colors.brand700, ...font('700') },
   payOption: {
     flex: 1,
     minHeight: 44,
@@ -673,31 +779,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.white,
   },
-  payOptionActive: {
-    borderColor: colors.brand600,
-    backgroundColor: colors.brand50,
-  },
-  payOptionText: { fontSize: 13, fontWeight: '600', color: colors.slate600 },
+  payOptionActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
+  payOptionText: { fontSize: 13, color: colors.slate600, ...font('600') },
   payOptionTextActive: { color: colors.brand700 },
   cashPanel: { gap: spacing.sm },
   changeText: { fontSize: 13, color: colors.slate600 },
-  changeStrong: { fontWeight: '800', color: colors.slate900 },
+  changeStrong: { color: colors.slate900, ...font('700') },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: spacing.sm,
   },
-  totalLabel: { fontSize: 14, fontWeight: '700', color: colors.slate900 },
-  totalValue: { fontSize: 20, fontWeight: '800', color: colors.brand600 },
+  totalLabel: { fontSize: 14, color: colors.slate900, ...font('700') },
+  totalValue: { fontSize: 20, color: colors.brand600, ...font('700') },
   payBtn: {
     minHeight: 48,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     backgroundColor: colors.green600,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  payBtnText: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  confirmBtn: {
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payBtnText: { color: colors.white, fontSize: 16, ...font('700') },
   onlineCard: {
     borderRadius: radius.xl,
     borderWidth: 1,
@@ -709,23 +819,22 @@ const styles = StyleSheet.create({
   },
   onlineHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   onlineHeadCopy: { flex: 1, minWidth: 0 },
-  onlineNumber: { fontSize: 16, fontWeight: '800', color: colors.slate900 },
+  onlineNumber: { fontSize: 16, color: colors.slate900, ...font('700') },
   onlineCustomer: { fontSize: 13, color: colors.slate500, marginTop: 2 },
   onlineTag: {
-    borderRadius: 999,
-    backgroundColor: '#fef3c7',
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.amber200,
+    backgroundColor: colors.amber50,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
-  onlineTagText: { fontSize: 10, fontWeight: '800', color: '#b45309' },
-  onlineLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    paddingVertical: 2,
-  },
+  onlineTagConfirmed: { borderColor: colors.brand200, backgroundColor: colors.brand50 },
+  onlineTagText: { fontSize: 10, color: colors.amber800, ...font('700') },
+  onlineTagTextConfirmed: { color: colors.brand700 },
+  onlineLine: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 2 },
   onlineLineName: { flex: 1, fontSize: 14, color: colors.slate700 },
-  onlineLineTotal: { fontSize: 14, fontWeight: '600', color: colors.slate900 },
+  onlineLineTotal: { fontSize: 14, color: colors.slate900, ...font('600') },
   onlineTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -734,28 +843,23 @@ const styles = StyleSheet.create({
     borderTopColor: colors.slate100,
     paddingTop: spacing.sm,
   },
-  payCardInline: {
-    borderTopWidth: 1,
-    borderTopColor: colors.slate200,
-    paddingTop: spacing.md,
-    gap: spacing.md,
-  },
+  payCardInline: { borderTopWidth: 1, borderTopColor: colors.slate200, paddingTop: spacing.md, gap: spacing.md },
   onlineActions: { flexDirection: 'row', gap: spacing.sm },
   cancelBtn: {
     minHeight: 48,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.slate200,
+    borderColor: colors.slate300,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
   },
-  cancelBtnText: { fontSize: 14, fontWeight: '700', color: colors.slate600 },
+  cancelBtnText: { fontSize: 14, color: colors.slate600, ...font('700') },
   payBtnFlex: {
     flex: 1,
     minHeight: 48,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     backgroundColor: colors.green600,
     alignItems: 'center',
     justifyContent: 'center',
@@ -770,22 +874,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: colors.slate800,
     backgroundColor: colors.slate900,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  mobileCheckoutLabel: { fontSize: 11, color: '#94a3b8' },
-  mobileCheckoutTotal: { fontSize: 18, fontWeight: '800', color: colors.white },
+  mobileCheckoutLabel: { fontSize: 11, color: colors.slate400 },
+  mobileCheckoutTotal: { fontSize: 18, color: colors.white, ...font('700') },
   mobileCheckoutBtn: {
     minHeight: 44,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     backgroundColor: colors.green600,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mobileCheckoutBtnText: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  mobileCheckoutBtnText: { color: colors.white, fontSize: 14, ...font('700') },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: colors.slate600 },
   pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
