@@ -70,6 +70,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::post('/menu-categories', [MenuCategoryController::class, 'store'])->name('menu-categories.store');
     Route::delete('/menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('menu-categories.destroy');
     Route::get('/pembukuan', [PembukuanController::class, 'index'])->name('pembukuan.index');
+    Route::get('/pembukuan/pdf', [PembukuanController::class, 'pdf'])->name('pembukuan.pdf');
     Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
     Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
 });

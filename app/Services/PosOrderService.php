@@ -32,18 +32,22 @@ class PosOrderService
 
     private function nextOrderNumberForDay(string $orderDay): string
     {
+        $prefix = 'TRX-'.str_replace('-', '', $orderDay).'-';
+
         $max = PosOrder::query()
-            ->whereDate('order_day', $orderDay)
+            ->where('order_number', 'like', $prefix.'%')
             ->lockForUpdate()
             ->pluck('order_number')
-            ->map(fn (string $number) => ctype_digit($number) ? (int) $number : 0)
+            ->map(function (string $number) use ($prefix) {
+                $suffix = substr($number, strlen($prefix));
+
+                return ctype_digit($suffix) ? (int) $suffix : 0;
+            })
             ->max() ?? 0;
 
         $next = $max + 1;
 
-        return $next < 1000
-            ? str_pad((string) $next, 3, '0', STR_PAD_LEFT)
-            : (string) $next;
+        return $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 
     public function createKasirOrder(?User $cashier = null): PosOrder

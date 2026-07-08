@@ -15,6 +15,19 @@ class PembukuanController extends Controller
 {
     public function index(Request $request): View
     {
+        return view('kasir.pembukuan.index', $this->reportData($request));
+    }
+
+    public function pdf(Request $request): View
+    {
+        return view('kasir.pembukuan.pdf', array_merge($this->reportData($request), [
+            'shopName' => config('pos.shop_name', 'Coffee & Kitchen'),
+        ]));
+    }
+
+    /** @return array<string, mixed> */
+    private function reportData(Request $request): array
+    {
         $validated = $request->validate([
             'date' => ['nullable', 'date'],
         ]);
@@ -41,7 +54,7 @@ class PembukuanController extends Controller
             ];
         }
 
-        return view('kasir.pembukuan.index', [
+        return [
             'date' => $date,
             'orders' => $orders,
             'omzet' => $omzet,
@@ -49,6 +62,6 @@ class PembukuanController extends Controller
             'average' => $count > 0 ? $omzet / $count : 0,
             'byPayment' => $byPayment,
             'format' => Format::class,
-        ]);
+        ];
     }
 }

@@ -1607,36 +1607,12 @@
         @apply text-sm text-slate-500;
     }
 
-    .pembukuan-filter {
-        @apply mb-4 space-y-2 p-4;
-    }
-
-    .pembukuan-filter-row {
-        @apply flex flex-col gap-2 sm:flex-row sm:items-center;
-    }
-
     .pembukuan-stats {
-        @apply mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3;
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
     }
 
-    .pembukuan-payments {
-        @apply mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3;
-    }
-
-    .pembukuan-payment-card {
-        @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
-    }
-
-    .pembukuan-payment-label {
-        @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
-    }
-
-    .pembukuan-payment-total {
-        @apply mt-1 text-lg font-bold text-slate-900;
-    }
-
-    .pembukuan-payment-count {
-        @apply mt-0.5 text-xs text-slate-500;
+    .pembukuan-stats .card {
+        @apply p-4;
     }
 
     .pos-receipt-line-main {

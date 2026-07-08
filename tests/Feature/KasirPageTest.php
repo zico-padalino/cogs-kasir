@@ -241,33 +241,41 @@ class KasirPageTest extends TestCase
         $this->assertDatabaseHas('cogs_calculations', ['product_id' => $product->id]);
     }
 
-    public function test_pos_order_number_uses_short_sequential_format(): void
+    public function test_pos_order_number_uses_unique_daily_format(): void
     {
         $kasir = $this->kasirUser();
 
+        $this->travelTo('2026-07-08 10:00:00');
         $this->actingAs($kasir)->get(route('kasir.index'));
 
-        $this->assertDatabaseHas('pos_orders', ['order_number' => '001']);
+        $this->assertDatabaseHas('pos_orders', ['order_number' => 'TRX-20260708-001']);
 
         $this->actingAs($kasir)
             ->post(route('kasir.new-order'))
             ->assertRedirect();
 
-        $this->assertDatabaseHas('pos_orders', ['order_number' => '002']);
+        $this->assertDatabaseHas('pos_orders', ['order_number' => 'TRX-20260708-002']);
     }
 
-    public function test_pos_order_number_resets_each_day(): void
+    public function test_pos_order_number_is_unique_across_days(): void
     {
         $kasir = $this->kasirUser();
 
         $this->travelTo('2026-06-28 10:00:00');
         $this->actingAs($kasir)->get(route('kasir.index'));
-        $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-28')->count());
+        $this->assertDatabaseHas('pos_orders', [
+            'order_number' => 'TRX-20260628-001',
+            'order_day' => '2026-06-28',
+        ]);
 
         $this->travelTo('2026-06-29 09:00:00');
         $this->actingAs($kasir)->post(route('kasir.new-order'))->assertRedirect();
-        $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-29')->count());
-        $this->assertEquals(1, PosOrder::where('order_number', '001')->whereDate('order_day', '2026-06-28')->count());
+        $this->assertDatabaseHas('pos_orders', [
+            'order_number' => 'TRX-20260629-001',
+            'order_day' => '2026-06-29',
+        ]);
+        $this->assertEquals(1, PosOrder::where('order_number', 'TRX-20260628-001')->count());
+        $this->assertEquals(1, PosOrder::where('order_number', 'TRX-20260629-001')->count());
     }
 
     public function test_kasir_cannot_pay_online_order_before_confirm(): void
