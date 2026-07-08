@@ -5,15 +5,30 @@
 @section('body_class', 'is-kasir-pos')
 @section('main_class', 'pos-main-wrap')
 
-@section('content')
-    <div id="kasir-pos" class="pos-shell" data-pos-total="{{ $order->total }}">
-        <div class="pos-safe-top" aria-hidden="true"></div>
-        <header class="pos-toolbar">
-            <button type="button" class="pos-toolbar-menu lg:hidden" data-mobile-menu-toggle aria-label="Buka menu navigasi">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+@section('mobile_topbar_actions')
+    @if ($order->isKasirEditable() && $order->items->isNotEmpty())
+        <form action="{{ route('kasir.order.cancel') }}" method="POST" class="pos-toolbar-action-form" onsubmit="return confirm('Batalkan pesanan ini?')">
+            @csrf
+            <button type="submit" class="pos-topbar-action pos-topbar-action-danger" aria-label="Batalkan pesanan">
+                <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
+        </form>
+    @endif
+    <form action="{{ route('kasir.new-order') }}" method="POST" class="pos-toolbar-action-form">
+        @csrf
+        <button type="submit" class="pos-topbar-action pos-topbar-action-new" aria-label="Pesanan baru">
+            <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+        </button>
+    </form>
+@endsection
+
+@section('content')
+    <div id="kasir-pos" class="pos-shell" data-pos-total="{{ $order->total }}">
+        <header class="pos-toolbar">
             <div class="pos-toolbar-left">
                 <div class="pos-order-chip">
                     <span class="pos-order-chip-label">POS</span>
@@ -31,7 +46,7 @@
                 @endif
                 <span class="badge max-lg:hidden {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
-            <div class="pos-toolbar-actions">
+            <div class="pos-toolbar-actions max-md:hidden">
                 @if ($order->isKasirEditable() && $order->items->isNotEmpty())
                     <form action="{{ route('kasir.order.cancel') }}" method="POST" class="pos-toolbar-action-form" onsubmit="return confirm('Batalkan pesanan ini?')">
                         @csrf

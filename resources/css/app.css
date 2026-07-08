@@ -322,8 +322,8 @@
 
     /* ── Mobile shell / sidebar ── */
     .mobile-topbar {
-        @apply z-20 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
-        padding-top: max(0.75rem, env(safe-area-inset-top));
+        @apply z-30 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
+        padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
     }
 
     .mobile-menu-btn {
@@ -713,14 +713,52 @@
     }
 
     /* ── Kasir POS (tampilan kasir sungguhan) ── */
-    .is-kasir-pos .kasir-page-header,
-    .is-kasir-pos .mobile-topbar {
+    .is-kasir-pos .kasir-page-header {
         @apply hidden;
+    }
+
+    /* Mobile: pakai mobile-topbar layout (aman di iPhone notch/status bar) */
+    .is-kasir-pos .mobile-topbar {
+        @apply flex border-b border-slate-800 bg-slate-900;
+    }
+
+    @media (min-width: 768px) {
+        .is-kasir-pos .mobile-topbar {
+            display: none !important;
+        }
+    }
+
+    .is-kasir-pos .mobile-topbar .mobile-menu-btn {
+        @apply border-white/25 bg-white/10 text-white hover:bg-white/20;
+    }
+
+    .is-kasir-pos .mobile-topbar p.text-slate-900 {
+        @apply text-white;
+    }
+
+    .is-kasir-pos .mobile-topbar p.text-slate-500 {
+        @apply text-slate-400;
+    }
+
+    .mobile-topbar-actions {
+        @apply flex shrink-0 items-center gap-1.5;
+    }
+
+    .pos-topbar-action {
+        @apply inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-xl border transition active:scale-95;
+    }
+
+    .pos-topbar-action-new {
+        @apply border-white/30 bg-white text-slate-900 shadow-sm;
+    }
+
+    .pos-topbar-action-danger {
+        @apply border-red-300/40 bg-red-500/20 text-red-50;
     }
 
     .is-kasir-pos .app-scroll.pos-main-wrap > .pos-flash {
         @apply pointer-events-none fixed inset-x-3 z-50 mx-auto mb-0 max-w-md shadow-lg sm:inset-x-4;
-        top: calc(env(safe-area-inset-top, 0px) + 4.25rem);
+        top: calc(env(safe-area-inset-top, 0px) + 4.75rem);
     }
 
     .pos-flash {
@@ -767,14 +805,14 @@
         @apply mx-3 mt-3 shrink-0 sm:mx-4;
     }
 
-    /* Notch / status bar: spacer terpisah agar toolbar tidak ter-crush */
+    /* Notch spacer hanya fallback; mobile pakai mobile-topbar */
     .pos-safe-top {
-        @apply shrink-0 bg-slate-900;
+        @apply hidden shrink-0 bg-slate-900;
         height: env(safe-area-inset-top, 0px);
     }
 
     .pos-toolbar-menu {
-        @apply inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white shadow-sm transition active:scale-95 hover:bg-white/25;
+        @apply inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white shadow-sm transition active:scale-95 hover:bg-white/25 lg:hidden;
     }
 
     .pos-toolbar-menu svg {
@@ -795,8 +833,8 @@
     }
 
     .pos-toolbar {
-        @apply relative z-40 flex shrink-0 flex-nowrap items-center gap-2 overflow-visible border-b border-slate-700 bg-slate-900 px-3 py-3 text-white sm:gap-3 sm:px-5 sm:py-3.5 lg:gap-3;
-        min-height: 3.75rem;
+        @apply relative z-30 flex shrink-0 flex-nowrap items-center gap-2 overflow-visible border-b border-slate-700 bg-slate-900 px-3 py-2.5 text-white sm:gap-3 sm:px-5 sm:py-3 lg:gap-3;
+        min-height: 3.25rem;
     }
 
     .pos-toolbar-left {
@@ -1991,8 +2029,8 @@
         }
 
         .pos-toolbar {
-            @apply sticky top-0 z-40 gap-2 px-3 py-2.5;
-            min-height: 3.5rem;
+            @apply gap-2 px-3 py-2;
+            min-height: 2.75rem;
         }
 
         .pos-toolbar-left {
@@ -2000,7 +2038,7 @@
         }
 
         .pos-toolbar-menu {
-            @apply relative z-40 !inline-flex h-11 w-11 shrink-0 items-center justify-center;
+            @apply hidden;
         }
 
         .pos-order-chip {
@@ -2012,20 +2050,7 @@
         }
 
         .pos-order-chip-value {
-            @apply max-w-[9rem] truncate text-xs leading-tight;
-        }
-
-        .pos-toolbar-actions {
-            @apply shrink-0 gap-1.5;
-        }
-
-        .pos-btn-new,
-        .pos-btn-danger {
-            @apply min-h-11 min-w-11 px-2.5;
-        }
-
-        .pos-btn-danger span {
-            @apply hidden;
+            @apply max-w-[12rem] truncate text-xs leading-tight;
         }
 
         .pos-order-bar {
@@ -2289,20 +2314,22 @@
         }
     }
 
+    @media (max-width: 767px) {
+        .is-kasir-pos .pos-toolbar-actions {
+            display: none !important;
+        }
+
+        .is-kasir-pos .pos-toolbar {
+            @apply py-2;
+            min-height: 2.75rem;
+        }
+    }
+
     /* Layar pendek / landscape phone: kompres chrome & dock bayar */
     @media (max-width: 1023px) and (max-height: 740px) {
         .pos-toolbar {
-            @apply px-2.5 py-2;
-            min-height: 3.25rem;
-        }
-
-        .pos-toolbar-menu {
-            @apply !inline-flex h-10 w-10;
-        }
-
-        .pos-btn-new,
-        .pos-btn-danger {
-            @apply min-h-10 min-w-10;
+            @apply px-2.5 py-1.5;
+            min-height: 2.5rem;
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
@@ -3006,15 +3033,11 @@
         }
 
         html.is-pwa-standalone .mobile-topbar {
-            padding-top: max(0.75rem, env(safe-area-inset-top));
+            padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
         }
 
         html.is-pwa-standalone .pos-safe-top {
-            height: env(safe-area-inset-top, 0px);
-        }
-
-        html.is-pwa-standalone .pos-toolbar {
-            min-height: 3.5rem;
+            @apply hidden;
         }
 
         html.is-pwa-standalone .order-table-header {

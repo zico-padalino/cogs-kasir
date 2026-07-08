@@ -99,7 +99,7 @@
             <div class="app-content flex min-h-0 min-w-0 flex-1 flex-col md:pl-64">
                 <div class="mobile-topbar shrink-0 md:hidden">
                     <button type="button" class="mobile-menu-btn" data-mobile-menu-toggle aria-label="Buka menu">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
                     </button>
@@ -107,6 +107,11 @@
                         <p class="truncate text-sm font-semibold text-slate-900">@yield('heading', 'Kasir POS')</p>
                         <p class="truncate text-[11px] text-slate-500">{{ auth()->user()->name }}</p>
                     </div>
+                    @hasSection('mobile_topbar_actions')
+                        <div class="mobile-topbar-actions">
+                            @yield('mobile_topbar_actions')
+                        </div>
+                    @endif
                 </div>
 
                 <header class="kasir-page-header sticky top-0 z-20 hidden shrink-0 border-b border-slate-200 bg-white/90 backdrop-blur md:block">
