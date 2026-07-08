@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLocalProducts, submitOnlineOrder } from '@/local-db/repository';
 import type { LocalProduct } from '@/local-db/types';
@@ -21,6 +21,16 @@ export default function PesanOnlineScreen() {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [customerName, setCustomerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ orderNumber: string; customerName: string | null } | null>(null);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  };
 
   const refresh = useCallback(async () => {
     setProducts(await getLocalProducts());
@@ -57,8 +67,10 @@ export default function PesanOnlineScreen() {
   };
 
   const handleSubmit = async () => {
+    setErrorText(null);
+
     if (items.length === 0) {
-      Alert.alert('Keranjang kosong', 'Pilih minimal satu menu dulu.');
+      setErrorText('Pilih minimal satu menu dulu.');
       return;
     }
 
@@ -71,17 +83,9 @@ export default function PesanOnlineScreen() {
 
       setQuantities({});
       setCustomerName('');
-
-      Alert.alert(
-        'Pesanan terkirim',
-        `Pesanan #${order.order_number} atas nama ${order.customer_name ?? 'pelanggan'} sudah masuk ke kasir. Tunjukkan nomor ini saat membayar.`,
-        [
-          { text: 'Ke Kasir', onPress: () => router.replace('/kasir') },
-          { text: 'Pesan lagi' },
-        ],
-      );
+      setToast({ orderNumber: order.order_number, customerName: order.customer_name });
     } catch (error) {
-      Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
+      setErrorText(error instanceof Error ? error.message : 'Terjadi kesalahan.');
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +94,7 @@ export default function PesanOnlineScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.toolbar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => router.back()} style={styles.iconBtn}>
+        <Pressable onPress={handleBack} style={styles.iconBtn} hitSlop={8}>
           <Text style={styles.iconBtnText}>←</Text>
         </Pressable>
         <View style={styles.toolbarCopy}>
@@ -109,6 +113,12 @@ export default function PesanOnlineScreen() {
           { paddingBottom: totalQty > 0 ? 108 + insets.bottom : insets.bottom + spacing.lg },
         ]}
       >
+        {errorText ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{errorText}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.customerCard}>
           <Text style={styles.fieldLabel}>Nama pemesan</Text>
           <TextInput
@@ -174,9 +184,27 @@ export default function PesanOnlineScreen() {
           <Pressable
             onPress={handleSubmit}
             disabled={submitting}
-            style={({ pressed }) => [styles.submitBtn, pressed && styles.pressed]}
+            hitSlop={8}
+            style={({ pressed }) => [styles.submitBtn, pressed && styles.pressed, submitting && styles.submitDisabled]}
           >
             <Text style={styles.submitBtnText}>{submitting ? 'Mengirim…' : 'Kirim Pesanan'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {toast ? (
+        <View style={[styles.toast, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.toastTitle}>Pesanan #{toast.orderNumber} terkirim</Text>
+            <Text style={styles.toastText}>
+              {toast.customerName ? `Atas nama ${toast.customerName}. ` : ''}Tunjukkan nomor ini di kasir.
+            </Text>
+          </View>
+          <Pressable onPress={() => router.replace('/kasir')} style={styles.toastBtn} hitSlop={8}>
+            <Text style={styles.toastBtnText}>Ke Kasir</Text>
+          </Pressable>
+          <Pressable onPress={() => setToast(null)} style={styles.toastClose} hitSlop={8}>
+            <Text style={styles.toastCloseText}>✕</Text>
           </Pressable>
         </View>
       ) : null}
@@ -311,5 +339,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitBtnText: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  submitDisabled: { opacity: 0.6 },
+  errorBanner: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.red200,
+    backgroundColor: colors.red50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  errorBannerText: { fontSize: 13, color: colors.red700, fontWeight: '600' },
+  toast: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.green700,
+    backgroundColor: colors.green600,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  toastTitle: { fontSize: 14, fontWeight: '800', color: colors.white },
+  toastText: { fontSize: 12, color: '#dcfce7', marginTop: 2 },
+  toastBtn: {
+    minHeight: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastBtnText: { fontSize: 13, fontWeight: '800', color: colors.green700 },
+  toastClose: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastCloseText: { fontSize: 16, color: colors.white, fontWeight: '700' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
 });
