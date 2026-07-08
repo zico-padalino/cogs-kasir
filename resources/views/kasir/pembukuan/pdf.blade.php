@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pembukuan {{ $date->format('d-m-Y') }} — {{ $shopName }}</title>
+    <title>Pembukuan {{ $periodLabel }} {{ $rangeLabel }} — {{ $shopName }}</title>
     <style>
         @page {
             size: A4;
@@ -296,21 +296,28 @@
 <body>
     <div class="toolbar">
         <button type="button" class="btn btn-primary" onclick="window.print()">Cetak / Simpan PDF</button>
-        <a href="{{ route('kasir.pembukuan.index', ['date' => $date->toDateString()]) }}" class="btn">Kembali</a>
+        <a href="{{ route('kasir.pembukuan.index', $filters) }}" class="btn">Kembali</a>
     </div>
 
     <div class="sheet">
         <div class="header">
             <div>
-                <p class="eyebrow">Laporan Pembukuan Harian</p>
+                <p class="eyebrow">Laporan Pembukuan {{ $periodLabel }}</p>
                 <h1>{{ $shopName }}</h1>
                 <p class="header-meta">
-                    Tanggal bayar:
-                    <strong>{{ $date->translatedFormat('l, d F Y') }}</strong>
+                    Periode:
+                    <strong>{{ $rangeLabel }}</strong>
                 </p>
             </div>
             <div class="header-side">
-                <div class="date-chip">{{ $date->format('d/m/Y') }}</div>
+                <div class="date-chip">{{ $periodLabel }}</div>
+                <p class="printed">
+                    @if ($period === 'day')
+                        {{ $rangeStart->format('d/m/Y') }}
+                    @else
+                        {{ $rangeStart->format('d/m/Y') }} – {{ $rangeEnd->format('d/m/Y') }}
+                    @endif
+                </p>
                 <p class="printed">Dicetak {{ now()->format('d/m/Y H:i') }}</p>
             </div>
         </div>
@@ -329,6 +336,40 @@
                 <span class="value">{{ $format::rupiah($average) }}</span>
             </div>
         </div>
+
+        @if ($byDay->isNotEmpty())
+            <div class="section">
+                <h2 class="section-title">Ringkasan per hari</h2>
+                <table>
+                    <colgroup>
+                        <col class="col-method-pay">
+                        <col class="col-count">
+                        <col class="col-amount">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th class="right">Transaksi</th>
+                            <th class="right">Omzet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($byDay as $day)
+                            <tr>
+                                <td>{{ $day['date']->translatedFormat('l, d M Y') }}</td>
+                                <td class="right">{{ $format::number($day['count'], 0) }}</td>
+                                <td class="right">{{ $format::rupiah($day['total']) }}</td>
+                            </tr>
+                        @endforeach
+                        <tr class="total-row">
+                            <td>Total</td>
+                            <td class="right">{{ $format::number($count, 0) }}</td>
+                            <td class="right">{{ $format::rupiah($omzet) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        @endif
 
         <div class="section">
             <h2 class="section-title">Ringkasan metode bayar</h2>
@@ -375,7 +416,7 @@
                     </colgroup>
                     <thead>
                         <tr>
-                            <th>Waktu</th>
+                            <th>{{ $period === 'day' ? 'Waktu' : 'Tanggal' }}</th>
                             <th>No. Order</th>
                             <th>Sumber</th>
                             <th>Metode</th>
@@ -385,7 +426,7 @@
                     <tbody>
                         @foreach ($orders as $order)
                             <tr>
-                                <td>{{ $order->paid_at?->format('H:i') ?? '-' }}</td>
+                                <td>{{ $order->paid_at?->format($period === 'day' ? 'H:i' : 'd/m H:i') ?? '-' }}</td>
                                 <td class="mono">{{ $order->order_number }}</td>
                                 <td>
                                     {{ $order->source->label() }}
@@ -404,12 +445,12 @@
                     </tbody>
                 </table>
             @else
-                <p class="empty">Tidak ada transaksi lunas pada tanggal ini.</p>
+                <p class="empty">Tidak ada transaksi lunas pada periode ini.</p>
             @endif
         </div>
 
         <div class="footer">
-            <span>{{ $shopName }} · Modul Kasir</span>
+            <span>{{ $periodLabel }} · {{ $rangeLabel }}</span>
             <span>{{ $format::number($count, 0) }} transaksi · {{ $format::rupiah($omzet) }}</span>
         </div>
     </div>
