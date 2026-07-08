@@ -24,13 +24,13 @@
                 <div class="pos-pending-card">
                     <div class="pos-pending-card-head">
                         <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
+                        <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
                         <span class="pos-pending-btn-meta">{{ $pending->order_number }}</span>
                         <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $pending->status->label() }}</span>
-                        <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
                     </div>
                     <div class="pos-pending-card-actions">
                         @if ($pending->status === PosOrderStatus::Submitted)
-                            <form action="{{ route('kasir.orders.confirm', $pending) }}" method="POST">
+                            <form action="{{ route('kasir.orders.confirm', $pending) }}" method="POST" class="pos-pending-action-form">
                                 @csrf
                                 <button
                                     type="submit"
@@ -41,7 +41,7 @@
                                 </button>
                             </form>
                         @endif
-                        <form action="{{ route('kasir.load-order', $pending) }}" method="POST">
+                        <form action="{{ route('kasir.load-order', $pending) }}" method="POST" class="pos-pending-action-form">
                             @csrf
                             <button type="submit" class="pos-pending-action pos-pending-action-open">
                                 {{ $pending->status === PosOrderStatus::Confirmed ? 'Bayar' : 'Buka' }}

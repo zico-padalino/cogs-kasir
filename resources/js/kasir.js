@@ -221,7 +221,25 @@ export function initKasirPos() {
     };
 
     const scrollToPayDock = (scope) => {
-        scope.querySelector('[data-pos-receipt-pay]')?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        const pay = scope.querySelector('[data-pos-receipt-pay], [data-pos-receipt-confirm]');
+        if (! pay) {
+            return;
+        }
+
+        const panel = scope.querySelector('[data-kasir-panel="cart"] .pos-receipt-body');
+        if (panel && panel.contains(pay) === false) {
+            pay.scrollIntoView({ block: 'nearest', behavior: 'smooth', inline: 'nearest' });
+            return;
+        }
+
+        // Jangan scroll viewport/toolbar — cukup geser area item jika perlu
+        const payTop = pay.getBoundingClientRect().top;
+        const toolbar = scope.querySelector('.pos-toolbar');
+        const toolbarBottom = toolbar?.getBoundingClientRect().bottom ?? 0;
+
+        if (payTop < toolbarBottom + 8) {
+            panel?.scrollBy({ top: payTop - toolbarBottom - 8, behavior: 'smooth' });
+        }
     };
 
     tabs.forEach((tab) => {

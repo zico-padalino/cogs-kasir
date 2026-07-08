@@ -32,7 +32,7 @@
                 aria-label="Tambah {{ $product->name }}"
                 @disabled(! $canAdd)
             >
-                <x-product-image :product="$product" :eager="$loop->index < 6" class="pos-product-card-image" />
+                <x-product-image :product="$product" :eager="$loop->index < 6" decorative class="pos-product-card-image" />
                 @if (! $canAdd)
                     <span class="pos-product-card-badge">Atur harga</span>
                 @endif
