@@ -23,6 +23,7 @@ class PosOrderService
 {
     public function __construct(
         private readonly CogsCalculationService $cogsCalculationService,
+        private readonly CashLedgerService $cashLedgerService,
     ) {}
 
     public function generateOrderNumber(?string $orderDay = null): string
@@ -318,8 +319,14 @@ class PosOrderService
                     'change_amount' => $changeAmount,
                 ]);
 
+                $paidOrder = $order->fresh(['items.product', 'table', 'cashier']);
+
+                if ($paymentMethod === PaymentMethod::Cash) {
+                    $this->cashLedgerService->recordCashSale($paidOrder, $cashier);
+                }
+
                 return [
-                    'order' => $order->fresh(['items.product', 'table', 'cashier']),
+                    'order' => $paidOrder,
                     'invoice' => $invoiceBase,
                 ];
             });

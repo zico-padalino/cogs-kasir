@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\KasirController;
 use App\Http\Controllers\Web\KasirProductController;
 use App\Http\Controllers\Web\MenuCategoryController;
 use App\Http\Controllers\Web\OverheadRateController;
+use App\Http\Controllers\Web\KasTunaiController;
 use App\Http\Controllers\Web\PembukuanController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ProductionOrderController;
@@ -72,6 +73,9 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::delete('/menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('menu-categories.destroy');
     Route::get('/pembukuan', [PembukuanController::class, 'index'])->name('pembukuan.index');
     Route::get('/pembukuan/pdf', [PembukuanController::class, 'pdf'])->name('pembukuan.pdf');
+    Route::get('/kas-tunai', [KasTunaiController::class, 'index'])->name('kas-tunai.index');
+    Route::post('/kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
+    Route::post('/kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
     Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
     Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
     Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
