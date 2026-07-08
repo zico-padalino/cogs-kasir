@@ -2,7 +2,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Badge, EmptyState, ScreenHeader } from '@/components/cogs-ui';
+import { AppScaffold } from '@/components/AppScaffold';
+import { Badge, EmptyState } from '@/components/cogs-ui';
 import { getOrdersHistory } from '@/local-db/repository';
 import type { LocalOrder, OrderStatus } from '@/local-db/types';
 import { colors, font, radius, spacing } from '@/theme';
@@ -40,8 +41,7 @@ export default function KasirOrdersScreen() {
   );
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title="Riwayat Pesanan" subtitle="Kasir & online" />
+    <AppScaffold moduleType="kasir" title="Riwayat Pesanan" subtitle="Kasir & online">
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -88,7 +88,7 @@ export default function KasirOrdersScreen() {
           ))
         )}
       </ScrollView>
-    </View>
+    </AppScaffold>
   );
 }
 

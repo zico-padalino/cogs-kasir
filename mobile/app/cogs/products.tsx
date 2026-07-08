@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppScaffold } from '@/components/AppScaffold';
 import {
   Badge,
   Callout,
@@ -11,7 +12,6 @@ import {
   Input,
   PrimaryButton,
   RupiahInput,
-  ScreenHeader,
   SectionTitle,
   Segmented,
   StepHeader,
@@ -101,8 +101,7 @@ export default function ProductsScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title="Daftar Produk" subtitle="Langkah 2 dari 6" />
+    <AppScaffold moduleType="cogs" title="Daftar Produk" subtitle="Langkah 2 dari 6">
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -196,7 +195,7 @@ export default function ProductsScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </AppScaffold>
   );
 }
 

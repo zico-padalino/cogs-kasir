@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppDrawer } from '@/components/AppScaffold';
 import {
   addProductToLocalCart,
   checkoutLocalCart,
@@ -66,6 +67,7 @@ export default function KasirPosScreen() {
   const [onlinePayMethod, setOnlinePayMethod] = useState<PaymentMethod>('cash');
   const [onlineAmount, setOnlineAmount] = useState('');
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -195,8 +197,10 @@ export default function KasirPosScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.toolbar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => router.replace('/')} style={styles.iconBtn}>
-          <Text style={styles.iconBtnText}>←</Text>
+        <Pressable onPress={() => setDrawerOpen(true)} style={styles.iconBtn} hitSlop={8}>
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
         </Pressable>
         <View style={styles.toolbarCopy}>
           <Text style={styles.toolbarTitle}>Point of Sale</Text>
@@ -205,13 +209,8 @@ export default function KasirPosScreen() {
         <Pressable onPress={() => router.push('/kasir/orders')} style={styles.navChip}>
           <Text style={styles.navChipText}>🧾</Text>
         </Pressable>
-        <Pressable onPress={() => router.push('/kasir/tables')} style={styles.navChip}>
-          <Text style={styles.navChipText}>🪑</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/kasir/menu')} style={styles.navChip}>
-          <Text style={styles.navChipText}>🍽️</Text>
-        </Pressable>
       </View>
+      <AppDrawer moduleType="kasir" visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       <View style={styles.tabs}>
         <Pressable onPress={() => setTab('menu')} style={[styles.tab, tab === 'menu' && styles.tabActive]}>
@@ -589,8 +588,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.slate800,
+    gap: 4,
   },
   iconBtnText: { fontSize: 20, color: colors.white },
+  menuLine: { width: 16, height: 2, borderRadius: 2, backgroundColor: colors.white },
   toolbarCopy: { flex: 1, minWidth: 0 },
   toolbarTitle: { fontSize: 16, color: colors.white, ...font('700') },
   toolbarMeta: { fontSize: 11, color: colors.slate400, marginTop: 2 },

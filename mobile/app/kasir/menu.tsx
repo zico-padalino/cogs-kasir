@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppScaffold } from '@/components/AppScaffold';
 import {
   Badge,
   Callout,
@@ -11,7 +12,6 @@ import {
   Input,
   PrimaryButton,
   RupiahInput,
-  ScreenHeader,
   SectionTitle,
   Segmented,
 } from '@/components/cogs-ui';
@@ -121,8 +121,7 @@ export default function KasirMenuScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title="Kelola Menu" subtitle="Item yang dijual di kasir" />
+    <AppScaffold moduleType="kasir" title="Kelola Menu" subtitle="Item yang dijual di kasir">
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -233,7 +232,7 @@ export default function KasirMenuScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </AppScaffold>
   );
 }
 

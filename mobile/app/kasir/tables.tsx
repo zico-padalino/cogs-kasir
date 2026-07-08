@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
+import { AppScaffold } from '@/components/AppScaffold';
 import {
   Badge,
   Callout,
@@ -12,7 +13,6 @@ import {
   Field,
   Input,
   PrimaryButton,
-  ScreenHeader,
   SectionTitle,
 } from '@/components/cogs-ui';
 import { createTable, deleteTable, listTables, toggleTable } from '@/local-db/repository';
@@ -64,8 +64,7 @@ export default function KasirTablesScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title="Meja QR" subtitle="Kelola meja & QR pesan online" />
+    <AppScaffold moduleType="kasir" title="Meja QR" subtitle="Kelola meja & QR pesan online">
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -149,7 +148,7 @@ export default function KasirTablesScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </AppScaffold>
   );
 }
 

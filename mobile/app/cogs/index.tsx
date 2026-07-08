@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppScaffold } from '@/components/AppScaffold';
 import { Card, PrimaryButton, StatCard } from '@/components/cogs-ui';
 import { resetCogsData } from '@/cogs/db';
 import { formatQty, formatRupiah } from '@/cogs/format';
@@ -53,24 +54,16 @@ export default function CogsDashboard() {
   const currentStep = progress?.steps.find((step) => step.number === progress.currentStep);
 
   return (
+    <AppScaffold moduleType="cogs" title="Beranda" subtitle="Kelola data & hasil COGS">
     <ScrollView
       style={styles.root}
       contentContainerStyle={{
-        paddingTop: insets.top + spacing.lg,
+        paddingTop: spacing.lg,
         paddingBottom: insets.bottom + spacing.xxl,
         paddingHorizontal: spacing.lg,
         gap: spacing.lg,
       }}
     >
-      <View style={styles.topRow}>
-        <Pressable onPress={() => router.replace('/')} style={styles.homeBtn}>
-          <Text style={styles.homeBtnText}>← Beranda</Text>
-        </Pressable>
-        <View style={styles.localBadge}>
-          <Text style={styles.localBadgeText}>LOKAL</Text>
-        </View>
-      </View>
-
       <View style={styles.hero}>
         <View style={styles.heroBadge}>
           <Text style={styles.heroBadgeText}>C</Text>
@@ -173,6 +166,7 @@ export default function CogsDashboard() {
         <PrimaryButton label="Hapus Semua Data COGS" onPress={handleReset} tone="danger" />
       </Card>
     </ScrollView>
+    </AppScaffold>
   );
 }
 

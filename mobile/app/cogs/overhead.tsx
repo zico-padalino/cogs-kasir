@@ -2,13 +2,13 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppScaffold } from '@/components/AppScaffold';
 import {
   Card,
   EmptyState,
   Field,
   Input,
   PrimaryButton,
-  ScreenHeader,
   SectionTitle,
   Segmented,
   StepHeader,
@@ -84,8 +84,7 @@ export default function OverheadScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title="Biaya Overhead" subtitle="Langkah 1 dari 6" />
+    <AppScaffold moduleType="cogs" title="Biaya Overhead" subtitle="Langkah 1 dari 6">
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -157,7 +156,7 @@ export default function OverheadScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </AppScaffold>
   );
 }
 

@@ -2,11 +2,11 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppScaffold } from '@/components/AppScaffold';
 import {
   Card,
   EmptyState,
   PrimaryButton,
-  ScreenHeader,
   SectionTitle,
   StepHeader,
 } from '@/components/cogs-ui';
@@ -37,8 +37,7 @@ export default function CogsHistoryScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title="Hasil COGS" subtitle="Langkah 6 dari 6" />
+    <AppScaffold moduleType="cogs" title="Hasil COGS" subtitle="Langkah 6 dari 6">
       <ScrollView
         contentContainerStyle={{
           padding: spacing.lg,
@@ -103,7 +102,7 @@ export default function CogsHistoryScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </AppScaffold>
   );
 }
 
