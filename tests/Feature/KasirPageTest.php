@@ -369,6 +369,31 @@ class KasirPageTest extends TestCase
             ->assertSee('Silakan ke Kasir untuk Bayar');
     }
 
+    public function test_kasir_can_cancel_pending_online_order(): void
+    {
+        $kasir = $this->kasirUser();
+
+        $order = PosOrder::create([
+            'order_number' => 'TRX-TEST-DEL-001',
+            'source' => 'online',
+            'order_type' => 'takeaway',
+            'status' => 'submitted',
+            'customer_note' => 'Budi',
+            'subtotal' => 20000,
+            'total' => 20000,
+        ]);
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.orders.cancel', $order))
+            ->assertRedirect(route('kasir.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('pos_orders', [
+            'id' => $order->id,
+            'status' => 'cancelled',
+        ]);
+    }
+
     public function test_pwa_manifest_for_kasir_is_available(): void
     {
         $this->get(route('pwa.manifest', 'kasir'))

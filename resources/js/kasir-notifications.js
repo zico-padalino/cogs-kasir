@@ -171,6 +171,20 @@ async function loadOrderIntoKasir(orderId) {
     return response.ok;
 }
 
+function hasActiveKasirDraftWithItems() {
+    const root = document.getElementById('kasir-pos');
+    if (! root) {
+        return false;
+    }
+
+    // Order online aktif punya form konfirmasi / status submitted.
+    // Draft kasir punya form bayar langsung — jangan ditimpa auto-load.
+    const isOnlineConfirm = Boolean(root.querySelector('[data-pos-receipt-confirm]'));
+    const itemCount = root.querySelectorAll('[data-kasir-item]').length;
+
+    return itemCount > 0 && ! isOnlineConfirm;
+}
+
 async function handleIncomingOrders(newIds, data, shell) {
     if (isHandlingNewOrder || newIds.length === 0) {
         return;
@@ -178,16 +192,20 @@ async function handleIncomingOrders(newIds, data, shell) {
 
     isHandlingNewOrder = true;
 
-    const autoLoad = shell.dataset.kasirAutoLoad !== '0';
+    const autoLoadWanted = shell.dataset.kasirAutoLoad !== '0';
+    const preserveKasirDraft = hasActiveKasirDraftWithItems();
+    const autoLoad = autoLoadWanted && ! preserveKasirDraft;
     const indexUrl = shell.dataset.kasirIndexUrl || '/kasir';
     const orderId = newIds.includes(Number(data.latest_order_id))
         ? Number(data.latest_order_id)
         : Math.max(...newIds);
 
     playNewOrderSound();
-    showKasirToast(autoLoad
-        ? 'Pesanan baru masuk — memuat ke kasir…'
-        : 'Pesanan baru menunggu bayar — memuat ulang…');
+    showKasirToast(preserveKasirDraft
+        ? 'Pesanan online baru masuk — cek banner atas, lanjutkan transaksi kasir dulu'
+        : (autoLoad
+            ? 'Pesanan baru masuk — memuat ke kasir…'
+            : 'Pesanan baru menunggu — buka dari daftar online'));
 
     if (autoLoad && orderId) {
         try {
@@ -195,13 +213,21 @@ async function handleIncomingOrders(newIds, data, shell) {
         } catch {
             //
         }
+
+        window.setTimeout(() => {
+            const target = new URL(indexUrl, window.location.origin);
+            target.searchParams.set('tab', 'cart');
+            window.location.assign(target.toString());
+        }, 450);
+
+        return;
     }
 
+    // Hanya refresh daftar pending, jangan pindah order aktif kasir
+    updatePendingPanel(data.html ?? '');
     window.setTimeout(() => {
-        const target = new URL(indexUrl, window.location.origin);
-        target.searchParams.set('tab', 'cart');
-        window.location.assign(target.toString());
-    }, 450);
+        isHandlingNewOrder = false;
+    }, 300);
 }
 
 async function pollPendingOrders(pollUrl, shell) {

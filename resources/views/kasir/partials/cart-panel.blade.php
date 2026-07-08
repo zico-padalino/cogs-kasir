@@ -60,16 +60,9 @@
                 <p class="pos-confirm-notice-text">Pastikan pesanan sudah siap, lalu konfirmasi ke pelanggan sebelum pembayaran.</p>
             </div>
 
-            <form action="{{ route('kasir.orders.confirm', $order) }}" method="POST" class="pos-confirm-form">
-                @csrf
-                <button
-                    type="submit"
-                    class="pos-confirm-submit"
-                    onclick="return confirm('Konfirmasi pesanan {{ $order->customer_note ?: $order->order_number }} sudah selesai?')"
-                >
-                    Konfirmasi Pesanan Selesai
-                </button>
-            </form>
+            <button type="button" class="pos-confirm-submit" data-kasir-open-confirm>
+                Konfirmasi Pesanan Selesai
+            </button>
         </div>
     @elseif ($order->items->isNotEmpty() && $order->canCheckoutAtKasir())
         <div class="pos-receipt-pay" data-pos-receipt-pay>
@@ -84,57 +77,9 @@
                 </div>
             </div>
 
-            <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form" data-pos-pay-form>
-                @csrf
-                <p class="pos-pay-label">Metode pembayaran</p>
-                <div class="pos-pay-grid">
-                    @foreach (\App\Enums\PaymentMethod::cases() as $index => $method)
-                        <label class="pos-pay-option {{ $index === 0 ? 'is-selected' : '' }}">
-                            <input
-                                type="radio"
-                                name="payment_method"
-                                value="{{ $method->value }}"
-                                class="sr-only"
-                                data-pos-payment-method
-                                {{ $index === 0 ? 'checked' : '' }}
-                                required
-                            >
-                            <span class="pos-pay-option-text">{{ $method->label() }}</span>
-                        </label>
-                    @endforeach
-                </div>
-
-                <div class="pos-cash-panel hidden" data-pos-cash-panel>
-                    <label class="pos-pay-label" for="pos-amount-received">Uang diterima</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
-                        <input
-                            id="pos-amount-received"
-                            type="text"
-                            inputmode="numeric"
-                            enterkeyhint="done"
-                            class="pos-cash-input pl-10"
-                            placeholder="0"
-                            value=""
-                            data-pos-amount-received
-                            autocomplete="off"
-                        >
-                        <input type="hidden" name="amount_received" value="" data-pos-amount-received-value>
-                    </div>
-                    <p class="pos-cash-change" data-pos-change-wrap>
-                        Kembalian: <strong data-pos-change-amount>Rp 0</strong>
-                    </p>
-                </div>
-
-                <button
-                    type="submit"
-                    class="pos-pay-submit"
-                    data-pos-pay-submit
-                    onclick="return confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')"
-                >
-                    Bayar {{ $format::rupiah($order->total) }}
-                </button>
-            </form>
+            <button type="button" class="pos-pay-submit" data-kasir-open-pay>
+                Bayar {{ $format::rupiah($order->total) }}
+            </button>
         </div>
     @elseif ($order->items->isNotEmpty())
         <div class="pos-receipt-foot">

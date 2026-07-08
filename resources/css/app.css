@@ -776,8 +776,10 @@
     .app-body.is-kasir-pos {
         display: flex;
         flex-direction: column;
-        height: 100dvh;
-        max-height: 100dvh;
+        min-height: 0 !important;
+        /* Prefer tinggi visualViewport (set via JS) supaya toolbar Safari tidak menutupi dock */
+        height: var(--vvh, 100svh);
+        max-height: var(--vvh, 100svh);
         overflow: hidden;
     }
 
@@ -1171,11 +1173,15 @@
     }
 
     .pos-pending-card-actions {
-        @apply flex gap-1.5;
+        @apply flex flex-wrap gap-1.5;
     }
 
     .pos-pending-action-form {
         @apply min-w-0 flex-1;
+    }
+
+    .pos-pending-action-form-delete {
+        @apply basis-full;
     }
 
     .pos-pending-action {
@@ -1188,6 +1194,10 @@
 
     .pos-pending-action-open {
         @apply border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100;
+    }
+
+    .pos-pending-action-delete {
+        @apply border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100;
     }
 
     .pos-pending-btn {
@@ -1546,6 +1556,44 @@
         @apply w-full py-3.5;
     }
 
+    .pos-pay-modal {
+        @apply fixed inset-0 z-[85] flex items-end justify-center p-0 sm:items-center sm:p-4;
+    }
+
+    .pos-pay-modal-panel {
+        @apply relative z-10 max-h-[min(92dvh,var(--vvh,92dvh))] w-full overflow-y-auto rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .pos-pay-modal-head {
+        @apply mb-4 flex items-start gap-3 border-b border-slate-100 pb-4;
+    }
+
+    .pos-pay-modal-eyebrow {
+        @apply text-[11px] font-bold uppercase tracking-wider text-slate-400;
+    }
+
+    .pos-pay-modal-title {
+        @apply mt-0.5 text-lg font-bold text-slate-900;
+    }
+
+    .pos-pay-modal-total {
+        @apply mt-1 text-2xl font-bold tabular-nums text-brand-700;
+    }
+
+    .pos-pay-modal-meta {
+        @apply mt-1 text-xs text-slate-500;
+    }
+
+    .pos-pay-modal .pos-pay-form {
+        @apply space-y-1;
+    }
+
+    .pos-pay-modal .pos-pay-submit,
+    .pos-pay-modal .pos-confirm-submit {
+        @apply mt-3;
+    }
+
     .pos-detail-text {
         @apply text-sm leading-relaxed text-slate-600;
     }
@@ -1866,7 +1914,8 @@
 
     .pos-mobile-checkout {
         @apply relative z-50 flex shrink-0 touch-manipulation items-center justify-between gap-3 border-t border-slate-300 bg-slate-900 px-4 py-3 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.25)] lg:hidden;
-        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        /* Home indicator saja; tinggi Safari/Chrome sudah dihitung lewat --vvh */
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     }
 
     .pos-mobile-checkout.hidden {
@@ -1885,15 +1934,16 @@
         @apply block text-lg font-bold tabular-nums text-white;
     }
 
+    /* Tetap di aliran flex — jangan fixed bottom (ketutup Safari iPhone) */
     .is-kasir-pos.is-mobile-menu-tab .pos-mobile-checkout {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        position: relative;
+        left: auto;
+        right: auto;
+        bottom: auto;
     }
 
     .is-kasir-pos.is-mobile-menu-tab .pos-shell:has([data-pos-mobile-checkout]:not(.hidden)) {
-        padding-bottom: 5rem;
+        padding-bottom: 0;
     }
 
     .is-kasir-pos.is-mobile-cart-tab .pos-receipt-head {
@@ -1920,23 +1970,24 @@
     .is-kasir-pos.is-mobile-cart-tab .pos-receipt-confirm,
     .is-kasir-pos.is-mobile-cart-tab .pos-receipt-foot {
         @apply mt-auto;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     }
 
     @media (max-width: 1023px) {
-        .is-kasir-pos .app-body {
-            height: 100dvh;
-            max-height: 100dvh;
+        .app-body.is-kasir-pos {
+            height: var(--vvh, 100svh);
+            max-height: var(--vvh, 100svh);
             overflow: hidden;
         }
 
-        .is-kasir-pos .app-shell,
-        .is-kasir-pos .app-frame,
-        .is-kasir-pos .app-content {
+        .app-body.is-kasir-pos .app-shell,
+        .app-body.is-kasir-pos .app-frame,
+        .app-body.is-kasir-pos .app-content {
             min-height: 0;
             overflow: hidden;
         }
 
-        .is-kasir-pos .app-scroll.pos-main-wrap {
+        .app-body.is-kasir-pos .app-scroll.pos-main-wrap {
             overflow: hidden;
         }
 
@@ -2133,7 +2184,15 @@
         }
 
         .pos-order-panel.kasir-panel-cart .pos-receipt {
-            @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+            @apply flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .is-kasir-pos.is-mobile-cart-tab .pos-receipt-pay,
+        .is-kasir-pos.is-mobile-cart-tab .pos-receipt-confirm {
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
         }
 
         .pos-receipt-body {
@@ -2143,7 +2202,7 @@
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
             flex: 0 1 auto;
-            max-height: min(30dvh, 13rem);
+            max-height: min(24dvh, 10rem);
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-empty) {
@@ -2153,7 +2212,7 @@
 
         .pos-receipt-pay {
             @apply shrink-0 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
-            padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
         .pos-receipt-pay-totals {
@@ -2223,7 +2282,7 @@
 
         .pos-receipt-confirm {
             @apply p-2.5;
-            padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
         .pos-category-tabs {
@@ -2234,7 +2293,7 @@
             @apply px-2.5 py-1 text-[11px];
         }
 
-        /* Mobile: grid 2 kolom seperti pemesanan barcode */
+        /* Mobile: grid 2 kolom — padding bawah kecil karena checkout sudah di aliran flex */
         .pos-product-grid {
             display: grid;
             flex: 1 1 0%;
@@ -2246,7 +2305,7 @@
             overflow-y: auto;
             overscroll-behavior: contain;
             padding: 0.75rem;
-            padding-bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
+            padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
             -webkit-overflow-scrolling: touch;
         }
 
@@ -2381,7 +2440,7 @@
         .pos-product-grid {
             gap: 0.5rem;
             padding: 0.5rem;
-            padding-bottom: max(4.75rem, calc(4rem + env(safe-area-inset-bottom)));
+            padding-bottom: max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)));
         }
 
         .pos-product-card-body {
@@ -2436,7 +2495,7 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.85rem;
             padding: 1rem;
-            padding-bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
+            padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
@@ -3045,7 +3104,12 @@
         }
 
         html.is-pwa-standalone .pos-mobile-checkout {
-            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+        }
+
+        html.is-pwa-standalone .pos-receipt-pay,
+        html.is-pwa-standalone .pos-receipt-confirm {
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
         html.is-pwa-standalone .pwa-install,

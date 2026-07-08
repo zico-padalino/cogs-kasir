@@ -5,6 +5,55 @@ import { formatRupiahInput, formatRupiahInputLive, parseRupiahInput } from './ru
 
 const POS_DESKTOP_BP = 1024;
 
+/**
+ * Safari/Chrome mobile: toolbar browser menutupi bottom dock.
+ * Tinggi layout mengikuti area yang benar-benar terlihat (visualViewport).
+ */
+function syncBrowserViewportChrome() {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+
+    if (window.innerWidth >= POS_DESKTOP_BP) {
+        root.style.removeProperty('--vvh');
+        return;
+    }
+
+    if (! vv) {
+        root.style.setProperty('--vvh', `${window.innerHeight}px`);
+        return;
+    }
+
+    // Tinggi area visible; jangan pakai innerHeight (masih include toolbar)
+    const visibleHeight = Math.max(240, Math.round(vv.height));
+    root.style.setProperty('--vvh', `${visibleHeight}px`);
+}
+
+function initBrowserViewportChrome() {
+    let frame = 0;
+    const sync = () => {
+        if (frame) {
+            return;
+        }
+
+        frame = window.requestAnimationFrame(() => {
+            frame = 0;
+            syncBrowserViewportChrome();
+        });
+    };
+
+    syncBrowserViewportChrome();
+    window.addEventListener('resize', sync);
+    window.addEventListener('orientationchange', () => {
+        window.setTimeout(syncBrowserViewportChrome, 100);
+        window.setTimeout(syncBrowserViewportChrome, 350);
+    });
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', sync);
+        window.visualViewport.addEventListener('scroll', sync);
+    }
+}
+
 function readProductCard(card) {
     return {
         id: card.dataset.productId,
@@ -188,10 +237,12 @@ export function initKasirPos() {
         return;
     }
 
+    initBrowserViewportChrome();
     initKasirModals(root);
     initPosCategoryTabs(root);
     initPosOrderBar(root);
     initPosCashPayment(root);
+    initPosPayModal(root);
     initPosPendingPanel(root);
     initPosFlash(root);
 
@@ -226,20 +277,9 @@ export function initKasirPos() {
             return;
         }
 
-        const panel = scope.querySelector('[data-kasir-panel="cart"] .pos-receipt-body');
-        if (panel && panel.contains(pay) === false) {
-            pay.scrollIntoView({ block: 'nearest', behavior: 'smooth', inline: 'nearest' });
-            return;
-        }
-
-        // Jangan scroll viewport/toolbar — cukup geser area item jika perlu
-        const payTop = pay.getBoundingClientRect().top;
-        const toolbar = scope.querySelector('.pos-toolbar');
-        const toolbarBottom = toolbar?.getBoundingClientRect().bottom ?? 0;
-
-        if (payTop < toolbarBottom + 8) {
-            panel?.scrollBy({ top: payTop - toolbarBottom - 8, behavior: 'smooth' });
-        }
+        window.requestAnimationFrame(() => {
+            pay.scrollIntoView({ block: 'end', behavior: 'smooth', inline: 'nearest' });
+        });
     };
 
     tabs.forEach((tab) => {
@@ -251,6 +291,21 @@ export function initKasirPos() {
             event.preventDefault();
             event.stopPropagation();
 
+            const payModal = root.querySelector('[data-kasir-pay-modal]');
+            const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
+
+            // Order kasir siap bayar → buka modal pembayaran
+            if (payModal) {
+                openKasirOverlay(payModal);
+                return;
+            }
+
+            // Online masih menunggu → buka modal konfirmasi
+            if (confirmModal) {
+                openKasirOverlay(confirmModal);
+                return;
+            }
+
             const activeTab = root.querySelector('[data-kasir-tab].is-active')?.dataset.kasirTab;
 
             if (activeTab !== 'cart') {
@@ -259,10 +314,25 @@ export function initKasirPos() {
             }
 
             scrollToPayDock(root);
+        });
+    });
 
-            const submitBtn = root.querySelector('[data-pos-pay-submit]');
-            if (submitBtn) {
-                window.setTimeout(() => submitBtn.focus({ preventScroll: true }), 180);
+    root.querySelectorAll('[data-kasir-open-pay]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const payModal = root.querySelector('[data-kasir-pay-modal]');
+            if (payModal) {
+                openKasirOverlay(payModal);
+            }
+        });
+    });
+
+    root.querySelectorAll('[data-kasir-open-confirm]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
+            if (confirmModal) {
+                openKasirOverlay(confirmModal);
             }
         });
     });
@@ -278,15 +348,6 @@ export function initKasirPos() {
             });
         });
     }
-
-    root.querySelectorAll('.pos-pay-option input[type="radio"]').forEach((radio) => {
-        radio.addEventListener('change', () => {
-            root.querySelectorAll('.pos-pay-option').forEach((option) => {
-                const input = option.querySelector('input[type="radio"]');
-                option.classList.toggle('is-selected', Boolean(input?.checked));
-            });
-        });
-    });
 
     const updateCartBadge = () => {
         const count = root.querySelectorAll('[data-kasir-item]').length;
@@ -324,6 +385,9 @@ function syncMobilePayChrome(root, activeTab) {
     const isMobile = window.innerWidth < POS_DESKTOP_BP;
     const mobileCheckout = root.querySelector('[data-pos-mobile-checkout]');
     const goCartLabel = root.querySelector('[data-kasir-go-cart-label]');
+    const needsConfirm = Boolean(
+        root.querySelector('[data-pos-receipt-confirm], [data-kasir-confirm-modal]')
+    );
 
     root.classList.toggle('is-mobile-cart-tab', isMobile && activeTab === 'cart');
     root.classList.toggle('is-mobile-menu-tab', isMobile && activeTab === 'menu');
@@ -333,7 +397,8 @@ function syncMobilePayChrome(root, activeTab) {
     }
 
     if (goCartLabel) {
-        goCartLabel.textContent = 'Bayar';
+        // Online submitted = Konfirmasi dulu. Order kasir = langsung Bayar.
+        goCartLabel.textContent = needsConfirm ? 'Konfirmasi' : 'Bayar';
     }
 }
 
@@ -602,136 +667,191 @@ function initPosFlash(root) {
     });
 }
 
-function initPosCashPayment(root) {
-    const form = root.querySelector('[data-pos-pay-form]');
-    if (! form) {
+function openKasirOverlay(modal) {
+    if (! modal) {
         return;
     }
 
-    const cashPanel = form.querySelector('[data-pos-cash-panel]');
-    const totalEl = form.querySelector('[data-pos-order-total]');
-    const total = parseFloat(totalEl?.dataset.posOrderTotal || root.dataset.posTotal || '0');
-    const receivedInput = form.querySelector('[data-pos-amount-received]');
-    const receivedValue = form.querySelector('[data-pos-amount-received-value]');
-    const changeAmount = form.querySelector('[data-pos-change-amount]');
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('pos-modal-open');
+}
 
-    const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
-
-    const readReceivedAmount = () => parseRupiahInput(receivedInput?.value || '0');
-
-    const syncReceivedAmount = () => {
-        const numeric = readReceivedAmount();
-
-        if (receivedValue) {
-            receivedValue.value = receivedInput?.value === '' ? '' : numeric;
-        }
-
-        if (receivedInput) {
-            receivedInput.value = formatRupiahInput(receivedInput.value);
-        }
-    };
-
-    const syncChange = () => {
-        const received = readReceivedAmount();
-        const change = Math.max(0, received - total);
-
-        if (changeAmount) {
-            changeAmount.textContent = formatRupiah(change);
-        }
-    };
-
-    const syncPaymentMethod = () => {
-        const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
-        const isCash = method === 'cash';
-
-        cashPanel?.classList.toggle('hidden', ! isCash);
-        form.classList.toggle('is-cash-pay', isCash);
-
-        if (isCash && window.innerWidth < 1024) {
-            window.setTimeout(() => {
-                cashPanel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }, 80);
-        }
-    };
-
-    form.querySelectorAll('[data-pos-payment-method]').forEach((radio) => {
-        radio.addEventListener('change', syncPaymentMethod);
-    });
-
-    receivedInput?.addEventListener('input', () => {
-        const numeric = receivedInput.value === ''
-            ? 0
-            : formatRupiahInputLive(receivedInput);
-
-        if (receivedValue) {
-            receivedValue.value = receivedInput.value === '' ? '' : numeric;
-        }
-
-        syncChange();
-    });
-
-    receivedInput?.addEventListener('blur', syncReceivedAmount);
-
-    form.addEventListener('submit', () => {
-        syncReceivedAmount();
-    });
-
-    const isMobilePay = () => window.innerWidth < 1024;
-
-    const syncKeyboardInset = () => {
-        if (! isMobilePay() || ! window.visualViewport) {
-            document.documentElement.style.removeProperty('--keyboard-inset');
-
-            return;
-        }
-
-        const inset = Math.max(
-            0,
-            window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop,
-        );
-
-        document.documentElement.style.setProperty('--keyboard-inset', `${inset}px`);
-    };
-
-    const scrollCashInputIntoView = () => {
-        if (! isMobilePay() || ! receivedInput) {
-            return;
-        }
-
-        window.requestAnimationFrame(() => {
-            receivedInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        });
-    };
-
-    receivedInput?.addEventListener('focus', () => {
-        cashPanel?.classList.add('is-input-focused');
-        syncKeyboardInset();
-        scrollCashInputIntoView();
-        window.setTimeout(scrollCashInputIntoView, 300);
-    });
-
-    receivedInput?.addEventListener('blur', () => {
-        cashPanel?.classList.remove('is-input-focused');
-
-        window.setTimeout(() => {
-            if (document.activeElement !== receivedInput) {
-                document.documentElement.style.removeProperty('--keyboard-inset');
-            }
-        }, 120);
-    });
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            syncKeyboardInset();
-
-            if (document.activeElement === receivedInput) {
-                scrollCashInputIntoView();
-            }
-        });
+function closeKasirOverlay(modal) {
+    if (! modal) {
+        return;
     }
 
-    syncPaymentMethod();
-    syncChange();
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+
+    const anyOpen = document.querySelector('[data-kasir-modal]:not(.hidden), [data-kasir-detail-modal]:not(.hidden), [data-kasir-pay-modal]:not(.hidden), [data-kasir-confirm-modal]:not(.hidden)');
+    if (! anyOpen) {
+        document.body.classList.remove('pos-modal-open');
+    }
+}
+
+function initPosPayModal(root) {
+    const payModal = root.querySelector('[data-kasir-pay-modal]');
+    const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
+
+    payModal?.querySelectorAll('[data-kasir-close-pay]').forEach((el) => {
+        el.addEventListener('click', () => closeKasirOverlay(payModal));
+    });
+
+    confirmModal?.querySelectorAll('[data-kasir-close-confirm-modal]').forEach((el) => {
+        el.addEventListener('click', () => closeKasirOverlay(confirmModal));
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        if (payModal && ! payModal.classList.contains('hidden')) {
+            closeKasirOverlay(payModal);
+        }
+
+        if (confirmModal && ! confirmModal.classList.contains('hidden')) {
+            closeKasirOverlay(confirmModal);
+        }
+    });
+}
+
+function initPosCashPayment(root) {
+    const forms = root.querySelectorAll('[data-pos-pay-form]');
+    if (forms.length === 0) {
+        return;
+    }
+
+    forms.forEach((form) => {
+        const cashPanel = form.querySelector('[data-pos-cash-panel]');
+        const totalEl = form.querySelector('[data-pos-order-total]')
+            || root.querySelector('[data-pos-order-total]')
+            || form.closest('[data-kasir-pay-modal]')?.querySelector('[data-pos-order-total]');
+        const total = parseFloat(totalEl?.dataset.posOrderTotal || root.dataset.posTotal || '0');
+        const receivedInput = form.querySelector('[data-pos-amount-received]');
+        const receivedValue = form.querySelector('[data-pos-amount-received-value]');
+        const changeAmount = form.querySelector('[data-pos-change-amount]');
+
+        const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
+
+        const readReceivedAmount = () => parseRupiahInput(receivedInput?.value || '0');
+
+        const syncReceivedAmount = () => {
+            const numeric = readReceivedAmount();
+
+            if (receivedValue) {
+                receivedValue.value = receivedInput?.value === '' ? '' : numeric;
+            }
+
+            if (receivedInput) {
+                receivedInput.value = formatRupiahInput(receivedInput.value);
+            }
+        };
+
+        const syncChange = () => {
+            const received = readReceivedAmount();
+            const change = Math.max(0, received - total);
+
+            if (changeAmount) {
+                changeAmount.textContent = formatRupiah(change);
+            }
+        };
+
+        const syncPaymentMethod = () => {
+            const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
+            const isCash = method === 'cash';
+
+            cashPanel?.classList.toggle('hidden', ! isCash);
+            form.classList.toggle('is-cash-pay', isCash);
+        };
+
+        form.querySelectorAll('[data-pos-payment-method]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                form.querySelectorAll('.pos-pay-option').forEach((option) => {
+                    const input = option.querySelector('input[type="radio"]');
+                    option.classList.toggle('is-selected', Boolean(input?.checked));
+                });
+                syncPaymentMethod();
+            });
+        });
+
+        receivedInput?.addEventListener('input', () => {
+            const numeric = receivedInput.value === ''
+                ? 0
+                : formatRupiahInputLive(receivedInput);
+
+            if (receivedValue) {
+                receivedValue.value = receivedInput.value === '' ? '' : numeric;
+            }
+
+            syncChange();
+        });
+
+        receivedInput?.addEventListener('blur', syncReceivedAmount);
+
+        form.addEventListener('submit', () => {
+            syncReceivedAmount();
+        });
+
+        const isMobilePay = () => window.innerWidth < 1024;
+
+        const syncKeyboardInset = () => {
+            if (! isMobilePay() || ! window.visualViewport) {
+                document.documentElement.style.removeProperty('--keyboard-inset');
+
+                return;
+            }
+
+            const inset = Math.max(
+                0,
+                window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop,
+            );
+
+            document.documentElement.style.setProperty('--keyboard-inset', `${inset}px`);
+        };
+
+        const scrollCashInputIntoView = () => {
+            if (! isMobilePay() || ! receivedInput) {
+                return;
+            }
+
+            window.requestAnimationFrame(() => {
+                receivedInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            });
+        };
+
+        receivedInput?.addEventListener('focus', () => {
+            cashPanel?.classList.add('is-input-focused');
+            syncKeyboardInset();
+            scrollCashInputIntoView();
+            window.setTimeout(scrollCashInputIntoView, 300);
+        });
+
+        receivedInput?.addEventListener('blur', () => {
+            cashPanel?.classList.remove('is-input-focused');
+
+            window.setTimeout(() => {
+                if (document.activeElement !== receivedInput) {
+                    document.documentElement.style.removeProperty('--keyboard-inset');
+                }
+            }, 120);
+        });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                syncKeyboardInset();
+
+                if (document.activeElement === receivedInput) {
+                    scrollCashInputIntoView();
+                }
+            });
+        }
+
+        syncPaymentMethod();
+        syncChange();
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initKasirPos);

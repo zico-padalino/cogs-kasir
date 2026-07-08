@@ -319,6 +319,19 @@ class PosOrderService
         $order->update(['status' => PosOrderStatus::Cancelled]);
     }
 
+    public function cancelPendingOnlineOrder(PosOrder $order): void
+    {
+        if ($order->source !== PosOrderSource::Online) {
+            throw new RuntimeException('Hanya pesanan online yang bisa dihapus dari daftar ini.');
+        }
+
+        if (! in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true)) {
+            throw new RuntimeException('Pesanan ini tidak bisa dihapus.');
+        }
+
+        $this->cancelOrder($order);
+    }
+
     /** @return Collection<int, Product> */
     public function sellableProducts(): Collection
     {

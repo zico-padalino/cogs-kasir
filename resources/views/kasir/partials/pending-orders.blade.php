@@ -47,6 +47,16 @@
                                 {{ $pending->status === PosOrderStatus::Confirmed ? 'Bayar' : 'Buka' }}
                             </button>
                         </form>
+                        <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form pos-pending-action-form-delete">
+                            @csrf
+                            <button
+                                type="submit"
+                                class="pos-pending-action pos-pending-action-delete"
+                                onclick="return confirm('Hapus pesanan online {{ $pending->customer_note ?: $pending->order_number }}? Pesanan akan dibatalkan.')"
+                            >
+                                Hapus
+                            </button>
+                        </form>
                     </div>
                 </div>
             @endforeach

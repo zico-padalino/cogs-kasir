@@ -137,20 +137,24 @@ class KasirController extends Controller
 
     public function loadOrder(Request $request, PosOrder $order)
     {
-        if ($order->status === \App\Enums\PosOrderStatus::Paid) {
+        if ($order->status === PosOrderStatus::Paid || $order->status === PosOrderStatus::Cancelled) {
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Order sudah lunas.'], 422);
+                return response()->json(['message' => 'Order sudah selesai atau dibatalkan.'], 422);
             }
 
-            return redirect()->route('kasir.index')->with('error', 'Order sudah lunas.');
+            return redirect()->route('kasir.index')->with('error', 'Order sudah selesai atau dibatalkan.');
         }
 
+        // Pesanan online: biarkan status submitted/confirmed (perlu konfirmasi/bayar).
+        // Pesanan kasir draft: selalu bisa dilanjutkan tanpa tahap konfirmasi.
         session(['kasir_order_id' => $order->id]);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Order #'.$order->order_number.' dimuat.',
                 'order_number' => $order->order_number,
+                'needs_confirmation' => $order->needsKasirConfirmation(),
+                'can_checkout' => $order->canCheckoutAtKasir(),
                 'redirect' => route('kasir.index'),
             ]);
         }
@@ -173,6 +177,39 @@ class KasirController extends Controller
         session(['kasir_order_id' => $order->id]);
 
         $message = 'Pesanan #'.$order->order_number.' dikonfirmasi selesai. Silakan proses pembayaran.';
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'order_number' => $order->order_number,
+                'redirect' => route('kasir.index'),
+            ]);
+        }
+
+        return redirect()->route('kasir.index')->with('success', $message);
+    }
+
+    public function cancelPendingOrder(PosOrder $order, PosOrderService $posService)
+    {
+        $wasActive = (int) session('kasir_order_id') === (int) $order->id;
+
+        try {
+            $posService->cancelPendingOnlineOrder($order);
+        } catch (\RuntimeException $e) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ($wasActive) {
+            session()->forget('kasir_order_id');
+            $newOrder = $posService->createKasirOrder(auth()->user());
+            session(['kasir_order_id' => $newOrder->id]);
+        }
+
+        $message = 'Pesanan online #'.$order->order_number.' dihapus.';
 
         if (request()->expectsJson()) {
             return response()->json([

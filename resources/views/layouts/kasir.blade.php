@@ -10,6 +10,20 @@
     <title>@yield('title', 'Kasir') — POS</title>
     @include('layouts.partials.pwa-head', ['app' => 'kasir'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        (function () {
+            function syncVvh() {
+                var vv = window.visualViewport;
+                var h = vv ? Math.round(vv.height) : window.innerHeight;
+                document.documentElement.style.setProperty('--vvh', Math.max(240, h) + 'px');
+            }
+            syncVvh();
+            window.addEventListener('resize', syncVvh);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', syncVvh);
+            }
+        })();
+    </script>
 </head>
 <body
     class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased @yield('body_class')"

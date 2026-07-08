@@ -1,0 +1,101 @@
+@if ($order->items->isNotEmpty() && $order->canCheckoutAtKasir())
+    <div class="pos-pay-modal hidden" data-kasir-pay-modal aria-hidden="true">
+        <div class="pos-add-modal-backdrop" data-kasir-close-pay></div>
+        <div class="pos-pay-modal-panel" role="dialog" aria-modal="true" aria-labelledby="kasir-pay-modal-title">
+            <div class="pos-pay-modal-head">
+                <div class="min-w-0 flex-1">
+                    <p class="pos-pay-modal-eyebrow">Pembayaran</p>
+                    <h2 id="kasir-pay-modal-title" class="pos-pay-modal-title">Total Bayar</h2>
+                    <p class="pos-pay-modal-total" data-kasir-pay-modal-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</p>
+                    <p class="pos-pay-modal-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
+                </div>
+                <button type="button" class="pos-add-modal-close" data-kasir-close-pay aria-label="Tutup">×</button>
+            </div>
+
+            <form action="{{ route('kasir.pay') }}" method="POST" class="pos-pay-form" data-pos-pay-form data-pos-pay-form-modal>
+                @csrf
+                <p class="pos-pay-label">Metode pembayaran</p>
+                <div class="pos-pay-grid">
+                    @foreach (\App\Enums\PaymentMethod::cases() as $index => $method)
+                        <label class="pos-pay-option {{ $index === 0 ? 'is-selected' : '' }}">
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="{{ $method->value }}"
+                                class="sr-only"
+                                data-pos-payment-method
+                                {{ $index === 0 ? 'checked' : '' }}
+                                required
+                            >
+                            <span class="pos-pay-option-text">{{ $method->label() }}</span>
+                        </label>
+                    @endforeach
+                </div>
+
+                <div class="pos-cash-panel hidden" data-pos-cash-panel>
+                    <label class="pos-pay-label" for="pos-amount-received-modal">Uang diterima</label>
+                    <div class="relative">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
+                        <input
+                            id="pos-amount-received-modal"
+                            type="text"
+                            inputmode="numeric"
+                            enterkeyhint="done"
+                            class="pos-cash-input pl-10"
+                            placeholder="0"
+                            value=""
+                            data-pos-amount-received
+                            autocomplete="off"
+                        >
+                        <input type="hidden" name="amount_received" value="" data-pos-amount-received-value>
+                    </div>
+                    <p class="pos-cash-change" data-pos-change-wrap>
+                        Kembalian: <strong data-pos-change-amount>Rp 0</strong>
+                    </p>
+                </div>
+
+                <button
+                    type="submit"
+                    class="pos-pay-submit"
+                    data-pos-pay-submit
+                    onclick="return confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')"
+                >
+                    Bayar {{ $format::rupiah($order->total) }}
+                </button>
+            </form>
+        </div>
+    </div>
+@endif
+
+@if ($order->items->isNotEmpty() && $order->needsKasirConfirmation())
+    <div class="pos-pay-modal hidden" data-kasir-confirm-modal aria-hidden="true">
+        <div class="pos-add-modal-backdrop" data-kasir-close-confirm-modal></div>
+        <div class="pos-pay-modal-panel" role="dialog" aria-modal="true" aria-labelledby="kasir-confirm-modal-title">
+            <div class="pos-pay-modal-head">
+                <div class="min-w-0 flex-1">
+                    <p class="pos-pay-modal-eyebrow">Pesanan online</p>
+                    <h2 id="kasir-confirm-modal-title" class="pos-pay-modal-title">Konfirmasi pesanan</h2>
+                    <p class="pos-pay-modal-total">{{ $format::rupiah($order->total) }}</p>
+                    <p class="pos-pay-modal-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
+                </div>
+                <button type="button" class="pos-add-modal-close" data-kasir-close-confirm-modal aria-label="Tutup">×</button>
+            </div>
+
+            <div class="pos-confirm-notice">
+                <p class="pos-confirm-notice-title">Pesanan menunggu konfirmasi</p>
+                <p class="pos-confirm-notice-text">Pastikan pesanan sudah siap, lalu konfirmasi sebelum pembayaran.</p>
+            </div>
+
+            <form action="{{ route('kasir.orders.confirm', $order) }}" method="POST" class="pos-confirm-form">
+                @csrf
+                <button
+                    type="submit"
+                    class="pos-confirm-submit"
+                    onclick="return confirm('Konfirmasi pesanan {{ $order->customer_note ?: $order->order_number }} sudah selesai?')"
+                >
+                    Konfirmasi Pesanan Selesai
+                </button>
+            </form>
+        </div>
+    </div>
+@endif

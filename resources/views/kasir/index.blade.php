@@ -154,5 +154,6 @@
         @endif
 
         @include('kasir.partials.item-modals')
+        @include('kasir.partials.pay-modal', ['order' => $order, 'format' => $format])
     </div>
 @endsection
