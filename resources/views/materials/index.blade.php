@@ -5,13 +5,8 @@
 @section('subheading', 'Bahan baku + stok + harga beli — isi sekali langsung jadi')
 
 @section('content')
-    <div class="space-y-4">
-        <div class="card overhead-add-card">
-            <div class="mb-3">
-                <h2 class="text-sm font-semibold text-slate-900">Tambah Bahan Baru</h2>
-                <p class="mt-0.5 text-xs text-slate-500">Nama bahan, stok awal, dan harga beli diisi sekaligus.</p>
-            </div>
-
+    <div class="module-page module-step-2">
+        <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Nama bahan, stok awal, dan harga beli — cukup sekali isi.">
             <form action="{{ route('materials.store') }}" method="POST" class="overhead-add-form">
                 @csrf
                 <div class="field-name">
@@ -31,29 +26,33 @@
                     <x-rupiah-input name="unit_cost" placeholder="12.000" required />
                 </div>
                 <div class="field-submit">
-                    <button type="submit" class="btn-primary w-full lg:px-3">Simpan</button>
+                    <button type="submit" class="btn-primary w-full py-3 text-base font-semibold lg:px-3">Simpan Bahan</button>
                 </div>
             </form>
-        </div>
+        </x-module-form-card>
 
-        <x-table-card class="cogs-history-card" title="Daftar Bahan" subtitle="{{ $materials->count() }} bahan terdaftar">
+        <x-table-card :step="2" title="Daftar Bahan" :subtitle="$materials->count() . ' bahan terdaftar'">
             @if ($materials->isNotEmpty())
-                <div class="divide-y divide-slate-100">
+                <div class="space-y-3 p-4 sm:p-5">
                     @foreach ($materials as $material)
-                        <div class="px-4 py-3">
+                        <div class="module-item-card">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="font-semibold text-slate-900">{{ $material->name }}</p>
-                                    <p class="mt-0.5 text-xs text-slate-500">
-                                        Stok <strong class="text-slate-700">{{ $format::number($material->available_qty, 2) }} {{ $material->unit }}</strong>
+                                    <p class="text-base font-bold text-slate-900">{{ $material->name }}</p>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <span class="module-stat-pill module-stat-pill--stock">
+                                            Stok {{ $format::number($material->available_qty, 2) }} {{ $material->unit }}
+                                        </span>
                                         @if ($material->avg_cost > 0)
-                                            · Rata-rata <strong class="text-slate-700">{{ $format::rupiah($material->avg_cost) }}/{{ $material->unit }}</strong>
+                                            <span class="module-stat-pill module-stat-pill--price">
+                                                {{ $format::rupiah($material->avg_cost) }}/{{ $material->unit }}
+                                            </span>
                                         @endif
-                                    </p>
+                                    </div>
                                 </div>
                                 <details class="w-full sm:w-auto">
-                                    <summary class="btn-secondary btn-sm cursor-pointer list-none">+ Tambah stok</summary>
-                                    <form action="{{ route('materials.receive') }}" method="POST" class="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                    <summary class="btn-primary btn-sm cursor-pointer list-none">+ Tambah stok</summary>
+                                    <form action="{{ route('materials.receive') }}" method="POST" class="mt-3 space-y-2 rounded-xl border-2 border-emerald-100 bg-emerald-50/50 p-3">
                                         @csrf
                                         <input type="hidden" name="product_id" value="{{ $material->id }}">
                                         <div class="grid gap-2 sm:grid-cols-3">
@@ -67,7 +66,7 @@
                             </div>
 
                             @if ($material->inventoryLots->where('quantity_remaining', '>', 0)->isNotEmpty())
-                                <div class="mt-2 overflow-x-auto rounded-lg border border-slate-100">
+                                <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/50">
                                     <table class="table-default table-compact">
                                         <thead>
                                             <tr>
@@ -112,13 +111,14 @@
                 </div>
 
                 <x-slot:footer>
-                    <p class="text-sm text-slate-500">Bahan sudah cukup? Lanjut daftarkan produk jadi.</p>
+                    <p class="text-sm font-medium text-slate-600">Bahan sudah cukup? Lanjut daftarkan menu.</p>
                     <a href="{{ route('products.index') }}" class="btn-primary btn-sm">Lanjut ke Menu →</a>
                 </x-slot:footer>
             @else
-                <div class="cogs-history-empty">
-                    <p class="text-sm text-slate-600">Belum ada bahan.</p>
-                    <p class="mt-1 text-xs text-slate-500">Isi form di atas untuk menambah bahan pertama.</p>
+                <div class="module-empty">
+                    <span class="module-empty__icon" aria-hidden="true">🥬</span>
+                    <p class="module-empty__title">Belum ada bahan</p>
+                    <p class="module-empty__hint">Isi form di atas — contoh: Tepung, 25 kg, Rp 12.000/kg.</p>
                 </div>
             @endif
         </x-table-card>

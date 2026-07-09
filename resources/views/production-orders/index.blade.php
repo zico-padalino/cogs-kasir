@@ -5,18 +5,15 @@
 @section('subheading', 'Catat berapa menu yang dibuat — modal dihitung otomatis')
 
 @section('content')
-    <div class="space-y-4">
-        <div class="card overhead-add-card">
-            <div class="mb-3">
-                <h2 class="text-sm font-semibold text-slate-900">Catat Produksi</h2>
-                <p class="mt-0.5 text-xs text-slate-500">Pilih menu, isi jumlah yang dibuat. Bahan diambil dari resep, modal langsung terhitung.</p>
-            </div>
-
+    <div class="module-page module-step-4">
+        <x-module-form-card :step="4" title="Catat Produksi" description="Pilih menu dan jumlah yang dibuat. Bahan diambil dari resep, modal langsung terhitung.">
             @if ($products->isEmpty())
-                <p class="text-sm text-amber-800 rounded-lg bg-amber-50 px-3 py-2">
-                    Belum ada menu.
-                    <a href="{{ route('products.index') }}" class="font-semibold underline">Tambah menu & resep dulu →</a>
-                </p>
+                <div class="module-empty !py-8">
+                    <span class="module-empty__icon" aria-hidden="true">👨‍🍳</span>
+                    <p class="module-empty__title">Belum ada menu</p>
+                    <p class="module-empty__hint">Tambah menu & resep dulu sebelum catat produksi.</p>
+                    <a href="{{ route('products.index') }}" class="btn-primary btn-sm mt-3 inline-flex">Ke Menu & Resep →</a>
+                </div>
             @else
                 <form action="{{ route('production-orders.store') }}" method="POST" class="overhead-add-form">
                     @csrf
@@ -24,7 +21,7 @@
 
                     <div class="field-name sm:col-span-2">
                         <label class="form-label">Menu yang dibuat</label>
-                        <select name="product_id" class="form-input" required>
+                        <select name="product_id" class="form-input text-base" required>
                             <option value="">Pilih menu...</option>
                             @foreach ($products as $p)
                                 <option value="{{ $p->id }}" @selected(old('product_id') == $p->id)>{{ $p->name }}</option>
@@ -33,15 +30,15 @@
                     </div>
                     <div class="field-rate">
                         <label class="form-label">Jumlah dibuat</label>
-                        <input type="number" name="quantity_planned" class="form-input" min="1" step="1" value="{{ old('quantity_planned', 10) }}" required>
+                        <input type="number" name="quantity_planned" class="form-input text-lg font-semibold" min="1" step="1" value="{{ old('quantity_planned', 10) }}" required>
                     </div>
                     <div class="field-submit">
-                        <button type="submit" class="btn-primary w-full lg:px-3">Catat & Hitung Modal</button>
+                        <button type="submit" class="btn-primary w-full py-3 text-base font-semibold lg:px-3">Catat & Hitung Modal</button>
                     </div>
                 </form>
 
-                <details class="mt-3 rounded-lg border border-slate-200 p-3">
-                    <summary class="cursor-pointer text-xs font-medium text-slate-600">Upah kerja & mesin (kalau perlu)</summary>
+                <details class="rounded-xl border-2 border-violet-100 bg-violet-50/40 p-3">
+                    <summary class="cursor-pointer text-sm font-semibold text-violet-800">Upah kerja & mesin (kalau perlu)</summary>
                     <form action="{{ route('production-orders.store') }}" method="POST" class="mt-3 space-y-3">
                         @csrf
                         <input type="hidden" name="langsung_hitung" value="1">
@@ -62,11 +59,11 @@
                     </form>
                 </details>
             @endif
-        </div>
+        </x-module-form-card>
 
-        <x-table-card title="Riwayat Produksi" subtitle="{{ $orders->total() }} catatan">
+        <x-table-card :step="4" title="Riwayat Produksi" :subtitle="$orders->total() . ' catatan'">
             @if ($orders->isNotEmpty())
-                <table class="table-default table-compact">
+                <table class="table-default">
                     <thead>
                         <tr>
                             <th>Menu</th>
@@ -78,7 +75,7 @@
                     <tbody>
                         @foreach ($orders as $order)
                             <tr>
-                                <td class="font-semibold text-slate-900">{{ $order->product->name }}</td>
+                                <td class="font-bold text-slate-900">{{ $order->product->name }}</td>
                                 <td>{{ number_format($order->quantity_planned, 0) }} {{ $order->product->unit }}</td>
                                 <td>
                                     @php
@@ -100,13 +97,14 @@
                 </table>
 
                 <x-slot:footer>
-                    <p class="text-sm text-slate-500">Modal sudah terhitung? Tentukan harga jual menu.</p>
+                    <p class="text-sm font-medium text-slate-600">Modal sudah terhitung? Tentukan harga jual.</p>
                     <a href="{{ route('menu-pricing.index') }}" class="btn-primary btn-sm">Ke Harga Jual →</a>
                 </x-slot:footer>
             @else
-                <div class="empty-state py-8">
-                    <p>Belum ada produksi tercatat.</p>
-                    <p class="empty-hint">Isi form di atas untuk catat produksi pertama.</p>
+                <div class="module-empty">
+                    <span class="module-empty__icon" aria-hidden="true">📊</span>
+                    <p class="module-empty__title">Belum ada produksi</p>
+                    <p class="module-empty__hint">Isi form di atas untuk catat produksi pertama.</p>
                 </div>
             @endif
         </x-table-card>
