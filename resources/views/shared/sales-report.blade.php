@@ -25,6 +25,9 @@
     <div>
         <label class="form-label" for="pembukuan-period">Periode</label>
         <select id="pembukuan-period" name="period" class="form-input w-full" data-pembukuan-period>
+            @if ($supportsAllPeriod ?? false)
+                <option value="all" @selected($period === 'all')>Keseluruhan</option>
+            @endif
             <option value="day" @selected($period === 'day')>Harian</option>
             <option value="week" @selected($period === 'week')>Mingguan</option>
             <option value="month" @selected($period === 'month')>Bulanan</option>
@@ -69,7 +72,13 @@
         <button type="submit" class="btn-primary w-full justify-center sm:w-auto">
             Tampilkan
         </button>
-        @if ($period !== 'day' || ! $rangeStart->isToday())
+        @if ($supportsAllPeriod ?? false)
+            @if ($period !== 'all')
+                <a href="{{ $filterAction }}" class="btn-outline w-full justify-center sm:w-auto">
+                    Keseluruhan
+                </a>
+            @endif
+        @elseif ($period !== 'day' || ! $rangeStart->isToday())
             <a href="{{ $filterAction }}" class="btn-outline w-full justify-center sm:w-auto">
                 Periode ini
             </a>
@@ -80,13 +89,13 @@
 <div class="pembukuan-stats {{ $isSummaryOnly ? 'mb-5' : 'mb-4' }}">
     <x-stat-card label="Omzet" :value="$format::rupiah($omzet)" color="green" />
     <x-stat-card label="Transaksi" :value="$format::number($count, 0)" color="brand" />
-    <x-stat-card label="Rata-rata" :value="$format::rupiah($average)" color="slate" />
+    <x-stat-card label="Rata-rata per transaksi" :value="$format::rupiah($average)" color="slate" />
 </div>
 
 @if ($count === 0 && $isSummaryOnly)
     <div class="card sales-report-empty">
         <div class="sales-report-empty-icon" aria-hidden="true">📊</div>
-        <p class="text-sm font-semibold text-slate-900">Belum ada penjualan pada periode ini</p>
+        <p class="text-sm font-semibold text-slate-900">Belum ada penjualan{{ $period === 'all' ? '' : ' pada periode ini' }}</p>
         <p class="mt-1 text-sm text-slate-500">Data akan muncul setelah transaksi lunas tercatat di modul Kasir.</p>
     </div>
 @else

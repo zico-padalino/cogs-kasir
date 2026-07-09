@@ -45,7 +45,7 @@
                     <a href="{{ route('admin.dashboard') }}"
                        class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
                         <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🏠</span>
-                        Beranda
+                        Dashboard
                     </a>
                     <a href="{{ route('admin.employees.index') }}"
                        class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('admin.employees.*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">

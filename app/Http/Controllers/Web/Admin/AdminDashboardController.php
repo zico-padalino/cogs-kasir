@@ -15,6 +15,6 @@ class AdminDashboardController extends Controller
 
     public function index(Request $request): View
     {
-        return view('admin.dashboard', $this->salesReport->reportData($request));
+        return view('admin.dashboard', $this->salesReport->reportData($request, defaultPeriod: 'all'));
     }
 }

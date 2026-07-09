@@ -13,26 +13,29 @@ use Illuminate\Support\Collection;
 class SalesReportService
 {
     /** @return array<string, mixed> */
-    public function reportData(Request $request): array
+    public function reportData(Request $request, string $defaultPeriod = 'day'): array
     {
         $validated = $request->validate([
-            'period' => ['nullable', 'in:day,week,month'],
+            'period' => ['nullable', 'in:all,day,week,month'],
             'date' => ['nullable', 'date'],
             'week' => ['nullable', 'regex:/^\d{4}-W\d{2}$/'],
             'month' => ['nullable', 'regex:/^\d{4}-\d{2}$/'],
         ]);
 
-        $period = $validated['period'] ?? 'day';
+        $period = $validated['period'] ?? $defaultPeriod;
         $range = $this->resolveRange($period, $validated);
         $rangeStart = $range['start'];
         $rangeEnd = $range['end'];
 
-        $orders = PosOrder::query()
+        $ordersQuery = PosOrder::query()
             ->with(['table', 'cashier'])
-            ->where('status', PosOrderStatus::Paid)
-            ->whereBetween('paid_at', [$rangeStart, $rangeEnd])
-            ->orderByDesc('paid_at')
-            ->get();
+            ->where('status', PosOrderStatus::Paid);
+
+        if ($period !== 'all') {
+            $ordersQuery->whereBetween('paid_at', [$rangeStart, $rangeEnd]);
+        }
+
+        $orders = $ordersQuery->orderByDesc('paid_at')->get();
 
         $omzet = (float) $orders->sum('total');
         $count = $orders->count();
@@ -47,7 +50,7 @@ class SalesReportService
             ];
         }
 
-        $byDay = $period === 'day'
+        $byDay = in_array($period, ['day', 'all'], true)
             ? collect()
             : $this->buildDailyBreakdown($orders, $rangeStart, $rangeEnd);
 
@@ -66,6 +69,7 @@ class SalesReportService
             'byPayment' => $byPayment,
             'format' => Format::class,
             'filters' => $this->filterValues($period, $rangeStart),
+            'supportsAllPeriod' => $defaultPeriod === 'all',
         ];
     }
 
@@ -74,6 +78,10 @@ class SalesReportService
     private function resolveRange(string $period, array $validated): array
     {
         return match ($period) {
+            'all' => [
+                'start' => Carbon::create(2000, 1, 1)->startOfDay(),
+                'end' => now()->endOfDay(),
+            ],
             'week' => $this->weekRange($validated['week'] ?? null),
             'month' => $this->monthRange($validated['month'] ?? null),
             default => $this->dayRange($validated['date'] ?? null),
@@ -143,6 +151,7 @@ class SalesReportService
     private function periodLabel(string $period): string
     {
         return match ($period) {
+            'all' => 'Keseluruhan',
             'week' => 'Mingguan',
             'month' => 'Bulanan',
             default => 'Harian',
@@ -152,6 +161,7 @@ class SalesReportService
     private function rangeLabel(string $period, Carbon $start, Carbon $end): string
     {
         return match ($period) {
+            'all' => 'Semua waktu',
             'week' => $start->format('d/m/Y').' – '.$end->format('d/m/Y'),
             'month' => $start->translatedFormat('F Y'),
             default => $start->isToday()
