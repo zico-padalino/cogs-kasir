@@ -29,4 +29,33 @@ enum OverheadAllocationBase: string
             default => false,
         };
     }
+
+    /** Judul singkat untuk tabel & daftar. */
+    public function plainRule(): string
+    {
+        return match ($this) {
+            self::DirectMaterial => 'Tambahan dari harga bahan',
+            self::DirectLabor => 'Tambahan dari upah kerja',
+            self::LaborHours => 'Per jam kerja',
+            self::MachineHours => 'Per jam mesin',
+            self::UnitsProduced => 'Per buah produk',
+        };
+    }
+
+    /** Tampilan nilai yang mudah dibaca (10% atau Rp 25.000/jam). */
+    public function formatRate(float $rate): string
+    {
+        if ($this->isRatioBased()) {
+            $percent = round($rate * 100, 2);
+            $text = rtrim(rtrim(number_format($percent, 2, ',', '.'), '0'), ',');
+
+            return $text.'%';
+        }
+
+        if ($this === self::LaborHours || $this === self::MachineHours) {
+            return 'Rp '.number_format($rate, 0, ',', '.').' / jam';
+        }
+
+        return 'Rp '.number_format($rate, 0, ',', '.').' / produk';
+    }
 }

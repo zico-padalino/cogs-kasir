@@ -41,7 +41,7 @@ class SetupProgress
         'description' => 'Listrik, sewa, air — biaya di luar bahan & upah.',
         'route' => 'overhead-rates.index',
         'done' => $hasOverhead,
-        'hint' => 'Contoh: listrik 15% dari harga bahan (isi 0,15).',
+        'hint' => 'Contoh: Listrik & gas → pilih persen → isi 10 (artinya 10%).',
       ],
       [
         'number' => 2,
