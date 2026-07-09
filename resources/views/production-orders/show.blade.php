@@ -55,7 +55,7 @@
     </div>
 
     @if ($cogs)
-        <x-step-header number="6" title="Hasil Perhitungan Biaya"
+        <x-step-header number="5" title="Hasil Perhitungan Biaya"
             description="Total biaya untuk {{ number_format($order->quantity_completed, 0) }} {{ $order->product->unit }} {{ $order->product->name }}." />
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -68,7 +68,7 @@
         <div class="hero-stat mb-6">
             <p class="text-sm text-slate-600">Biaya per 1 {{ $order->product->unit }} {{ $order->product->name }}</p>
             <p class="hero-stat-value">{{ $format::rupiah($cogs->unit_cogs, 2) }}</p>
-            <p class="mt-2 text-xs text-slate-500">= Bahan + Gaji pekerja + Biaya operasional</p>
+            <p class="mt-2 text-xs text-slate-500">= Bahan + Upah kerja + Biaya tambahan</p>
         </div>
     @else
         <div class="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">

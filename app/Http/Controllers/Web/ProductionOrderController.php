@@ -20,17 +20,20 @@ class ProductionOrderController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('production-orders.index', compact('orders'));
-    }
-
-    public function create()
-    {
         $products = Product::whereIn('type', ['semi_finished', 'finished_good'])
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        return view('production-orders.create', compact('products'));
+        return view('production-orders.index', [
+            'orders' => $orders,
+            'products' => $products,
+        ]);
+    }
+
+    public function create()
+    {
+        return redirect()->route('production-orders.index');
     }
 
     public function store(StoreProductionOrderRequest $request, ProductionOrderService $service)
@@ -48,7 +51,23 @@ class ProductionOrderController extends Controller
             machineHours: (float) ($request->machine_hours ?? 0),
         );
 
-        return redirect()->route('production-orders.show', $order)->with('success', 'Jadwal produksi berhasil dibuat.');
+        if ($request->boolean('langsung_hitung', true)) {
+            try {
+                $service->start($order);
+                $service->complete($order);
+            } catch (\RuntimeException $e) {
+                $order->materials()->delete();
+                $order->labors()->delete();
+                $order->delete();
+
+                return back()->with('error', $e->getMessage())->withInput();
+            }
+
+            return redirect()->route('menu-pricing.index')
+                ->with('success', 'Produksi tercatat. Modal sudah dihitung — lanjut isi harga jual.');
+        }
+
+        return redirect()->route('production-orders.show', $order)->with('success', 'Produksi dicatat. Buka detail untuk hitung modal.');
     }
 
     public function show(ProductionOrder $productionOrder)

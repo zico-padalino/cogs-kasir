@@ -22,7 +22,7 @@ class LoginPageTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('home'))
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('overhead-rates.index'));
     }
 
     public function test_user_can_login_to_cogs_module(): void
@@ -36,7 +36,7 @@ class LoginPageTest extends TestCase
             'email' => $user->email,
             'password' => 'secret123',
             'module' => UserRole::Cogs->value,
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('overhead-rates.index'));
 
         $this->assertAuthenticatedAs($user);
     }

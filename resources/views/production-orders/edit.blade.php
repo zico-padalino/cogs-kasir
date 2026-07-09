@@ -6,7 +6,7 @@
 
 @section('content')
     <div class="mx-auto max-w-2xl">
-        <x-step-header number="5" title="Edit Produksi" description="Hanya jadwal yang belum dimulai yang bisa diubah." />
+        <x-step-header number="4" title="Edit Produksi" description="Hanya jadwal yang belum dimulai yang bisa diubah." />
 
         <div class="card">
             <form action="{{ route('production-orders.update', $order) }}" method="POST" class="space-y-5">

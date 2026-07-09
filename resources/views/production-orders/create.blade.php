@@ -6,8 +6,8 @@
 
 @section('content')
     <div class="mx-auto max-w-2xl">
-        <x-step-header number="5" title="Buat Produksi Baru"
-            description="Bahan diambil otomatis dari resep (Langkah 3). Setelah dibuat, buka detail untuk mulai dan selesai." />
+        <x-step-header number="4" title="Buat Produksi Baru"
+            description="Bahan diambil otomatis dari resep. Setelah dibuat, buka detail untuk mulai dan selesai." />
 
         <div class="card">
             <form action="{{ route('production-orders.store') }}" method="POST" class="space-y-5">

@@ -3,6 +3,7 @@
 @if (! ($setupFullyComplete ?? \App\Support\SetupProgress::isFullyComplete()))
 @php
     $steps = $setupSteps ?? \App\Support\SetupProgress::steps();
+    $totalSteps = \App\Support\SetupProgress::totalSteps();
     $current = $step ?? \App\Support\SetupProgress::currentStepNumber();
     $percent = \App\Support\SetupProgress::percentComplete();
 @endphp
@@ -10,7 +11,7 @@
 <div class="step-progress mb-4 sm:mb-6">
     <div class="step-progress-header">
         <div class="min-w-0 flex-1">
-            <p class="step-progress-label">Langkah {{ $current }} dari 6</p>
+            <p class="step-progress-label">Langkah {{ $current }} dari {{ $totalSteps }}</p>
             <p class="step-progress-sub">{{ $percent }}% selesai</p>
         </div>
         <a href="{{ route('dashboard') }}" class="step-progress-link hidden sm:inline-flex">Panduan lengkap →</a>
@@ -20,7 +21,6 @@
         <div class="step-progress-fill" style="width: {{ $percent }}%"></div>
     </div>
 
-    {{-- Mobile: grid 3×2 — semua langkah terlihat tanpa scroll --}}
     <div class="step-grid-mobile sm:hidden">
         @foreach ($steps as $s)
             @php
@@ -36,8 +36,7 @@
         @endforeach
     </div>
 
-    {{-- Desktop --}}
-    <div class="hidden gap-1 sm:grid sm:grid-cols-6">
+    <div class="hidden gap-1 sm:grid sm:grid-cols-5">
         @foreach ($steps as $s)
             @php
                 $isActive = $s['number'] === $current;

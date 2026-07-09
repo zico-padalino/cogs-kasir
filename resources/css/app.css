@@ -97,6 +97,18 @@
         @apply overflow-x-auto;
     }
 
+    .table-compact {
+        @apply text-xs;
+    }
+
+    .table-compact th {
+        @apply px-3 py-2 text-[10px];
+    }
+
+    .table-compact td {
+        @apply px-3 py-2;
+    }
+
     /* ── Tables ── */
     .table-default {
         @apply min-w-full text-sm;
@@ -208,6 +220,192 @@
 
     .info-box {
         @apply rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600;
+    }
+
+    /* ── COGS history & detail (compact) ── */
+    .cogs-history-card .table-card-header {
+        @apply items-center gap-3 px-4 py-3;
+    }
+
+    .cogs-history-card .table-card-header h2 {
+        @apply text-sm font-semibold leading-tight;
+    }
+
+    .cogs-history-summary {
+        @apply flex flex-wrap gap-2 border-b border-slate-100 bg-slate-50/70 px-4 py-2;
+    }
+
+    .cogs-history-chip {
+        @apply inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600;
+    }
+
+    .cogs-history-chip strong {
+        @apply font-bold text-slate-900;
+    }
+
+    .cogs-history-scroll {
+        @apply max-h-[min(24rem,50vh)] divide-y divide-slate-100 overflow-y-auto overscroll-contain;
+    }
+
+    .cogs-history-row {
+        @apply flex items-stretch gap-0 transition-colors hover:bg-slate-50/80;
+    }
+
+    .cogs-history-row-link {
+        @apply flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-left no-underline;
+    }
+
+    .cogs-history-row-link:hover .cogs-history-row-name {
+        @apply text-brand-700;
+    }
+
+    .cogs-history-row-main {
+        @apply min-w-0 flex-1;
+    }
+
+    .cogs-history-row-name {
+        @apply truncate text-sm font-semibold text-slate-900 transition-colors;
+    }
+
+    .cogs-history-row-meta {
+        @apply mt-0.5 truncate text-[11px] text-slate-500;
+    }
+
+    .cogs-history-row-values {
+        @apply shrink-0 text-right;
+    }
+
+    .cogs-history-row-total {
+        @apply block text-sm font-bold tabular-nums text-slate-900;
+    }
+
+    .cogs-history-row-unit {
+        @apply mt-0.5 block text-[11px] font-medium tabular-nums text-brand-600;
+    }
+
+    .cogs-history-row-chevron {
+        @apply h-4 w-4 shrink-0 text-slate-300;
+    }
+
+    .cogs-history-row-link:hover .cogs-history-row-chevron {
+        @apply text-brand-400;
+    }
+
+    .cogs-history-row-delete {
+        @apply flex shrink-0 items-center border-l border-slate-100 px-2;
+    }
+
+    .cogs-history-row-delete button {
+        @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600;
+    }
+
+    .cogs-history-empty {
+        @apply px-4 py-10 text-center;
+    }
+
+    .cogs-history-pagination {
+        @apply mt-2 border-t border-slate-100 px-2 py-2;
+    }
+
+    .cogs-detail-back {
+        @apply mb-3 inline-flex min-h-9 items-center text-sm font-medium text-brand-600 hover:text-brand-700;
+    }
+
+    .cogs-detail-card {
+        @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .cogs-detail-hero {
+        @apply border-b border-slate-100 bg-gradient-to-br from-brand-50 to-white px-4 py-4 sm:px-5;
+    }
+
+    .cogs-detail-hero-label {
+        @apply text-xs font-medium text-slate-500;
+    }
+
+    .cogs-detail-hero-value {
+        @apply mt-1 text-2xl font-bold tabular-nums text-brand-700 sm:text-3xl;
+    }
+
+    .cogs-detail-hero-sub {
+        @apply mt-1 text-sm text-slate-600;
+    }
+
+    .cogs-detail-breakdown {
+        @apply divide-y divide-slate-100 px-4 py-1 sm:px-5;
+    }
+
+    .cogs-detail-line {
+        @apply flex items-center justify-between gap-3 py-2.5 text-sm;
+    }
+
+    .cogs-detail-line dt {
+        @apply text-slate-500;
+    }
+
+    .cogs-detail-line dd {
+        @apply font-semibold tabular-nums text-slate-900;
+    }
+
+    .cogs-detail-line.is-total {
+        @apply border-t border-slate-200 bg-slate-50/50 -mx-4 px-4 sm:-mx-5 sm:px-5;
+    }
+
+    .cogs-detail-line.is-total dt {
+        @apply font-semibold text-slate-800;
+    }
+
+    .cogs-detail-line.is-total dd {
+        @apply text-base font-bold text-brand-700;
+    }
+
+    .cogs-detail-meta {
+        @apply grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 bg-slate-50/50 px-4 py-3 text-xs sm:px-5;
+    }
+
+    .cogs-detail-meta dt {
+        @apply text-slate-500;
+    }
+
+    .cogs-detail-meta dd {
+        @apply font-medium text-slate-800;
+    }
+
+    .cogs-detail-actions {
+        @apply mt-4 flex flex-wrap gap-2;
+    }
+
+    /* ── Overhead: form di atas ── */
+    .overhead-add-card {
+        @apply p-4 sm:p-5;
+    }
+
+    .overhead-add-form {
+        @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end;
+    }
+
+    .overhead-add-form .field-name {
+        @apply sm:col-span-2 lg:col-span-3;
+    }
+
+    .overhead-add-form .field-base {
+        @apply lg:col-span-3;
+    }
+
+    .overhead-add-form .field-rate {
+        @apply lg:col-span-2;
+    }
+
+    .overhead-add-form .field-note {
+        @apply sm:col-span-2 lg:col-span-3;
+    }
+
+    .overhead-add-form .field-submit {
+        @apply sm:col-span-2 lg:col-span-1;
+    }
+
+    .overhead-add-hint {
+        @apply mt-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-500;
     }
 
     .alert-tip {

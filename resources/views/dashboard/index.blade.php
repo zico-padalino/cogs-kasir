@@ -2,22 +2,22 @@
 
 @section('title', $progress['complete'] ? 'Beranda' : 'Panduan')
 @section('heading')
-    {{ $progress['complete'] ? 'Beranda' : 'Panduan Hitung Biaya Produk' }}
+    {{ $progress['complete'] ? 'Beranda' : 'Panduan Hitung Modal Menu' }}
 @endsection
 @section('subheading')
     @if ($progress['complete'])
-        Kelola data dan lihat ringkasan biaya produksi
+        Kelola bahan, menu, produksi, dan harga jual
     @else
-        Ikuti 6 langkah — dari nol sampai tahu berapa modal per produk
+        5 langkah singkat — dari bahan sampai harga jual di Kasir
     @endif
 @endsection
 
 @section('content')
     @if ($progress['complete'])
         <div class="card mb-8 border-green-200 bg-gradient-to-r from-green-50 to-white">
-            <h2 class="text-lg font-semibold text-slate-900">Setup selesai</h2>
+            <h2 class="text-lg font-semibold text-slate-900">Siap dipakai</h2>
             <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                Semua langkah sudah dijalankan. Gunakan menu di samping untuk mengelola data kapan saja.
+                Semua langkah sudah selesai. Menu bisa dijual lewat Kasir dengan harga yang sudah Anda tentukan.
             </p>
         </div>
 
@@ -34,23 +34,17 @@
         </div>
     @else
         <div class="card mb-8 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
-            <h2 class="text-lg font-semibold text-slate-900">Apa yang dihitung di sini?</h2>
-            <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                Aplikasi ini membantu Anda menghitung <strong>biaya pokok produk</strong> — artinya berapa modal yang
-                benar-benar keluar untuk membuat satu produk, dari bahan, gaji pekerja, sampai biaya operasional
-                seperti listrik dan sewa.
-            </p>
-            <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                Rumusnya sederhana:
-            </p>
-            <p class="mt-2 rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-800">
-                Biaya pokok = Bahan + Gaji pekerja + Biaya operasional
-            </p>
-            <ol class="mt-4 list-inside list-decimal space-y-1 text-sm text-slate-700">
-                <li>Daftarkan bahan & resep → produksi → dapat <strong>biaya per unit</strong></li>
-                <li>Produk jadi bisa dijual di Kasir → atur <strong>harga jual</strong> di sana</li>
-                <li>Setiap penjualan → biaya pokok tercatat otomatis</li>
+            <h2 class="text-lg font-semibold text-slate-900">Alur singkatnya</h2>
+            <ol class="mt-3 list-inside list-decimal space-y-2 text-sm text-slate-700">
+                <li><strong>Biaya lain</strong> — listrik, sewa (kalau ada)</li>
+                <li><strong>Bahan</strong> — tepung, gula, dll + stok & harga beli</li>
+                <li><strong>Menu & resep</strong> — apa yang dijual + bahan resepnya</li>
+                <li><strong>Produksi</strong> — catat berapa yang dibuat → modal terhitung</li>
+                <li><strong>Harga jual</strong> — tentukan harga menu di Kasir</li>
             </ol>
+            <p class="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-800">
+                Modal = Bahan + Upah + Biaya lain
+            </p>
         </div>
 
         <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -80,7 +74,7 @@
                         <div class="min-w-0">
                             <h3 class="font-semibold text-slate-900">{{ $step['title'] }}</h3>
                             <p class="mt-1 text-sm text-slate-600">{{ $step['description'] }}</p>
-                            <p class="mt-2 text-xs text-slate-500">💡 {{ $step['hint'] }}</p>
+                            <p class="mt-2 text-xs text-slate-500">{{ $step['hint'] }}</p>
                         </div>
                     </div>
                     <a href="{{ route($step['route']) }}" class="{{ $step['done'] ? 'btn-secondary' : 'btn-primary' }} w-full shrink-0 text-center sm:w-auto">
@@ -93,23 +87,23 @@
 
     @if ($summary['total_records'] > 0)
         <div class="mt-10">
-            <h2 class="mb-4 text-lg font-semibold">Ringkasan Biaya</h2>
+            <h2 class="mb-4 text-lg font-semibold">Ringkasan Modal</h2>
             <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <x-stat-card label="Total Biaya Pokok" :value="$format::rupiah($summary['total_cogs'])" color="brand" />
+                <x-stat-card label="Total Modal" :value="$format::rupiah($summary['total_cogs'])" color="brand" />
                 <x-stat-card label="Bahan" :value="$format::rupiah($summary['total_direct_material'])" color="green" />
-                <x-stat-card label="Gaji Pekerja" :value="$format::rupiah($summary['total_direct_labor'])" color="amber" />
-                <x-stat-card label="Biaya Operasional" :value="$format::rupiah($summary['total_overhead'])" color="rose" />
+                <x-stat-card label="Upah Kerja" :value="$format::rupiah($summary['total_direct_labor'])" color="amber" />
+                <x-stat-card label="Biaya Lain" :value="$format::rupiah($summary['total_overhead'])" color="rose" />
             </div>
 
             @if (count($summary['by_product']) > 0)
-                <x-table-card title="Biaya per Produk">
+                <x-table-card title="Modal per Menu">
                     <table class="table-default">
                         <thead>
                             <tr>
-                                <th>Produk</th>
+                                <th>Menu</th>
                                 <th>Jumlah</th>
-                                <th>Total Biaya</th>
-                                <th>Biaya per Unit</th>
+                                <th>Total Modal</th>
+                                <th>Modal / Porsi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,8 +125,8 @@
     <div class="mt-10 card border-slate-200">
         <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div>
-                <h3 class="font-semibold text-slate-800">Hapus Semua Data</h3>
-                <p class="mt-1 text-sm text-slate-500">Kosongkan database dan mulai ulang dari langkah 1.</p>
+                <h3 class="font-semibold text-slate-800">Mulai dari Awal</h3>
+                <p class="mt-1 text-sm text-slate-500">Hapus semua data dan ulang dari langkah 1.</p>
             </div>
             <a href="{{ route('reset-data.show') }}" class="btn-danger w-full sm:w-auto">Hapus Semua Data</a>
         </div>

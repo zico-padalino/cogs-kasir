@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#4f46e5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>@yield('title', 'Panduan') — Hitung Biaya Produk</title>
+    <title>@yield('title', 'Panduan') — Hitung Modal Menu</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
@@ -20,8 +20,8 @@
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-600 font-bold">C</div>
                     <div class="min-w-0">
-                        <p class="truncate text-sm font-semibold">Hitung Biaya Produk</p>
-                        <p class="truncate text-xs text-slate-400">Tahu modal & harga pokok</p>
+                        <p class="truncate text-sm font-semibold">Hitung Modal Menu</p>
+                        <p class="truncate text-xs text-slate-400">Dari bahan sampai harga jual</p>
                     </div>
                 </div>
             </div>
@@ -53,11 +53,6 @@
                             <span class="truncate">{{ $step['short'] }}</span>
                         </a>
                     @endforeach
-
-                    <a href="{{ route('cogs.history') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm transition {{ request()->routeIs('cogs.*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="truncate">Hasil Perhitungan</span>
-                    </a>
                 @else
                     <a href="{{ route('dashboard') }}"
                        class="mb-2 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">

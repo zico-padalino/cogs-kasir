@@ -11,161 +11,169 @@ use App\Models\ProductionOrder;
 
 class SetupProgress
 {
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public static function steps(): array
-    {
-        $hasOverhead = OverheadRate::where('is_active', true)->exists();
-        $hasRawMaterial = Product::where('type', 'raw_material')->exists();
-        $hasFinished = Product::whereIn('type', ['semi_finished', 'finished_good'])->exists();
-        $hasBom = BillOfMaterial::exists();
-        $hasStock = InventoryLot::where('quantity_remaining', '>', 0)->exists();
-        $hasProduction = ProductionOrder::where('status', 'completed')->exists();
-        $hasCogs = CogsCalculation::exists();
+  public static function totalSteps(): int
+  {
+    return count(self::steps());
+  }
 
-        return [
-            [
-                'number' => 1,
-                'key' => 'overhead',
-                'title' => 'Biaya Operasional',
-                'short' => 'Biaya Ops',
-                'description' => 'Catat biaya tambahan seperti listrik, sewa, dan air yang ikut masuk ke harga produk.',
-                'route' => 'overhead-rates.index',
-                'done' => $hasOverhead,
-                'hint' => 'Minimal 1 aturan, misalnya 15% dari total biaya bahan.',
-            ],
-            [
-                'number' => 2,
-                'key' => 'products',
-                'title' => 'Daftar Produk',
-                'short' => 'Produk',
-                'description' => 'Daftarkan bahan baku (tepung, gula) dan produk jadi (roti) yang akan dihitung biayanya.',
-                'route' => 'products.index',
-                'done' => $hasRawMaterial && $hasFinished,
-                'hint' => 'Buat minimal 1 bahan baku dan 1 produk jadi.',
-            ],
-            [
-                'number' => 3,
-                'key' => 'bom',
-                'title' => 'Resep Produksi',
-                'short' => 'Resep',
-                'description' => 'Tulis bahan apa saja dan berapa banyak yang dipakai untuk membuat 1 produk.',
-                'route' => 'products.index',
-                'done' => $hasBom,
-                'hint' => 'Buka detail produk jadi, lalu tambahkan bahan-bahannya.',
-            ],
-            [
-                'number' => 4,
-                'key' => 'inventory',
-                'title' => 'Stok Bahan Baku',
-                'short' => 'Stok',
-                'description' => 'Catat bahan yang masuk gudang beserta harga belinya.',
-                'route' => 'inventory.index',
-                'done' => $hasStock,
-                'hint' => 'Isi jumlah stok dan harga beli per satuan.',
-            ],
-            [
-                'number' => 5,
-                'key' => 'production',
-                'title' => 'Proses Produksi',
-                'short' => 'Produksi',
-                'description' => 'Buat jadwal produksi, mulai kerja, lalu tandai selesai agar biaya terhitung otomatis.',
-                'route' => 'production-orders.index',
-                'done' => $hasProduction,
-                'hint' => 'Buat produksi → Mulai → Selesai & hitung biaya.',
-            ],
-            [
-                'number' => 6,
-                'key' => 'result',
-                'title' => 'Hasil Perhitungan',
-                'short' => 'Hasil',
-                'description' => 'Lihat berapa total biaya dan biaya per unit produk yang sudah dibuat.',
-                'route' => 'cogs.history',
-                'done' => $hasCogs,
-                'hint' => 'Hasil muncul otomatis setelah produksi ditandai selesai.',
-            ],
-        ];
+  /**
+   * @return array<int, array<string, mixed>>
+   */
+  public static function steps(): array
+  {
+    $hasOverhead = OverheadRate::where('is_active', true)->exists();
+    $hasRawMaterial = Product::where('type', 'raw_material')->exists();
+    $hasStock = InventoryLot::where('quantity_remaining', '>', 0)->exists();
+    $hasFinished = Product::whereIn('type', ['semi_finished', 'finished_good'])->exists();
+    $hasBom = BillOfMaterial::exists();
+    $hasProduction = ProductionOrder::where('status', 'completed')->exists();
+    $hasPricing = Product::query()
+      ->whereIn('type', ['semi_finished', 'finished_good'])
+      ->where('selling_price', '>', 0)
+      ->exists();
+
+    return [
+      [
+        'number' => 1,
+        'key' => 'overhead',
+        'title' => 'Biaya Lain',
+        'short' => 'Biaya Lain',
+        'description' => 'Listrik, sewa, air — biaya di luar bahan & upah.',
+        'route' => 'overhead-rates.index',
+        'done' => $hasOverhead,
+        'hint' => 'Contoh: listrik 15% dari harga bahan (isi 0,15).',
+      ],
+      [
+        'number' => 2,
+        'key' => 'materials',
+        'title' => 'Bahan',
+        'short' => 'Bahan',
+        'description' => 'Catat bahan baku plus stok dan harga belinya.',
+        'route' => 'materials.index',
+        'done' => $hasRawMaterial && $hasStock,
+        'hint' => 'Nama bahan, jumlah stok, harga beli — sekali isi langsung jadi.',
+      ],
+      [
+        'number' => 3,
+        'key' => 'products',
+        'title' => 'Menu & Resep',
+        'short' => 'Menu',
+        'description' => 'Tambah menu yang dijual, lalu tulis bahan resepnya.',
+        'route' => 'products.index',
+        'done' => $hasFinished && $hasBom,
+        'hint' => 'Tambah menu → buka detail → isi bahan resep.',
+      ],
+      [
+        'number' => 4,
+        'key' => 'production',
+        'title' => 'Produksi',
+        'short' => 'Produksi',
+        'description' => 'Catat berapa yang dibuat — modal dihitung otomatis.',
+        'route' => 'production-orders.index',
+        'done' => $hasProduction,
+        'hint' => 'Pilih menu, isi jumlah, tekan Catat & Hitung Modal.',
+      ],
+      [
+        'number' => 5,
+        'key' => 'pricing',
+        'title' => 'Harga Jual',
+        'short' => 'Harga Jual',
+        'description' => 'Tentukan harga jual menu berdasarkan modal.',
+        'route' => 'menu-pricing.index',
+        'done' => $hasPricing,
+        'hint' => 'Isi harga jual dan centang tampil di Kasir.',
+      ],
+    ];
+  }
+
+  public static function currentStepNumber(): int
+  {
+    foreach (self::steps() as $step) {
+      if (! $step['done']) {
+        return $step['number'];
+      }
     }
 
-    public static function currentStepNumber(): int
-    {
-        foreach (self::steps() as $step) {
-            if (! $step['done']) {
-                return $step['number'];
-            }
-        }
+    return self::totalSteps();
+  }
 
-        return 6;
+  public static function completedCount(): int
+  {
+    return collect(self::steps())->where('done', true)->count();
+  }
+
+  public static function percentComplete(): int
+  {
+    $total = self::totalSteps();
+
+    return $total > 0
+      ? (int) round((self::completedCount() / $total) * 100)
+      : 0;
+  }
+
+  public static function isFullyComplete(): bool
+  {
+    return self::completedCount() === self::totalSteps();
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  public static function currentStep(): ?array
+  {
+    foreach (self::steps() as $step) {
+      if (! $step['done']) {
+        return $step;
+      }
     }
 
-    public static function completedCount(): int
-    {
-        return collect(self::steps())->where('done', true)->count();
+    return null;
+  }
+
+  public static function stepForRoute(?string $routeName): ?int
+  {
+    if (! $routeName) {
+      return null;
     }
 
-    public static function percentComplete(): int
-    {
-        return (int) round((self::completedCount() / 6) * 100);
+    $map = [
+      'overhead-rates.index' => 1,
+      'overhead-rates.edit' => 1,
+      'overhead-rates.update' => 1,
+      'materials.index' => 2,
+      'materials.store' => 2,
+      'materials.receive' => 2,
+      'materials.lots.update' => 2,
+      'inventory.index' => 2,
+      'inventory.receive' => 2,
+      'inventory.lots.update' => 2,
+      'products.index' => 3,
+      'products.create' => 3,
+      'products.store' => 3,
+      'products.edit' => 3,
+      'products.update' => 3,
+      'products.show' => 3,
+      'products.bom.store' => 3,
+      'products.bom.update' => 3,
+      'production-orders.index' => 4,
+      'production-orders.create' => 4,
+      'production-orders.edit' => 4,
+      'production-orders.store' => 4,
+      'production-orders.show' => 4,
+      'menu-pricing.index' => 5,
+      'menu-pricing.update' => 5,
+      'cogs.history' => 5,
+      'cogs.history.show' => 5,
+      'cogs.result' => 5,
+      'dashboard' => null,
+    ];
+
+    foreach ($map as $route => $step) {
+      if ($routeName === $route || str_starts_with($routeName, rtrim($route, '.index').'.')) {
+        return $step;
+      }
     }
 
-    public static function isFullyComplete(): bool
-    {
-        return self::completedCount() === 6;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    public static function currentStep(): ?array
-    {
-        foreach (self::steps() as $step) {
-            if (! $step['done']) {
-                return $step;
-            }
-        }
-
-        return null;
-    }
-
-    public static function stepForRoute(?string $routeName): ?int
-    {
-        if (! $routeName) {
-            return null;
-        }
-
-        $map = [
-            'overhead-rates.index' => 1,
-            'overhead-rates.edit' => 1,
-            'overhead-rates.update' => 1,
-            'products.index' => 2,
-            'products.create' => 2,
-            'products.store' => 2,
-            'products.edit' => 2,
-            'products.update' => 2,
-            'products.show' => 3,
-            'products.bom.store' => 3,
-            'products.bom.update' => 3,
-            'inventory.index' => 4,
-            'inventory.receive' => 4,
-            'inventory.lots.update' => 4,
-            'production-orders.index' => 5,
-            'production-orders.create' => 5,
-            'production-orders.edit' => 5,
-            'production-orders.store' => 5,
-            'production-orders.show' => 5,
-            'cogs.history' => 6,
-            'cogs.history.show' => 6,
-            'cogs.calculate' => 6,
-            'dashboard' => null,
-        ];
-
-        foreach ($map as $route => $step) {
-            if ($routeName === $route || str_starts_with($routeName, rtrim($route, '.index').'.')) {
-                return $step;
-            }
-        }
-
-        return null;
-    }
+    return null;
+  }
 }

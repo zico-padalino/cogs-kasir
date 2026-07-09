@@ -10,7 +10,7 @@
             <h3 class="text-sm font-semibold text-slate-700">Data saat ini</h3>
             <dl class="mt-2 grid grid-cols-2 gap-2 text-sm">
                 <div><dt class="text-slate-500">Produk</dt><dd class="font-bold">{{ $counts['products'] }}</dd></div>
-                <div><dt class="text-slate-500">Biaya operasional</dt><dd class="font-bold">{{ $counts['overhead_rates'] }}</dd></div>
+                <div><dt class="text-slate-500">Biaya tambahan</dt><dd class="font-bold">{{ $counts['overhead_rates'] }}</dd></div>
                 <div><dt class="text-slate-500">Stok (batch)</dt><dd class="font-bold">{{ $counts['inventory_lots'] }}</dd></div>
                 <div><dt class="text-slate-500">Produksi</dt><dd class="font-bold">{{ $counts['production_orders'] }}</dd></div>
                 <div><dt class="text-slate-500">Riwayat biaya</dt><dd class="font-bold">{{ $counts['cogs_calculations'] }}</dd></div>

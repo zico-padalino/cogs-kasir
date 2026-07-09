@@ -15,9 +15,15 @@ class OverheadRateController extends Controller
     {
         $rates = OverheadRate::latest()->get();
 
+        $allocationBases = [
+            OverheadAllocationBase::DirectMaterial,
+            OverheadAllocationBase::DirectLabor,
+            OverheadAllocationBase::LaborHours,
+        ];
+
         return view('overhead-rates.index', [
             'rates' => $rates,
-            'allocationBases' => OverheadAllocationBase::cases(),
+            'allocationBases' => $allocationBases,
             'format' => Format::class,
         ]);
     }
@@ -38,14 +44,18 @@ class OverheadRateController extends Controller
 
         OverheadRate::create($validated);
 
-        return redirect()->route('overhead-rates.index')->with('success', 'Biaya operasional berhasil ditambahkan.');
+        return redirect()->route('overhead-rates.index')->with('success', 'Biaya berhasil ditambahkan.');
     }
 
     public function edit(OverheadRate $overheadRate)
     {
         return view('overhead-rates.edit', [
             'rate' => $overheadRate,
-            'allocationBases' => OverheadAllocationBase::cases(),
+            'allocationBases' => [
+                OverheadAllocationBase::DirectMaterial,
+                OverheadAllocationBase::DirectLabor,
+                OverheadAllocationBase::LaborHours,
+            ],
         ]);
     }
 
@@ -64,13 +74,13 @@ class OverheadRateController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
-        return redirect()->route('overhead-rates.index')->with('success', 'Biaya operasional berhasil diperbarui.');
+        return redirect()->route('overhead-rates.index')->with('success', 'Biaya berhasil diperbarui.');
     }
 
     public function destroy(OverheadRate $overheadRate)
     {
         $overheadRate->delete();
 
-        return redirect()->route('overhead-rates.index')->with('success', 'Biaya operasional dihapus.');
+        return redirect()->route('overhead-rates.index')->with('success', 'Biaya dihapus.');
     }
 }

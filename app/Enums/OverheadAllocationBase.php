@@ -13,11 +13,20 @@ enum OverheadAllocationBase: string
     public function label(): string
     {
         return match ($this) {
-            self::DirectMaterial => 'Total biaya bahan',
-            self::DirectLabor => 'Total gaji pekerja',
-            self::LaborHours => 'Jam kerja',
-            self::MachineHours => 'Jam mesin jalan',
-            self::UnitsProduced => 'Jumlah produk dibuat',
+            self::DirectMaterial => '% dari harga bahan',
+            self::DirectLabor => '% dari upah kerja',
+            self::LaborHours => 'Per jam orang kerja',
+            self::MachineHours => 'Per jam mesin dipakai',
+            self::UnitsProduced => 'Per buah produk',
+        };
+    }
+
+    /** Nilai ditulis sebagai desimal (0,15 = 15%), bukan rupiah. */
+    public function isRatioBased(): bool
+    {
+        return match ($this) {
+            self::DirectMaterial, self::DirectLabor => true,
+            default => false,
         };
     }
 }

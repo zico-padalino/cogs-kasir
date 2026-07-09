@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use App\Support\CogsNavigation;
+
 enum UserRole: string
 {
     case Cogs = 'cogs';
@@ -38,7 +40,7 @@ enum UserRole: string
     public function homeRoute(): string
     {
         return match ($this) {
-            self::Cogs => 'dashboard',
+            self::Cogs => CogsNavigation::preferredRouteName(),
             self::Kasir => 'kasir.index',
             self::Admin => 'admin.dashboard',
         };

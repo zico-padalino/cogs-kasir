@@ -56,10 +56,38 @@ class CogsController extends Controller
             $request->boolean('consume_inventory', false),
         );
 
+        session(['cogs_preview' => [
+            'product_id' => $product->id,
+            'quantity' => $quantity,
+            'result' => $cogsResult->toArray(),
+        ]]);
+
+        return redirect()->route('cogs.result');
+    }
+
+    public function result()
+    {
+        $preview = session('cogs_preview');
+
+        if (! is_array($preview) || ! isset($preview['product_id'], $preview['quantity'], $preview['result'])) {
+            return redirect()->route('cogs.calculate');
+        }
+
+        $product = Product::findOrFail($preview['product_id']);
+        $result = $preview['result'];
+
         return view('cogs.result', [
             'product' => $product,
-            'quantity' => $quantity,
-            'cogsResult' => $cogsResult,
+            'quantity' => (float) $preview['quantity'],
+            'cogsResult' => new \App\DTOs\CogsResult(
+                directMaterial: (float) $result['direct_material'],
+                directLabor: (float) ($result['direct_labor'] ?? 0),
+                manufacturingOverhead: (float) $result['manufacturing_overhead'],
+                totalHpp: (float) $result['total_hpp'],
+                unitHpp: (float) $result['unit_hpp'],
+                calculationMethod: (string) $result['calculation_method'],
+                breakdown: $result['breakdown'] ?? [],
+            ),
             'isSale' => false,
             'format' => Format::class,
         ]);
@@ -69,10 +97,15 @@ class CogsController extends Controller
     {
         $calculations = CogsCalculation::with('product')
             ->latest('calculated_at')
-            ->paginate(20);
+            ->paginate(15);
+
+        $summary = CogsCalculation::query()
+            ->selectRaw('COUNT(*) as records, COALESCE(SUM(total_cogs), 0) as total_cost')
+            ->first();
 
         return view('cogs.history', [
             'calculations' => $calculations,
+            'summary' => $summary,
             'format' => Format::class,
         ]);
     }

@@ -26,7 +26,7 @@
                 <dl class="space-y-3 text-sm">
                     <div class="flex justify-between"><dt class="text-slate-500">Bahan</dt><dd class="font-medium">{{ $format::rupiah($calc->direct_material) }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Gaji pekerja</dt><dd class="font-medium">{{ $format::rupiah($calc->direct_labor) }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">Biaya operasional</dt><dd class="font-medium">{{ $format::rupiah($calc->manufacturing_overhead) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Biaya tambahan</dt><dd class="font-medium">{{ $format::rupiah($calc->manufacturing_overhead) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-3"><dt class="font-semibold">Biaya per unit</dt><dd class="font-bold text-brand-600">{{ $format::rupiah($calc->unitHpp(), 2) }}</dd></div>
                 </dl>
             </div>
@@ -43,7 +43,7 @@
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <x-stat-card label="Total Biaya Pokok" :value="$format::rupiah($cogsResult->totalHpp)" color="brand" />
             <x-stat-card label="Bahan" :value="$format::rupiah($cogsResult->directMaterial)" color="green" />
-            <x-stat-card label="Biaya Operasional" :value="$format::rupiah($cogsResult->manufacturingOverhead)" color="rose" />
+            <x-stat-card label="Biaya Tambahan" :value="$format::rupiah($cogsResult->manufacturingOverhead)" color="rose" />
             <x-stat-card label="Biaya per Unit" :value="$format::rupiah($cogsResult->unitHpp, 2)" color="slate" />
         </div>
 

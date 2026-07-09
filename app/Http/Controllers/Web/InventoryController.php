@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\CostingMethod;
+use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInventoryReceiptRequest;
 use App\Models\InventoryLot;
@@ -9,73 +11,110 @@ use App\Models\Product;
 use App\Services\InventoryCostService;
 use App\Support\Format;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class InventoryController extends Controller
 {
-    public function index(InventoryCostService $inventoryService)
-    {
-        $lots = InventoryLot::with('product')
-            ->where('quantity_remaining', '>', 0)
-            ->latest('received_at')
-            ->get();
+  public function index(InventoryCostService $inventoryService)
+  {
+    $materials = Product::query()
+      ->where('type', ProductType::RawMaterial->value)
+      ->where('is_active', true)
+      ->with(['inventoryLots' => fn ($q) => $q->orderByDesc('received_at')])
+      ->orderBy('name')
+      ->get()
+      ->map(function (Product $product) use ($inventoryService) {
+        $product->available_qty = $product->availableQuantity();
+        $product->avg_cost = $inventoryService->getWeightedAverageCost($product);
 
-        $products = Product::with(['inventoryLots' => fn ($q) => $q->where('quantity_remaining', '>', 0)])
-            ->orderBy('name')
-            ->get()
-            ->map(function (Product $product) use ($inventoryService) {
-                $product->available_qty = $product->availableQuantity();
-                $product->avg_cost = $inventoryService->getWeightedAverageCost($product);
+        return $product;
+      });
 
-                return $product;
-            });
+    return view('materials.index', [
+      'materials' => $materials,
+      'format' => Format::class,
+    ]);
+  }
 
-        $rawMaterials = Product::where('is_active', true)->orderBy('name')->get();
+  public function storeMaterial(Request $request, InventoryCostService $inventoryService)
+  {
+    $validated = $request->validate([
+      'name' => ['required', 'string', 'max:255'],
+      'unit' => ['required', 'string', 'max:20'],
+      'quantity' => ['required', 'numeric', 'gt:0'],
+      'unit_cost' => ['required'],
+    ]);
 
-        return view('inventory.index', [
-            'lots' => $lots,
-            'products' => $products,
-            'rawMaterials' => $rawMaterials,
-            'format' => Format::class,
-        ]);
+    $product = Product::create([
+      'sku' => $this->generateMaterialSku($validated['name']),
+      'name' => $validated['name'],
+      'type' => ProductType::RawMaterial,
+      'unit' => $validated['unit'],
+      'costing_method' => CostingMethod::WeightedAverage,
+      'is_active' => true,
+    ]);
+
+    $inventoryService->receiveStock(
+      product: $product,
+      quantity: (float) $validated['quantity'],
+      unitCost: Format::parseRupiah($validated['unit_cost']),
+    );
+
+    return redirect()->route('materials.index')
+      ->with('success', "Bahan {$product->name} ditambahkan beserta stok awal.");
+  }
+
+  public function receive(StoreInventoryReceiptRequest $request, InventoryCostService $inventoryService)
+  {
+    $product = Product::findOrFail($request->product_id);
+
+    $inventoryService->receiveStock(
+      product: $product,
+      quantity: (float) $request->quantity,
+      unitCost: (float) $request->unit_cost,
+      lotNumber: $request->lot_number,
+    );
+
+    return redirect()->route('materials.index')
+      ->with('success', "Stok {$product->name} bertambah.");
+  }
+
+  public function update(Request $request, InventoryLot $lot)
+  {
+    $validated = $request->validate([
+      'lot_number' => ['nullable', 'string', 'max:255'],
+      'quantity_remaining' => ['required', 'numeric', 'min:0', 'max:'.$lot->quantity_received],
+      'unit_cost' => ['required', 'numeric', 'min:0'],
+    ]);
+
+    $validated['unit_cost'] = Format::parseRupiah($validated['unit_cost']);
+
+    $lot->update($validated);
+
+    return redirect()->route('materials.index')->with('success', 'Stok berhasil diperbarui.');
+  }
+
+  public function destroy(InventoryLot $lot)
+  {
+    if ((float) $lot->quantity_remaining < (float) $lot->quantity_received) {
+      return redirect()->route('materials.index')->with('error', 'Stok yang sudah dipakai produksi tidak bisa dihapus.');
     }
 
-    public function receive(StoreInventoryReceiptRequest $request, InventoryCostService $inventoryService)
-    {
-        $product = Product::findOrFail($request->product_id);
+    $lot->delete();
 
-        $inventoryService->receiveStock(
-            product: $product,
-            quantity: (float) $request->quantity,
-            unitCost: (float) $request->unit_cost,
-            lotNumber: $request->lot_number,
-        );
+    return redirect()->route('materials.index')->with('success', 'Batch stok dihapus.');
+  }
 
-        return redirect()->route('inventory.index')->with('success', "Stok {$product->name} berhasil diterima.");
+  private function generateMaterialSku(string $name): string
+  {
+    $base = 'BM-'.strtoupper(Str::slug(Str::limit($name, 24, '')));
+    $sku = $base;
+    $suffix = 1;
+
+    while (Product::where('sku', $sku)->exists()) {
+      $sku = $base.'-'.$suffix++;
     }
 
-    public function update(Request $request, InventoryLot $lot)
-    {
-        $validated = $request->validate([
-            'lot_number' => ['nullable', 'string', 'max:255'],
-            'quantity_remaining' => ['required', 'numeric', 'min:0', 'max:'.$lot->quantity_received],
-            'unit_cost' => ['required', 'numeric', 'min:0'],
-        ]);
-
-        $validated['unit_cost'] = Format::parseRupiah($validated['unit_cost']);
-
-        $lot->update($validated);
-
-        return redirect()->route('inventory.index')->with('success', 'Stok berhasil diperbarui.');
-    }
-
-    public function destroy(InventoryLot $lot)
-    {
-        if ((float) $lot->quantity_remaining < (float) $lot->quantity_received) {
-            return back()->with('error', 'Stok yang sudah dipakai produksi tidak bisa dihapus.');
-        }
-
-        $lot->delete();
-
-        return redirect()->route('inventory.index')->with('success', 'Stok berhasil dihapus.');
-    }
+    return $sku;
+  }
 }

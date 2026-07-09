@@ -39,11 +39,11 @@ class WebPagesTest extends TestCase
         $this->get(route('products.create'))->assertOk();
     }
 
-    public function test_inventory_page_is_accessible(): void
+    public function test_materials_page_is_accessible(): void
     {
         $this->actingAsCogsUser();
 
-        $this->get(route('inventory.index'))->assertOk();
+        $this->get(route('materials.index'))->assertOk();
     }
 
     public function test_production_order_pages_are_accessible(): void
@@ -51,14 +51,21 @@ class WebPagesTest extends TestCase
         $this->actingAsCogsUser();
 
         $this->get(route('production-orders.index'))->assertOk();
-        $this->get(route('production-orders.create'))->assertOk();
+        $this->get(route('production-orders.create'))->assertRedirect(route('production-orders.index'));
+    }
+
+    public function test_menu_pricing_page_is_accessible(): void
+    {
+        $this->actingAsCogsUser();
+
+        $this->get(route('menu-pricing.index'))->assertOk();
     }
 
     public function test_cogs_pages_are_accessible(): void
     {
         $this->actingAsCogsUser();
 
-        $this->get(route('cogs.calculate'))->assertOk();
+        $this->get(route('cogs.calculate'))->assertRedirect(route('menu-pricing.index'));
         $this->get(route('cogs.history'))->assertOk();
     }
 
@@ -88,7 +95,7 @@ class WebPagesTest extends TestCase
         ]);
 
         $this->delete(route('products.destroy', $product))
-            ->assertRedirect(route('products.index'));
+            ->assertRedirect(route('materials.index'));
 
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
     }

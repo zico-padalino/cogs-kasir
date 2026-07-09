@@ -1,36 +1,58 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Hasil')
-@section('heading', 'Detail Perhitungan Biaya')
+@section('title', 'Detail Modal')
+@section('heading', 'Rincian Modal')
 @section('subheading', $calculation->product->name)
 
 @section('content')
-    <x-step-header number="6" title="Detail Perhitungan"
-        description="Rincian lengkap biaya pokok produk ini." />
+    <a href="{{ route('cogs.history') }}" class="cogs-detail-back">← Kembali ke riwayat</a>
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat-card label="Total Biaya" :value="$format::rupiah($calculation->total_cogs)" color="brand" />
-        <x-stat-card label="Bahan" :value="$format::rupiah($calculation->direct_material)" color="green" />
-        <x-stat-card label="Gaji Pekerja" :value="$format::rupiah($calculation->direct_labor)" color="amber" />
-        <x-stat-card label="Biaya per Unit" :value="$format::rupiah($calculation->unit_cogs, 2)" color="slate" />
-    </div>
+    <article class="cogs-detail-card">
+        <header class="cogs-detail-hero">
+            <p class="cogs-detail-hero-label">Modal per porsi</p>
+            <p class="cogs-detail-hero-value">{{ $format::rupiah($calculation->unit_cogs, 0) }}</p>
+            <p class="cogs-detail-hero-sub">
+                {{ $calculation->product->name }}
+                · {{ $format::number($calculation->quantity, 0) }} {{ $calculation->product->unit }}
+            </p>
+        </header>
 
-    <div class="card mb-6">
-        <dl class="detail-meta">
-            <div><dt class="text-slate-500">Produk</dt><dd class="font-medium">{{ $calculation->product->name }}</dd></div>
-            <div><dt class="text-slate-500">Jumlah</dt><dd class="font-medium">{{ $format::number($calculation->quantity, 0) }} {{ $calculation->product->unit }}</dd></div>
-            <div><dt class="text-slate-500">Biaya operasional</dt><dd class="font-medium">{{ $format::rupiah($calculation->manufacturing_overhead) }}</dd></div>
-            <div><dt class="text-slate-500">Tanggal</dt><dd class="font-medium">{{ $calculation->calculated_at->format('d/m/Y H:i') }}</dd></div>
-            <div><dt class="text-slate-500">Cara hitung</dt><dd class="font-medium">{{ $calculation->calculation_method }}</dd></div>
+        <dl class="cogs-detail-breakdown">
+            <div class="cogs-detail-line">
+                <dt>Bahan</dt>
+                <dd>{{ $format::rupiah($calculation->direct_material) }}</dd>
+            </div>
+            <div class="cogs-detail-line">
+                <dt>Upah kerja</dt>
+                <dd>{{ $format::rupiah($calculation->direct_labor) }}</dd>
+            </div>
+            <div class="cogs-detail-line">
+                <dt>Biaya lain</dt>
+                <dd>{{ $format::rupiah($calculation->manufacturing_overhead) }}</dd>
+            </div>
+            <div class="cogs-detail-line is-total">
+                <dt>Total modal</dt>
+                <dd>{{ $format::rupiah($calculation->total_cogs) }}</dd>
+            </div>
         </dl>
-    </div>
 
-    <x-page-actions>
-        <a href="{{ route('cogs.history') }}" class="btn-secondary">← Daftar</a>
-        <a href="{{ route('cogs.calculate') }}" class="btn-primary">+ Hitung Lagi</a>
+        <dl class="cogs-detail-meta">
+            <div>
+                <dt>Tanggal</dt>
+                <dd>{{ $calculation->calculated_at->format('d/m/Y H:i') }}</dd>
+            </div>
+            <div>
+                <dt>Cara hitung</dt>
+                <dd>{{ $calculation->calculation_method }}</dd>
+            </div>
+        </dl>
+    </article>
+
+    <div class="cogs-detail-actions">
+        <a href="{{ route('cogs.calculate') }}" class="btn-primary btn-sm">Hitung lagi</a>
         <form action="{{ route('cogs.history.destroy', $calculation) }}" method="POST" onsubmit="return confirm('Hapus riwayat ini?')">
             @csrf @method('DELETE')
-            <button type="submit" class="btn-danger">Hapus</button>
+            <button type="submit" class="btn-outline-danger btn-sm">Hapus</button>
         </form>
-    </x-page-actions>
+    </div>
 @endsection

@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use App\Support\CogsNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,7 +66,11 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $request->session()->put('auth_module', $module->value);
 
-        return redirect()->intended(route($module->homeRoute()));
+        $homeRoute = $module === UserRole::Cogs
+            ? CogsNavigation::preferredRouteName()
+            : $module->homeRoute();
+
+        return redirect()->intended(route($homeRoute));
     }
 
     public function destroy(Request $request)

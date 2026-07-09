@@ -1,73 +1,59 @@
 @extends('layouts.app')
 
-@section('title', 'Hasil Perhitungan')
-@section('heading', 'Langkah 6: Hasil Perhitungan')
-@section('subheading', 'Riwayat semua perhitungan biaya produksi')
+@section('title', 'Rincian Modal')
+@section('heading', 'Rincian Perhitungan Modal')
+@section('subheading', 'Detail bahan, upah, dan biaya lain per produksi')
 
 @section('content')
-    <x-step-header number="6" title="Hasil Perhitungan Biaya"
-        description="Lihat riwayat biaya yang sudah terhitung. Bisa dihitung ulang manual atau dari produksi." />
-
-    <div class="page-toolbar">
-        <p class="text-sm text-slate-500 sm:flex-1">Semua hasil perhitungan biaya pokok produk.</p>
-        <a href="{{ route('cogs.calculate') }}" class="btn-primary shrink-0">+ Hitung Manual</a>
+    <div class="mb-4">
+        <a href="{{ route('menu-pricing.index') }}" class="cogs-detail-back">← Kembali ke Harga Jual</a>
     </div>
 
-    <x-table-card title="Riwayat Perhitungan" subtitle="{{ $calculations->total() }} catatan">
+    <x-table-card class="cogs-history-card" title="Riwayat Produksi" :subtitle="null">
         @if ($calculations->isNotEmpty())
-            <table class="table-default">
-                <thead>
-                    <tr>
-                        <th>Tanggal</th>
-                        <th>Produk</th>
-                        <th>Jumlah</th>
-                        <th>Bahan</th>
-                        <th>Gaji</th>
-                        <th>Ops</th>
-                        <th>Total</th>
-                        <th>Per Unit</th>
-                        <th class="col-actions">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($calculations as $calc)
-                        <tr>
-                            <td class="whitespace-nowrap text-xs cell-muted">{{ $calc->calculated_at->format('d/m/Y H:i') }}</td>
-                            <td class="font-semibold text-slate-900">{{ $calc->product->name }}</td>
-                            <td>{{ $format::number($calc->quantity, 0) }}</td>
-                            <td class="cell-money">{{ $format::rupiah($calc->direct_material) }}</td>
-                            <td class="cell-money">{{ $format::rupiah($calc->direct_labor) }}</td>
-                            <td class="cell-money">{{ $format::rupiah($calc->manufacturing_overhead) }}</td>
-                            <td class="cell-money font-semibold">{{ $format::rupiah($calc->total_cogs) }}</td>
-                            <td class="cell-highlight">{{ $format::rupiah($calc->unit_cogs, 2) }}</td>
-                            <td class="col-actions">
-                                <x-crud-actions
-                                    :show="route('cogs.history.show', $calc)"
-                                    :delete="route('cogs.history.destroy', $calc)"
-                                />
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+            <div class="cogs-history-summary">
+                <span class="cogs-history-chip"><strong>{{ $format::number($summary->records, 0) }}</strong> catatan</span>
+                <span class="cogs-history-chip">Total modal <strong>{{ $format::rupiah($summary->total_cost) }}</strong></span>
+            </div>
+
+            <div class="cogs-history-scroll">
+                @foreach ($calculations as $calc)
+                    <div class="cogs-history-row">
+                        <a href="{{ route('cogs.history.show', $calc) }}" class="cogs-history-row-link">
+                            <div class="cogs-history-row-main">
+                                <p class="cogs-history-row-name">{{ $calc->product->name }}</p>
+                                <p class="cogs-history-row-meta">
+                                    {{ $calc->calculated_at->format('d/m · H:i') }}
+                                    · {{ $format::number($calc->quantity, 0) }} {{ $calc->product->unit }}
+                                </p>
+                            </div>
+                            <div class="cogs-history-row-values">
+                                <span class="cogs-history-row-total">{{ $format::rupiah($calc->total_cogs) }}</span>
+                                <span class="cogs-history-row-unit">{{ $format::rupiah($calc->unit_cogs, 0) }}/{{ $calc->product->unit }}</span>
+                            </div>
+                            <svg class="cogs-history-row-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                        <div class="cogs-history-row-delete">
+                            <form action="{{ route('cogs.history.destroy', $calc) }}" method="POST" onsubmit="return confirm('Hapus riwayat ini?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn-outline-danger btn-sm">Hapus</button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <x-slot:footer>
+                <div class="pagination-wrap w-full">{{ $calculations->links() }}</div>
+            </x-slot:footer>
         @else
-            <div class="empty-state">
-                <p>Belum ada hasil.</p>
-                <p class="empty-hint">Selesaikan produksi di Langkah 5 untuk melihat biaya di sini.</p>
-                <a href="{{ route('production-orders.index') }}" class="btn-primary mt-5 inline-flex">Ke Produksi</a>
+            <div class="cogs-history-empty">
+                <p class="text-sm text-slate-600">Belum ada perhitungan modal.</p>
+                <p class="mt-1 text-xs text-slate-500">Catat produksi dulu — modal akan muncul di sini otomatis.</p>
+                <a href="{{ route('production-orders.index') }}" class="btn-primary btn-sm mt-4 inline-flex">Ke Produksi</a>
             </div>
         @endif
     </x-table-card>
-
-    @if ($calculations->hasPages())
-        <div class="pagination-wrap mt-4">{{ $calculations->links() }}</div>
-    @endif
-
-    <div class="info-box mt-6">
-        <h3 class="font-semibold text-slate-800">Rumus singkat</h3>
-        <p class="mt-2">
-            <strong>Biaya pokok</strong> = Bahan + Gaji pekerja + Biaya operasional<br>
-            <strong>Biaya per unit</strong> = Total biaya ÷ Jumlah produk
-        </p>
-    </div>
 @endsection

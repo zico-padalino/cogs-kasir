@@ -2,148 +2,111 @@
 
 @section('title', $product->name)
 @section('heading', $product->name)
-@section('subheading', $product->sku . ' · ' . $product->type->label())
+@section('subheading', 'Resep bahan untuk 1 {{ $product->unit }}')
 
 @section('content')
-    <x-page-actions :back="route('products.index')" back-label="← Daftar produk">
-        <a href="{{ route('products.edit', $product) }}" class="btn-secondary btn-sm">Edit Produk</a>
-        <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Hapus produk ini?')">
-            @csrf @method('DELETE')
-            <button type="submit" class="btn-outline-danger btn-sm">Hapus Produk</button>
-        </form>
-    </x-page-actions>
+    <a href="{{ route('products.index') }}" class="cogs-detail-back">← Kembali ke menu</a>
 
-    @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
-        <x-step-header number="3" title="Resep Produksi"
-            description="Tulis bahan apa saja dan berapa banyak yang dipakai untuk membuat 1 {{ $product->unit }} {{ $product->name }}." />
-    @endif
-
-    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        <div class="card">
-            <p class="text-xs text-slate-500">Stok tersedia</p>
-            <p class="mt-1 text-xl font-bold">{{ $format::number($product->availableQuantity(), 2) }} {{ $product->unit }}</p>
+    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div class="card p-3">
+            <p class="text-xs text-slate-500">Bahan di resep</p>
+            <p class="mt-1 text-lg font-bold">{{ $product->billOfMaterials->count() }}</p>
         </div>
-        <div class="card">
-            <p class="text-xs text-slate-500">Jenis</p>
-            <p class="mt-1 text-sm font-semibold">{{ $product->type->label() }}</p>
+        <div class="card p-3">
+            <p class="text-xs text-slate-500">Stok siap jual</p>
+            <p class="mt-1 text-lg font-bold">{{ $format::number($product->availableQuantity(), 0) }} {{ $product->unit }}</p>
         </div>
-        <div class="card">
-            <p class="text-xs text-slate-500">Jumlah bahan di resep</p>
-            <p class="mt-1 text-xl font-bold">{{ $product->billOfMaterials->count() }}</p>
+        <div class="card p-3 col-span-2 sm:col-span-1">
+            <p class="text-xs text-slate-500">Modal / {{ $product->unit }}</p>
+            <p class="mt-1 text-lg font-bold text-brand-700">
+                {{ $product->unit_hpp > 0 ? $format::rupiah($product->unit_hpp, 0) : 'Belum dihitung' }}
+            </p>
         </div>
     </div>
 
-    @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
-        <div class="card mb-6">
-            <h2 class="mb-2 text-lg font-semibold">Resep</h2>
-            <p class="mb-4 text-sm text-slate-500">Daftar bahan per 1 unit produk. Contoh: 0,5 kg adonan untuk 1 roti.</p>
+    <div class="card mb-4 p-4 sm:p-5">
+        <h2 class="mb-1 text-sm font-semibold">Bahan Resep</h2>
+        <p class="mb-4 text-xs text-slate-500">Berapa bahan dipakai untuk bikin 1 {{ $product->unit }} {{ $product->name }}.</p>
 
-            @if ($product->billOfMaterials->isNotEmpty())
-                <div class="table-scroll mb-6 rounded-lg border border-slate-200">
-                    <table class="table-default">
-                        <thead>
+        @if ($allProducts->isEmpty())
+            <p class="alert-tip mb-4">
+                Belum ada bahan.
+                <a href="{{ route('materials.index') }}" class="font-semibold text-brand-700">Tambah bahan dulu →</a>
+            </p>
+        @endif
+
+        @if ($product->billOfMaterials->isNotEmpty())
+            <div class="table-scroll mb-4 rounded-lg border border-slate-200">
+                <table class="table-default table-compact">
+                    <thead>
+                        <tr>
+                            <th>Bahan</th>
+                            <th>Pakai</th>
+                            <th class="col-actions">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($product->billOfMaterials as $bom)
                             <tr>
-                                <th>Bahan</th>
-                                <th>Jumlah</th>
-                                <th>Sisa terbuang</th>
-                                <th class="col-actions">Aksi</th>
+                                <td class="font-medium text-slate-900">{{ $bom->childProduct->name }}</td>
+                                <td>{{ $format::number($bom->quantity, 4) }} {{ $bom->childProduct->unit }}</td>
+                                <td class="col-actions">
+                                    <details class="inline-edit text-left">
+                                        <summary>Edit</summary>
+                                        <form action="{{ route('products.bom.update', [$product, $bom]) }}" method="POST" class="inline-edit-panel">
+                                            @csrf @method('PUT')
+                                            <input type="number" name="quantity" class="form-input text-xs" step="0.0001" min="0.0001" value="{{ $bom->quantity }}" required>
+                                            <button type="submit" class="btn-primary btn-sm w-full">Simpan</button>
+                                        </form>
+                                        <form action="{{ route('products.bom.destroy', [$product, $bom]) }}" method="POST" class="mt-2" onsubmit="return confirm('Hapus dari resep?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn-outline-danger btn-sm w-full">Hapus</button>
+                                        </form>
+                                    </details>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($product->billOfMaterials as $bom)
-                                <tr>
-                                    <td>
-                                        <p class="font-semibold text-slate-900">{{ $bom->childProduct->name }}</p>
-                                        <p class="text-xs cell-muted">{{ $bom->childProduct->sku }}</p>
-                                    </td>
-                                    <td>{{ $format::number($bom->quantity, 4) }} {{ $bom->childProduct->unit }}</td>
-                                    <td>{{ $format::number($bom->scrap_percentage, 1) }}%</td>
-                                    <td class="col-actions">
-                                        <details class="inline-edit text-left">
-                                            <summary>Edit</summary>
-                                            <form action="{{ route('products.bom.update', [$product, $bom]) }}" method="POST" class="inline-edit-panel">
-                                                @csrf @method('PUT')
-                                                <input type="number" name="quantity" class="form-input text-xs" step="0.0001" min="0.0001" value="{{ $bom->quantity }}" required>
-                                                <input type="number" name="scrap_percentage" class="form-input text-xs" step="0.1" min="0" value="{{ $bom->scrap_percentage }}">
-                                                <button type="submit" class="btn-primary btn-sm w-full">Simpan</button>
-                                            </form>
-                                            <form action="{{ route('products.bom.destroy', [$product, $bom]) }}" method="POST" class="mt-2" onsubmit="return confirm('Hapus bahan dari resep?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="btn-outline-danger btn-sm w-full">Hapus Bahan</button>
-                                            </form>
-                                        </details>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <p class="alert-tip mb-4">Belum ada resep. Tambahkan bahan di bawah.</p>
-            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <p class="mb-4 text-sm text-amber-800 rounded-lg bg-amber-50 px-3 py-2">Resep masih kosong — tambahkan bahan di bawah.</p>
+        @endif
 
-            <form action="{{ route('products.bom.store', $product) }}" method="POST" class="space-y-4 border-t border-slate-100 pt-6">
+        @if ($allProducts->isNotEmpty())
+            <form action="{{ route('products.bom.store', $product) }}" method="POST" class="overhead-add-form border-t border-slate-100 pt-4">
                 @csrf
-                <h3 class="text-sm font-semibold">+ Tambah bahan ke resep</h3>
-                <div>
+                <div class="field-name sm:col-span-2">
                     <label class="form-label">Pilih bahan</label>
                     <select name="child_product_id" class="form-input" required>
-                        <option value="">Pilih...</option>
+                        <option value="">Pilih bahan...</option>
                         @foreach ($allProducts as $p)
-                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku }})</option>
+                            <option value="{{ $p->id }}">{{ $p->name }} (stok {{ $format::number($p->availableQuantity(), 1) }} {{ $p->unit }})</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <div>
-                        <label class="form-label">Jumlah per unit produk</label>
-                        <input type="number" name="quantity" class="form-input" step="0.0001" min="0.0001" required placeholder="0.5">
-                    </div>
-                    <div>
-                        <label class="form-label">Sisa terbuang % (opsional)</label>
-                        <input type="number" name="scrap_percentage" class="form-input" step="0.1" min="0" value="0">
-                    </div>
+                <div class="field-rate">
+                    <label class="form-label">Jumlah dipakai</label>
+                    <input type="number" name="quantity" class="form-input" step="0.0001" min="0.0001" required placeholder="0.5">
                 </div>
-                <button type="submit" class="btn-primary w-full sm:w-auto">Tambah ke Resep</button>
+                <div class="field-submit">
+                    <button type="submit" class="btn-primary w-full">Tambah ke Resep</button>
+                </div>
             </form>
+        @endif
 
-            @if ($product->billOfMaterials->isNotEmpty())
-                <div class="mt-6 border-t border-slate-100 pt-4">
-                    <a href="{{ route('inventory.index') }}" class="btn-primary w-full sm:w-auto">Lanjut ke Langkah 4: Stok Bahan →</a>
-                </div>
-            @endif
-        </div>
-    @endif
+        @if ($product->billOfMaterials->isNotEmpty())
+            <div class="mt-4 border-t border-slate-100 pt-4">
+                <a href="{{ route('production-orders.index') }}" class="btn-primary btn-sm">Catat Produksi →</a>
+            </div>
+        @endif
+    </div>
 
-    @if ($product->type->value === 'raw_material')
-        <div class="card">
-            <h2 class="mb-4 text-lg font-semibold">Stok bahan ini</h2>
-            @if ($product->inventoryLots->where('quantity_remaining', '>', 0)->isNotEmpty())
-                <div class="table-scroll rounded-lg border border-slate-200">
-                    <table class="table-default">
-                        <thead>
-                            <tr>
-                                <th>No. batch</th>
-                                <th>Sisa</th>
-                                <th>Harga per satuan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($product->inventoryLots->where('quantity_remaining', '>', 0) as $lot)
-                                <tr>
-                                    <td class="font-mono text-xs cell-muted">{{ $lot->lot_number ?? '-' }}</td>
-                                    <td>{{ $format::number($lot->quantity_remaining, 2) }} {{ $product->unit }}</td>
-                                    <td class="cell-money">{{ $format::rupiah($lot->unit_cost) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <p class="text-sm text-slate-500">Belum ada stok. <a href="{{ route('inventory.index') }}" class="text-brand-600">Catat stok di Langkah 4 →</a></p>
-            @endif
-        </div>
-    @endif
-
-    <x-page-actions :back="route('products.index')" back-label="← Daftar produk" />
+    <div class="flex flex-wrap gap-2">
+        <a href="{{ route('products.edit', $product) }}" class="btn-secondary btn-sm">Ubah nama menu</a>
+        <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Hapus menu ini?')">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn-outline-danger btn-sm">Hapus</button>
+        </form>
+    </div>
 @endsection
