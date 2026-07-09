@@ -1786,6 +1786,58 @@
         @apply p-4;
     }
 
+    .sales-report-filter {
+        @apply sm:p-5;
+    }
+
+    @media (min-width: 640px) {
+        .sales-report-filter {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1rem 1.25rem;
+            align-items: end;
+        }
+
+        .sales-report-filter > :first-child {
+            grid-column: 1 / -1;
+        }
+
+        .sales-report-filter-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+    }
+
+    .sales-report-breakdown-summary {
+        @apply grid gap-4 lg:grid-cols-2 lg:items-start;
+    }
+
+    .sales-report-breakdown-summary > :only-child {
+        @apply lg:col-span-2;
+    }
+
+    .sales-report-pay-row {
+        @apply space-y-2;
+    }
+
+    .sales-report-pay-bar {
+        @apply h-1.5 overflow-hidden rounded-full bg-slate-100;
+    }
+
+    .sales-report-pay-bar > span {
+        @apply block h-full rounded-full bg-gradient-to-r from-brand-500 to-violet-500 transition-all;
+    }
+
+    .sales-report-empty {
+        @apply flex flex-col items-center justify-center px-6 py-12 text-center;
+    }
+
+    .sales-report-empty-icon {
+        @apply mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl;
+    }
+
     .pos-receipt-line-main {
         @apply min-w-0 flex-1;
     }
