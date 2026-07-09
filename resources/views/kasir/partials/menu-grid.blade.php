@@ -71,7 +71,7 @@
     @empty
         <div class="pos-product-empty">
             <p>Belum ada menu siap jual</p>
-            <p class="pos-product-empty-hint">Tambah stok produk jadi di modul COGS</p>
+            <p class="pos-product-empty-hint">Tambah stok produk jadi di modul Hitung Biaya</p>
         </div>
     @endforelse
 </div>

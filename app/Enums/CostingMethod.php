@@ -11,9 +11,9 @@ enum CostingMethod: string
     public function label(): string
     {
         return match ($this) {
-            self::Fifo => 'FIFO (First In First Out)',
-            self::WeightedAverage => 'Rata-rata Tertimbang',
-            self::Standard => 'Biaya Standar',
+            self::Fifo => 'Stok lama keluar dulu',
+            self::WeightedAverage => 'Rata-rata harga beli',
+            self::Standard => 'Harga perkiraan tetap',
         };
     }
 }

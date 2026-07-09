@@ -2,20 +2,20 @@
 
 @section('title', 'Produk')
 @section('heading', 'Langkah 2: Daftar Produk')
-@section('subheading', 'Catat bahan baku dan barang jadi yang akan dihitung biayanya')
+@section('subheading', 'Daftarkan bahan baku dan produk jadi yang akan dihitung biayanya')
 
 @section('content')
     <x-step-header number="2" title="Daftar Produk"
-        description="Buat 2 jenis: (1) Bahan Baku — tepung, gula, dll. (2) Barang Jadi — produk akhir yang dijual." />
+        description="Ada 2 jenis: Bahan Baku (tepung, gula) dan Produk Jadi (roti, kue) yang siap dijual." />
 
     <div class="page-toolbar">
         <div class="alert-tip">
-            💡 Langkah 3 (Resep) ada di halaman <strong>Detail</strong> barang jadi
+            💡 Resep bahan ada di halaman <strong>Detail</strong> produk jadi
         </div>
         <a href="{{ route('products.create') }}" class="btn-primary shrink-0">+ Tambah Produk</a>
     </div>
 
-    <x-table-card title="Daftar Produk" subtitle="{{ $products->total() }} produk terdaftar">
+    <x-table-card title="Semua Produk" subtitle="{{ $products->total() }} produk terdaftar">
         @if ($products->isNotEmpty())
             <table class="table-default">
                 <thead>
@@ -49,13 +49,13 @@
             </table>
 
             <x-slot:footer>
-                <p class="text-sm text-slate-500">Sudah lengkap? Lanjut isi stok bahan baku.</p>
+                <p class="text-sm text-slate-500">Sudah lengkap? Lanjut catat stok bahan.</p>
                 <a href="{{ route('inventory.index') }}" class="btn-primary">Lanjut ke Stok →</a>
             </x-slot:footer>
         @else
             <div class="empty-state">
                 <p>Belum ada produk.</p>
-                <p class="empty-hint">Tambahkan bahan baku dan barang jadi untuk memulai.</p>
+                <p class="empty-hint">Tambahkan bahan baku dan produk jadi untuk memulai.</p>
                 <a href="{{ route('products.create') }}" class="btn-primary mt-5 inline-flex">+ Tambah Produk Pertama</a>
             </div>
         @endif

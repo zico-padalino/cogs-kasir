@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Reset Data')
-@section('heading', 'Reset Semua Data')
-@section('subheading', 'Hapus seluruh data — database kembali kosong total')
+@section('title', 'Hapus Data')
+@section('heading', 'Hapus Semua Data')
+@section('subheading', 'Kosongkan database dan mulai ulang dari awal')
 
 @section('content')
     <div class="mx-auto max-w-lg">
@@ -10,10 +10,10 @@
             <h3 class="text-sm font-semibold text-slate-700">Data saat ini</h3>
             <dl class="mt-2 grid grid-cols-2 gap-2 text-sm">
                 <div><dt class="text-slate-500">Produk</dt><dd class="font-bold">{{ $counts['products'] }}</dd></div>
-                <div><dt class="text-slate-500">Overhead</dt><dd class="font-bold">{{ $counts['overhead_rates'] }}</dd></div>
-                <div><dt class="text-slate-500">Stok (lot)</dt><dd class="font-bold">{{ $counts['inventory_lots'] }}</dd></div>
+                <div><dt class="text-slate-500">Biaya operasional</dt><dd class="font-bold">{{ $counts['overhead_rates'] }}</dd></div>
+                <div><dt class="text-slate-500">Stok (batch)</dt><dd class="font-bold">{{ $counts['inventory_lots'] }}</dd></div>
                 <div><dt class="text-slate-500">Produksi</dt><dd class="font-bold">{{ $counts['production_orders'] }}</dd></div>
-                <div><dt class="text-slate-500">Riwayat COGS</dt><dd class="font-bold">{{ $counts['cogs_calculations'] }}</dd></div>
+                <div><dt class="text-slate-500">Riwayat biaya</dt><dd class="font-bold">{{ $counts['cogs_calculations'] }}</dd></div>
             </dl>
         </div>
 
@@ -23,7 +23,7 @@
                 <div>
                     <h2 class="font-semibold text-red-800">Hapus semua data</h2>
                     <p class="mt-1 text-sm text-red-700">
-                        Semua data akan dihapus permanen. Tidak ada data demo yang diisi ulang.
+                        Semua data akan dihapus permanen. Anda harus mengisi ulang dari langkah 1.
                     </p>
                 </div>
             </div>
@@ -38,7 +38,7 @@
 
                 <div class="form-actions pt-2">
                     <button type="submit" class="btn-danger" onclick="return confirm('Yakin hapus SEMUA data?')">
-                        Reset — Kosongkan Database
+                        Hapus Semua Data
                     </button>
                     <a href="{{ route('dashboard') }}" class="btn-secondary">Batal</a>
                 </div>

@@ -13,11 +13,11 @@ enum OverheadAllocationBase: string
     public function label(): string
     {
         return match ($this) {
-            self::DirectMaterial => 'Bahan Langsung',
-            self::DirectLabor => 'Tenaga Kerja Langsung',
-            self::LaborHours => 'Jam Kerja',
-            self::MachineHours => 'Jam Mesin',
-            self::UnitsProduced => 'Unit Produksi',
+            self::DirectMaterial => 'Total biaya bahan',
+            self::DirectLabor => 'Total gaji pekerja',
+            self::LaborHours => 'Jam kerja',
+            self::MachineHours => 'Jam mesin jalan',
+            self::UnitsProduced => 'Jumlah produk dibuat',
         };
     }
 }

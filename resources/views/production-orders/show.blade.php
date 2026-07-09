@@ -7,9 +7,9 @@
 @section('content')
     @php
         $statusInfo = match($order->status->value) {
-            'draft' => ['Draft', 'Siap dimulai', 'bg-slate-100 text-slate-700'],
-            'in_progress' => ['Berjalan', 'Sedang produksi', 'bg-blue-100 text-blue-700'],
-            'completed' => ['Selesai', 'COGS sudah dihitung', 'bg-green-100 text-green-700'],
+            'draft' => ['Belum dimulai', 'Siap dikerjakan', 'bg-slate-100 text-slate-700'],
+            'in_progress' => ['Sedang jalan', 'Produksi berlangsung', 'bg-blue-100 text-blue-700'],
+            'completed' => ['Selesai', 'Biaya sudah terhitung', 'bg-green-100 text-green-700'],
             default => ['?', '', ''],
         };
     @endphp
@@ -32,20 +32,20 @@
                 @if (in_array($order->status->value, ['draft', 'in_progress']))
                     <form action="{{ route('production-orders.complete', $order) }}" method="POST">
                         @csrf
-                        <button type="submit" class="btn-primary btn-sm" onclick="return confirm('Selesaikan dan hitung COGS?')">
-                            Selesaikan & Hitung COGS
+                        <button type="submit" class="btn-primary btn-sm" onclick="return confirm('Tandai selesai dan hitung biaya?')">
+                            Selesai & Hitung Biaya
                         </button>
                     </form>
                 @endif
 
                 @if ($cogs)
-                    <a href="{{ route('cogs.history.show', $cogs) }}" class="btn-outline btn-sm">Detail COGS</a>
-                    <a href="{{ route('cogs.history') }}" class="btn-primary btn-sm">Lihat Hasil COGS →</a>
+                    <a href="{{ route('cogs.history.show', $cogs) }}" class="btn-outline btn-sm">Lihat Rincian Biaya</a>
+                    <a href="{{ route('cogs.history') }}" class="btn-primary btn-sm">Ke Hasil Perhitungan →</a>
                 @endif
 
                 @if ($order->status->value === 'draft')
                     <a href="{{ route('production-orders.edit', $order) }}" class="btn-outline btn-sm">Edit</a>
-                    <form action="{{ route('production-orders.destroy', $order) }}" method="POST" onsubmit="return confirm('Hapus order ini?')">
+                    <form action="{{ route('production-orders.destroy', $order) }}" method="POST" onsubmit="return confirm('Hapus jadwal ini?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn-outline-danger btn-sm">Hapus</button>
                     </form>
@@ -55,30 +55,30 @@
     </div>
 
     @if ($cogs)
-        <x-step-header number="6" title="Hasil Perhitungan COGS"
-            description="Total biaya untuk {{ number_format($order->quantity_completed, 0) }} unit {{ $order->product->name }}." />
+        <x-step-header number="6" title="Hasil Perhitungan Biaya"
+            description="Total biaya untuk {{ number_format($order->quantity_completed, 0) }} {{ $order->product->unit }} {{ $order->product->name }}." />
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <x-stat-card label="Total Biaya" :value="$format::rupiah($cogs->total_cogs)" color="brand" />
-            <x-stat-card label="Bahan Baku" :value="$format::rupiah($cogs->direct_material)" color="green" />
-            <x-stat-card label="Tenaga Kerja" :value="$format::rupiah($cogs->direct_labor)" color="amber" />
-            <x-stat-card label="Biaya/Unit" :value="$format::rupiah($cogs->unit_cogs, 2)" color="slate" />
+            <x-stat-card label="Bahan" :value="$format::rupiah($cogs->direct_material)" color="green" />
+            <x-stat-card label="Gaji Pekerja" :value="$format::rupiah($cogs->direct_labor)" color="amber" />
+            <x-stat-card label="Biaya per Unit" :value="$format::rupiah($cogs->unit_cogs, 2)" color="slate" />
         </div>
 
         <div class="hero-stat mb-6">
             <p class="text-sm text-slate-600">Biaya per 1 {{ $order->product->unit }} {{ $order->product->name }}</p>
             <p class="hero-stat-value">{{ $format::rupiah($cogs->unit_cogs, 2) }}</p>
-            <p class="mt-2 text-xs text-slate-500">= Bahan + Tenaga Kerja + Overhead</p>
+            <p class="mt-2 text-xs text-slate-500">= Bahan + Gaji pekerja + Biaya operasional</p>
         </div>
     @else
         <div class="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Belum ada hasil COGS. Klik <strong>Selesaikan & Hitung COGS</strong> setelah produksi selesai.
+            Belum ada hasil biaya. Klik <strong>Selesai & Hitung Biaya</strong> setelah produksi selesai.
         </div>
     @endif
 
     <div class="grid gap-6 lg:grid-cols-2">
         <div class="card">
-            <h2 class="mb-4 font-semibold">Bahan yang Dipakai</h2>
+            <h2 class="mb-4 font-semibold">Bahan yang dipakai</h2>
             <table class="table-default">
                 <thead>
                     <tr>
@@ -100,7 +100,7 @@
         </div>
 
         <div class="card">
-            <h2 class="mb-4 font-semibold">Tenaga Kerja</h2>
+            <h2 class="mb-4 font-semibold">Gaji pekerja</h2>
             @if ($order->labors->isNotEmpty())
                 <table class="table-default">
                     <thead>
@@ -121,7 +121,7 @@
                     </tbody>
                 </table>
             @else
-                <p class="text-sm text-slate-500">Tidak ada data tenaga kerja.</p>
+                <p class="text-sm text-slate-500">Tidak ada data gaji pekerja.</p>
             @endif
         </div>
     </div>

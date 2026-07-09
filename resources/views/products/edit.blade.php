@@ -14,7 +14,7 @@
 
                 <div class="grid gap-5 sm:grid-cols-2">
                     <div>
-                        <label class="form-label">Kode Produk (SKU)</label>
+                        <label class="form-label">Kode produk</label>
                         <input type="text" name="sku" class="form-input" value="{{ old('sku', $product->sku) }}" required>
                     </div>
                     <div>
@@ -24,12 +24,12 @@
                 </div>
 
                 <div>
-                    <label class="form-label">Nama Produk</label>
+                    <label class="form-label">Nama produk</label>
                     <input type="text" name="name" class="form-input" value="{{ old('name', $product->name) }}" required>
                 </div>
 
                 <div>
-                    <label class="form-label">Jenis Produk</label>
+                    <label class="form-label">Jenis produk</label>
                     <select name="type" class="form-input" required>
                         @foreach ($productTypes as $type)
                             <option value="{{ $type->value }}" @selected(old('type', $product->type->value) === $type->value)>{{ $type->label() }}</option>
@@ -39,7 +39,7 @@
 
                 <div class="grid gap-5 sm:grid-cols-2">
                     <div>
-                        <label class="form-label">Cara Hitung Harga Stok</label>
+                        <label class="form-label">Cara hitung harga stok</label>
                         <select name="costing_method" class="form-input">
                             @foreach ($costingMethods as $method)
                                 <option value="{{ $method->value }}" @selected(old('costing_method', $product->costing_method->value) === $method->value)>{{ $method->label() }}</option>
@@ -47,25 +47,25 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">Estimasi Biaya (Rp)</label>
+                        <label class="form-label">Harga perkiraan (Rp)</label>
                         <x-rupiah-input name="standard_cost" :value="old('standard_cost', $product->standard_cost)" />
-                        <p class="form-hint">Perkiraan awal sebelum HPP terhitung dari produksi.</p>
+                        <p class="form-hint">Angka awal sebelum biaya asli terhitung dari produksi.</p>
                     </div>
                     <div>
-                        <label class="form-label">HPP / Unit (Rp)</label>
+                        <label class="form-label">Biaya pokok per unit (Rp)</label>
                         <input type="text" class="form-input bg-slate-50" value="{{ $format::rupiah($product->effectiveUnitHpp(), 2) }}" readonly>
-                        <p class="form-hint">Terisi otomatis setelah produksi selesai. COGS = nilai HPP ini.</p>
+                        <p class="form-hint">Terisi otomatis setelah produksi selesai.</p>
                     </div>
                     <div class="sm:col-span-2">
-                        <x-rupiah-input name="selling_price" label="Harga Jual Menu (Rp) — atur di sini" :value="old('selling_price', $product->selling_price)" />
-                        <p class="form-hint">Harga ini tampil di Kasir/POS. Stok menu diatur di modul Kasir.</p>
+                        <x-rupiah-input name="selling_price" label="Harga jual di kasir (Rp)" :value="old('selling_price', $product->selling_price)" />
+                        <p class="form-hint">Harga ini tampil di Kasir. Stok menu diatur di modul Kasir.</p>
                     </div>
                 </div>
 
                 @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
                     <label class="flex items-center gap-2">
                         <input type="checkbox" name="is_menu_item" value="1" class="rounded" @checked(old('is_menu_item', $product->is_menu_item))>
-                        <span class="text-sm">Tampilkan sebagai menu di Kasir (stok jadi produk dijual)</span>
+                        <span class="text-sm">Jual di Kasir (tampilkan sebagai menu)</span>
                     </label>
                 @endif
 

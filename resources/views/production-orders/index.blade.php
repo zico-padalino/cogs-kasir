@@ -2,23 +2,23 @@
 
 @section('title', 'Produksi')
 @section('heading', 'Langkah 5: Proses Produksi')
-@section('subheading', 'Buat order → Mulai → Selesaikan untuk otomatis hitung COGS')
+@section('subheading', 'Buat jadwal → mulai kerja → selesai, biaya terhitung otomatis')
 
 @section('content')
     <x-step-header number="5" title="Proses Produksi"
-        description="1) Buat order produksi  2) Klik Mulai  3) Klik Selesaikan — biaya dihitung otomatis dari resep & stok." />
+        description="1) Buat jadwal produksi  2) Klik Mulai  3) Klik Selesai — sistem hitung biaya dari resep dan stok." />
 
     <div class="page-toolbar">
-        <p class="text-sm text-slate-500">Kelola order produksi dari draft sampai selesai.</p>
+        <p class="text-sm text-slate-500">Kelola produksi dari antrian sampai selesai.</p>
         <a href="{{ route('production-orders.create') }}" class="btn-primary shrink-0">+ Buat Produksi Baru</a>
     </div>
 
-    <x-table-card title="Daftar Produksi" subtitle="{{ $orders->total() }} order">
+    <x-table-card title="Daftar Produksi" subtitle="{{ $orders->total() }} jadwal">
         @if ($orders->isNotEmpty())
             <table class="table-default">
                 <thead>
                     <tr>
-                        <th>No. Order</th>
+                        <th>No. Produksi</th>
                         <th>Produk</th>
                         <th>Jumlah</th>
                         <th>Status</th>
@@ -34,8 +34,8 @@
                             <td>
                                 @php
                                     $badges = [
-                                        'draft' => ['Draft', 'badge-slate'],
-                                        'in_progress' => ['Berjalan', 'badge-blue'],
+                                        'draft' => ['Belum dimulai', 'badge-slate'],
+                                        'in_progress' => ['Sedang jalan', 'badge-blue'],
                                         'completed' => ['Selesai', 'badge-green'],
                                     ];
                                     [$label, $badgeClass] = $badges[$order->status->value] ?? ['?', 'badge-slate'];
@@ -55,13 +55,13 @@
             </table>
 
             <x-slot:footer>
-                <p class="text-sm text-slate-500">Produksi selesai? Lihat hasil perhitungan COGS.</p>
-                <a href="{{ route('cogs.history') }}" class="btn-secondary">Lihat Hasil COGS →</a>
+                <p class="text-sm text-slate-500">Produksi selesai? Lihat hasil perhitungan biaya.</p>
+                <a href="{{ route('cogs.history') }}" class="btn-secondary">Lihat Hasil →</a>
             </x-slot:footer>
         @else
             <div class="empty-state">
                 <p>Belum ada produksi.</p>
-                <p class="empty-hint">Buat order produksi untuk mulai menghitung biaya.</p>
+                <p class="empty-hint">Buat jadwal produksi untuk mulai menghitung biaya.</p>
                 <a href="{{ route('production-orders.create') }}" class="btn-primary mt-5 inline-flex">+ Buat Produksi Pertama</a>
             </div>
         @endif

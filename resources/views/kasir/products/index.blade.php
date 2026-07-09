@@ -6,7 +6,7 @@
 
 @section('content')
     <div class="page-toolbar">
-        <p class="text-sm text-slate-500">{{ $products->count() }} item menu · harga diatur di modul COGS</p>
+        <p class="text-sm text-slate-500">{{ $products->count() }} item menu · harga diatur di modul Hitung Biaya</p>
         <a href="{{ route('kasir.index') }}" class="btn-outline btn-sm shrink-0">← Kembali ke POS</a>
     </div>
 
@@ -51,7 +51,7 @@
                             @if (! $product->is_active)
                                 <span class="badge badge-slate">Nonaktif</span>
                             @elseif ($price <= 0)
-                                <span class="badge badge-amber">Atur harga di COGS</span>
+                                <span class="badge badge-amber">Atur harga di Hitung Biaya</span>
                             @elseif ($stock <= 0)
                                 <span class="badge badge-amber">Stok habis</span>
                             @endif
@@ -68,10 +68,10 @@
                             @if ($price > 0)
                                 {{ $format::rupiah($price) }}
                                 @if ($hpp > 0)
-                                    <span class="block text-xs font-normal text-slate-500">HPP {{ $format::rupiah($hpp) }} · margin {{ $format::rupiah($price - $hpp) }}</span>
+                                    <span class="block text-xs font-normal text-slate-500">Modal {{ $format::rupiah($hpp) }} · untung {{ $format::rupiah($price - $hpp) }}</span>
                                 @endif
                             @else
-                                <span class="text-slate-500">Harga belum diatur di COGS</span>
+                                <span class="text-slate-500">Harga belum diatur di Hitung Biaya</span>
                             @endif
                         </p>
                     </div>
@@ -88,7 +88,7 @@
         <div class="card">
             <div class="empty-state">
                 <p>Belum ada produk jadi untuk dijual.</p>
-                <p class="empty-hint">Aktifkan menu di modul COGS, lalu atur harga jual di sana.</p>
+                <p class="empty-hint">Aktifkan menu di modul Hitung Biaya, lalu atur harga jual di sana.</p>
             </div>
         </div>
     @endif

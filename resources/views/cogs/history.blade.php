@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Hasil COGS')
-@section('heading', 'Langkah 6: Hasil COGS')
+@section('title', 'Hasil Perhitungan')
+@section('heading', 'Langkah 6: Hasil Perhitungan')
 @section('subheading', 'Riwayat semua perhitungan biaya produksi')
 
 @section('content')
-    <x-step-header number="6" title="Hasil Perhitungan COGS"
-        description="Read & Delete riwayat. Create via produksi atau hitung manual." />
+    <x-step-header number="6" title="Hasil Perhitungan Biaya"
+        description="Lihat riwayat biaya yang sudah terhitung. Bisa dihitung ulang manual atau dari produksi." />
 
     <div class="page-toolbar">
-        <p class="text-sm text-slate-500 sm:flex-1">Kelola riwayat perhitungan biaya produksi.</p>
-        <a href="{{ route('cogs.calculate') }}" class="btn-primary shrink-0">+ Hitung COGS Baru</a>
+        <p class="text-sm text-slate-500 sm:flex-1">Semua hasil perhitungan biaya pokok produk.</p>
+        <a href="{{ route('cogs.calculate') }}" class="btn-primary shrink-0">+ Hitung Manual</a>
     </div>
 
-    <x-table-card title="Riwayat COGS" subtitle="{{ $calculations->total() }} perhitungan">
+    <x-table-card title="Riwayat Perhitungan" subtitle="{{ $calculations->total() }} catatan">
         @if ($calculations->isNotEmpty())
             <table class="table-default">
                 <thead>
@@ -22,8 +22,8 @@
                         <th>Produk</th>
                         <th>Jumlah</th>
                         <th>Bahan</th>
-                        <th>TK</th>
-                        <th>Overhead</th>
+                        <th>Gaji</th>
+                        <th>Ops</th>
                         <th>Total</th>
                         <th>Per Unit</th>
                         <th class="col-actions">Aksi</th>
@@ -53,7 +53,7 @@
         @else
             <div class="empty-state">
                 <p>Belum ada hasil.</p>
-                <p class="empty-hint">Selesaikan produksi di Langkah 5 untuk melihat COGS di sini.</p>
+                <p class="empty-hint">Selesaikan produksi di Langkah 5 untuk melihat biaya di sini.</p>
                 <a href="{{ route('production-orders.index') }}" class="btn-primary mt-5 inline-flex">Ke Produksi</a>
             </div>
         @endif
@@ -64,10 +64,10 @@
     @endif
 
     <div class="info-box mt-6">
-        <h3 class="font-semibold text-slate-800">Rumus sederhana</h3>
+        <h3 class="font-semibold text-slate-800">Rumus singkat</h3>
         <p class="mt-2">
-            <strong>COGS</strong> = Bahan Baku + Tenaga Kerja + Overhead<br>
-            <strong>Biaya per unit</strong> = COGS ÷ Jumlah produk
+            <strong>Biaya pokok</strong> = Bahan + Gaji pekerja + Biaya operasional<br>
+            <strong>Biaya per unit</strong> = Total biaya ÷ Jumlah produk
         </p>
     </div>
 @endsection

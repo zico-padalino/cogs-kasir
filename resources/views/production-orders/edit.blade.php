@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Edit Produksi')
-@section('heading', 'Edit Order Produksi')
+@section('heading', 'Edit Jadwal Produksi')
 @section('subheading', $order->order_number)
 
 @section('content')
     <div class="mx-auto max-w-2xl">
-        <x-step-header number="5" title="Edit Produksi" description="Hanya order berstatus draft yang bisa diedit." />
+        <x-step-header number="5" title="Edit Produksi" description="Hanya jadwal yang belum dimulai yang bisa diubah." />
 
         <div class="card">
             <form action="{{ route('production-orders.update', $order) }}" method="POST" class="space-y-5">
@@ -27,7 +27,7 @@
                 </div>
 
                 <div>
-                    <label class="form-label">Jam mesin</label>
+                    <label class="form-label">Jam mesin jalan</label>
                     <input type="number" name="machine_hours" class="form-input" min="0" step="0.1" value="{{ old('machine_hours', $order->machine_hours) }}">
                 </div>
 
@@ -37,7 +37,7 @@
                 </div>
 
                 <div class="space-y-3">
-                    <p class="text-sm font-medium">Tenaga Kerja</p>
+                    <p class="text-sm font-medium">Gaji pekerja</p>
                     @foreach ($order->labors as $i => $labor)
                         <div class="labor-row">
                             <input type="text" name="labors[{{ $i }}][description]" class="form-input labor-row-desc" value="{{ $labor->description }}">

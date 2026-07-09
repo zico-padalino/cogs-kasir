@@ -1,4 +1,4 @@
-@extends('layouts.kasir')
+ @extends('layouts.kasir')
 
 @section('title', 'Struk')
 @section('heading', 'Struk Pembayaran')
@@ -54,7 +54,7 @@
                 </div>
             @endif
 
-            <p class="mt-4 text-xs text-slate-400">Stok & COGS tercatat otomatis</p>
+            <p class="mt-4 text-xs text-slate-400">Stok & biaya pokok tercatat otomatis</p>
         </div>
 
         <div class="form-actions mt-4 no-print">

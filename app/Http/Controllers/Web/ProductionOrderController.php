@@ -48,7 +48,7 @@ class ProductionOrderController extends Controller
             machineHours: (float) ($request->machine_hours ?? 0),
         );
 
-        return redirect()->route('production-orders.show', $order)->with('success', 'Order produksi berhasil dibuat.');
+        return redirect()->route('production-orders.show', $order)->with('success', 'Jadwal produksi berhasil dibuat.');
     }
 
     public function show(ProductionOrder $productionOrder)
@@ -68,7 +68,7 @@ class ProductionOrderController extends Controller
     {
         if ($productionOrder->status !== ProductionOrderStatus::Draft) {
             return redirect()->route('production-orders.show', $productionOrder)
-                ->with('error', 'Hanya order draft yang bisa diedit.');
+                ->with('error', 'Hanya jadwal yang belum dimulai yang bisa diedit.');
         }
 
         $products = Product::whereIn('type', ['semi_finished', 'finished_good'])
@@ -85,7 +85,7 @@ class ProductionOrderController extends Controller
     public function update(Request $request, ProductionOrder $productionOrder, ProductionOrderService $service)
     {
         if ($productionOrder->status !== ProductionOrderStatus::Draft) {
-            return back()->with('error', 'Hanya order draft yang bisa diedit.');
+            return back()->with('error', 'Hanya jadwal yang belum dimulai yang bisa diedit.');
         }
 
         $validated = $request->validate([
@@ -120,13 +120,13 @@ class ProductionOrderController extends Controller
             machineHours: (float) ($validated['machine_hours'] ?? 0),
         );
 
-        return redirect()->route('production-orders.show', $productionOrder)->with('success', 'Order produksi diperbarui.');
+        return redirect()->route('production-orders.show', $productionOrder)->with('success', 'Jadwal produksi diperbarui.');
     }
 
     public function destroy(ProductionOrder $productionOrder)
     {
         if ($productionOrder->status === ProductionOrderStatus::Completed) {
-            return back()->with('error', 'Order selesai tidak bisa dihapus. Hapus riwayat COGS terlebih dahulu jika perlu.');
+            return back()->with('error', 'Produksi yang sudah selesai tidak bisa dihapus. Hapus riwayat biaya terlebih dahulu jika perlu.');
         }
 
         $productionOrder->materials()->delete();
@@ -136,7 +136,7 @@ class ProductionOrderController extends Controller
             ->delete();
         $productionOrder->delete();
 
-        return redirect()->route('production-orders.index')->with('success', 'Order produksi dihapus.');
+        return redirect()->route('production-orders.index')->with('success', 'Jadwal produksi dihapus.');
     }
 
     public function start(ProductionOrder $productionOrder, ProductionOrderService $service)
@@ -163,6 +163,6 @@ class ProductionOrderController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('production-orders.show', $productionOrder)->with('success', 'Produksi selesai. COGS telah dihitung.');
+        return redirect()->route('production-orders.show', $productionOrder)->with('success', 'Produksi selesai. Biaya pokok sudah terhitung.');
     }
 }

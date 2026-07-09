@@ -47,7 +47,7 @@ class CogsController extends Controller
             });
 
             return redirect()->route('cogs.history.show', $result['calculation'])
-                ->with('success', 'Penjualan dan COGS berhasil dicatat.');
+                ->with('success', 'Penjualan dan biaya pokok berhasil dicatat.');
         }
 
         $cogsResult = $cogsService->calculateSaleCogs(
@@ -91,6 +91,6 @@ class CogsController extends Controller
     {
         $calculation->delete();
 
-        return redirect()->route('cogs.history')->with('success', 'Riwayat COGS dihapus.');
+        return redirect()->route('cogs.history')->with('success', 'Riwayat perhitungan dihapus.');
     }
 }

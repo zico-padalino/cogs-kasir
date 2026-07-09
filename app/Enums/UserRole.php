@@ -11,7 +11,7 @@ enum UserRole: string
     public function label(): string
     {
         return match ($this) {
-            self::Cogs => 'COGS',
+            self::Cogs => 'Hitung Biaya',
             self::Kasir => 'Kasir',
             self::Admin => 'Admin',
         };
@@ -20,7 +20,7 @@ enum UserRole: string
     public function description(): string
     {
         return match ($this) {
-            self::Cogs => 'Perhitungan biaya produk & produksi',
+            self::Cogs => 'Hitung biaya bahan, produksi, dan harga pokok produk',
             self::Kasir => 'Penjualan & transaksi kasir',
             self::Admin => 'Karyawan, absensi, gaji & pengaturan akun',
         };

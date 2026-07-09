@@ -14,13 +14,13 @@
     </x-page-actions>
 
     @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
-        <x-step-header number="3" title="Resep Produksi (BOM)"
-            description="Tentukan bahan apa saja dan berapa banyak yang dibutuhkan untuk 1 {{ $product->unit }} {{ $product->name }}." />
+        <x-step-header number="3" title="Resep Produksi"
+            description="Tulis bahan apa saja dan berapa banyak yang dipakai untuk membuat 1 {{ $product->unit }} {{ $product->name }}." />
     @endif
 
     <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <div class="card">
-            <p class="text-xs text-slate-500">Stok Tersedia</p>
+            <p class="text-xs text-slate-500">Stok tersedia</p>
             <p class="mt-1 text-xl font-bold">{{ $format::number($product->availableQuantity(), 2) }} {{ $product->unit }}</p>
         </div>
         <div class="card">
@@ -28,15 +28,15 @@
             <p class="mt-1 text-sm font-semibold">{{ $product->type->label() }}</p>
         </div>
         <div class="card">
-            <p class="text-xs text-slate-500">Jumlah Bahan dalam Resep</p>
+            <p class="text-xs text-slate-500">Jumlah bahan di resep</p>
             <p class="mt-1 text-xl font-bold">{{ $product->billOfMaterials->count() }}</p>
         </div>
     </div>
 
     @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
         <div class="card mb-6">
-            <h2 class="mb-2 text-lg font-semibold">Resep / BOM</h2>
-            <p class="mb-4 text-sm text-slate-500">Daftar bahan per 1 unit produk. Contoh: 0.5 kg adonan untuk 1 roti.</p>
+            <h2 class="mb-2 text-lg font-semibold">Resep</h2>
+            <p class="mb-4 text-sm text-slate-500">Daftar bahan per 1 unit produk. Contoh: 0,5 kg adonan untuk 1 roti.</p>
 
             @if ($product->billOfMaterials->isNotEmpty())
                 <div class="table-scroll mb-6 rounded-lg border border-slate-200">
@@ -45,7 +45,7 @@
                             <tr>
                                 <th>Bahan</th>
                                 <th>Jumlah</th>
-                                <th>Sisa (scrap)</th>
+                                <th>Sisa terbuang</th>
                                 <th class="col-actions">Aksi</th>
                             </tr>
                         </thead>
@@ -84,9 +84,9 @@
 
             <form action="{{ route('products.bom.store', $product) }}" method="POST" class="space-y-4 border-t border-slate-100 pt-6">
                 @csrf
-                <h3 class="text-sm font-semibold">+ Tambah Bahan ke Resep</h3>
+                <h3 class="text-sm font-semibold">+ Tambah bahan ke resep</h3>
                 <div>
-                    <label class="form-label">Pilih Bahan</label>
+                    <label class="form-label">Pilih bahan</label>
                     <select name="child_product_id" class="form-input" required>
                         <option value="">Pilih...</option>
                         @foreach ($allProducts as $p)
@@ -96,11 +96,11 @@
                 </div>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
-                        <label class="form-label">Jumlah per unit</label>
+                        <label class="form-label">Jumlah per unit produk</label>
                         <input type="number" name="quantity" class="form-input" step="0.0001" min="0.0001" required placeholder="0.5">
                     </div>
                     <div>
-                        <label class="form-label">Scrap % (opsional)</label>
+                        <label class="form-label">Sisa terbuang % (opsional)</label>
                         <input type="number" name="scrap_percentage" class="form-input" step="0.1" min="0" value="0">
                     </div>
                 </div>
@@ -117,15 +117,15 @@
 
     @if ($product->type->value === 'raw_material')
         <div class="card">
-            <h2 class="mb-4 text-lg font-semibold">Stok Bahan Ini</h2>
+            <h2 class="mb-4 text-lg font-semibold">Stok bahan ini</h2>
             @if ($product->inventoryLots->where('quantity_remaining', '>', 0)->isNotEmpty())
                 <div class="table-scroll rounded-lg border border-slate-200">
                     <table class="table-default">
                         <thead>
                             <tr>
-                                <th>Lot</th>
+                                <th>No. batch</th>
                                 <th>Sisa</th>
-                                <th>Harga/Unit</th>
+                                <th>Harga per satuan</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -140,7 +140,7 @@
                     </table>
                 </div>
             @else
-                <p class="text-sm text-slate-500">Belum ada stok. <a href="{{ route('inventory.index') }}" class="text-brand-600">Terima stok di Langkah 4 →</a></p>
+                <p class="text-sm text-slate-500">Belum ada stok. <a href="{{ route('inventory.index') }}" class="text-brand-600">Catat stok di Langkah 4 →</a></p>
             @endif
         </div>
     @endif

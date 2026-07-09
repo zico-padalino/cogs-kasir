@@ -77,7 +77,7 @@ class LoginPageTest extends TestCase
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('COGS')
+            ->assertSee('Hitung Biaya')
             ->assertSee('Kasir')
             ->assertDontSee('Admin Karyawan');
     }

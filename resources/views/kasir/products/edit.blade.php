@@ -19,20 +19,20 @@
 
             <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm">
                 <div class="flex items-center justify-between gap-3">
-                    <span class="text-slate-500">Harga jual (COGS)</span>
+                    <span class="text-slate-500">Harga jual</span>
                     <span class="font-semibold text-slate-900">
                         {{ (float) $product->selling_price > 0 ? $format::rupiah($product->selling_price) : 'Belum diatur' }}
                     </span>
                 </div>
                 @if ($unitHpp > 0)
                     <p class="mt-1 text-xs text-slate-500">
-                        HPP {{ $format::rupiah($unitHpp) }}
+                        Modal {{ $format::rupiah($unitHpp) }}
                         @if ((float) $product->selling_price > 0)
-                            · Margin {{ $format::rupiah($grossMargin) }} ({{ $marginPercent }}%)
+                            · Untung {{ $format::rupiah($grossMargin) }} ({{ $marginPercent }}%)
                         @endif
                     </p>
                 @endif
-                <p class="mt-2 text-xs text-slate-500">Ubah harga di modul COGS → Produk.</p>
+                <p class="mt-2 text-xs text-slate-500">Ubah harga di modul Hitung Biaya → Produk.</p>
             </div>
 
             <form action="{{ route('kasir.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-5 p-4 sm:p-5">

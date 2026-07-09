@@ -2,16 +2,16 @@
 
 @section('title', 'Stok')
 @section('heading', 'Langkah 4: Stok Bahan Baku')
-@section('subheading', 'CRUD: tambah, lihat, edit, hapus stok bahan baku')
+@section('subheading', 'Catat bahan yang masuk gudang beserta harga belinya')
 
 @section('content')
     <x-step-header number="4" title="Stok Bahan Baku"
-        description="Tambah stok baru di form kiri. Edit/hapus per lot di tabel kanan." />
+        description="Tambah stok baru di form kiri. Ubah atau hapus per batch di tabel kanan." />
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="card order-2 lg:order-1 lg:col-span-1">
-            <h2 class="mb-1 text-lg font-semibold">+ Tambah Stok</h2>
-            <p class="mb-4 text-xs text-slate-500">Terima stok bahan baru</p>
+            <h2 class="mb-1 text-lg font-semibold">+ Tambah Stok Masuk</h2>
+            <p class="mb-4 text-xs text-slate-500">Isi saat menerima bahan dari supplier</p>
             <form action="{{ route('inventory.receive') }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
@@ -31,23 +31,23 @@
                     <x-rupiah-input name="unit_cost" label="Harga beli per satuan" placeholder="12.000" required />
                 </div>
                 <div>
-                    <label class="form-label">No. Lot (opsional)</label>
-                    <input type="text" name="lot_number" class="form-input" placeholder="LOT-001">
+                    <label class="form-label">No. batch (opsional)</label>
+                    <input type="text" name="lot_number" class="form-input" placeholder="BATCH-001">
                 </div>
                 <button type="submit" class="btn-primary w-full">Simpan Stok</button>
             </form>
         </div>
 
         <div class="order-1 lg:order-2 lg:col-span-2">
-            <x-table-card title="Daftar Lot Stok" subtitle="{{ $lots->count() }} lot tersedia">
+            <x-table-card title="Daftar Stok" subtitle="{{ $lots->count() }} batch tersedia">
                 @if ($lots->isNotEmpty())
                     <table class="table-default">
                         <thead>
                             <tr>
                                 <th>Bahan</th>
-                                <th>Lot</th>
-                                <th>Sisa / Terima</th>
-                                <th>Harga/Unit</th>
+                                <th>Batch</th>
+                                <th>Sisa / Masuk</th>
+                                <th>Harga/satuan</th>
                                 <th class="col-actions">Aksi</th>
                             </tr>
                         </thead>
@@ -63,15 +63,15 @@
                                             <summary>Edit</summary>
                                             <form action="{{ route('inventory.lots.update', $lot) }}" method="POST" class="inline-edit-panel">
                                                 @csrf @method('PUT')
-                                                <input type="text" name="lot_number" class="form-input text-xs" value="{{ $lot->lot_number }}" placeholder="No. Lot">
+                                                <input type="text" name="lot_number" class="form-input text-xs" value="{{ $lot->lot_number }}" placeholder="No. batch">
                                                 <input type="number" name="quantity_remaining" class="form-input text-xs" step="0.01" min="0" max="{{ $lot->quantity_received }}" value="{{ $lot->quantity_remaining }}">
                                                 <x-rupiah-input name="unit_cost" :value="$lot->unit_cost" class="text-xs" />
-                                                <button type="submit" class="btn-primary btn-sm w-full">Simpan Perubahan</button>
+                                                <button type="submit" class="btn-primary btn-sm w-full">Simpan</button>
                                             </form>
                                             @if ((float) $lot->quantity_remaining >= (float) $lot->quantity_received)
-                                                <form action="{{ route('inventory.lots.destroy', $lot) }}" method="POST" class="mt-2" onsubmit="return confirm('Hapus lot ini?')">
+                                                <form action="{{ route('inventory.lots.destroy', $lot) }}" method="POST" class="mt-2" onsubmit="return confirm('Hapus batch stok ini?')">
                                                     @csrf @method('DELETE')
-                                                    <button type="submit" class="btn-outline-danger btn-sm w-full">Hapus Lot</button>
+                                                    <button type="submit" class="btn-outline-danger btn-sm w-full">Hapus</button>
                                                 </form>
                                             @endif
                                         </details>
@@ -88,7 +88,7 @@
                 @else
                     <div class="empty-state">
                         <p>Belum ada stok.</p>
-                        <p class="empty-hint">Tambah stok bahan baku di form kiri.</p>
+                        <p class="empty-hint">Tambahkan stok bahan di form sebelah kiri.</p>
                     </div>
                 @endif
             </x-table-card>

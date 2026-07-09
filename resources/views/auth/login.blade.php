@@ -8,7 +8,7 @@
             <div class="auth-brand-inner">
                 <div class="auth-logo">P</div>
                 <h1 class="auth-brand-title">{{ config('pos.shop_name', 'Point of Sale') }}</h1>
-                <p class="auth-brand-text">Masuk ke modul COGS atau Kasir. Akun admin diarahkan otomatis ke panel Admin.</p>
+                <p class="auth-brand-text">Masuk ke modul Hitung Biaya atau Kasir. Akun admin diarahkan otomatis ke panel Admin.</p>
             </div>
         </div>
 
@@ -61,7 +61,7 @@
                     </label>
 
                     <button type="submit" class="btn-primary w-full py-3 text-base">
-                        Masuk ke <span id="module-label">COGS</span>
+                        Masuk ke <span id="module-label">Hitung Biaya</span>
                     </button>
                 </form>
 
@@ -70,7 +70,7 @@
                         <p class="font-semibold text-slate-700">Akun demo</p>
                         <ul class="mt-2 space-y-1 text-xs text-slate-600">
                             <li><strong>Admin:</strong> admin@local.test / password → panel Admin</li>
-                            <li><strong>COGS:</strong> cogs@local.test / password</li>
+                            <li><strong>Hitung Biaya:</strong> cogs@local.test / password</li>
                             <li><strong>Kasir:</strong> kasir@local.test / password</li>
                         </ul>
                     </div>
@@ -84,7 +84,7 @@
             var input = document.getElementById('module-input');
             var label = document.getElementById('module-label');
             var tabs = document.querySelectorAll('.auth-module-tab');
-            var labels = { cogs: 'COGS', kasir: 'Kasir' };
+            var labels = { cogs: 'Hitung Biaya', kasir: 'Kasir' };
 
             function setModule(module) {
                 input.value = module;

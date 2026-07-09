@@ -38,7 +38,7 @@ class OverheadRateController extends Controller
 
         OverheadRate::create($validated);
 
-        return redirect()->route('overhead-rates.index')->with('success', 'Tarif overhead berhasil ditambahkan.');
+        return redirect()->route('overhead-rates.index')->with('success', 'Biaya operasional berhasil ditambahkan.');
     }
 
     public function edit(OverheadRate $overheadRate)
@@ -64,13 +64,13 @@ class OverheadRateController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
-        return redirect()->route('overhead-rates.index')->with('success', 'Tarif overhead berhasil diperbarui.');
+        return redirect()->route('overhead-rates.index')->with('success', 'Biaya operasional berhasil diperbarui.');
     }
 
     public function destroy(OverheadRate $overheadRate)
     {
         $overheadRate->delete();
 
-        return redirect()->route('overhead-rates.index')->with('success', 'Tarif overhead dihapus.');
+        return redirect()->route('overhead-rates.index')->with('success', 'Biaya operasional dihapus.');
     }
 }

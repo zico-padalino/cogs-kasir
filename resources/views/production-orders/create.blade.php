@@ -1,22 +1,22 @@
 @extends('layouts.app')
 
 @section('title', 'Buat Produksi')
-@section('heading', 'Buat Order Produksi')
-@section('subheading', 'Pilih barang jadi dan jumlah yang akan diproduksi')
+@section('heading', 'Buat Jadwal Produksi')
+@section('subheading', 'Pilih produk jadi dan berapa banyak yang akan dibuat')
 
 @section('content')
     <div class="mx-auto max-w-2xl">
         <x-step-header number="5" title="Buat Produksi Baru"
-            description="Bahan otomatis diambil dari resep (Langkah 3). Setelah dibuat, buka detail untuk Mulai & Selesaikan." />
+            description="Bahan diambil otomatis dari resep (Langkah 3). Setelah dibuat, buka detail untuk mulai dan selesai." />
 
         <div class="card">
             <form action="{{ route('production-orders.store') }}" method="POST" class="space-y-5">
                 @csrf
 
                 <div>
-                    <label class="form-label">Produk yang Diproduksi</label>
+                    <label class="form-label">Produk yang dibuat</label>
                     <select name="product_id" class="form-input" required>
-                        <option value="">Pilih barang jadi...</option>
+                        <option value="">Pilih produk jadi...</option>
                         @foreach ($products as $p)
                             <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku }})</option>
                         @endforeach
@@ -29,14 +29,14 @@
                 </div>
 
                 <details class="rounded-lg border border-slate-200 p-4">
-                    <summary class="cursor-pointer text-sm font-medium">Tenaga kerja & mesin (opsional)</summary>
+                    <summary class="cursor-pointer text-sm font-medium">Gaji pekerja & mesin (opsional)</summary>
                     <div class="mt-4 space-y-4">
                         <div>
-                            <label class="form-label">Jam mesin</label>
+                            <label class="form-label">Jam mesin jalan</label>
                             <input type="number" name="machine_hours" class="form-input" min="0" step="0.1" value="6">
                         </div>
                         <div id="labor-rows" class="space-y-3">
-                            <p class="text-xs text-slate-500">Tenaga kerja langsung:</p>
+                            <p class="text-xs text-slate-500">Pekerja yang terlibat:</p>
                         <div class="labor-row">
                             <input type="text" name="labors[0][description]" class="form-input labor-row-desc" value="Operator" placeholder="Nama pekerjaan">
                             <input type="number" name="labors[0][labor_hours]" class="form-input labor-row-hours" step="0.1" value="8" placeholder="Jam">
@@ -53,7 +53,7 @@
                 </details>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Buat Order</button>
+                    <button type="submit" class="btn-primary">Buat Jadwal</button>
                     <a href="{{ route('production-orders.index') }}" class="btn-secondary">Batal</a>
                 </div>
             </form>
