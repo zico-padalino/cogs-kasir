@@ -14,13 +14,17 @@ class EnsureUserRole
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('login');
+            return redirect()->route('home');
         }
 
         $required = UserRole::tryFrom($role);
 
-        if (! $required || $user->role !== $required) {
-            return redirect()->route($user->role->homeRoute());
+        if (! $required || ! $user->hasModule($required)) {
+            if ($user->accessibleModules() !== []) {
+                return redirect()->route('hub');
+            }
+
+            return redirect()->route('home');
         }
 
         return $next($request);

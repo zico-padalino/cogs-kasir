@@ -11,17 +11,17 @@ class LoginPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_page_is_accessible(): void
+    public function test_login_page_is_accessible_at_root(): void
     {
-        $this->get(route('login'))->assertOk()->assertSee('Masuk ke sistem');
+        $this->get(route('home'))->assertOk()->assertSee('Selamat datang');
     }
 
-    public function test_authenticated_user_visiting_login_is_redirected(): void
+    public function test_authenticated_user_visiting_home_is_redirected(): void
     {
         $user = User::factory()->cogs()->create();
 
         $this->actingAs($user)
-            ->get(route('login'))
+            ->get(route('home'))
             ->assertRedirect(route('dashboard'));
     }
 
@@ -57,6 +57,31 @@ class LoginPageTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_admin_user_is_redirected_to_admin_panel(): void
+    {
+        $user = User::factory()->admin()->create([
+            'email' => 'admin@test.local',
+            'password' => 'secret123',
+        ]);
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'secret123',
+            'module' => UserRole::Cogs->value,
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_page_only_shows_cogs_and_kasir_modules(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('COGS')
+            ->assertSee('Kasir')
+            ->assertDontSee('Admin Karyawan');
+    }
+
     public function test_user_cannot_login_with_wrong_module(): void
     {
         $user = User::factory()->cogs()->create([
@@ -64,13 +89,13 @@ class LoginPageTest extends TestCase
             'password' => 'secret123',
         ]);
 
-        $this->from(route('login'))
+        $this->from(route('home'))
             ->post(route('login.store'), [
                 'email' => $user->email,
                 'password' => 'secret123',
                 'module' => UserRole::Kasir->value,
             ])
-            ->assertRedirect(route('login'))
+            ->assertRedirect(route('home'))
             ->assertSessionHasErrors('email');
 
         $this->assertGuest();

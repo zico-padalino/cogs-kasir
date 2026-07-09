@@ -1,6 +1,12 @@
 <?php
 
+use App\Http\Controllers\Web\Admin\AdminDashboardController;
+use App\Http\Controllers\Web\Admin\AttendanceController;
+use App\Http\Controllers\Web\Admin\EmployeeController;
+use App\Http\Controllers\Web\Admin\SalaryController;
+use App\Http\Controllers\Web\Admin\UserAccessController;
 use App\Http\Controllers\Web\Auth\LoginController;
+use App\Http\Controllers\Web\Auth\ModuleHubController;
 use App\Http\Controllers\Web\CogsController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InventoryController;
@@ -17,21 +23,25 @@ use App\Http\Controllers\Web\ResetDataController;
 use App\Http\Controllers\Web\TableOrderController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/api', '/login');
-Route::redirect('/api/v1', '/login');
-Route::redirect('/api/v1/products', '/login');
-Route::redirect('/api/v1/inventory/receive', '/login');
-Route::redirect('/api/v1/production-orders', '/login');
-Route::redirect('/api/v1/cogs/calculate', '/login');
-Route::redirect('/api/v1/cogs/history', '/login');
-Route::redirect('/api/v1/overhead-rates', '/login');
+Route::redirect('/api', '/');
+Route::redirect('/api/v1', '/');
+Route::redirect('/api/v1/products', '/');
+Route::redirect('/api/v1/inventory/receive', '/');
+Route::redirect('/api/v1/production-orders', '/');
+Route::redirect('/api/v1/cogs/calculate', '/');
+Route::redirect('/api/v1/cogs/history', '/');
+Route::redirect('/api/v1/overhead-rates', '/');
 
-Route::middleware('guest')->group(function () {
-    Route::get('login', [LoginController::class, 'create'])->name('login');
-    Route::post('login', [LoginController::class, 'store'])->name('login.store');
-});
+Route::get('/', [LoginController::class, 'create'])->name('home');
+Route::redirect('/login', '/')->name('login');
+Route::post('/login', [LoginController::class, 'store'])->name('login.store');
 
 Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/hub', [ModuleHubController::class, 'index'])->name('hub');
+    Route::get('/hub/{module}', [ModuleHubController::class, 'switch'])->name('hub.switch');
+});
 
 Route::redirect('meja/{token}', '/pesan');
 
@@ -47,6 +57,19 @@ Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order
 Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
     ->name('pwa.manifest')
     ->where('app', 'kasir|order');
+
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::resource('employees', EmployeeController::class)->except(['show']);
+    Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
+    Route::post('attendances', [AttendanceController::class, 'store'])->name('attendances.store');
+    Route::delete('attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
+    Route::get('salaries', [SalaryController::class, 'index'])->name('salaries.index');
+    Route::post('salaries', [SalaryController::class, 'store'])->name('salaries.store');
+    Route::post('salaries/{salary}/paid', [SalaryController::class, 'markPaid'])->name('salaries.paid');
+    Route::delete('salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
+    Route::resource('users', UserAccessController::class)->except(['show']);
+});
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
     Route::get('/', [KasirController::class, 'index'])->name('index');
@@ -82,7 +105,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
 });
 
 Route::middleware(['auth', 'role:cogs'])->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('reset-data', [ResetDataController::class, 'show'])->name('reset-data.show');
     Route::post('reset-data', [ResetDataController::class, 'reset'])->name('reset-data.store');

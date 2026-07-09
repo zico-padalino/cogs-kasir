@@ -19,9 +19,9 @@ class WebPagesTest extends TestCase
         return $user;
     }
 
-    public function test_guest_is_redirected_to_login_from_home(): void
+    public function test_guest_sees_login_at_root(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/')->assertOk()->assertSee('Selamat datang');
     }
 
     public function test_dashboard_is_accessible(): void

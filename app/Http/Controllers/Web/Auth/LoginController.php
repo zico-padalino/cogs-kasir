@@ -5,20 +5,30 @@ namespace App\Http\Controllers\Web\Auth;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
+    /** @return list<UserRole> */
+    private function loginModules(): array
+    {
+        return [UserRole::Cogs, UserRole::Kasir];
+    }
+
     public function create(Request $request)
     {
-        if ($request->user()) {
-            return redirect()->route($request->user()->role->homeRoute());
+        $user = $request->user();
+
+        if ($user) {
+            return redirect()->to($this->homeFor($user));
         }
 
         return view('auth.login', [
-            'modules' => UserRole::cases(),
+            'modules' => $this->loginModules(),
         ]);
     }
 
@@ -35,7 +45,14 @@ class LoginController extends Controller
 
         $user = $request->user();
 
-        if ($user->role !== $module) {
+        if ($user->hasModule(UserRole::Admin)) {
+            $request->session()->regenerate();
+            $request->session()->put('auth_module', UserRole::Admin->value);
+
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        if (! $user->hasModule($module)) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -58,6 +75,19 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route('home');
+    }
+
+    private function homeFor(User $user): string
+    {
+        if ($user->hasModule(UserRole::Admin)) {
+            return route('admin.dashboard');
+        }
+
+        if (count($user->accessibleModules()) > 1) {
+            return route('hub');
+        }
+
+        return route($user->defaultModule()->homeRoute());
     }
 }

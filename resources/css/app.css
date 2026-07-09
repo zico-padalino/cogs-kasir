@@ -293,7 +293,7 @@
     }
 
     .auth-module-tab {
-        @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:border-brand-500/40 hover:bg-brand-50/40 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+        @apply min-h-[4.5rem] rounded-2xl border border-violet-100 bg-violet-50/40 px-3 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
     }
 
     .auth-module-tab.is-active {
@@ -3163,5 +3163,33 @@
         html.is-pwa-standalone .pwa-install-ios {
             @apply hidden;
         }
+    }
+
+    .auth-shell-fintech .auth-panel-fintech {
+        @apply rounded-3xl border-0 bg-white/90 shadow-[0_20px_50px_rgba(124,58,237,0.12)];
+    }
+
+    .auth-module-grid {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
+    }
+
+    .auth-module-pick {
+        @apply flex w-full flex-col items-start rounded-2xl border border-violet-100 bg-violet-50/30 px-4 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/50;
+    }
+
+    .auth-module-pick.is-active {
+        @apply border-brand-500 bg-gradient-to-br from-brand-50 to-violet-50 ring-2 ring-brand-400/25;
+    }
+
+    .auth-module-pick-icon {
+        @apply text-2xl;
+    }
+
+    .auth-module-pick-label {
+        @apply mt-2 text-sm font-bold text-slate-900;
+    }
+
+    .auth-module-pick-desc {
+        @apply mt-0.5 text-[11px] leading-snug text-slate-500;
     }
 }

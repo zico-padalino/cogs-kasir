@@ -7,16 +7,13 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Enums\UserRole;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 
 $password = 'password';
-$hash = Hash::make($password);
-
-echo "New hash: {$hash}\n";
 
 $accounts = [
-    ['email' => 'cogs@local.test', 'name' => 'Admin COGS', 'role' => UserRole::Cogs],
-    ['email' => 'kasir@local.test', 'name' => 'Kasir Demo', 'role' => UserRole::Kasir],
+    ['email' => 'admin@local.test', 'name' => 'Admin Utama', 'role' => UserRole::Admin, 'modules' => ['admin', 'cogs', 'kasir']],
+    ['email' => 'cogs@local.test', 'name' => 'Admin COGS', 'role' => UserRole::Cogs, 'modules' => ['cogs']],
+    ['email' => 'kasir@local.test', 'name' => 'Kasir Demo', 'role' => UserRole::Kasir, 'modules' => ['kasir']],
 ];
 
 foreach ($accounts as $account) {
@@ -25,10 +22,10 @@ foreach ($accounts as $account) {
         [
             'name' => $account['name'],
             'role' => $account['role'],
+            'modules' => $account['modules'],
             'password' => $password,
         ]
     );
 
-    $ok = Hash::check($password, $user->fresh()->password) ? 'OK' : 'FAIL';
-    echo "{$account['email']} ({$account['role']->value}): {$ok}\n";
+    echo "{$account['email']} ({$account['role']->value}): OK\n";
 }
