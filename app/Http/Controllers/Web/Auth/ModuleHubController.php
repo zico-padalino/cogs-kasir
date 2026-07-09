@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Auth;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Support\CogsNavigation;
 use Illuminate\Http\Request;
 
 class ModuleHubController extends Controller
@@ -14,7 +15,13 @@ class ModuleHubController extends Controller
         $modules = $user->accessibleModules();
 
         if (count($modules) <= 1) {
-            return redirect()->route($user->defaultModule()->homeRoute());
+            $module = $user->defaultModule();
+
+            if ($module === UserRole::Cogs) {
+                return redirect()->to(CogsNavigation::preferredUrl());
+            }
+
+            return redirect()->route($module->homeRoute());
         }
 
         return view('auth.hub', [
@@ -33,6 +40,10 @@ class ModuleHubController extends Controller
         }
 
         $request->session()->put('auth_module', $role->value);
+
+        if ($role === UserRole::Cogs) {
+            return redirect()->to(CogsNavigation::preferredUrl());
+        }
 
         return redirect()->route($role->homeRoute());
     }

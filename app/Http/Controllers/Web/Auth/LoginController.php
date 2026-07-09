@@ -66,11 +66,11 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $request->session()->put('auth_module', $module->value);
 
-        $homeRoute = $module === UserRole::Cogs
-            ? CogsNavigation::preferredRouteName()
-            : $module->homeRoute();
+        if ($module === UserRole::Cogs) {
+            return redirect()->to(CogsNavigation::preferredUrl());
+        }
 
-        return redirect()->intended(route($homeRoute));
+        return redirect()->intended(route($module->homeRoute()));
     }
 
     public function destroy(Request $request)
@@ -91,6 +91,10 @@ class LoginController extends Controller
 
         if (count($user->accessibleModules()) > 1) {
             return route('hub');
+        }
+
+        if ($user->hasModule(UserRole::Cogs)) {
+            return CogsNavigation::preferredUrl();
         }
 
         return route($user->defaultModule()->homeRoute());

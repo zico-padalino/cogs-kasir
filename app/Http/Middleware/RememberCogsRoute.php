@@ -16,14 +16,13 @@ class RememberCogsRoute
 
         if (
             $request->isMethod('GET')
+            && $response->isSuccessful()
             && $request->user()?->hasModule(UserRole::Cogs)
-            && CogsNavigation::isCogsRoute($request->route()?->getName())
         ) {
-            $name = $request->route()->getName();
-
-            if ($name !== 'dashboard') {
-                session(['cogs.last_route' => $name]);
-            }
+            CogsNavigation::rememberFromRequest(
+                $request->route()?->getName() ?? '',
+                $request->url(),
+            );
         }
 
         return $response;
