@@ -2,7 +2,7 @@
 
 @section('title', 'Kelola Menu')
 @section('heading', 'Kelola Menu')
-@section('subheading', 'Atur stok, gambar, kategori, dan deskripsi menu di POS')
+@section('subheading', 'Atur gambar, kategori, dan deskripsi menu di POS')
 
 @section('content')
     <div class="page-toolbar">
@@ -34,7 +34,6 @@
                     $hpp = $product->effectiveUnitHpp();
                     $category = $product->menu_category ?: 'lainnya';
                     $categoryLabel = $menuCategories[$category] ?? ucfirst($category);
-                    $stock = $product->availableQuantity();
                     $searchKey = strtolower($product->name.' '.$product->sku.' '.$categoryLabel);
                 @endphp
                 <article
@@ -52,14 +51,11 @@
                                 <span class="badge badge-slate">Nonaktif</span>
                             @elseif ($price <= 0)
                                 <span class="badge badge-amber">Atur harga di Hitung Biaya</span>
-                            @elseif ($stock <= 0)
-                                <span class="badge badge-amber">Stok habis</span>
                             @endif
                         </div>
                         <p class="kasir-menu-admin-meta">
                             {{ $product->sku }}
                             · {{ $categoryLabel }}
-                            · Stok {{ $format::number($stock, 0) }} {{ $product->unit }}
                         </p>
                         @if ($product->description)
                             <p class="kasir-menu-admin-desc">{{ Str::limit($product->description, 80) }}</p>
@@ -77,7 +73,7 @@
                     </div>
 
                     <a href="{{ route('kasir.products.edit', $product) }}" class="btn-primary btn-sm kasir-menu-admin-edit">
-                        Atur Stok
+                        Atur Menu
                     </a>
                 </article>
             @endforeach

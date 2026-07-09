@@ -158,7 +158,7 @@ class CogsCalculationService
     public function recordSaleCogs(SalesTransaction $sale): CogsCalculation
     {
         return DB::transaction(function () use ($sale) {
-            $result = $this->calculateSaleCogs($sale->product, (float) $sale->quantity);
+            $result = $this->calculateSaleCogs($sale->product, (float) $sale->quantity, consumeInventory: false);
 
             return $this->persistCalculation(
                 result: $result,

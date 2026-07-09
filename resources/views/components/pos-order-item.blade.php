@@ -9,7 +9,6 @@
 
 @php
     $product = $item->product;
-    $maxQty = max(1, (int) $product->availableQuantity());
 @endphp
 
 <div
@@ -45,8 +44,8 @@
                 <form action="{{ $updateUrl }}" method="POST">
                     @csrf
                     @method('PATCH')
-                    <input type="hidden" name="quantity" value="{{ min($maxQty, $item->quantity + 1) }}">
-                    <button type="submit" class="pos-cart-qty-btn" @disabled($item->quantity >= $maxQty) aria-label="Tambah">+</button>
+                    <input type="hidden" name="quantity" value="{{ $item->quantity + 1 }}">
+                    <button type="submit" class="pos-cart-qty-btn" aria-label="Tambah">+</button>
                 </form>
             </div>
 

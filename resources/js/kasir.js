@@ -63,8 +63,6 @@ function readProductCard(card) {
         priceValue: parseFloat(card.dataset.productPriceValue || '0'),
         image: card.dataset.productImage,
         desc: card.dataset.productDesc || '',
-        stock: card.dataset.productStock || '0',
-        max: parseInt(card.dataset.productMax || '99', 10),
         editUrl: card.dataset.productEditUrl || '#',
     };
 }
@@ -95,7 +93,7 @@ function initKasirModals(root) {
     const detailAdd = detailModal.querySelector('[data-kasir-detail-add]');
 
     let activeProduct = null;
-    let maxQty = 99;
+    const maxQty = 99;
 
     const openAddModal = (product) => {
         if (! product || ! product.id || product.priceValue <= 0) {
@@ -103,7 +101,6 @@ function initKasirModals(root) {
         }
 
         activeProduct = product;
-        maxQty = Number.isFinite(product.max) && product.max > 0 ? product.max : 99;
 
         addProductId.value = product.id;
         addTitle.textContent = product.name;
@@ -142,7 +139,7 @@ function initKasirModals(root) {
         detailTitle.textContent = product.name;
         detailPrice.textContent = product.price;
         detailDesc.textContent = product.desc;
-        detailMeta.textContent = `${product.sku} · Stok ${product.stock}`;
+        detailMeta.textContent = product.sku;
         detailImage.src = product.image;
         detailImage.alt = product.name;
         detailEdit.href = product.editUrl;
@@ -904,7 +901,7 @@ function initPosCashPayment(root) {
                 return;
             }
 
-            if (! window.confirm('Proses pembayaran? Stok & COGS akan tercatat otomatis.')) {
+            if (! window.confirm('Proses pembayaran? Biaya pokok akan tercatat otomatis.')) {
                 event.preventDefault();
             }
         });

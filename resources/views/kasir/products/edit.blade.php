@@ -40,21 +40,6 @@
                 @method('PUT')
 
                 <div>
-                    <label class="form-label" for="menu_stock">Stok menu ({{ $product->unit }})</label>
-                    <input
-                        id="menu_stock"
-                        type="number"
-                        name="menu_stock"
-                        min="0"
-                        step="any"
-                        class="form-input"
-                        value="{{ old('menu_stock', $menuStock) }}"
-                        required
-                    >
-                    <p class="form-hint">Jumlah yang tersedia di POS. Stok disesuaikan otomatis saat disimpan.</p>
-                </div>
-
-                <div>
                     <label class="form-label">Gambar Menu</label>
                     <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="form-input file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700">
                     <p class="form-hint">Upload JPG/PNG/WebP maks. 2 MB</p>

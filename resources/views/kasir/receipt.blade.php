@@ -54,7 +54,7 @@
                 </div>
             @endif
 
-            <p class="mt-4 text-xs text-slate-400">Stok & biaya pokok tercatat otomatis</p>
+            <p class="mt-4 text-xs text-slate-400">Biaya pokok tercatat otomatis</p>
         </div>
 
         <div class="form-actions mt-4 no-print">

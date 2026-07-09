@@ -215,7 +215,7 @@ class KasirPageTest extends TestCase
             ->assertJsonStructure(['order_ids', 'html']);
     }
 
-    public function test_kasir_checkout_reduces_inventory(): void
+    public function test_kasir_checkout_records_cogs_without_reducing_inventory(): void
     {
         $product = $this->sellableProduct();
         $kasir = $this->kasirUser();
@@ -236,7 +236,7 @@ class KasirPageTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertEquals(48, $product->fresh()->availableQuantity());
+        $this->assertEquals(50, $product->fresh()->availableQuantity());
         $this->assertDatabaseHas('pos_orders', ['status' => 'paid']);
         $this->assertDatabaseHas('sales_transactions', ['product_id' => $product->id]);
         $this->assertDatabaseHas('cogs_calculations', ['product_id' => $product->id]);

@@ -7,7 +7,6 @@
             $category = $product->menu_category ?: 'lainnya';
             $categoryLabel = $menuCategoryLabels[$category] ?? ucfirst($category);
             $searchKey = strtolower($product->name.' '.$product->sku.' '.$categoryLabel.' '.($product->description ?? ''));
-            $maxQty = max(1, (int) $product->availableQuantity());
             $canAdd = $price > 0;
         @endphp
         <article
@@ -21,8 +20,6 @@
             data-product-price-value="{{ $price }}"
             data-product-image="{{ $product->imageUrl() }}"
             data-product-desc="{{ $product->description ?? 'Belum ada deskripsi menu.' }}"
-            data-product-stock="{{ $format::number($product->availableQuantity(), 0) }}"
-            data-product-max="{{ $maxQty }}"
             data-product-edit-url="{{ route('kasir.products.edit', $product) }}"
         >
             <button
@@ -42,7 +39,6 @@
                 <button type="button" class="pos-product-card-info" data-kasir-open-detail>
                     <p class="pos-product-category-label">{{ $categoryLabel }}</p>
                     <h3 class="pos-product-name">{{ $product->name }}</h3>
-                    <p class="pos-product-meta">Stok {{ $format::number($product->availableQuantity(), 0) }}</p>
                 </button>
 
                 <div class="pos-product-card-foot">
@@ -71,7 +67,7 @@
     @empty
         <div class="pos-product-empty">
             <p>Belum ada menu siap jual</p>
-            <p class="pos-product-empty-hint">Tambah stok produk jadi di modul Hitung Biaya</p>
+            <p class="pos-product-empty-hint">Aktifkan menu dan atur harga di modul Hitung Biaya</p>
         </div>
     @endforelse
 </div>

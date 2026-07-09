@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateKasirProductRequest;
 use App\Models\MenuCategory;
 use App\Models\Product;
-use App\Services\MenuStockService;
 use App\Services\ProductHppService;
 use App\Support\Format;
 use Illuminate\Support\Facades\Storage;
@@ -41,11 +40,10 @@ class KasirProductController extends Controller
             'unitHpp' => $productHpp->effectiveUnitHpp($product),
             'grossMargin' => $productHpp->grossMargin($product),
             'marginPercent' => $productHpp->grossMarginPercent($product),
-            'menuStock' => $product->availableQuantity(),
         ]);
     }
 
-    public function update(UpdateKasirProductRequest $request, Product $product, MenuStockService $menuStockService)
+    public function update(UpdateKasirProductRequest $request, Product $product)
     {
         $this->assertSellable($product);
 
@@ -66,7 +64,6 @@ class KasirProductController extends Controller
         }
 
         $product->update($data);
-        $menuStockService->syncMenuStock($product, (float) $request->input('menu_stock'));
 
         return redirect()
             ->route('kasir.products.index')

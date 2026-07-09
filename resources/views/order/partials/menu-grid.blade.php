@@ -15,7 +15,6 @@
         @php
             $price = $product->selling_price > 0 ? $product->selling_price : $product->standard_cost;
             $searchKey = strtolower($product->name.' '.$product->sku);
-            $maxQty = max(1, (int) $product->availableQuantity());
         @endphp
         <article
             class="order-product-card"
@@ -25,7 +24,6 @@
             data-product-price="{{ $format::rupiah($price) }}"
             data-product-price-value="{{ $price }}"
             data-product-image="{{ $product->imageUrl() }}"
-            data-product-max="{{ $maxQty }}"
         >
             <div class="order-product-media">
                 <x-product-image :product="$product" class="order-product-image" />
@@ -35,7 +33,7 @@
             </div>
             <div class="order-product-body">
                 <h3 class="order-product-name">{{ $product->name }}</h3>
-                <p class="order-product-meta">{{ $product->sku }} · Stok {{ $format::number($product->availableQuantity(), 0) }}</p>
+                <p class="order-product-meta">{{ $product->sku }}</p>
                 <div class="order-product-foot">
                     <span class="order-product-price">{{ $format::rupiah($price) }}</span>
                     <button

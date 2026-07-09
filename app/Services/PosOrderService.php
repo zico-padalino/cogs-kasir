@@ -367,9 +367,7 @@ class PosOrderService
         return Product::sellable()
             ->orderBy('menu_category')
             ->orderBy('name')
-            ->get()
-            ->filter(fn (Product $product) => $product->availableQuantity() > 0)
-            ->values();
+            ->get();
     }
 
     /** @return list<string> */
@@ -413,10 +411,6 @@ class PosOrderService
 
         if (! $product->is_active) {
             throw new RuntimeException('Produk tidak aktif.');
-        }
-
-        if ($product->availableQuantity() < $quantity) {
-            throw new RuntimeException("Stok {$product->name} tidak cukup (tersedia: {$product->availableQuantity()}).");
         }
     }
 
