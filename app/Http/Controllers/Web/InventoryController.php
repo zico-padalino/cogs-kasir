@@ -10,6 +10,7 @@ use App\Models\InventoryLot;
 use App\Models\Product;
 use App\Services\InventoryCostService;
 use App\Support\Format;
+use App\Support\MaterialUnits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -33,6 +34,7 @@ class InventoryController extends Controller
     return view('materials.index', [
       'materials' => $materials,
       'format' => Format::class,
+      'unitPresets' => MaterialUnits::presets(),
     ]);
   }
 
@@ -40,16 +42,23 @@ class InventoryController extends Controller
   {
     $validated = $request->validate([
       'name' => ['required', 'string', 'max:255'],
-      'unit' => ['required', 'string', 'max:20'],
+      'unit_preset' => ['required', 'string', 'max:20'],
+      'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
       'quantity' => ['required', 'numeric', 'gt:0'],
       'unit_cost' => ['required'],
     ]);
+
+    $unit = MaterialUnits::resolve($validated['unit_preset'], $validated['unit_custom'] ?? '');
+
+    if ($unit === '') {
+      return back()->withErrors(['unit_custom' => 'Isi satuan bahan.'])->withInput();
+    }
 
     $product = Product::create([
       'sku' => $this->generateMaterialSku($validated['name']),
       'name' => $validated['name'],
       'type' => ProductType::RawMaterial,
-      'unit' => $validated['unit'],
+      'unit' => $unit,
       'costing_method' => CostingMethod::WeightedAverage,
       'is_active' => true,
     ]);

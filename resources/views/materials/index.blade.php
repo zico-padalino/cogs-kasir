@@ -7,27 +7,32 @@
 @section('content')
     <div class="module-page module-step-2">
         <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Nama bahan, stok awal, dan harga beli — cukup sekali isi.">
-            <form action="{{ route('materials.store') }}" method="POST" class="overhead-add-form">
+            <form action="{{ route('materials.store') }}" method="POST" class="space-y-4">
                 @csrf
-                <div class="field-name">
+                <div>
                     <label class="form-label">Nama bahan</label>
-                    <input type="text" name="name" class="form-input" required placeholder="Tepung terigu" value="{{ old('name') }}">
+                    <input type="text" name="name" class="form-input text-base" required placeholder="Tepung terigu" value="{{ old('name') }}">
                 </div>
-                <div class="field-base">
-                    <label class="form-label">Satuan</label>
-                    <input type="text" name="unit" class="form-input" required placeholder="kg" value="{{ old('unit', 'kg') }}">
+
+                <x-unit-picker
+                    :selected="old('unit_preset', 'kg')"
+                    :custom-value="old('unit_custom', '')"
+                />
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="form-label">Stok masuk</label>
+                        <input type="number" name="quantity" class="form-input text-lg font-semibold" step="0.01" min="0.01" required placeholder="25" value="{{ old('quantity') }}">
+                        <p class="form-hint">Jumlah yang Anda beli sekarang.</p>
+                    </div>
+                    <div>
+                        <label class="form-label">Harga beli per satuan</label>
+                        <x-rupiah-input name="unit_cost" placeholder="12.000" required />
+                        <p class="form-hint">Harga untuk 1 satuan di atas.</p>
+                    </div>
                 </div>
-                <div class="field-rate">
-                    <label class="form-label">Stok masuk</label>
-                    <input type="number" name="quantity" class="form-input" step="0.01" min="0.01" required placeholder="25" value="{{ old('quantity') }}">
-                </div>
-                <div class="field-note">
-                    <label class="form-label">Harga beli / satuan</label>
-                    <x-rupiah-input name="unit_cost" placeholder="12.000" required />
-                </div>
-                <div class="field-submit">
-                    <button type="submit" class="btn-primary w-full py-3 text-base font-semibold lg:px-3">Simpan Bahan</button>
-                </div>
+
+                <button type="submit" class="btn-primary w-full py-3 text-base font-semibold">Simpan Bahan</button>
             </form>
         </x-module-form-card>
 

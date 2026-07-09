@@ -717,6 +717,22 @@
         @apply bg-sky-50 text-sky-800 ring-sky-200;
     }
 
+    .unit-picker__grid {
+        @apply grid grid-cols-3 gap-2 sm:grid-cols-5;
+    }
+
+    .unit-picker__chip {
+        @apply flex cursor-pointer items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-2 py-2.5 text-center text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/50;
+    }
+
+    .unit-picker__chip:has(:checked) {
+        @apply border-emerald-500 bg-emerald-50 text-emerald-800 shadow-md ring-2 ring-emerald-200/60;
+    }
+
+    .unit-picker__chip span {
+        @apply pointer-events-none;
+    }
+
     .alert-tip {
         @apply rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900;
     }
