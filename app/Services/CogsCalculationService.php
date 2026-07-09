@@ -12,13 +12,23 @@ use App\Models\SalesTransaction;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
+/**
+ * Satu formula biaya: HPP (Harga Pokok Penjualan).
+ * Kolom COGS di database = link ke nilai HPP yang sama (bukan perhitungan terpisah).
+ */
 class CogsCalculationService
 {
     public function __construct(
         private readonly InventoryCostService $inventoryCostService,
         private readonly BomCostService $bomCostService,
         private readonly OverheadAllocationService $overheadAllocationService,
+        private readonly ProductHppService $productHppService,
     ) {}
+
+    public function calculateProductionHpp(ProductionOrder $order): CogsResult
+    {
+        return $this->calculateProductionCogs($order);
+    }
 
     public function calculateProductionCogs(ProductionOrder $order): CogsResult
     {
@@ -34,14 +44,14 @@ class CogsCalculationService
         $directMaterial = $order->totalDirectMaterial();
         $directLabor = $order->totalDirectLabor();
         $overhead = $this->overheadAllocationService->allocateForProduction($order);
-        $totalCogs = $directMaterial + $directLabor + $overhead['total'];
+        $totalHpp = $directMaterial + $directLabor + $overhead['total'];
 
         return new CogsResult(
             directMaterial: $directMaterial,
             directLabor: $directLabor,
             manufacturingOverhead: $overhead['total'],
-            totalCogs: $totalCogs,
-            unitCogs: $totalCogs / $quantity,
+            totalHpp: $totalHpp,
+            unitHpp: $totalHpp / $quantity,
             calculationMethod: 'absorption_costing_production',
             breakdown: [
                 'production_order_id' => $order->id,
@@ -63,6 +73,11 @@ class CogsCalculationService
                 'overhead' => $overhead,
             ],
         );
+    }
+
+    public function calculateSaleHpp(Product $product, float $quantity, bool $consumeInventory = true): CogsResult
+    {
+        return $this->calculateSaleCogs($product, $quantity, $consumeInventory);
     }
 
     public function calculateSaleCogs(Product $product, float $quantity, bool $consumeInventory = true): CogsResult
@@ -113,14 +128,14 @@ class CogsCalculationService
             units: $quantity,
         );
 
-        $totalCogs = $directMaterial + $overhead['total'];
+        $totalHpp = $directMaterial + $overhead['total'];
 
         return new CogsResult(
             directMaterial: $directMaterial,
             directLabor: 0,
             manufacturingOverhead: $overhead['total'],
-            totalCogs: $totalCogs,
-            unitCogs: $totalCogs / $quantity,
+            totalHpp: $totalHpp,
+            unitHpp: $totalHpp / $quantity,
             calculationMethod: $product->costing_method->value,
             breakdown: [
                 'consumption_mode' => $consumptionDetails[0]['mode'] ?? 'bom_only',
@@ -145,20 +160,13 @@ class CogsCalculationService
         return DB::transaction(function () use ($sale) {
             $result = $this->calculateSaleCogs($sale->product, (float) $sale->quantity);
 
-            return CogsCalculation::create([
-                'reference_type' => SalesTransaction::class,
-                'reference_id' => $sale->id,
-                'product_id' => $sale->product_id,
-                'quantity' => $sale->quantity,
-                'direct_material' => $result->directMaterial,
-                'direct_labor' => $result->directLabor,
-                'manufacturing_overhead' => $result->manufacturingOverhead,
-                'total_cogs' => $result->totalCogs,
-                'unit_cogs' => $result->unitCogs,
-                'calculation_method' => $result->calculationMethod,
-                'breakdown' => $result->breakdown,
-                'calculated_at' => now(),
-            ]);
+            return $this->persistCalculation(
+                result: $result,
+                productId: $sale->product_id,
+                quantity: (float) $sale->quantity,
+                referenceType: SalesTransaction::class,
+                referenceId: $sale->id,
+            );
         });
     }
 
@@ -166,16 +174,38 @@ class CogsCalculationService
     {
         $result = $this->calculateProductionCogs($order);
 
+        $calculation = $this->persistCalculation(
+            result: $result,
+            productId: $order->product_id,
+            quantity: (float) $order->quantity_completed,
+            referenceType: ProductionOrder::class,
+            referenceId: $order->id,
+        );
+
+        $this->productHppService->syncFromResult($order->product, $result);
+
+        return $calculation;
+    }
+
+    private function persistCalculation(
+        CogsResult $result,
+        int $productId,
+        float $quantity,
+        string $referenceType,
+        int $referenceId,
+    ): CogsCalculation {
         return CogsCalculation::create([
-            'reference_type' => ProductionOrder::class,
-            'reference_id' => $order->id,
-            'product_id' => $order->product_id,
-            'quantity' => $order->quantity_completed,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'product_id' => $productId,
+            'quantity' => $quantity,
             'direct_material' => $result->directMaterial,
             'direct_labor' => $result->directLabor,
             'manufacturing_overhead' => $result->manufacturingOverhead,
-            'total_cogs' => $result->totalCogs,
-            'unit_cogs' => $result->unitCogs,
+            'total_hpp' => $result->totalHpp,
+            'unit_hpp' => $result->unitHpp,
+            'total_cogs' => $result->totalHpp,
+            'unit_cogs' => $result->unitHpp,
             'calculation_method' => $result->calculationMethod,
             'breakdown' => $result->breakdown,
             'calculated_at' => now(),
@@ -191,7 +221,8 @@ class CogsCalculationService
 
         return [
             'total_records' => $calculations->count(),
-            'total_cogs' => round($calculations->sum('total_cogs'), 4),
+            'total_hpp' => round($calculations->sum(fn (CogsCalculation $calc) => $calc->totalHpp()), 4),
+            'total_cogs' => round($calculations->sum(fn (CogsCalculation $calc) => $calc->totalHpp()), 4),
             'total_direct_material' => round($calculations->sum('direct_material'), 4),
             'total_direct_labor' => round($calculations->sum('direct_labor'), 4),
             'total_overhead' => round($calculations->sum('manufacturing_overhead'), 4),
@@ -203,9 +234,13 @@ class CogsCalculationService
                     'sku' => $product->sku,
                     'name' => $product->name,
                     'total_quantity' => round($group->sum('quantity'), 6),
-                    'total_cogs' => round($group->sum('total_cogs'), 4),
+                    'total_hpp' => round($group->sum(fn (CogsCalculation $calc) => $calc->totalHpp()), 4),
+                    'total_cogs' => round($group->sum(fn (CogsCalculation $calc) => $calc->totalHpp()), 4),
+                    'average_unit_hpp' => $group->sum('quantity') > 0
+                        ? round($group->sum(fn (CogsCalculation $calc) => $calc->totalHpp()) / $group->sum('quantity'), 4)
+                        : 0,
                     'average_unit_cogs' => $group->sum('quantity') > 0
-                        ? round($group->sum('total_cogs') / $group->sum('quantity'), 4)
+                        ? round($group->sum(fn (CogsCalculation $calc) => $calc->totalHpp()) / $group->sum('quantity'), 4)
                         : 0,
                 ];
             })->values()->all(),

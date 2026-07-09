@@ -13,13 +13,46 @@
                 <x-product-image :product="$product" class="kasir-product-preview-image" />
                 <div class="kasir-product-preview-body">
                     <h1 class="text-lg font-bold text-slate-900">{{ $product->name }}</h1>
-                    <p class="text-sm text-slate-500">{{ $product->sku }} · Stok {{ $format::number($product->availableQuantity(), 0) }}</p>
+                    <p class="text-sm text-slate-500">{{ $product->sku }}</p>
                 </div>
+            </div>
+
+            <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-slate-500">Harga jual (COGS)</span>
+                    <span class="font-semibold text-slate-900">
+                        {{ (float) $product->selling_price > 0 ? $format::rupiah($product->selling_price) : 'Belum diatur' }}
+                    </span>
+                </div>
+                @if ($unitHpp > 0)
+                    <p class="mt-1 text-xs text-slate-500">
+                        HPP {{ $format::rupiah($unitHpp) }}
+                        @if ((float) $product->selling_price > 0)
+                            · Margin {{ $format::rupiah($grossMargin) }} ({{ $marginPercent }}%)
+                        @endif
+                    </p>
+                @endif
+                <p class="mt-2 text-xs text-slate-500">Ubah harga di modul COGS → Produk.</p>
             </div>
 
             <form action="{{ route('kasir.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-5 p-4 sm:p-5">
                 @csrf
                 @method('PUT')
+
+                <div>
+                    <label class="form-label" for="menu_stock">Stok menu ({{ $product->unit }})</label>
+                    <input
+                        id="menu_stock"
+                        type="number"
+                        name="menu_stock"
+                        min="0"
+                        step="any"
+                        class="form-input"
+                        value="{{ old('menu_stock', $menuStock) }}"
+                        required
+                    >
+                    <p class="form-hint">Jumlah yang tersedia di POS. Stok disesuaikan otomatis saat disimpan.</p>
+                </div>
 
                 <div>
                     <label class="form-label">Gambar Menu</label>
@@ -50,10 +83,6 @@
                     <input type="checkbox" name="remove_image" value="1" class="rounded" @checked(old('remove_image'))>
                     <span class="text-sm text-slate-600">Hapus gambar (pakai default)</span>
                 </label>
-
-                <div>
-                    <x-rupiah-input name="selling_price" label="Harga Jual (Rp)" :value="old('selling_price', $product->selling_price)" required />
-                </div>
 
                 <div>
                     <label class="form-label">Kategori Menu (POS)</label>

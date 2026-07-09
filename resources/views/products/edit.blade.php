@@ -47,13 +47,27 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">Biaya Standar (Rp)</label>
+                        <label class="form-label">Estimasi Biaya (Rp)</label>
                         <x-rupiah-input name="standard_cost" :value="old('standard_cost', $product->standard_cost)" />
+                        <p class="form-hint">Perkiraan awal sebelum HPP terhitung dari produksi.</p>
+                    </div>
+                    <div>
+                        <label class="form-label">HPP / Unit (Rp)</label>
+                        <input type="text" class="form-input bg-slate-50" value="{{ $format::rupiah($product->effectiveUnitHpp(), 2) }}" readonly>
+                        <p class="form-hint">Terisi otomatis setelah produksi selesai. COGS = nilai HPP ini.</p>
                     </div>
                     <div class="sm:col-span-2">
-                        <x-rupiah-input name="selling_price" label="Harga Jual Kasir (Rp)" :value="old('selling_price', $product->selling_price)" />
+                        <x-rupiah-input name="selling_price" label="Harga Jual Menu (Rp) — atur di sini" :value="old('selling_price', $product->selling_price)" />
+                        <p class="form-hint">Harga ini tampil di Kasir/POS. Stok menu diatur di modul Kasir.</p>
                     </div>
                 </div>
+
+                @if (in_array($product->type->value, ['finished_good', 'semi_finished']))
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" name="is_menu_item" value="1" class="rounded" @checked(old('is_menu_item', $product->is_menu_item))>
+                        <span class="text-sm">Tampilkan sebagai menu di Kasir (stok jadi produk dijual)</span>
+                    </label>
+                @endif
 
                 <div>
                     <label class="form-label">Deskripsi</label>

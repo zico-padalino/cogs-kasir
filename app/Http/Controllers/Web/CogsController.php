@@ -41,7 +41,7 @@ class CogsController extends Controller
                 ]);
 
                 $calculation = $cogsService->recordSaleCogs($sale);
-                $grossProfit = (float) $sale->total_revenue - (float) $calculation->total_cogs;
+                $grossProfit = (float) $sale->total_revenue - $calculation->totalHpp();
 
                 return compact('sale', 'calculation', 'grossProfit');
             });

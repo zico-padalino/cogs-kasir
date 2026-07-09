@@ -152,7 +152,7 @@ class PosOrderService
 
         $price = $unitPrice ?? (float) $product->selling_price;
         if ($price <= 0) {
-            $price = (float) $product->standard_cost;
+            $price = $product->effectiveUnitHpp();
         }
 
         $item = PosOrderItem::create([

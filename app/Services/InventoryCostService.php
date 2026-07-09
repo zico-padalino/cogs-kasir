@@ -52,7 +52,7 @@ class InventoryCostService
 
         $totalQty = $lots->sum('quantity_remaining');
         if ($totalQty <= 0) {
-            return (float) $product->standard_cost;
+            return $product->effectiveUnitHpp();
         }
 
         $totalValue = $lots->sum(fn (InventoryLot $lot) => (float) $lot->quantity_remaining * (float) $lot->unit_cost);
@@ -138,7 +138,7 @@ class InventoryCostService
 
     private function consumeStandard(Product $product, float $quantity, bool $persist): MaterialConsumptionResult
     {
-        $unitCost = (float) $product->standard_cost;
+        $unitCost = $product->effectiveUnitHpp();
 
         if ($persist) {
             $this->consumeFifo($product, $quantity, true);

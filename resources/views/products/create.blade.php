@@ -55,7 +55,8 @@
                     <x-rupiah-input name="standard_cost" :value="old('standard_cost', 0)" placeholder="0" />
                 </div>
                 <div>
-                    <x-rupiah-input name="selling_price" label="Harga Jual Kasir (Rp)" :value="old('selling_price', 0)" placeholder="25.000" />
+                    <x-rupiah-input name="selling_price" label="Harga Jual Menu (Rp) — atur di sini" :value="old('selling_price', 0)" placeholder="25.000" />
+                    <p class="form-hint">Stok menu diatur di modul Kasir → Kelola Menu.</p>
                 </div>
                         <div>
                             <label class="form-label">Deskripsi</label>

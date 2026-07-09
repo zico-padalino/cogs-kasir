@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\BillOfMaterial;
 use App\Models\Product;
 use App\Services\ProductDeletionService;
+use App\Services\ProductHppService;
 use App\Support\Format;
 use Illuminate\Http\Request;
 
@@ -32,9 +33,11 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(StoreProductRequest $request)
+    public function store(StoreProductRequest $request, ProductHppService $productHppService)
     {
-        Product::create($request->validated());
+        $data = $this->productPayload($request->validated());
+        $product = Product::create($data);
+        $productHppService->markAsMenuItem($product, (bool) ($data['is_menu_item'] ?? false));
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -61,12 +64,15 @@ class ProductController extends Controller
             'product' => $product,
             'productTypes' => ProductType::cases(),
             'costingMethods' => CostingMethod::cases(),
+            'format' => Format::class,
         ]);
     }
 
-    public function update(UpdateProductRequest $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product, ProductHppService $productHppService)
     {
-        $product->update($request->validated());
+        $data = $this->productPayload($request->validated());
+        $product->update($data);
+        $productHppService->markAsMenuItem($product, (bool) ($data['is_menu_item'] ?? false));
 
         return redirect()->route('products.show', $product)->with('success', 'Produk berhasil diperbarui.');
     }
@@ -132,5 +138,22 @@ class ProductController extends Controller
         $bom->delete();
 
         return redirect()->route('products.show', $product)->with('success', 'Bahan resep dihapus.');
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function productPayload(array $data): array
+    {
+        $type = $data['type'] ?? null;
+        $sellableType = in_array($type, [ProductType::FinishedGood->value, ProductType::SemiFinished->value], true);
+
+        if (! array_key_exists('is_menu_item', $data)) {
+            $data['is_menu_item'] = $sellableType;
+        }
+
+        if ($sellableType && (float) ($data['standard_cost'] ?? 0) > 0 && (float) ($data['unit_hpp'] ?? 0) <= 0) {
+            $data['unit_hpp'] = $data['standard_cost'];
+        }
+
+        return $data;
     }
 }

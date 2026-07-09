@@ -109,7 +109,7 @@ class ProductionOrderService
 
             $unitCost = $this->cogsCalculationService
                 ->calculateProductionCogs($order->fresh(['materials.product', 'labors']))
-                ->unitCogs;
+                ->unitHpp;
 
             $this->inventoryCostService->receiveStock(
                 product: $order->product,

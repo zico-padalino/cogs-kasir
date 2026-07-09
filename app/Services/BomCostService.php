@@ -28,7 +28,7 @@ class BomCostService
 
         if ($bomItems->isEmpty()) {
             $unitCost = $product->costing_method->value === 'standard'
-                ? (float) $product->standard_cost
+                ? $product->effectiveUnitHpp()
                 : $this->inventoryCostService->getWeightedAverageCost($product);
 
             return [

@@ -33,6 +33,7 @@ class StoreProductRequest extends FormRequest
             'costing_method' => ['sometimes', Rule::enum(CostingMethod::class)],
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
+            'is_menu_item' => ['sometimes', 'boolean'],
         ];
     }
 }

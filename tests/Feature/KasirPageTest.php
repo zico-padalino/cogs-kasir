@@ -30,6 +30,7 @@ class KasirPageTest extends TestCase
             'selling_price' => 20000,
             'costing_method' => 'weighted_average',
             'is_active' => true,
+            'is_menu_item' => true,
         ]);
 
         InventoryLot::create([

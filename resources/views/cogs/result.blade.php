@@ -14,7 +14,7 @@
         @endphp
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-stat-card label="Total COGS" :value="$format::rupiah($calc->total_cogs)" color="brand" />
+            <x-stat-card label="Total HPP (COGS)" :value="$format::rupiah($calc->totalHpp())" color="brand" />
             <x-stat-card label="Pendapatan" :value="$format::rupiah($sale->total_revenue)" color="green" />
             <x-stat-card label="Laba Kotor" :value="$format::rupiah($grossProfit)" color="amber" />
             <x-stat-card label="Margin" :value="number_format($margin, 1) . '%'" color="rose" />
@@ -27,7 +27,7 @@
                     <div class="flex justify-between"><dt class="text-slate-500">Bahan Langsung</dt><dd class="font-medium">{{ $format::rupiah($calc->direct_material) }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Tenaga Kerja</dt><dd class="font-medium">{{ $format::rupiah($calc->direct_labor) }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Overhead</dt><dd class="font-medium">{{ $format::rupiah($calc->manufacturing_overhead) }}</dd></div>
-                    <div class="flex justify-between border-t border-slate-100 pt-3"><dt class="font-semibold">COGS/Unit</dt><dd class="font-bold text-brand-600">{{ $format::rupiah($calc->unit_cogs, 2) }}</dd></div>
+                    <div class="flex justify-between border-t border-slate-100 pt-3"><dt class="font-semibold">HPP/Unit (COGS)</dt><dd class="font-bold text-brand-600">{{ $format::rupiah($calc->unitHpp(), 2) }}</dd></div>
                 </dl>
             </div>
             <div class="card">
@@ -41,10 +41,10 @@
         </div>
     @else
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-stat-card label="Total COGS" :value="$format::rupiah($cogsResult->totalCogs)" color="brand" />
+            <x-stat-card label="Total HPP (COGS)" :value="$format::rupiah($cogsResult->totalHpp)" color="brand" />
             <x-stat-card label="Bahan Langsung" :value="$format::rupiah($cogsResult->directMaterial)" color="green" />
             <x-stat-card label="Overhead" :value="$format::rupiah($cogsResult->manufacturingOverhead)" color="rose" />
-            <x-stat-card label="COGS/Unit" :value="$format::rupiah($cogsResult->unitCogs, 2)" color="slate" />
+            <x-stat-card label="HPP/Unit" :value="$format::rupiah($cogsResult->unitHpp, 2)" color="slate" />
         </div>
 
         <div class="card">

@@ -16,12 +16,15 @@ class Product extends Model
         'type',
         'unit',
         'standard_cost',
+        'unit_hpp',
         'selling_price',
         'costing_method',
         'description',
         'menu_category',
         'image_path',
         'is_active',
+        'is_menu_item',
+        'hpp_updated_at',
     ];
 
     protected function casts(): array
@@ -30,8 +33,11 @@ class Product extends Model
             'type' => ProductType::class,
             'costing_method' => CostingMethod::class,
             'standard_cost' => 'decimal:4',
+            'unit_hpp' => 'decimal:4',
             'selling_price' => 'decimal:4',
             'is_active' => 'boolean',
+            'is_menu_item' => 'boolean',
+            'hpp_updated_at' => 'datetime',
         ];
     }
 
@@ -76,7 +82,17 @@ class Product extends Model
     {
         return $query
             ->where('is_active', true)
+            ->where('is_menu_item', true)
             ->whereIn('type', [ProductType::FinishedGood, ProductType::SemiFinished]);
+    }
+
+    public function effectiveUnitHpp(): float
+    {
+        if ((float) $this->unit_hpp > 0) {
+            return (float) $this->unit_hpp;
+        }
+
+        return (float) $this->standard_cost;
     }
 
     public function imageUrl(): string

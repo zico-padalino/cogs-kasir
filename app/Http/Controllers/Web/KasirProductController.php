@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateKasirProductRequest;
 use App\Models\MenuCategory;
 use App\Models\Product;
+use App\Services\MenuStockService;
+use App\Services\ProductHppService;
 use App\Support\Format;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,8 +16,7 @@ class KasirProductController extends Controller
 {
     public function index()
     {
-        $products = Product::query()
-            ->whereIn('type', [ProductType::FinishedGood, ProductType::SemiFinished])
+        $products = Product::sellable()
             ->orderBy('menu_category')
             ->orderBy('name')
             ->get();
@@ -24,10 +25,11 @@ class KasirProductController extends Controller
             'products' => $products,
             'menuCategories' => MenuCategory::options(),
             'format' => Format::class,
+            'productHpp' => app(ProductHppService::class),
         ]);
     }
 
-    public function edit(Product $product)
+    public function edit(Product $product, ProductHppService $productHpp)
     {
         $this->assertSellable($product);
 
@@ -36,17 +38,20 @@ class KasirProductController extends Controller
             'presets' => config('pos.product_presets', []),
             'menuCategories' => MenuCategory::options(),
             'format' => Format::class,
+            'unitHpp' => $productHpp->effectiveUnitHpp($product),
+            'grossMargin' => $productHpp->grossMargin($product),
+            'marginPercent' => $productHpp->grossMarginPercent($product),
+            'menuStock' => $product->availableQuantity(),
         ]);
     }
 
-    public function update(UpdateKasirProductRequest $request, Product $product)
+    public function update(UpdateKasirProductRequest $request, Product $product, MenuStockService $menuStockService)
     {
         $this->assertSellable($product);
 
         $data = [
             'description' => $request->input('description'),
             'menu_category' => $request->input('menu_category'),
-            'selling_price' => $request->input('selling_price'),
         ];
 
         if ($request->boolean('remove_image')) {
@@ -61,6 +66,7 @@ class KasirProductController extends Controller
         }
 
         $product->update($data);
+        $menuStockService->syncMenuStock($product, (float) $request->input('menu_stock'));
 
         return redirect()
             ->route('kasir.products.index')
@@ -69,7 +75,7 @@ class KasirProductController extends Controller
 
     private function assertSellable(Product $product): void
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true) || ! $product->is_menu_item) {
             abort(403, 'Produk ini tidak bisa diatur dari kasir.');
         }
     }

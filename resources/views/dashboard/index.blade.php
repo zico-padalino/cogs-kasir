@@ -36,16 +36,21 @@
     @else
         {{-- Penjelasan singkat --}}
         <div class="card mb-8 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
-            <h2 class="text-lg font-semibold text-slate-900">Apa itu COGS?</h2>
+            <h2 class="text-lg font-semibold text-slate-900">HPP = COGS (satu perhitungan)</h2>
             <p class="mt-2 text-sm leading-relaxed text-slate-600">
-                <strong>COGS (Cost of Goods Sold)</strong> = total biaya untuk membuat 1 produk.
-                Rumus sederhana: <span class="font-medium text-brand-700">Bahan + Tenaga Kerja + Overhead = COGS</span>
+                <strong>HPP (Harga Pokok Penjualan)</strong> dihitung sekali dari bahan + tenaga kerja + overhead.
+                <strong>COGS</strong> di laporan keuangan mengacu ke nilai HPP yang sama — bukan rumus terpisah.
             </p>
-            <div class="mt-4 flex flex-wrap gap-3 text-xs">
-                <span class="rounded-full bg-white px-3 py-1 text-slate-600 ring-1 ring-slate-200">Database MySQL</span>
-                <span class="rounded-full bg-white px-3 py-1 text-slate-600 ring-1 ring-slate-200">Tanpa XAMPP</span>
-                <span class="rounded-full bg-white px-3 py-1 text-slate-600 ring-1 ring-slate-200">Langkah demi langkah</span>
-            </div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                Produk jadi dari stok COGS ditandai sebagai <strong>menu kasir</strong> (<code>is_menu_item</code>),
+                lalu di Kasir Anda atur <strong>harga jual</strong> per menu.
+            </p>
+            <ol class="mt-4 list-inside list-decimal space-y-1 text-sm text-slate-700">
+                <li>Bahan baku → BOM → Produksi → dapat <strong>unit_hpp</strong></li>
+                <li>Produk jadi aktif sebagai menu → atur <strong>selling_price</strong> di Kasir</li>
+                <li>Penjualan POS → HPP/COGS tercatat otomatis per transaksi</li>
+            </ol>
+            <p class="mt-4 text-xs text-slate-500">Detail lengkap: <code>database/ALUR_HPP_COGS.md</code></p>
         </div>
 
         {{-- Progress --}}
