@@ -1,0 +1,77 @@
+name: Deploy to Domainesia
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-domainesia
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & FTP Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, json, bcmath, fileinfo, tokenizer, pdo, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Contoh: /public_html/  atau  /home/USER/kedaitjoan.online/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          protocol: ftp
+          timeout: 600000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/tests/**
+            **/mobile/**
+            **/.env
+            **/.env.*
+            **/.editorconfig
+            **/.styleci.yml
+            **/phpunit.xml
+            **/phpunit.xml*
+            **/README.md
+            **/auth.json
+            **/.phpunit.cache/**
+            **/storage/logs/**
+            **/storage/framework/cache/data/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
+            **/storage/pail/**
