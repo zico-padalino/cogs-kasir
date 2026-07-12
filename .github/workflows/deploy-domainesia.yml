@@ -1,5 +1,12 @@
 name: Deploy to Domainesia
 
+# FTP Domainesia (kedaitjoan.online / Nimbus One)
+# Secrets yang wajib di GitHub → Settings → Secrets and variables → Actions:
+#   FTP_SERVER      = ftp.kedaitjoan.online
+#   FTP_USERNAME    = zico-padalino@kedaitjoan.online
+#   FTP_PASSWORD    = (password akun FTP)
+#   FTP_SERVER_DIR  = ./
+
 on:
   push:
     branches:
@@ -50,8 +57,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # Contoh: /public_html/  atau  /home/USER/kedaitjoan.online/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          port: 21
           protocol: ftp
           timeout: 600000
           exclude: |
