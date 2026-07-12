@@ -1,13 +1,12 @@
 name: Deploy to Domainesia
 
-# Secrets (Settings → Secrets and variables → Actions):
+# Secrets:
 #   FTP_SERVER         = ftp.kedaitjoan.online
-#   FTP_USERNAME       = zico-padalino@kedaitjoan.online
-#   FTP_PASSWORD       = (password FTP)
-#   FTP_SERVER_DIR     = ./
-#   DEPLOY_TOKEN       = (string acak, contoh: kedaiDeploy2026xyz)
-#   DEPLOY_EXTRACT_URL = https://kedaitjoan.online/public/extract-deploy.php
-#     (pakai /public/ selama document root masih public_html default Domainesia)
+#   FTP_USERNAME       = kedaitjo   (akun utama) ATAU akun FTP yang path-nya = /home/.../public_html
+#   FTP_PASSWORD       = (password)
+#   FTP_SERVER_DIR     = /public_html/     ← WAJIB mengarah ke document root domain
+#   DEPLOY_TOKEN       = kedaiDeploy2026xyz
+#   DEPLOY_EXTRACT_URL = https://kedaitjoan.online/extract-deploy.php
 
 on:
   push:
@@ -55,7 +54,7 @@ jobs:
 
       - name: Pack release zip
         run: |
-          mkdir -p ftp-payload/public
+          mkdir -p ftp-payload
           zip -r ftp-payload/deploy.zip . \
             -x "./.git/*" \
             -x "./.github/*" \
@@ -79,7 +78,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           if [ -z "$DEPLOY_TOKEN" ]; then
-            echo "Secret DEPLOY_TOKEN belum diisi di GitHub."
+            echo "Secret DEPLOY_TOKEN belum diisi."
             exit 1
           fi
           python3 -c "
@@ -87,7 +86,7 @@ jobs:
           import os
           token = os.environ['DEPLOY_TOKEN'].replace('\\\\', '\\\\\\\\').replace(\"'\", \"\\\\'\")
           src = Path('deploy/extract-deploy.php').read_text(encoding='utf-8')
-          Path('ftp-payload/public/extract-deploy.php').write_text(
+          Path('ftp-payload/extract-deploy.php').write_text(
               src.replace('__DEPLOY_TOKEN__', token),
               encoding='utf-8',
           )
@@ -103,7 +102,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq lftp
-          DIR="${FTP_SERVER_DIR:-./}"
+          DIR="${FTP_SERVER_DIR:-/public_html/}"
+          echo "Upload ke ftp://${FTP_SERVER}${DIR}"
           lftp -c "
             set ftp:passive-mode true;
             set net:timeout 60;
@@ -111,44 +111,58 @@ jobs:
             set ssl:verify-certificate no;
             open -p 21 -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_SERVER};
             cd ${DIR};
-            mkdir -p public;
             put -O . ftp-payload/deploy.zip;
-            put -O public ftp-payload/public/extract-deploy.php;
+            put -O . ftp-payload/extract-deploy.php;
+            ls -la;
             bye
           "
+
+      - name: Verify extract script is public
+        run: |
+          for URL in \
+            "https://kedaitjoan.online/extract-deploy.php" \
+            "${{ secrets.DEPLOY_EXTRACT_URL }}"
+          do
+            [ -z "$URL" ] && continue
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            echo "HTTP $code  $URL"
+          done
 
       - name: Extract on server
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           DEPLOY_EXTRACT_URL: ${{ secrets.DEPLOY_EXTRACT_URL }}
         run: |
-          # Domainesia default document root = public_html, jadi script ada di /public/...
-          # Setelah document root diganti ke folder public Laravel, pakai URL tanpa /public.
           CANDIDATES=()
           if [ -n "${DEPLOY_EXTRACT_URL}" ]; then
             CANDIDATES+=("${DEPLOY_EXTRACT_URL}")
           fi
-          CANDIDATES+=(
-            "https://kedaitjoan.online/public/extract-deploy.php"
-            "https://kedaitjoan.online/extract-deploy.php"
-          )
+          CANDIDATES+=("https://kedaitjoan.online/extract-deploy.php")
 
           ok=0
           for URL in "${CANDIDATES[@]}"; do
             echo "Coba extract: $URL"
-            if curl -fsS --retry 2 --retry-delay 3 "${URL}?token=${DEPLOY_TOKEN}"; then
-              echo
-              echo "Extract berhasil via $URL"
+            # 403 = file ketemu tapi token salah; 404 = path FTP salah
+            body=$(curl -sS -w "\n%{http_code}" --retry 2 --retry-delay 2 "${URL}?token=${DEPLOY_TOKEN}" || true)
+            code=$(echo "$body" | tail -n1)
+            text=$(echo "$body" | sed '$d')
+            echo "HTTP $code"
+            echo "$text"
+            if [ "$code" = "200" ] && echo "$text" | grep -qi "Deploy extracted OK"; then
               ok=1
               break
             fi
-            echo "Gagal: $URL"
+            if [ "$code" = "404" ]; then
+              echo "→ File tidak ada di document root. Perbaiki FTP_SERVER_DIR / path akun FTP ke public_html."
+            fi
           done
 
           if [ "$ok" -ne 1 ]; then
-            echo "Semua URL extract gagal (404). Cek:"
-            echo "1) File public/extract-deploy.php sudah ter-upload"
-            echo "2) Secret DEPLOY_EXTRACT_URL = https://kedaitjoan.online/public/extract-deploy.php"
-            echo "3) Atau set document root domain ke folder public Laravel"
+            echo
+            echo "EXTRACT GAGAL."
+            echo "Di cPanel → FTP Accounts, pastikan akun FTP path-nya:"
+            echo "  /home/USER/public_html"
+            echo "Lalu secret FTP_SERVER_DIR = /public_html/"
+            echo "Atau pakai FTP username utama (kedaitjo) + FTP_SERVER_DIR=/public_html/"
             exit 1
           fi

@@ -2,23 +2,27 @@
 
 declare(strict_types=1);
 
+/**
+ * Diletakkan di ROOT project (sejajar app/, public/, deploy.zip).
+ * URL (document root = public_html): https://domain/extract-deploy.php?token=...
+ */
 $expected = '__DEPLOY_TOKEN__';
 $given = (string) ($_GET['token'] ?? '');
 
-if ($given === '' || !hash_equals($expected, $given)) {
+if ($given === '' || ! hash_equals($expected, $given)) {
     http_response_code(403);
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Forbidden';
     exit;
 }
 
-$root = dirname(__DIR__);
+$root = __DIR__;
 $zipFile = $root.DIRECTORY_SEPARATOR.'deploy.zip';
 
 if (! is_file($zipFile)) {
     http_response_code(404);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'deploy.zip not found';
+    echo 'deploy.zip not found in '.$root;
     exit;
 }
 
