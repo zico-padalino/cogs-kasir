@@ -474,8 +474,7 @@ function syncMobilePayChrome(root, activeTab) {
     }
 
     if (goCartLabel) {
-        // Tombol ini hanya pindah ke tab pesanan; konfirmasi sebenarnya di panel cart.
-        goCartLabel.textContent = needsConfirm ? 'Lihat pesanan' : 'Bayar';
+        goCartLabel.textContent = 'Bayar';
     }
 }
 
@@ -755,6 +754,16 @@ function updateOrderTotalsDisplay(root, data) {
     root.querySelector('[data-kasir-pay-button-total]')?.replaceChildren(
         document.createTextNode(data.total_label || ''),
     );
+
+    const discountPanel = root.querySelector('[data-pos-discount-panel]');
+    const summaryEl = discountPanel?.querySelector('[data-pos-discount-summary]');
+    if (discountPanel && summaryEl) {
+        const hasDiscount = Number(data.discount_amount || 0) > 0;
+        discountPanel.dataset.hasDiscount = hasDiscount ? '1' : '0';
+        summaryEl.textContent = hasDiscount && data.discount_label
+            ? data.discount_label
+            : 'Tambah diskon';
+    }
 }
 
 function initPosDiscount(root) {
@@ -765,6 +774,7 @@ function initPosDiscount(root) {
         return;
     }
 
+    const toggleBtn = panel.querySelector('[data-pos-discount-toggle]');
     const typeSelect = form.querySelector('[data-pos-discount-type]');
     const valueInput = form.querySelector('[data-pos-discount-value]');
     const controlsEl = form.querySelector('[data-pos-discount-controls]');
@@ -773,6 +783,11 @@ function initPosDiscount(root) {
     const csrf = form.querySelector('input[name="_token"]')?.value;
     let saveTimer = null;
     let saving = false;
+
+    const setExpanded = (expanded) => {
+        panel.classList.toggle('is-expanded', expanded);
+        toggleBtn?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    };
 
     const setStatus = (state, message) => {
         if (! statusEl) {
@@ -859,6 +874,10 @@ function initPosDiscount(root) {
         saveTimer = window.setTimeout(saveDiscount, 450);
     };
 
+    toggleBtn?.addEventListener('click', () => {
+        setExpanded(! panel.classList.contains('is-expanded'));
+    });
+
     typeSelect?.addEventListener('change', () => {
         syncDiscountControls();
         queueSave();
@@ -868,6 +887,7 @@ function initPosDiscount(root) {
     valueInput?.addEventListener('blur', saveDiscount);
 
     syncDiscountControls();
+    setExpanded(panel.classList.contains('is-expanded'));
 }
 
 function initPosPendingPanel(root) {

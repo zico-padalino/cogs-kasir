@@ -9,29 +9,29 @@
 >
     <div class="order-kasir-confirmation-hero">
         <div class="order-kasir-confirmation-icon" aria-hidden="true">🏪</div>
-        <p class="order-kasir-confirmation-eyebrow">Pesanan selesai</p>
+        <p class="order-kasir-confirmation-eyebrow">Pesanan terkirim</p>
         <h2 class="order-kasir-confirmation-title">Silakan ke Kasir</h2>
         <p class="order-kasir-confirmation-lead">
-            Konfirmasi pesanan dan pembayaran dilakukan di kasir. Tunjukkan nomor pesanan & nama Anda kepada kasir.
+            Tunjukkan nomor pesanan & nama Anda. Kasir akan memproses pembayaran hingga pesanan selesai.
         </p>
     </div>
 
     <ol class="order-kasir-steps">
-        <li class="order-kasir-step">
+        <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">1</span>
-            <span>Datang ke kasir</span>
+            <span>Anda sudah pesan</span>
         </li>
-        <li class="order-kasir-step">
+        <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">2</span>
-            <span>Sebutkan <strong>nomor pesanan</strong> & <strong>nama Anda</strong></span>
+            <span>Datang ke kasir · sebutkan nomor & nama</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">3</span>
-            <span>Kasir konfirmasi pesanan Anda</span>
+            <span>Bayar di kasir</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
-            <span>Bayar sesuai total tagihan</span>
+            <span>Pesanan selesai</span>
         </li>
     </ol>
 
@@ -53,9 +53,9 @@
     </div>
 
     <div class="order-kasir-notice">
-        <p class="font-semibold text-amber-900">Menunggu konfirmasi kasir</p>
+        <p class="font-semibold text-amber-900">Menunggu kasir</p>
         <p class="mt-1 text-sm leading-relaxed text-amber-800">
-            Kasir akan memverifikasi pesanan Anda. Halaman ini akan berubah setelah dikonfirmasi atau dibayar.
+            Halaman ini berubah otomatis setelah kasir menerima dan menyelesaikan pembayaran.
         </p>
     </div>
 </section>

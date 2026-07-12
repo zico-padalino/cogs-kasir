@@ -1783,6 +1783,39 @@
         @apply flex flex-wrap gap-2 border-b border-slate-100 px-4 py-2.5;
     }
 
+    .pos-flow-steps {
+        @apply grid shrink-0 grid-cols-4 gap-1 border-b border-slate-200 bg-white px-2 py-2.5 sm:px-3;
+    }
+
+    .pos-flow-step {
+        @apply flex min-w-0 flex-col items-center gap-1 text-center;
+    }
+
+    .pos-flow-step-num {
+        @apply flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-500;
+    }
+
+    .pos-flow-step-label {
+        @apply truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+    }
+
+    .pos-flow-step.is-done .pos-flow-step-num,
+    .pos-flow-step.is-current .pos-flow-step-num {
+        @apply bg-brand-600 text-white;
+    }
+
+    .pos-flow-step.is-done .pos-flow-step-label {
+        @apply text-brand-700;
+    }
+
+    .pos-flow-step.is-current .pos-flow-step-label {
+        @apply text-brand-800;
+    }
+
+    .pos-pay-flow-hint {
+        @apply mb-2 text-xs leading-relaxed text-slate-500;
+    }
+
     .pos-context-badge {
         @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold;
     }
@@ -2720,15 +2753,51 @@
     }
 
     .pos-discount-panel {
-        @apply border-t border-slate-200 px-4 py-3;
+        @apply border-t border-slate-200 bg-white;
+    }
+
+    .pos-discount-toggle {
+        @apply flex w-full min-h-11 touch-manipulation items-center justify-between gap-2 px-4 py-2.5 text-left transition active:bg-slate-50;
+    }
+
+    .pos-discount-toggle-main {
+        @apply flex min-w-0 flex-1 flex-col gap-0.5;
+    }
+
+    .pos-discount-title {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .pos-discount-summary {
+        @apply truncate text-sm font-semibold text-slate-800;
+    }
+
+    .pos-discount-panel[data-has-discount="1"] .pos-discount-summary {
+        @apply text-rose-600;
+    }
+
+    .pos-discount-toggle-meta {
+        @apply flex shrink-0 items-center gap-2;
+    }
+
+    .pos-discount-toggle-icon {
+        @apply text-[10px] text-slate-400 transition-transform;
+    }
+
+    .pos-discount-panel.is-expanded .pos-discount-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+    .pos-discount-body {
+        @apply hidden border-t border-slate-100 px-4 pb-3 pt-2;
+    }
+
+    .pos-discount-panel.is-expanded .pos-discount-body {
+        @apply block;
     }
 
     .pos-discount-head {
         @apply mb-2 flex items-center justify-between gap-2;
-    }
-
-    .pos-discount-title {
-        @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
     }
 
     .pos-discount-status {
@@ -3114,6 +3183,22 @@
             position: sticky;
             bottom: 0;
             z-index: 5;
+            flex-shrink: 0;
+        }
+
+        .is-kasir-pos.is-mobile-cart-tab .pos-discount-panel {
+            position: relative;
+            z-index: 6;
+            flex-shrink: 0;
+            box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.04);
+        }
+
+        .is-kasir-pos.is-mobile-cart-tab .pos-discount-toggle {
+            @apply min-h-10 px-3 py-2;
+        }
+
+        .is-kasir-pos.is-mobile-cart-tab .pos-discount-body {
+            @apply px-3 pb-2.5 pt-1.5;
         }
 
         .pos-receipt-body {
@@ -3122,8 +3207,9 @@
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
-            flex: 0 1 auto;
-            max-height: min(24dvh, 10rem);
+            flex: 1 1 auto;
+            min-height: 4.5rem;
+            max-height: none;
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-empty) {
@@ -3167,12 +3253,8 @@
             @apply text-lg leading-tight;
         }
 
-        .pos-receipt-confirm .pos-discount-panel {
-            @apply mb-2 border-t-0 px-0 pb-2.5 pt-0;
-        }
-
-        .pos-receipt-pay .pos-discount-panel {
-            @apply mb-2 px-0;
+        .pos-receipt .pos-discount-panel {
+            @apply mb-0;
         }
 
         .pos-discount-controls {
@@ -3233,7 +3315,7 @@
         }
 
         .pos-receipt-confirm {
-            @apply p-2.5;
+            @apply shrink-0 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
@@ -3344,7 +3426,9 @@
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
-            max-height: min(22dvh, 8.5rem);
+            flex: 1 1 auto;
+            min-height: 3.5rem;
+            max-height: none;
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-head {
@@ -3367,6 +3451,18 @@
         .pos-receipt-pay .pos-receipt-grand span:last-child,
         .pos-receipt-confirm .pos-receipt-grand span:last-child {
             @apply text-base;
+        }
+
+        .is-kasir-pos.is-mobile-cart-tab .pos-discount-toggle {
+            @apply min-h-9 px-2.5 py-1.5;
+        }
+
+        .is-kasir-pos.is-mobile-cart-tab .pos-discount-body {
+            @apply px-2.5 pb-2 pt-1;
+        }
+
+        .pos-confirm-notice-text {
+            @apply hidden;
         }
 
         .pos-pay-option {
@@ -3453,7 +3549,8 @@
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
-            max-height: min(34dvh, 16rem);
+            flex: 1 1 auto;
+            max-height: none;
         }
 
         .pos-receipt-pay {
@@ -3927,11 +4024,21 @@
     }
 
     .order-kasir-step {
-        @apply flex items-start gap-3 text-sm text-slate-700;
+        @apply flex items-start gap-3 text-sm text-slate-500;
+    }
+
+    .order-kasir-step.is-done,
+    .order-kasir-step.is-current {
+        @apply text-slate-800;
     }
 
     .order-kasir-step-num {
-        @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white;
+        @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500;
+    }
+
+    .order-kasir-step.is-done .order-kasir-step-num,
+    .order-kasir-step.is-current .order-kasir-step-num {
+        @apply bg-brand-600 text-white;
     }
 
     .order-kasir-ticket {

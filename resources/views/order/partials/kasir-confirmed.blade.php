@@ -8,13 +8,32 @@
     data-order-status-url="{{ route('order.menu.status') }}"
 >
     <div class="order-kasir-confirmation-hero">
-        <div class="order-kasir-confirmation-icon" aria-hidden="true">✅</div>
-        <p class="order-kasir-confirmation-eyebrow">Pesanan dikonfirmasi</p>
-        <h2 class="order-kasir-confirmation-title">Silakan ke Kasir untuk Bayar</h2>
+        <div class="order-kasir-confirmation-icon" aria-hidden="true">💳</div>
+        <p class="order-kasir-confirmation-eyebrow">Sudah di kasir</p>
+        <h2 class="order-kasir-confirmation-title">Silakan Bayar di Kasir</h2>
         <p class="order-kasir-confirmation-lead">
-            Kasir sudah mengonfirmasi pesanan Anda. Datang ke kasir untuk menyelesaikan pembayaran.
+            Pesanan Anda sudah masuk ke kasir. Selesaikan pembayaran untuk menyelesaikan pesanan.
         </p>
     </div>
+
+    <ol class="order-kasir-steps">
+        <li class="order-kasir-step is-done">
+            <span class="order-kasir-step-num">1</span>
+            <span>Anda sudah pesan</span>
+        </li>
+        <li class="order-kasir-step is-done">
+            <span class="order-kasir-step-num">2</span>
+            <span>Masuk ke kasir</span>
+        </li>
+        <li class="order-kasir-step is-current">
+            <span class="order-kasir-step-num">3</span>
+            <span>Bayar di kasir</span>
+        </li>
+        <li class="order-kasir-step">
+            <span class="order-kasir-step-num">4</span>
+            <span>Pesanan selesai</span>
+        </li>
+    </ol>
 
     <div class="order-kasir-ticket">
         <div class="order-kasir-ticket-row">
@@ -34,9 +53,9 @@
     </div>
 
     <div class="order-kasir-notice order-kasir-notice-confirmed">
-        <p class="font-semibold text-brand-900">Menunggu pembayaran di kasir</p>
+        <p class="font-semibold text-brand-900">Menunggu pembayaran</p>
         <p class="mt-1 text-sm leading-relaxed text-brand-800">
-            Halaman ini akan otomatis berubah setelah kasir memproses pembayaran Anda.
+            Halaman ini berubah otomatis setelah pembayaran selesai.
         </p>
     </div>
 </section>

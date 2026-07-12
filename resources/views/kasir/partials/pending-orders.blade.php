@@ -12,7 +12,7 @@
         <span>
             {{ $pendingOrders->count() }} pesanan online
             @if ($waitingCount > 0)
-                · {{ $waitingCount }} perlu konfirmasi
+                · {{ $waitingCount }} menunggu kasir
             @endif
             · {{ $format::rupiah($pendingTotal) }}
         </span>
@@ -24,9 +24,7 @@
             @foreach ($pendingOrders as $pending)
                 @php
                     $isCurrent = $currentOrderId && (int) $pending->id === (int) $currentOrderId;
-                    $actionCols = $isCurrent
-                        ? 1
-                        : ($pending->status === PosOrderStatus::Submitted ? 3 : 2);
+                    $actionCols = $isCurrent ? 1 : 2;
                 @endphp
                 <div @class(['pos-pending-card', 'is-current' => $isCurrent])>
                     <div class="pos-pending-card-head">
@@ -55,22 +53,10 @@
                                 </button>
                             </form>
                         @else
-                            @if ($pending->status === PosOrderStatus::Submitted)
-                                <form action="{{ route('kasir.orders.confirm', $pending) }}" method="POST" class="pos-pending-action-form">
-                                    @csrf
-                                    <button
-                                        type="submit"
-                                        class="pos-pending-action pos-pending-action-confirm"
-                                        onclick="return confirm('Konfirmasi pesanan {{ $pending->customer_note ?: $pending->order_number }} sudah selesai?')"
-                                    >
-                                        Konfirmasi
-                                    </button>
-                                </form>
-                            @endif
                             <form action="{{ route('kasir.load-order', $pending) }}" method="POST" class="pos-pending-action-form">
                                 @csrf
                                 <button type="submit" class="pos-pending-action pos-pending-action-open">
-                                    {{ $pending->status === PosOrderStatus::Confirmed ? 'Bayar' : 'Buka' }}
+                                    {{ $pending->status === PosOrderStatus::Confirmed ? 'Bayar' : 'Masuk kasir' }}
                                 </button>
                             </form>
                             <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form">

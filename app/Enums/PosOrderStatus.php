@@ -14,9 +14,9 @@ enum PosOrderStatus: string
     {
         return match ($this) {
             self::Open => 'Draft',
-            self::Submitted => 'Menunggu Konfirmasi',
+            self::Submitted => 'Menunggu Kasir',
             self::Confirmed => 'Siap Bayar',
-            self::Paid => 'Lunas',
+            self::Paid => 'Selesai',
             self::Cancelled => 'Batal',
         };
     }

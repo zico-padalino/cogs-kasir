@@ -99,11 +99,22 @@ class PosOrder extends Model
             && $this->status === PosOrderStatus::Submitted;
     }
 
+    /** Pesanan online yang sudah masuk antrean kasir dan siap dilayani/bayar. */
+    public function isAwaitingKasirService(): bool
+    {
+        return $this->source === PosOrderSource::Online
+            && in_array($this->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true);
+    }
+
     public function canCheckoutAtKasir(): bool
     {
         return match ($this->source) {
             PosOrderSource::Kasir => $this->status === PosOrderStatus::Open,
-            PosOrderSource::Online => $this->status === PosOrderStatus::Confirmed,
+            // Online: bayar setelah masuk kasir (submitted/confirmed), bukan konfirmasi dulu.
+            PosOrderSource::Online => in_array($this->status, [
+                PosOrderStatus::Submitted,
+                PosOrderStatus::Confirmed,
+            ], true),
             default => false,
         };
     }

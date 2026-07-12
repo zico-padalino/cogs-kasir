@@ -1,3 +1,14 @@
+@php
+    use App\Enums\PosOrderSource;
+    $isOnline = $order->source === PosOrderSource::Online;
+    $step = match (true) {
+        $order->status->value === 'paid' => 4,
+        $order->canCheckoutAtKasir() => 3,
+        $isOnline => 2,
+        default => 1,
+    };
+@endphp
+
 <div class="pos-receipt">
     <div class="pos-receipt-head">
         <div>
@@ -6,6 +17,27 @@
         </div>
         <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
     </div>
+
+    @if ($isOnline)
+        <nav class="pos-flow-steps" aria-label="Alur pesanan">
+            <div class="pos-flow-step {{ $step >= 1 ? 'is-done' : '' }} {{ $step === 1 ? 'is-current' : '' }}">
+                <span class="pos-flow-step-num">1</span>
+                <span class="pos-flow-step-label">Pesan</span>
+            </div>
+            <div class="pos-flow-step {{ $step >= 2 ? 'is-done' : '' }} {{ $step === 2 ? 'is-current' : '' }}">
+                <span class="pos-flow-step-num">2</span>
+                <span class="pos-flow-step-label">Kasir</span>
+            </div>
+            <div class="pos-flow-step {{ $step >= 3 ? 'is-done' : '' }} {{ $step === 3 ? 'is-current' : '' }}">
+                <span class="pos-flow-step-num">3</span>
+                <span class="pos-flow-step-label">Bayar</span>
+            </div>
+            <div class="pos-flow-step {{ $step >= 4 ? 'is-done' : '' }} {{ $step === 4 ? 'is-current' : '' }}">
+                <span class="pos-flow-step-num">4</span>
+                <span class="pos-flow-step-label">Selesai</span>
+            </div>
+        </nav>
+    @endif
 
     @if ($order->order_type || $order->customer_note)
         <div class="pos-receipt-context" data-pos-receipt-context>
@@ -42,30 +74,17 @@
         @endif
     </div>
 
-    @if ($order->items->isNotEmpty() && $order->needsKasirConfirmation())
-        <div class="pos-receipt-confirm" data-pos-receipt-confirm>
-            @include('kasir.partials.discount-panel', ['order' => $order, 'format' => $format])
+    @if ($order->items->isNotEmpty() && $order->canCheckoutAtKasir())
+        @include('kasir.partials.discount-panel', ['order' => $order, 'format' => $format])
 
+        <div class="pos-receipt-pay" data-pos-receipt-pay>
             <div class="pos-receipt-pay-totals">
                 @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format, 'totalLabel' => 'Total Tagihan'])
             </div>
 
-            <div class="pos-confirm-notice">
-                <p class="pos-confirm-notice-title">Pesanan online menunggu konfirmasi</p>
-                <p class="pos-confirm-notice-text">Pastikan pesanan sudah siap, lalu konfirmasi ke pelanggan sebelum pembayaran.</p>
-            </div>
-
-            <button type="button" class="pos-confirm-submit" data-kasir-open-confirm>
-                Konfirmasi Pesanan Selesai
-            </button>
-        </div>
-    @elseif ($order->items->isNotEmpty() && $order->canCheckoutAtKasir())
-        <div class="pos-receipt-pay" data-pos-receipt-pay>
-            @include('kasir.partials.discount-panel', ['order' => $order, 'format' => $format])
-
-            <div class="pos-receipt-pay-totals">
-                @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format])
-            </div>
+            @if ($isOnline)
+                <p class="pos-pay-flow-hint">Langkah 3: terima pembayaran, lalu pesanan selesai.</p>
+            @endif
 
             <button type="button" class="pos-pay-submit" data-kasir-open-pay data-kasir-pay-button>
                 Bayar <span data-kasir-pay-button-total>{{ $format::rupiah($order->total) }}</span>

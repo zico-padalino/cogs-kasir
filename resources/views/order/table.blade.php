@@ -137,7 +137,7 @@
         </main>
 
         <footer class="order-table-footer">
-            <p>Isi nama · Pilih menu · Kirim pesanan · Konfirmasi & bayar di kasir</p>
+            <p>Isi nama · Pilih menu · Kirim pesanan · Bayar di kasir</p>
         </footer>
     </div>
 @endsection

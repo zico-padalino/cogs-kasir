@@ -138,7 +138,7 @@ class KasirController extends Controller
         return redirect()->route('kasir.index')->with('success', 'Order baru dibuat.');
     }
 
-    public function loadOrder(Request $request, PosOrder $order)
+    public function loadOrder(Request $request, PosOrder $order, PosOrderService $posService)
     {
         if ($order->status === PosOrderStatus::Paid || $order->status === PosOrderStatus::Cancelled) {
             if ($request->expectsJson()) {
@@ -148,21 +148,32 @@ class KasirController extends Controller
             return redirect()->route('kasir.index')->with('error', 'Order sudah selesai atau dibatalkan.');
         }
 
-        // Pesanan online: biarkan status submitted/confirmed (perlu konfirmasi/bayar).
-        // Pesanan kasir draft: selalu bisa dilanjutkan tanpa tahap konfirmasi.
+        // Online submitted → masuk ke kasir (siap bayar).
+        if ($order->source === PosOrderSource::Online && $order->status === PosOrderStatus::Submitted) {
+            try {
+                $order = $posService->confirmOrder($order, auth()->user());
+            } catch (\Throwable $e) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => $e->getMessage()], 422);
+                }
+
+                return redirect()->route('kasir.index')->with('error', $e->getMessage());
+            }
+        }
+
         session(['kasir_order_id' => $order->id]);
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Order #'.$order->order_number.' dimuat.',
+                'message' => 'Order #'.$order->order_number.' masuk ke kasir.',
                 'order_number' => $order->order_number,
-                'needs_confirmation' => $order->needsKasirConfirmation(),
+                'needs_confirmation' => false,
                 'can_checkout' => $order->canCheckoutAtKasir(),
                 'redirect' => route('kasir.index'),
             ]);
         }
 
-        return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dimuat.');
+        return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' masuk ke kasir. Lanjut bayar.');
     }
 
     public function confirmOrder(PosOrder $order, PosOrderService $posService)
@@ -179,7 +190,7 @@ class KasirController extends Controller
 
         session(['kasir_order_id' => $order->id]);
 
-        $message = 'Pesanan #'.$order->order_number.' dikonfirmasi selesai. Silakan proses pembayaran.';
+        $message = 'Pesanan #'.$order->order_number.' masuk ke kasir. Silakan proses pembayaran.';
 
         if (request()->expectsJson()) {
             return response()->json([

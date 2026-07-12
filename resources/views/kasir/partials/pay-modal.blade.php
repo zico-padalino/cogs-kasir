@@ -4,7 +4,7 @@
         <div class="pos-pay-modal-panel" role="dialog" aria-modal="true" aria-labelledby="kasir-pay-modal-title">
             <div class="pos-pay-modal-head">
                 <div class="min-w-0 flex-1">
-                    <p class="pos-pay-modal-eyebrow">Pembayaran</p>
+                    <p class="pos-pay-modal-eyebrow">Langkah 3 · Pembayaran</p>
                     <h2 id="kasir-pay-modal-title" class="pos-pay-modal-title">Total Bayar</h2>
                     <p class="pos-pay-modal-total" data-kasir-pay-modal-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</p>
                     <p class="pos-pay-modal-meta">
@@ -94,40 +94,7 @@
                     class="pos-pay-submit"
                     data-pos-pay-submit
                 >
-                    Bayar {{ $format::rupiah($order->total) }}
-                </button>
-            </form>
-        </div>
-    </div>
-@endif
-
-@if ($order->items->isNotEmpty() && $order->needsKasirConfirmation())
-    <div class="pos-pay-modal hidden" data-kasir-confirm-modal aria-hidden="true">
-        <div class="pos-add-modal-backdrop" data-kasir-close-confirm-modal></div>
-        <div class="pos-pay-modal-panel" role="dialog" aria-modal="true" aria-labelledby="kasir-confirm-modal-title">
-            <div class="pos-pay-modal-head">
-                <div class="min-w-0 flex-1">
-                    <p class="pos-pay-modal-eyebrow">Pesanan online</p>
-                    <h2 id="kasir-confirm-modal-title" class="pos-pay-modal-title">Konfirmasi pesanan</h2>
-                    <p class="pos-pay-modal-total">{{ $format::rupiah($order->total) }}</p>
-                    <p class="pos-pay-modal-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
-                </div>
-                <button type="button" class="pos-add-modal-close" data-kasir-close-confirm-modal aria-label="Tutup">×</button>
-            </div>
-
-            <div class="pos-confirm-notice">
-                <p class="pos-confirm-notice-title">Pesanan menunggu konfirmasi</p>
-                <p class="pos-confirm-notice-text">Pastikan pesanan sudah siap, lalu konfirmasi sebelum pembayaran.</p>
-            </div>
-
-            <form action="{{ route('kasir.orders.confirm', $order) }}" method="POST" class="pos-confirm-form">
-                @csrf
-                <button
-                    type="submit"
-                    class="pos-confirm-submit"
-                    onclick="return confirm('Konfirmasi pesanan {{ $order->customer_note ?: $order->order_number }} sudah selesai?')"
-                >
-                    Konfirmasi Pesanan Selesai
+                    Bayar &amp; Selesaikan {{ $format::rupiah($order->total) }}
                 </button>
             </form>
         </div>

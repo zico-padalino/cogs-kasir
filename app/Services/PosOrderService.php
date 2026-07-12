@@ -253,11 +253,15 @@ class PosOrderService
     public function confirmOrder(PosOrder $order, ?User $cashier = null): PosOrder
     {
         if ($order->source !== PosOrderSource::Online) {
-            throw new RuntimeException('Hanya pesanan online yang perlu dikonfirmasi kasir.');
+            throw new RuntimeException('Hanya pesanan online yang masuk antrean kasir.');
+        }
+
+        if ($order->status === PosOrderStatus::Confirmed) {
+            return $order->fresh(['items.product', 'table']);
         }
 
         if ($order->status !== PosOrderStatus::Submitted) {
-            throw new RuntimeException('Pesanan tidak bisa dikonfirmasi.');
+            throw new RuntimeException('Pesanan tidak bisa dimasukkan ke kasir.');
         }
 
         if ($order->items()->count() === 0) {
@@ -285,7 +289,7 @@ class PosOrderService
     ): array {
         if ($order->source === PosOrderSource::Online) {
             if ($order->status === PosOrderStatus::Submitted) {
-                throw new RuntimeException('Konfirmasi pesanan selesai dulu sebelum bayar.');
+                $order = $this->confirmOrder($order, $cashier);
             }
 
             if ($order->status !== PosOrderStatus::Confirmed) {
