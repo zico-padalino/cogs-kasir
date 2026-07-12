@@ -1,11 +1,12 @@
 name: Deploy to Domainesia
 
-# FTP Domainesia (kedaitjoan.online / Nimbus One)
-# Secrets yang wajib di GitHub → Settings → Secrets and variables → Actions:
-#   FTP_SERVER      = ftp.kedaitjoan.online
-#   FTP_USERNAME    = zico-padalino@kedaitjoan.online
-#   FTP_PASSWORD    = (password akun FTP)
-#   FTP_SERVER_DIR  = ./
+# Secrets (Settings → Secrets and variables → Actions):
+#   FTP_SERVER         = ftp.kedaitjoan.online
+#   FTP_USERNAME       = zico-padalino@kedaitjoan.online
+#   FTP_PASSWORD       = (password FTP)
+#   FTP_SERVER_DIR     = ./
+#   DEPLOY_TOKEN       = (string acak, contoh: kedaiDeploy2026xyz)
+#   DEPLOY_EXTRACT_URL = https://kedaitjoan.online/extract-deploy.php
 
 on:
   push:
@@ -22,7 +23,7 @@ jobs:
   deploy:
     name: Build & FTP Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -32,7 +33,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: mbstring, xml, ctype, json, bcmath, fileinfo, tokenizer, pdo, pdo_mysql
+          extensions: mbstring, xml, ctype, json, bcmath, fileinfo, tokenizer, pdo, pdo_mysql, zip
           coverage: none
           tools: composer:v2
 
@@ -51,34 +52,76 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          port: 21
-          protocol: ftp
-          timeout: 600000
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            **/tests/**
-            **/mobile/**
-            **/.env
-            **/.env.*
-            **/.editorconfig
-            **/.styleci.yml
-            **/phpunit.xml
-            **/phpunit.xml*
-            **/README.md
-            **/auth.json
-            **/.phpunit.cache/**
-            **/storage/logs/**
-            **/storage/framework/cache/data/**
-            **/storage/framework/sessions/**
-            **/storage/framework/views/**
-            **/storage/pail/**
+      - name: Pack release zip
+        run: |
+          mkdir -p ftp-payload/public
+          zip -r ftp-payload/deploy.zip . \
+            -x "./.git/*" \
+            -x "./.github/*" \
+            -x "./node_modules/*" \
+            -x "./ftp-payload/*" \
+            -x "./tests/*" \
+            -x "./mobile/*" \
+            -x "./deploy/*" \
+            -x "./.env" \
+            -x "./.env.*" \
+            -x "./.phpunit.cache/*" \
+            -x "./storage/logs/*" \
+            -x "./storage/framework/cache/data/*" \
+            -x "./storage/framework/sessions/*" \
+            -x "./storage/framework/views/*" \
+            -x "./storage/pail/*"
+          ls -lh ftp-payload/deploy.zip
+
+      - name: Prepare extract script
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "Secret DEPLOY_TOKEN belum diisi di GitHub."
+            exit 1
+          fi
+          python3 -c "
+          from pathlib import Path
+          import os
+          token = os.environ['DEPLOY_TOKEN'].replace('\\\\', '\\\\\\\\').replace(\"'\", \"\\\\'\")
+          src = Path('deploy/extract-deploy.php').read_text(encoding='utf-8')
+          Path('ftp-payload/public/extract-deploy.php').write_text(
+              src.replace('__DEPLOY_TOKEN__', token),
+              encoding='utf-8',
+          )
+          print('extract-deploy.php ready')
+          "
+
+      - name: Upload zip via FTP
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          DIR="${FTP_SERVER_DIR:-./}"
+          lftp -c "
+            set ftp:passive-mode true;
+            set net:timeout 60;
+            set net:max-retries 3;
+            set ssl:verify-certificate no;
+            open -p 21 -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_SERVER};
+            cd ${DIR};
+            mkdir -p public;
+            put -O . ftp-payload/deploy.zip;
+            put -O public ftp-payload/public/extract-deploy.php;
+            bye
+          "
+
+      - name: Extract on server
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          DEPLOY_EXTRACT_URL: ${{ secrets.DEPLOY_EXTRACT_URL }}
+        run: |
+          URL="${DEPLOY_EXTRACT_URL:-https://kedaitjoan.online/extract-deploy.php}"
+          echo "Trigger extract: $URL"
+          curl -fsS --retry 3 --retry-delay 5 "${URL}?token=${DEPLOY_TOKEN}"
+          echo
