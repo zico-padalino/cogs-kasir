@@ -64,6 +64,8 @@ class TableOrderController extends Controller
             'product_id' => ['required', 'exists:products,id'],
             'quantity' => ['required', 'numeric', 'min:1'],
             'notes' => ['nullable', 'string', 'max:255'],
+            'addon_ids' => ['nullable', 'array'],
+            'addon_ids.*' => ['integer', 'exists:product_addons,id'],
         ]);
 
         $product = \App\Models\Product::findOrFail($validated['product_id']);
@@ -74,6 +76,7 @@ class TableOrderController extends Controller
                 $product,
                 (float) $validated['quantity'],
                 notes: $validated['notes'] ?? null,
+                addonIds: $validated['addon_ids'] ?? [],
             );
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
@@ -116,9 +119,14 @@ class TableOrderController extends Controller
                 throw new \RuntimeException('Pesanan sudah dikirim. Silakan bayar di kasir.');
             }
 
-            $item->update([
-                'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
-            ]);
+            if (array_key_exists('notes', $validated)) {
+                $item->update([
+                    'notes' => \App\Support\PosItemNotes::preserveAddons(
+                        $item->notes,
+                        $validated['notes'] ?? null,
+                    ),
+                ]);
+            }
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }

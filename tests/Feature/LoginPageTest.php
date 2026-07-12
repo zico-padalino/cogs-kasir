@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,7 +12,10 @@ class LoginPageTest extends TestCase
 
     public function test_login_page_is_accessible_at_root(): void
     {
-        $this->get(route('home'))->assertOk()->assertSee('Selamat datang');
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Selamat datang')
+            ->assertDontSee('Pilih modul');
     }
 
     public function test_authenticated_user_visiting_home_is_redirected(): void
@@ -25,7 +27,7 @@ class LoginPageTest extends TestCase
             ->assertRedirect(route('overhead-rates.index'));
     }
 
-    public function test_user_can_login_to_cogs_module(): void
+    public function test_cogs_user_is_redirected_to_hitung_biaya(): void
     {
         $user = User::factory()->cogs()->create([
             'email' => 'cogs@test.local',
@@ -35,13 +37,12 @@ class LoginPageTest extends TestCase
         $this->post(route('login.store'), [
             'email' => $user->email,
             'password' => 'secret123',
-            'module' => UserRole::Cogs->value,
         ])->assertRedirect(route('overhead-rates.index'));
 
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_user_can_login_to_kasir_module(): void
+    public function test_kasir_user_is_redirected_to_kasir(): void
     {
         $user = User::factory()->kasir()->create([
             'email' => 'kasir@test.local',
@@ -51,7 +52,6 @@ class LoginPageTest extends TestCase
         $this->post(route('login.store'), [
             'email' => $user->email,
             'password' => 'secret123',
-            'module' => UserRole::Kasir->value,
         ])->assertRedirect(route('kasir.index'));
 
         $this->assertAuthenticatedAs($user);
@@ -67,37 +67,17 @@ class LoginPageTest extends TestCase
         $this->post(route('login.store'), [
             'email' => $user->email,
             'password' => 'secret123',
-            'module' => UserRole::Cogs->value,
         ])->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_login_page_only_shows_cogs_and_kasir_modules(): void
+    public function test_login_page_does_not_ask_for_module_choice(): void
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Hitung Biaya')
-            ->assertSee('Kasir')
-            ->assertDontSee('Admin Karyawan');
-    }
-
-    public function test_user_cannot_login_with_wrong_module(): void
-    {
-        $user = User::factory()->cogs()->create([
-            'email' => 'cogs@test.local',
-            'password' => 'secret123',
-        ]);
-
-        $this->from(route('home'))
-            ->post(route('login.store'), [
-                'email' => $user->email,
-                'password' => 'secret123',
-                'module' => UserRole::Kasir->value,
-            ])
-            ->assertRedirect(route('home'))
-            ->assertSessionHasErrors('email');
-
-        $this->assertGuest();
+            ->assertSee('Masuk')
+            ->assertDontSee('Pilih modul')
+            ->assertDontSee('auth-module-tab', false);
     }
 }

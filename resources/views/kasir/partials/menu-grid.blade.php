@@ -8,6 +8,16 @@
             $categoryLabel = $menuCategoryLabels[$category] ?? ucfirst($category);
             $searchKey = strtolower($product->name.' '.$product->sku.' '.$categoryLabel.' '.($product->description ?? ''));
             $canAdd = $price > 0;
+            $addonsPayload = $product->addons
+                ->where('is_active', true)
+                ->values()
+                ->map(fn ($addon) => [
+                    'id' => $addon->id,
+                    'name' => $addon->name,
+                    'price' => (float) $addon->selling_price,
+                    'price_label' => '+'.$format::rupiah($addon->selling_price, 0),
+                ])
+                ->all();
         @endphp
         <article
             class="pos-product-card"
@@ -21,6 +31,7 @@
             data-product-image="{{ $product->imageUrl() }}"
             data-product-desc="{{ $product->description ?? 'Belum ada deskripsi menu.' }}"
             data-product-edit-url="{{ route('kasir.products.edit', $product) }}"
+            data-product-addons="{{ json_encode($addonsPayload, JSON_UNESCAPED_UNICODE) }}"
         >
             <button
                 type="button"
@@ -32,6 +43,8 @@
                 <x-product-image :product="$product" :eager="$loop->index < 6" decorative class="pos-product-card-image" />
                 @if (! $canAdd)
                     <span class="pos-product-card-badge">Atur harga</span>
+                @elseif (count($addonsPayload) > 0)
+                    <span class="pos-product-card-badge !bg-brand-600">Add-on</span>
                 @endif
             </button>
 

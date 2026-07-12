@@ -21,6 +21,9 @@ class PosOrder extends Model
         'status',
         'customer_note',
         'subtotal',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
         'total',
         'amount_received',
         'change_amount',
@@ -41,6 +44,8 @@ class PosOrder extends Model
             'payment_method' => PaymentMethod::class,
             'order_day' => 'date',
             'subtotal' => 'decimal:4',
+            'discount_value' => 'decimal:4',
+            'discount_amount' => 'decimal:4',
             'total' => 'decimal:4',
             'amount_received' => 'decimal:4',
             'change_amount' => 'decimal:4',
@@ -115,5 +120,10 @@ class PosOrder extends Model
     public function requiresPaymentProof(): bool
     {
         return in_array($this->payment_method, [PaymentMethod::Qris, PaymentMethod::Transfer], true);
+    }
+
+    public function hasDiscount(): bool
+    {
+        return (float) $this->discount_amount > 0;
     }
 }

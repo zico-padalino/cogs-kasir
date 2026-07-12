@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Support\CogsNavigation;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -63,7 +64,26 @@ class User extends Authenticatable
 
     public function defaultModule(): UserRole
     {
+        if ($this->hasModule($this->role)) {
+            return $this->role;
+        }
+
         return $this->accessibleModules()[0] ?? $this->role;
+    }
+
+    public function homeUrl(): string
+    {
+        if ($this->hasModule(UserRole::Admin)) {
+            return route('admin.dashboard');
+        }
+
+        $module = $this->defaultModule();
+
+        if ($module === UserRole::Cogs) {
+            return CogsNavigation::preferredUrl();
+        }
+
+        return route($module->homeRoute());
     }
 
     public function syncModules(array $modules, ?UserRole $primary = null): void

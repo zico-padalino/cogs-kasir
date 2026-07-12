@@ -183,6 +183,10 @@
         @apply bg-amber-50 text-amber-800 ring-1 ring-amber-200/60;
     }
 
+    .badge-brand {
+        @apply bg-brand-50 text-brand-800 ring-1 ring-brand-200/60;
+    }
+
     /* ── Inline edit panel (inventory, BOM) ── */
     .inline-edit {
         @apply rounded-lg;
@@ -404,6 +408,129 @@
         @apply sm:col-span-2 lg:col-span-1;
     }
 
+    .bom-qty-row {
+        @apply grid grid-cols-2 gap-2;
+    }
+
+    /* ── Recipe page (desktop) ── */
+    .recipe-desktop {
+        @apply mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start lg:gap-6;
+    }
+
+    .recipe-desktop__main {
+        @apply min-w-0 space-y-4;
+    }
+
+    .recipe-desktop__side {
+        @apply space-y-3 lg:sticky lg:top-24;
+    }
+
+    .recipe-summary-card {
+        @apply rounded-2xl border-2 border-sky-200 bg-white p-4 shadow-md sm:p-5;
+    }
+
+    .recipe-summary-card__label {
+        @apply mb-3 text-xs font-bold uppercase tracking-wide text-slate-400;
+    }
+
+    .recipe-summary-card__stat {
+        @apply flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-sm text-slate-600;
+    }
+
+    .recipe-summary-card__stat strong {
+        @apply font-bold tabular-nums text-slate-900;
+    }
+
+    .recipe-summary-card__modal {
+        @apply mt-3 rounded-xl bg-slate-900 px-4 py-3 text-white;
+    }
+
+    .recipe-side-actions {
+        @apply flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3;
+    }
+
+    .recipe-table-wrap {
+        @apply overflow-visible rounded-xl border border-slate-200;
+    }
+
+    .recipe-table-wrap .table-default {
+        @apply w-full;
+    }
+
+    .recipe-row-actions {
+        @apply flex flex-wrap items-start justify-end gap-1.5;
+    }
+
+    .recipe-edit {
+        @apply relative;
+    }
+
+    .recipe-edit-panel {
+        @apply relative mt-2 w-full min-w-[14rem] sm:absolute sm:right-0 sm:z-30 sm:w-64;
+    }
+
+    .recipe-addon-edit-panel {
+        @apply relative mt-2 w-full min-w-0 sm:absolute sm:right-0 sm:z-30 sm:w-80;
+    }
+
+    .pos-addon-chips {
+        @apply mt-1 flex flex-wrap gap-1;
+    }
+
+    .pos-addon-chip {
+        @apply inline-flex rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] font-semibold text-brand-700;
+    }
+
+    .recipe-add-form {
+        @apply mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end;
+    }
+
+    .recipe-add-form__material {
+        @apply min-w-0;
+    }
+
+    .recipe-add-form__qty {
+        @apply min-w-0;
+    }
+
+    .recipe-add-form__submit {
+        @apply lg:pb-0;
+    }
+
+    .recipe-addon-form .form-label {
+        @apply text-xs;
+    }
+
+    .pos-addon-list {
+        @apply space-y-2;
+    }
+
+    .pos-addon-item {
+        @apply flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm transition has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50;
+    }
+
+    .pos-addon-item input {
+        @apply h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500;
+    }
+
+    .pos-addon-item-name {
+        @apply min-w-0 flex-1 font-medium text-slate-800;
+    }
+
+    .pos-addon-item-price {
+        @apply shrink-0 font-semibold tabular-nums text-brand-700;
+    }
+
+    @media (min-width: 1024px) {
+        .recipe-add-form__submit .btn-primary {
+            @apply min-h-[2.75rem];
+        }
+
+        .recipe-summary-card__modal .text-2xl {
+            @apply text-3xl;
+        }
+    }
+
     .overhead-add-hint {
         @apply mt-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-500;
     }
@@ -434,7 +561,7 @@
     }
 
     .module-step-4 .module-step-badge {
-        @apply bg-gradient-to-br from-violet-500 to-purple-600;
+        @apply bg-gradient-to-br from-brand-500 to-indigo-600;
     }
 
     .module-step-5 .module-step-badge {
@@ -458,7 +585,7 @@
     }
 
     .module-step-4.module-form-card {
-        @apply border-violet-200/80 shadow-violet-100/50;
+        @apply border-brand-200/80 shadow-brand-100/50;
     }
 
     .module-step-5.module-form-card {
@@ -482,7 +609,7 @@
     }
 
     .module-step-4 .module-form-card__header {
-        @apply border-violet-100 bg-gradient-to-r from-violet-50 to-white;
+        @apply border-brand-100 bg-gradient-to-r from-brand-50 to-white;
     }
 
     .module-step-5 .module-form-card__header {
@@ -522,7 +649,7 @@
     }
 
     .module-step-4.module-list-card {
-        @apply border-violet-200/70;
+        @apply border-brand-200/70;
     }
 
     .module-step-5.module-list-card {
@@ -546,7 +673,7 @@
     }
 
     .module-step-4 .module-list-card__header {
-        @apply border-violet-100 bg-gradient-to-r from-violet-50/90 to-slate-50/50;
+        @apply border-brand-100 bg-gradient-to-r from-brand-50/90 to-slate-50/50;
     }
 
     .module-step-5 .module-list-card__header {
@@ -582,7 +709,7 @@
     }
 
     .module-step-4 .module-list-card__footer {
-        @apply border-violet-100 bg-violet-50/30;
+        @apply border-brand-100 bg-brand-50/30;
     }
 
     .module-step-5 .module-list-card__footer {
@@ -606,7 +733,7 @@
     }
 
     .module-step-4.module-tip {
-        @apply border-violet-200 bg-violet-50/60;
+        @apply border-brand-200 bg-brand-50/60;
     }
 
     .module-step-5.module-tip {
@@ -625,12 +752,40 @@
         @apply border-emerald-100 hover:border-emerald-200;
     }
 
+    .module-step-4 .module-pricing-card,
     .module-step-5 .module-pricing-card {
         @apply rounded-2xl border-2 border-brand-200 bg-white p-4 shadow-md sm:p-5;
     }
 
+    .module-step-4 .module-pricing-card.is-warning,
     .module-step-5 .module-pricing-card.is-warning {
         @apply border-amber-300 bg-amber-50/40;
+    }
+
+    .pricing-desktop-grid {
+        @apply grid gap-4 xl:grid-cols-2;
+    }
+
+    .pricing-fields {
+        @apply grid gap-4 sm:grid-cols-2;
+    }
+
+    .pricing-card-footer {
+        @apply flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3;
+    }
+
+    @media (min-width: 1280px) {
+        .module-pricing-card {
+            @apply h-full;
+        }
+
+        .module-pricing-card form {
+            @apply flex h-full flex-col;
+        }
+
+        .pricing-card-footer {
+            @apply mt-auto;
+        }
     }
 
     .module-pricing-card__head {
@@ -686,7 +841,7 @@
     }
 
     .module-step-4 .module-empty {
-        @apply border-violet-200 bg-violet-50/30;
+        @apply border-brand-200 bg-brand-50/30;
     }
 
     .module-step-5 .module-empty {
@@ -1247,6 +1402,14 @@
         @apply hidden;
     }
 
+    .mobile-topbar-title {
+        @apply text-slate-900;
+    }
+
+    .mobile-topbar-subtitle {
+        @apply text-slate-500;
+    }
+
     /* Mobile: pakai mobile-topbar layout (aman di iPhone notch/status bar) */
     .is-kasir-pos .mobile-topbar {
         @apply flex border-b border-slate-800 bg-slate-900;
@@ -1262,12 +1425,12 @@
         @apply border-white/25 bg-white/10 text-white hover:bg-white/20;
     }
 
-    .is-kasir-pos .mobile-topbar p.text-slate-900 {
+    .is-kasir-pos .mobile-topbar-title {
         @apply text-white;
     }
 
-    .is-kasir-pos .mobile-topbar p.text-slate-500 {
-        @apply text-slate-400;
+    .is-kasir-pos .mobile-topbar-subtitle {
+        @apply text-slate-300;
     }
 
     .mobile-topbar-actions {
@@ -1703,19 +1866,20 @@
     }
 
     .pos-pending-card-actions {
-        @apply flex flex-wrap gap-1.5;
+        @apply grid gap-1.5;
+        grid-template-columns: repeat(var(--pos-pending-actions, 3), minmax(0, 1fr));
+    }
+
+    .pos-pending-card.is-current {
+        @apply border-brand-400 ring-1 ring-brand-200;
     }
 
     .pos-pending-action-form {
-        @apply min-w-0 flex-1;
-    }
-
-    .pos-pending-action-form-delete {
-        @apply basis-full;
+        @apply min-w-0;
     }
 
     .pos-pending-action {
-        @apply min-h-10 w-full touch-manipulation rounded-lg px-3 py-2 text-xs font-semibold transition active:scale-[0.98];
+        @apply min-h-10 w-full touch-manipulation rounded-lg px-2 py-2 text-xs font-semibold transition active:scale-[0.98];
     }
 
     .pos-pending-action-confirm {
@@ -2301,6 +2465,71 @@
         @apply text-sm text-slate-500;
     }
 
+    .material-history-modal {
+        @apply fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4;
+    }
+
+    .material-history-modal.hidden {
+        @apply hidden;
+    }
+
+    .material-history-modal-backdrop {
+        @apply absolute inset-0 bg-slate-900/50 backdrop-blur-sm;
+    }
+
+    .material-history-modal-panel {
+        @apply relative z-10 flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:max-w-lg sm:rounded-2xl;
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+
+    .material-history-modal-head {
+        @apply flex shrink-0 items-start gap-3 border-b border-slate-100 px-4 py-4;
+    }
+
+    .material-history-modal-title {
+        @apply text-lg font-bold text-slate-900;
+    }
+
+    .material-history-modal-sub {
+        @apply mt-0.5 text-xs text-slate-500;
+    }
+
+    .material-history-modal-close {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-600;
+    }
+
+    .material-history-modal-body {
+        @apply min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-4;
+    }
+
+    .material-history-item {
+        @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5;
+    }
+
+    .material-history-item-top {
+        @apply flex items-center justify-between gap-2;
+    }
+
+    .material-history-item-time {
+        @apply shrink-0 text-[11px] text-slate-500;
+    }
+
+    .material-history-item-name {
+        @apply mt-1.5 text-sm font-semibold text-slate-900;
+    }
+
+    .material-history-item-meta {
+        @apply mt-0.5 text-xs text-slate-600;
+    }
+
+    .material-history-item-note {
+        @apply mt-1 text-[11px] text-slate-500;
+    }
+
+    .material-history-item-user {
+        @apply mt-1 text-[11px] font-medium text-slate-400;
+    }
+
     .pembukuan-stats {
         @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
     }
@@ -2478,16 +2707,77 @@
         @apply border-b-0 pb-0;
     }
 
+    .pos-order-totals {
+        @apply space-y-2;
+    }
+
     .pos-receipt-subtotal {
-        @apply flex justify-between text-sm text-slate-600;
+        @apply flex items-center justify-between gap-3 text-sm text-slate-600;
+    }
+
+    .pos-receipt-discount {
+        @apply flex items-center justify-between gap-3 text-sm font-medium text-rose-600;
+    }
+
+    .pos-discount-panel {
+        @apply border-t border-slate-200 px-4 py-3;
+    }
+
+    .pos-discount-head {
+        @apply mb-2 flex items-center justify-between gap-2;
+    }
+
+    .pos-discount-title {
+        @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .pos-discount-status {
+        @apply text-xs font-medium text-slate-500;
+    }
+
+    .pos-discount-status.is-saving {
+        @apply text-brand-600;
+    }
+
+    .pos-discount-status.is-success {
+        @apply text-green-600;
+    }
+
+    .pos-discount-status.is-error {
+        @apply text-red-600;
+    }
+
+    .pos-discount-controls {
+        @apply grid grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-2;
+    }
+
+    .pos-discount-controls.is-no-discount {
+        @apply grid-cols-1;
+    }
+
+    .pos-discount-type,
+    .pos-discount-value {
+        @apply min-h-11 text-sm;
+    }
+
+    .pos-discount-value:disabled {
+        @apply hidden;
+    }
+
+    .pos-discount-hint {
+        @apply mt-2 text-xs leading-relaxed text-slate-500;
     }
 
     .pos-receipt-grand {
-        @apply mt-1 flex items-baseline justify-between border-b border-slate-200 pb-3 text-lg font-bold text-slate-900;
+        @apply flex items-center justify-between gap-3 border-t border-slate-200 pt-3 text-base font-bold text-slate-900;
+    }
+
+    .pos-receipt-grand span:first-child {
+        @apply shrink-0 text-sm font-semibold text-slate-800 sm:text-base;
     }
 
     .pos-receipt-grand span:last-child {
-        @apply text-2xl tabular-nums text-brand-700;
+        @apply min-w-0 text-right text-xl font-bold tabular-nums leading-none text-brand-700 sm:text-2xl;
     }
 
     .pos-pay-label {
@@ -2693,8 +2983,13 @@
         }
 
         .pos-pending-card {
-            width: min(72vw, 15.5rem);
-            min-width: min(72vw, 11.5rem);
+            width: min(88vw, 18rem);
+            min-width: min(88vw, 14rem);
+        }
+
+        .pos-pending-card.is-current {
+            width: min(100%, 18rem);
+            min-width: min(100%, 14rem);
         }
 
         .pos-pending-btn {
@@ -2772,7 +3067,11 @@
         }
 
         .pos-menu-head {
-            @apply shrink-0 border-b border-slate-200 bg-white px-2 py-1.5;
+            @apply shrink-0 space-y-0 border-b border-slate-200 bg-white px-2 py-1.5;
+        }
+
+        .pos-menu-head > div:has(.pos-panel-title) {
+            @apply hidden;
         }
 
         .pos-menu-head .pos-panel-title,
@@ -2838,19 +3137,50 @@
         }
 
         .pos-receipt-pay-totals {
-            @apply mb-1.5;
+            @apply mb-2;
         }
 
-        .pos-receipt-pay .pos-receipt-subtotal {
+        .pos-receipt-pay .pos-order-totals,
+        .pos-receipt-confirm .pos-order-totals {
+            @apply space-y-1.5;
+        }
+
+        .pos-receipt-pay .pos-receipt-subtotal,
+        .pos-receipt-confirm .pos-receipt-subtotal,
+        .pos-receipt-pay .pos-receipt-discount,
+        .pos-receipt-confirm .pos-receipt-discount {
             @apply text-xs;
         }
 
-        .pos-receipt-pay .pos-receipt-grand {
-            @apply mt-0 border-0 pb-1.5 text-base;
+        .pos-receipt-pay .pos-receipt-grand,
+        .pos-receipt-confirm .pos-receipt-grand {
+            @apply gap-2 border-slate-200 pt-2.5;
         }
 
-        .pos-receipt-pay .pos-receipt-grand span:last-child {
-            @apply text-xl;
+        .pos-receipt-pay .pos-receipt-grand span:first-child,
+        .pos-receipt-confirm .pos-receipt-grand span:first-child {
+            @apply text-sm font-semibold text-slate-800;
+        }
+
+        .pos-receipt-pay .pos-receipt-grand span:last-child,
+        .pos-receipt-confirm .pos-receipt-grand span:last-child {
+            @apply text-lg leading-tight;
+        }
+
+        .pos-receipt-confirm .pos-discount-panel {
+            @apply mb-2 border-t-0 px-0 pb-2.5 pt-0;
+        }
+
+        .pos-receipt-pay .pos-discount-panel {
+            @apply mb-2 px-0;
+        }
+
+        .pos-discount-controls {
+            @apply grid-cols-1 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)];
+        }
+
+        .pos-discount-controls:not(.is-no-discount) {
+            @apply grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)];
         }
 
         .pos-pay-label {
@@ -3029,12 +3359,14 @@
             @apply p-2;
         }
 
-        .pos-receipt-pay .pos-receipt-grand {
-            @apply pb-1 text-sm;
+        .pos-receipt-pay .pos-receipt-grand,
+        .pos-receipt-confirm .pos-receipt-grand {
+            @apply pt-2;
         }
 
-        .pos-receipt-pay .pos-receipt-grand span:last-child {
-            @apply text-lg;
+        .pos-receipt-pay .pos-receipt-grand span:last-child,
+        .pos-receipt-confirm .pos-receipt-grand span:last-child {
+            @apply text-base;
         }
 
         .pos-pay-option {
@@ -3544,6 +3876,14 @@
     .order-modal-panel .order-item-note-input {
         @apply min-h-[4.5rem] py-2 text-base;
         font-size: 16px;
+    }
+
+    .order-product-addon-badge {
+        @apply absolute bottom-2 left-2 rounded-full bg-brand-600/90 px-2 py-0.5 text-[10px] font-semibold text-white;
+    }
+
+    .order-modal-panel .pos-addon-list {
+        @apply mt-1;
     }
 
     .order-qty-stepper {

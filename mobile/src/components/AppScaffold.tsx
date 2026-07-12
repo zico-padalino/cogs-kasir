@@ -13,7 +13,6 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Overhead', icon: '⚙️', route: '/cogs/overhead' },
     { label: 'Produk & Resep', icon: '📦', route: '/cogs/products', match: ['/cogs/products', '/cogs/product-detail'] },
     { label: 'Stok Bahan', icon: '🧺', route: '/cogs/inventory' },
-    { label: 'Produksi', icon: '🏭', route: '/cogs/production', match: ['/cogs/production', '/cogs/production-detail'] },
     { label: 'Hasil COGS', icon: '📊', route: '/cogs/history', match: ['/cogs/history', '/cogs/calculate', '/cogs/cogs-detail'] },
   ],
   kasir: [

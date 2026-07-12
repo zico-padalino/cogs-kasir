@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class LoginRequest extends FormRequest
 {
@@ -18,7 +16,6 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
-            'module' => ['required', Rule::in(['cogs', 'kasir'])],
             'remember' => ['sometimes', 'boolean'],
         ];
     }
@@ -29,8 +26,6 @@ class LoginRequest extends FormRequest
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'password.required' => 'Password wajib diisi.',
-            'module.required' => 'Pilih modul login terlebih dahulu.',
-            'module.in' => 'Modul login tidak valid.',
         ];
     }
 }

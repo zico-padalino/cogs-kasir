@@ -3,11 +3,9 @@
 namespace App\Support;
 
 use App\Models\BillOfMaterial;
-use App\Models\CogsCalculation;
 use App\Models\InventoryLot;
 use App\Models\OverheadRate;
 use App\Models\Product;
-use App\Models\ProductionOrder;
 
 class SetupProgress
 {
@@ -26,7 +24,6 @@ class SetupProgress
     $hasStock = InventoryLot::where('quantity_remaining', '>', 0)->exists();
     $hasFinished = Product::whereIn('type', ['semi_finished', 'finished_good'])->exists();
     $hasBom = BillOfMaterial::exists();
-    $hasProduction = ProductionOrder::where('status', 'completed')->exists();
     $hasPricing = Product::query()
       ->whereIn('type', ['semi_finished', 'finished_good'])
       ->where('selling_price', '>', 0)
@@ -65,16 +62,6 @@ class SetupProgress
       ],
       [
         'number' => 4,
-        'key' => 'production',
-        'title' => 'Produksi',
-        'short' => 'Produksi',
-        'description' => 'Catat berapa yang dibuat — modal dihitung otomatis.',
-        'route' => 'production-orders.index',
-        'done' => $hasProduction,
-        'hint' => 'Pilih menu, isi jumlah, tekan Catat & Hitung Modal.',
-      ],
-      [
-        'number' => 5,
         'key' => 'pricing',
         'title' => 'Harga Jual',
         'short' => 'Harga Jual',
@@ -144,6 +131,8 @@ class SetupProgress
       'materials.store' => 2,
       'materials.receive' => 2,
       'materials.lots.update' => 2,
+      'materials.history' => 2,
+      'materials.stock.adjust' => 2,
       'inventory.index' => 2,
       'inventory.receive' => 2,
       'inventory.lots.update' => 2,
@@ -155,16 +144,14 @@ class SetupProgress
       'products.show' => 3,
       'products.bom.store' => 3,
       'products.bom.update' => 3,
-      'production-orders.index' => 4,
-      'production-orders.create' => 4,
-      'production-orders.edit' => 4,
-      'production-orders.store' => 4,
-      'production-orders.show' => 4,
-      'menu-pricing.index' => 5,
-      'menu-pricing.update' => 5,
-      'cogs.history' => 5,
-      'cogs.history.show' => 5,
-      'cogs.result' => 5,
+      'products.calculate-modal' => 3,
+      'products.addons.store' => 3,
+      'products.addons.update' => 3,
+      'menu-pricing.index' => 4,
+      'menu-pricing.update' => 4,
+      'cogs.history' => 4,
+      'cogs.history.show' => 4,
+      'cogs.result' => 4,
       'dashboard' => null,
     ];
 

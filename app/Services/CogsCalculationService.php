@@ -80,7 +80,13 @@ class CogsCalculationService
         return $this->calculateSaleCogs($product, $quantity, $consumeInventory);
     }
 
-    public function calculateSaleCogs(Product $product, float $quantity, bool $consumeInventory = true): CogsResult
+    public function calculateSaleCogs(
+        Product $product,
+        float $quantity,
+        bool $consumeInventory = true,
+        array $extraRequirements = [],
+        ?string $consumeNote = null,
+    ): CogsResult
     {
         if ($quantity <= 0) {
             throw new RuntimeException('Quantity harus lebih dari 0.');
@@ -88,9 +94,15 @@ class CogsCalculationService
 
         $consumptionDetails = [];
         $directMaterial = 0.0;
+        $logAction = $consumeInventory ? 'sale' : null;
 
         if ($consumeInventory && $this->shouldConsumeFromInventory($product, $quantity)) {
-            $consumption = $this->inventoryCostService->consumeStock($product, $quantity);
+            $consumption = $this->inventoryCostService->consumeStock(
+                product: $product,
+                quantity: $quantity,
+                logAction: $logAction,
+                note: $consumeNote,
+            );
             $directMaterial = $consumption->totalCost;
             $consumptionDetails[] = [
                 'product_id' => $product->id,
@@ -108,7 +120,12 @@ class CogsCalculationService
                 $requirements = $this->bomCostService->explodeBom($product, $quantity);
 
                 foreach ($requirements as $req) {
-                    $consumption = $this->inventoryCostService->consumeStock($req['product'], $req['quantity']);
+                    $consumption = $this->inventoryCostService->consumeStock(
+                        product: $req['product'],
+                        quantity: $req['quantity'],
+                        logAction: $logAction,
+                        note: $consumeNote,
+                    );
                     $consumptionDetails[] = [
                         'product_id' => $req['product']->id,
                         'sku' => $req['product']->sku,
@@ -121,6 +138,41 @@ class CogsCalculationService
 
                 $directMaterial = array_sum(array_column($consumptionDetails, 'cost'));
             }
+        }
+
+        foreach ($extraRequirements as $req) {
+            /** @var Product $material */
+            $material = $req['product'];
+            $qty = (float) $req['quantity'];
+
+            if ($qty <= 0) {
+                continue;
+            }
+
+            if ($consumeInventory) {
+                $consumption = $this->inventoryCostService->consumeStock(
+                    product: $material,
+                    quantity: $qty,
+                    logAction: $logAction,
+                    note: $req['note'] ?? $consumeNote,
+                );
+                $cost = $consumption->totalCost;
+                $lots = $consumption->lotConsumptions;
+            } else {
+                $unitCost = $this->inventoryCostService->getWeightedAverageCost($material);
+                $cost = $unitCost * $qty;
+                $lots = [];
+            }
+
+            $consumptionDetails[] = [
+                'product_id' => $material->id,
+                'sku' => $material->sku,
+                'quantity' => $qty,
+                'cost' => round($cost, 4),
+                'lots' => $lots,
+                'mode' => 'addon_material',
+            ];
+            $directMaterial += $cost;
         }
 
         $overhead = $this->overheadAllocationService->allocateForSale(
@@ -155,10 +207,17 @@ class CogsCalculationService
         return $product->availableQuantity() >= $quantity;
     }
 
-    public function recordSaleCogs(SalesTransaction $sale): CogsCalculation
+    public function recordSaleCogs(SalesTransaction $sale, array $extraRequirements = []): CogsCalculation
     {
-        return DB::transaction(function () use ($sale) {
-            $result = $this->calculateSaleCogs($sale->product, (float) $sale->quantity, consumeInventory: false);
+        return DB::transaction(function () use ($sale, $extraRequirements) {
+            $note = 'Penjualan '.$sale->invoice_number;
+            $result = $this->calculateSaleCogs(
+                product: $sale->product,
+                quantity: (float) $sale->quantity,
+                consumeInventory: true,
+                extraRequirements: $extraRequirements,
+                consumeNote: $note,
+            );
 
             return $this->persistCalculation(
                 result: $result,
@@ -185,6 +244,46 @@ class CogsCalculationService
         $this->productHppService->syncFromResult($order->product, $result);
 
         return $calculation;
+    }
+
+    /**
+     * Hitung modal per porsi dari resep (bahan + biaya lain), tanpa mengurangi stok.
+     */
+    public function recalculateRecipeHpp(Product $product): CogsResult
+    {
+        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+            throw new RuntimeException('Hanya menu yang bisa dihitung modalnya dari resep.');
+        }
+
+        if ($product->billOfMaterials()->doesntExist()) {
+            throw new RuntimeException('Resep masih kosong. Tambah bahan dulu.');
+        }
+
+        $result = $this->calculateSaleCogs($product, 1, consumeInventory: false);
+
+        if ($result->directMaterial <= 0) {
+            throw new RuntimeException('Modal bahan Rp 0. Pastikan setiap bahan punya harga beli atau stok.');
+        }
+
+        if ($result->unitHpp <= 0) {
+            throw new RuntimeException('Modal tidak bisa dihitung. Periksa resep dan harga bahan.');
+        }
+
+        $this->productHppService->syncFromResult($product, $result);
+
+        $product->update([
+            'standard_cost' => $result->unitHpp,
+        ]);
+
+        $this->persistCalculation(
+            result: $result,
+            productId: $product->id,
+            quantity: 1,
+            referenceType: Product::class,
+            referenceId: $product->id,
+        );
+
+        return $result;
     }
 
     private function persistCalculation(

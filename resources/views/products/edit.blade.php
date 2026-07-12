@@ -24,7 +24,7 @@
 
                 <div>
                     <label class="form-label">Modal per {{ $product->unit }}</label>
-                    <input type="text" class="form-input bg-slate-50" value="{{ $product->unit_hpp > 0 ? $format::rupiah($product->unit_hpp, 0) : 'Belum dihitung — catat produksi dulu' }}" readonly>
+                    <input type="text" class="form-input bg-slate-50" value="{{ $product->unit_hpp > 0 ? $format::rupiah($product->unit_hpp, 0) : 'Belum dihitung — lengkapi resep dulu' }}" readonly>
                 </div>
 
                 <p class="text-sm text-slate-600">

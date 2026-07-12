@@ -130,8 +130,8 @@
                         </svg>
                     </button>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-semibold text-slate-900">@yield('heading', 'Kasir POS')</p>
-                        <p class="truncate text-[11px] text-slate-500">{{ auth()->user()->name }}</p>
+                        <p class="mobile-topbar-title truncate text-sm font-semibold">@yield('heading', 'Kasir POS')</p>
+                        <p class="mobile-topbar-subtitle truncate text-[11px]">{{ auth()->user()->name }}</p>
                     </div>
                     @hasSection('mobile_topbar_actions')
                         <div class="mobile-topbar-actions">

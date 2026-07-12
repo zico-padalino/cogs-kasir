@@ -9,10 +9,17 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\BillOfMaterial;
 use App\Models\Product;
+use App\Models\ProductAddon;
 use App\Services\ProductDeletionService;
 use App\Services\ProductHppService;
+use App\Services\CogsCalculationService;
 use App\Support\Format;
+use App\Support\MaterialUnits;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
+use RuntimeException;
 
 class ProductController extends Controller
 {
@@ -60,7 +67,7 @@ class ProductController extends Controller
       return redirect()->route('materials.index');
     }
 
-    $product->load(['billOfMaterials.childProduct']);
+    $product->load(['billOfMaterials.childProduct', 'addons.material']);
 
     $allProducts = Product::query()
       ->where('type', ProductType::RawMaterial->value)
@@ -68,10 +75,21 @@ class ProductController extends Controller
       ->orderBy('name')
       ->get();
 
+    $materialUnits = $allProducts->mapWithKeys(fn (Product $material) => [
+      (string) $material->id => [
+        'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
+        'label' => MaterialUnits::label($material->unit),
+        'options' => MaterialUnits::recipeOptions($material->unit),
+        'preferred' => MaterialUnits::preferredInputUnit($material->unit),
+      ],
+    ])->all();
+
     return view('products.show', [
       'product' => $product,
       'allProducts' => $allProducts,
+      'materialUnits' => $materialUnits,
       'format' => Format::class,
+      'units' => MaterialUnits::class,
     ]);
   }
 
@@ -119,11 +137,36 @@ class ProductController extends Controller
   public function storeBom(Request $request, Product $product)
   {
     $validated = $request->validate([
-      'child_product_id' => ['required', 'exists:products,id', 'not_in:'.$product->id],
+      'child_product_id' => [
+        'required',
+        'exists:products,id',
+        'not_in:'.$product->id,
+      ],
       'quantity' => ['required', 'numeric', 'gt:0'],
+      'unit' => ['required', 'string', 'max:20'],
       'scrap_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
       'sequence' => ['nullable', 'integer', 'min:0'],
     ]);
+
+    $child = Product::query()->findOrFail($validated['child_product_id']);
+
+    if ($child->type !== ProductType::RawMaterial) {
+      throw ValidationException::withMessages([
+        'child_product_id' => 'Hanya bahan baku yang bisa dimasukkan ke resep.',
+      ]);
+    }
+
+    if (! $child->is_active) {
+      throw ValidationException::withMessages([
+        'child_product_id' => 'Bahan ini tidak aktif.',
+      ]);
+    }
+
+    $quantity = $this->quantityInStockUnit(
+      (float) $validated['quantity'],
+      $validated['unit'],
+      $child->unit,
+    );
 
     BillOfMaterial::updateOrCreate(
       [
@@ -131,7 +174,7 @@ class ProductController extends Controller
         'child_product_id' => $validated['child_product_id'],
       ],
       [
-        'quantity' => $validated['quantity'],
+        'quantity' => $quantity,
         'scrap_percentage' => $validated['scrap_percentage'] ?? 0,
         'sequence' => $validated['sequence'] ?? 0,
       ],
@@ -148,11 +191,30 @@ class ProductController extends Controller
 
     $validated = $request->validate([
       'quantity' => ['required', 'numeric', 'gt:0'],
+      'unit' => ['required', 'string', 'max:20'],
       'scrap_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
       'sequence' => ['nullable', 'integer', 'min:0'],
     ]);
 
-    $bom->update($validated);
+    $child = $bom->childProduct;
+
+    if (! $child) {
+      throw ValidationException::withMessages([
+        'quantity' => 'Bahan pada resep tidak ditemukan.',
+      ]);
+    }
+
+    $quantity = $this->quantityInStockUnit(
+      (float) $validated['quantity'],
+      $validated['unit'],
+      $child->unit,
+    );
+
+    $bom->update([
+      'quantity' => $quantity,
+      'scrap_percentage' => $validated['scrap_percentage'] ?? $bom->scrap_percentage,
+      'sequence' => $validated['sequence'] ?? $bom->sequence,
+    ]);
 
     return redirect()->route('products.show', $product)->with('success', 'Resep diperbarui.');
   }
@@ -166,6 +228,168 @@ class ProductController extends Controller
     $bom->delete();
 
     return redirect()->route('products.show', $product)->with('success', 'Bahan dihapus dari resep.');
+  }
+
+  public function calculateModal(Product $product, CogsCalculationService $cogsService)
+  {
+    if ($product->type === ProductType::RawMaterial) {
+      return redirect()->route('materials.index');
+    }
+
+    try {
+      $result = $cogsService->recalculateRecipeHpp($product);
+    } catch (RuntimeException $e) {
+      return redirect()->route('products.show', $product)->with('error', $e->getMessage());
+    }
+
+    $message = sprintf(
+      'Modal dihitung: %s / %s (bahan %s + biaya lain %s).',
+      Format::rupiah($result->unitHpp, 0),
+      $product->unit,
+      Format::rupiah($result->directMaterial, 0),
+      Format::rupiah($result->manufacturingOverhead, 0),
+    );
+
+    return redirect()->route('products.show', $product)->with('success', $message);
+  }
+
+  public function storeAddon(Request $request, Product $product)
+  {
+    if ($product->type === ProductType::RawMaterial) {
+      return redirect()->route('materials.index');
+    }
+
+    $validated = $request->validate([
+      'name' => ['required', 'string', 'max:100'],
+      'selling_price' => ['required'],
+      'material_product_id' => ['nullable', 'exists:products,id'],
+      'material_quantity' => ['nullable', 'numeric', 'gt:0'],
+      'unit' => ['nullable', 'string', 'max:20'],
+    ]);
+
+    $sellingPrice = Format::parseRupiah($validated['selling_price']);
+    if ($sellingPrice < 0) {
+      throw ValidationException::withMessages([
+        'selling_price' => 'Harga add-on tidak boleh negatif.',
+      ]);
+    }
+
+    $materialId = $validated['material_product_id'] ?? null;
+    $materialQty = null;
+
+    if ($materialId) {
+      $material = Product::query()->findOrFail($materialId);
+      if ($material->type !== ProductType::RawMaterial) {
+        throw ValidationException::withMessages([
+          'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku.',
+        ]);
+      }
+
+      if (empty($validated['material_quantity'])) {
+        throw ValidationException::withMessages([
+          'material_quantity' => 'Isi jumlah bahan untuk add-on ini.',
+        ]);
+      }
+
+      $materialQty = $this->quantityInStockUnit(
+        (float) $validated['material_quantity'],
+        $validated['unit'] ?? $material->unit,
+        $material->unit,
+      );
+    }
+
+    $maxOrder = (int) $product->addons()->max('sort_order');
+
+    ProductAddon::create([
+      'product_id' => $product->id,
+      'name' => trim($validated['name']),
+      'selling_price' => $sellingPrice,
+      'material_product_id' => $materialId,
+      'material_quantity' => $materialQty,
+      'is_active' => true,
+      'sort_order' => $maxOrder + 1,
+    ]);
+
+    return redirect()->route('products.show', $product)->with('success', 'Add-on ditambahkan.');
+  }
+
+  public function updateAddon(Request $request, Product $product, ProductAddon $addon)
+  {
+    if ($addon->product_id !== $product->id) {
+      abort(404);
+    }
+
+    $validated = $request->validate([
+      'name' => ['required', 'string', 'max:100'],
+      'selling_price' => ['required'],
+      'material_product_id' => ['nullable', 'exists:products,id'],
+      'material_quantity' => ['nullable', 'numeric', 'gt:0'],
+      'unit' => ['nullable', 'string', 'max:20'],
+      'is_active' => ['sometimes', 'boolean'],
+    ]);
+
+    $sellingPrice = Format::parseRupiah($validated['selling_price']);
+    if ($sellingPrice < 0) {
+      throw ValidationException::withMessages([
+        'selling_price' => 'Harga add-on tidak boleh negatif.',
+      ]);
+    }
+
+    $materialId = $validated['material_product_id'] ?? null;
+    $materialQty = null;
+
+    if ($materialId) {
+      $material = Product::query()->findOrFail($materialId);
+      if ($material->type !== ProductType::RawMaterial) {
+        throw ValidationException::withMessages([
+          'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku.',
+        ]);
+      }
+
+      if (empty($validated['material_quantity'])) {
+        throw ValidationException::withMessages([
+          'material_quantity' => 'Isi jumlah bahan untuk add-on ini.',
+        ]);
+      }
+
+      $materialQty = $this->quantityInStockUnit(
+        (float) $validated['material_quantity'],
+        $validated['unit'] ?? $material->unit,
+        $material->unit,
+      );
+    }
+
+    $addon->update([
+      'name' => trim($validated['name']),
+      'selling_price' => $sellingPrice,
+      'material_product_id' => $materialId,
+      'material_quantity' => $materialQty,
+      'is_active' => $request->boolean('is_active'),
+    ]);
+
+    return redirect()->route('products.show', $product)->with('success', 'Add-on diperbarui.');
+  }
+
+  public function destroyAddon(Product $product, ProductAddon $addon)
+  {
+    if ($addon->product_id !== $product->id) {
+      abort(404);
+    }
+
+    $addon->delete();
+
+    return redirect()->route('products.show', $product)->with('success', 'Add-on dihapus.');
+  }
+
+  private function quantityInStockUnit(float $quantity, ?string $inputUnit, ?string $stockUnit): float
+  {
+    try {
+      return MaterialUnits::convert($quantity, $inputUnit, $stockUnit);
+    } catch (InvalidArgumentException $e) {
+      throw ValidationException::withMessages([
+        'unit' => $e->getMessage(),
+      ]);
+    }
   }
 
   /** @param  array<string, mixed>  $data */

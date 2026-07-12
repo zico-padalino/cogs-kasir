@@ -100,7 +100,7 @@
                     <section class="order-panel-menu order-panel is-active" data-order-panel="menu">
                         <div class="order-section-head">
                             <h2 class="order-section-title">Pilih Menu</h2>
-                            <p class="order-section-sub">Tap produk untuk atur jumlah & catatan pembelian</p>
+                            <p class="order-section-sub">Tap produk untuk atur jumlah, add-on, & catatan</p>
                         </div>
 
                         @include('order.partials.menu-grid', [

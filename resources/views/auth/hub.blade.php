@@ -6,7 +6,7 @@
     <div class="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-10">
         <div class="mb-8 text-center">
             <h1 class="text-2xl font-bold text-slate-900">Halo, {{ $user->name }}</h1>
-            <p class="mt-1 text-sm text-slate-500">Pilih modul yang ingin Anda buka.</p>
+            <p class="mt-1 text-sm text-slate-500">Akun Anda punya lebih dari satu akses. Pilih modul yang ingin dibuka.</p>
         </div>
 
         @if (session('error'))

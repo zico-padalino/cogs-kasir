@@ -60,6 +60,7 @@ class KasirController extends Controller
             ->get();
 
         $format = Format::class;
+        $currentOrder = $this->activeKasirOrder();
 
         return response()->json([
             'count' => $pendingOrders->count(),
@@ -68,7 +69,7 @@ class KasirController extends Controller
             'has_pending' => $pendingOrders->isNotEmpty(),
             'latest_order_id' => $pendingOrders->first()?->id,
             'html' => $pendingOrders->isNotEmpty()
-                ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format'))->render()
+                ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
                 : '',
         ]);
     }
@@ -269,6 +270,63 @@ class KasirController extends Controller
         return back()->with('success', 'Info pesanan diperbarui.');
     }
 
+    public function updateDiscount(Request $request, PosOrderService $posService)
+    {
+        $order = $this->activeKasirOrder();
+
+        if (! $order) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Tidak ada order aktif.'], 422);
+            }
+
+            return back()->with('error', 'Tidak ada order aktif.');
+        }
+
+        $validated = $request->validate([
+            'discount_type' => ['nullable', 'in:amount,percent'],
+            'discount_value' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $discountType = $validated['discount_type'] ?? null;
+        $discountValue = (float) ($validated['discount_value'] ?? 0);
+
+        if ($discountType === 'percent' && $discountValue > 100) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Diskon persen maksimal 100%.'], 422);
+            }
+
+            return back()->with('error', 'Diskon persen maksimal 100%.');
+        }
+
+        try {
+            $order = $posService->updateDiscount($order, $discountType, $discountValue);
+        } catch (\RuntimeException $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Diskon diperbarui.',
+                'subtotal' => (float) $order->subtotal,
+                'discount_amount' => (float) $order->discount_amount,
+                'discount_type' => $order->discount_type,
+                'discount_value' => (float) $order->discount_value,
+                'total' => (float) $order->total,
+                'subtotal_label' => Format::rupiah($order->subtotal),
+                'discount_label' => $order->hasDiscount()
+                    ? '- '.Format::rupiah($order->discount_amount)
+                    : null,
+                'total_label' => Format::rupiah($order->total),
+            ]);
+        }
+
+        return back()->with('success', 'Diskon diperbarui.');
+    }
+
     public function cancelOrder(PosOrderService $posService)
     {
         $order = $this->activeKasirOrder();
@@ -297,6 +355,8 @@ class KasirController extends Controller
             'product_id' => ['required', 'exists:products,id'],
             'quantity' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string', 'max:255'],
+            'addon_ids' => ['nullable', 'array'],
+            'addon_ids.*' => ['integer', 'exists:product_addons,id'],
         ]);
 
         $order = $this->activeKasirOrder() ?? $posService->createKasirOrder(auth()->user());
@@ -311,6 +371,7 @@ class KasirController extends Controller
                 (float) $validated['quantity'],
                 notes: $validated['notes'] ?? null,
                 fromKasir: true,
+                addonIds: $validated['addon_ids'] ?? [],
             );
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
@@ -342,7 +403,10 @@ class KasirController extends Controller
 
             if (array_key_exists('notes', $validated)) {
                 $item->update([
-                    'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
+                    'notes' => \App\Support\PosItemNotes::preserveAddons(
+                        $item->notes,
+                        $validated['notes'] ?? null,
+                    ),
                 ]);
             }
         } catch (\RuntimeException $e) {

@@ -6,9 +6,9 @@
 @endsection
 @section('subheading')
     @if ($progress['complete'])
-        Kelola bahan, menu, produksi, dan harga jual
+        Kelola bahan, menu, dan harga jual
     @else
-        5 langkah singkat — dari bahan sampai harga jual di Kasir
+        4 langkah singkat — dari bahan sampai harga jual di Kasir
     @endif
 @endsection
 
@@ -39,7 +39,6 @@
                 <li><strong>Biaya lain</strong> — listrik, sewa (kalau ada)</li>
                 <li><strong>Bahan</strong> — tepung, gula, dll + stok & harga beli</li>
                 <li><strong>Menu & resep</strong> — apa yang dijual + bahan resepnya</li>
-                <li><strong>Produksi</strong> — catat berapa yang dibuat → modal terhitung</li>
                 <li><strong>Harga jual</strong> — tentukan harga menu di Kasir</li>
             </ol>
             <p class="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-800">

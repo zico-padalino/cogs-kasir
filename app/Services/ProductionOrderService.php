@@ -90,8 +90,10 @@ class ProductionOrderService
                 $qtyToUse = (float) $material->quantity_planned * $ratio;
 
                 $consumption = $this->inventoryCostService->consumeStock(
-                    $material->product,
-                    $qtyToUse,
+                    product: $material->product,
+                    quantity: $qtyToUse,
+                    logAction: 'production',
+                    note: 'Produksi '.$order->order_number,
                 );
 
                 $material->update([

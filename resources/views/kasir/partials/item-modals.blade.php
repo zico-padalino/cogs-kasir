@@ -33,6 +33,11 @@
                 </div>
             </div>
 
+            <div class="pos-add-modal-field hidden" data-kasir-addons-wrap>
+                <p class="pos-add-modal-label">Add-on tambahan</p>
+                <div class="pos-addon-list" data-kasir-addons></div>
+            </div>
+
             <div class="pos-add-modal-field">
                 <label class="pos-add-modal-label" for="kasir-modal-notes">Catatan item</label>
                 <textarea

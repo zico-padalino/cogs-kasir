@@ -14,6 +14,7 @@ class PosOrderItem extends Model
         'unit_price',
         'line_total',
         'notes',
+        'addon_ids',
     ];
 
     protected function casts(): array
@@ -22,6 +23,7 @@ class PosOrderItem extends Model
             'quantity' => 'decimal:6',
             'unit_price' => 'decimal:4',
             'line_total' => 'decimal:4',
+            'addon_ids' => 'array',
         ];
     }
 

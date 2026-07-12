@@ -7,10 +7,15 @@ use App\Enums\CostingMethod;
 use App\Models\InventoryLot;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class InventoryCostService
 {
+    public function __construct(
+        private readonly MaterialStockLogService $stockLogService,
+    ) {}
+
     public function receiveStock(
         Product $product,
         float $quantity,
@@ -31,17 +36,38 @@ class InventoryCostService
         ]);
     }
 
-    public function consumeStock(Product $product, float $quantity, bool $persist = true): MaterialConsumptionResult
-    {
+    public function consumeStock(
+        Product $product,
+        float $quantity,
+        bool $persist = true,
+        ?string $logAction = null,
+        ?string $note = null,
+    ): MaterialConsumptionResult {
         if ($quantity <= 0) {
             return new MaterialConsumptionResult(0, 0);
         }
 
-        return match ($product->costing_method) {
+        $before = $persist && $logAction ? $product->availableQuantity() : null;
+
+        $result = match ($product->costing_method) {
             CostingMethod::Fifo => $this->consumeFifo($product, $quantity, $persist),
             CostingMethod::WeightedAverage => $this->consumeWeightedAverage($product, $quantity, $persist),
             CostingMethod::Standard => $this->consumeStandard($product, $quantity, $persist),
         };
+
+        if ($persist && $logAction && $before !== null && Schema::hasTable('material_stock_logs')) {
+            $after = round($before - $quantity, 6);
+            $this->stockLogService->log(
+                action: $logAction,
+                product: $product,
+                quantityBefore: $before,
+                quantityAfter: $after,
+                unitCost: $result->averageUnitCost,
+                note: $note,
+            );
+        }
+
+        return $result;
     }
 
     public function getWeightedAverageCost(Product $product): float
@@ -58,6 +84,40 @@ class InventoryCostService
         $totalValue = $lots->sum(fn (InventoryLot $lot) => (float) $lot->quantity_remaining * (float) $lot->unit_cost);
 
         return $totalValue / $totalQty;
+    }
+
+    /**
+     * Sesuaikan stok sisa bahan ke jumlah aktual (stock opname).
+     * Bertambah → lot baru; berkurang → konsumsi FIFO/WA.
+     */
+    public function syncAvailableQuantity(Product $product, float $targetQuantity): void
+    {
+        if ($targetQuantity < 0) {
+            throw new RuntimeException('Stok sisa tidak boleh negatif.');
+        }
+
+        DB::transaction(function () use ($product, $targetQuantity) {
+            $product->refresh();
+            $current = $product->availableQuantity();
+            $delta = round($targetQuantity - $current, 6);
+
+            if (abs($delta) < 0.000001) {
+                return;
+            }
+
+            if ($delta > 0) {
+                $this->receiveStock(
+                    product: $product,
+                    quantity: $delta,
+                    unitCost: $this->getWeightedAverageCost($product) ?: $product->effectiveUnitHpp(),
+                    lotNumber: 'ADJ-'.now()->format('YmdHis'),
+                );
+
+                return;
+            }
+
+            $this->consumeStock($product, abs($delta));
+        });
     }
 
     private function consumeFifo(Product $product, float $quantity, bool $persist): MaterialConsumptionResult
@@ -101,8 +161,9 @@ class InventoryCostService
             }
 
             if ($remaining > 0.000001) {
+                $shortage = rtrim(rtrim(number_format($remaining, 6, '.', ''), '0'), '.') ?: '0';
                 throw new RuntimeException(
-                    "Stok tidak mencukupi untuk produk {$product->sku}. Kekurangan: {$remaining}"
+                    "Stok {$product->name} tidak cukup. Kekurangan {$shortage} {$product->unit}."
                 );
             }
 

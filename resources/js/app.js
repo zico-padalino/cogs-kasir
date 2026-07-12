@@ -9,3 +9,4 @@ import './table-order';
 import './order-item-detail';
 import './menu-pricing';
 import './unit-picker';
+import './material-history';

@@ -83,6 +83,85 @@ class WebPagesTest extends TestCase
         $this->get(route('reset-data.show'))->assertOk();
     }
 
+    public function test_cogs_remembers_last_working_page(): void
+    {
+        $this->actingAsCogsUser();
+
+        $this->get(route('materials.index'))->assertOk();
+        $this->get(route('home'))->assertRedirect(route('materials.index'));
+
+        $this->get(route('menu-pricing.index'))->assertOk();
+        $this->get(route('home'))->assertRedirect(route('menu-pricing.index'));
+    }
+
+    public function test_can_add_recipe_ingredient_with_gram_unit(): void
+    {
+        $this->actingAsCogsUser();
+
+        $menu = \App\Models\Product::create([
+            'sku' => 'MENU-BOM',
+            'name' => 'Nasi Goreng',
+            'type' => 'finished_good',
+            'unit' => 'porsi',
+            'costing_method' => 'weighted_average',
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        $flour = \App\Models\Product::create([
+            'sku' => 'BAHAN-BOM',
+            'name' => 'Tepung',
+            'type' => 'raw_material',
+            'unit' => 'kg',
+            'costing_method' => 'fifo',
+            'is_active' => true,
+        ]);
+
+        $this->post(route('products.bom.store', $menu), [
+            'child_product_id' => $flour->id,
+            'quantity' => 100,
+            'unit' => 'gr',
+        ])->assertRedirect(route('products.show', $menu));
+
+        $this->assertDatabaseHas('bill_of_materials', [
+            'parent_product_id' => $menu->id,
+            'child_product_id' => $flour->id,
+            'quantity' => 0.1,
+        ]);
+    }
+
+    public function test_recipe_rejects_mismatched_unit(): void
+    {
+        $this->actingAsCogsUser();
+
+        $menu = \App\Models\Product::create([
+            'sku' => 'MENU-BOM-2',
+            'name' => 'Es Teh',
+            'type' => 'finished_good',
+            'unit' => 'gelas',
+            'costing_method' => 'weighted_average',
+            'is_active' => true,
+        ]);
+
+        $tea = \App\Models\Product::create([
+            'sku' => 'BAHAN-BOM-2',
+            'name' => 'Teh Celup',
+            'type' => 'raw_material',
+            'unit' => 'pcs',
+            'costing_method' => 'fifo',
+            'is_active' => true,
+        ]);
+
+        $this->from(route('products.show', $menu))
+            ->post(route('products.bom.store', $menu), [
+                'child_product_id' => $tea->id,
+                'quantity' => 1,
+                'unit' => 'gr',
+            ])
+            ->assertRedirect(route('products.show', $menu))
+            ->assertSessionHasErrors('unit');
+    }
+
     public function test_delete_product_without_dependencies(): void
     {
         $this->actingAsCogsUser();

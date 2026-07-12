@@ -472,7 +472,6 @@ export async function getSetupProgress(): Promise<SetupProgress> {
   const productsDone = rawCount > 0 && finishedCount > 0;
   const bomDone = (await count('SELECT COUNT(*) AS count FROM bill_of_materials')) > 0;
   const inventoryDone = (await count('SELECT COUNT(*) AS count FROM inventory_lots WHERE quantity_remaining > 0')) > 0;
-  const productionDone = (await count("SELECT COUNT(*) AS count FROM production_orders WHERE status = 'completed'")) > 0;
   const resultDone = (await count('SELECT COUNT(*) AS count FROM cogs_calculations')) > 0;
 
   const steps: SetupStep[] = [
@@ -518,16 +517,6 @@ export async function getSetupProgress(): Promise<SetupProgress> {
     },
     {
       number: 5,
-      key: 'production',
-      short: 'Produksi',
-      title: 'Proses Produksi',
-      description: 'Buat order produksi, mulai, lalu selesaikan.',
-      hint: 'Saat selesai, COGS otomatis dihitung.',
-      route: '/cogs/production',
-      done: productionDone,
-    },
-    {
-      number: 6,
       key: 'result',
       short: 'Hasil COGS',
       title: 'Lihat Hasil COGS',
@@ -543,7 +532,7 @@ export async function getSetupProgress(): Promise<SetupProgress> {
 
   return {
     steps,
-    currentStep: firstUndone?.number ?? 6,
+    currentStep: firstUndone?.number ?? 5,
     percent: Math.round((completed / steps.length) * 100),
     fullyComplete: completed === steps.length,
   };

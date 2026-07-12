@@ -7,7 +7,7 @@
 @section('content')
     <div class="module-page module-step-3">
         <div class="module-toolbar">
-            <p class="module-toolbar__text">Setelah tambah menu, buka <strong>Resep</strong> (tombol Lihat) untuk isi bahannya.</p>
+            <p class="module-toolbar__text">Setelah tambah menu, buka <strong>Isi Resep</strong> untuk tulis bahannya.</p>
             <a href="{{ route('products.create') }}" class="btn-primary shrink-0 py-2.5 font-semibold">+ Tambah Menu</a>
         </div>
 
@@ -46,6 +46,7 @@
                                 <td class="col-actions">
                                     <x-crud-actions
                                         :show="route('products.show', $product)"
+                                        show-label="Isi Resep"
                                         :edit="route('products.edit', $product)"
                                         :delete="route('products.destroy', $product)"
                                     />
@@ -56,8 +57,8 @@
                 </table>
 
                 <x-slot:footer>
-                    <p class="text-sm font-medium text-slate-600">Resep sudah lengkap? Catat produksi.</p>
-                    <a href="{{ route('production-orders.index') }}" class="btn-primary btn-sm">Ke Produksi →</a>
+                    <p class="text-sm font-medium text-slate-600">Resep sudah lengkap? Atur harga jual.</p>
+                    <a href="{{ route('menu-pricing.index') }}" class="btn-primary btn-sm">Ke Harga Jual →</a>
                 </x-slot:footer>
             @else
                 <div class="module-empty">

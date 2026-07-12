@@ -20,11 +20,7 @@ class EnsureUserRole
         $required = UserRole::tryFrom($role);
 
         if (! $required || ! $user->hasModule($required)) {
-            if ($user->accessibleModules() !== []) {
-                return redirect()->route('hub');
-            }
-
-            return redirect()->route('home');
+            return redirect()->to($user->homeUrl());
         }
 
         return $next($request);

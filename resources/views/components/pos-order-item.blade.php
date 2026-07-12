@@ -9,6 +9,7 @@
 
 @php
     $product = $item->product;
+    $noteParts = \App\Support\PosItemNotes::split($item->notes);
 @endphp
 
 <div
@@ -31,6 +32,18 @@
     <div class="pos-receipt-line-main pos-order-item-main">
         <p class="pos-receipt-line-name">{{ $product->name }}</p>
         <p class="pos-receipt-line-qty">{{ $format::rupiah($item->unit_price) }} / {{ $product->unit }}</p>
+
+        @if ($noteParts['addon_labels'] !== [])
+            <div class="pos-addon-chips" aria-label="Add-on">
+                @foreach ($noteParts['addon_labels'] as $label)
+                    <span class="pos-addon-chip">{{ $label }}</span>
+                @endforeach
+            </div>
+        @endif
+
+        @if ($noteParts['customer'] && ! ($editable && $updateUrl))
+            <p class="pos-receipt-line-note text-amber-700">{{ $noteParts['customer'] }}</p>
+        @endif
 
         @if ($editable && $updateUrl)
             <div class="pos-cart-qty">
@@ -58,16 +71,13 @@
                     maxlength="255"
                     class="order-item-note-input pos-item-note-input"
                     placeholder="Catatan: less sugar, hot, dll."
-                >{{ old('notes', $item->notes) }}</textarea>
+                >{{ old('notes', $noteParts['customer']) }}</textarea>
                 <button type="submit" class="pos-item-note-save">Simpan catatan</button>
             </form>
         @else
             <p class="pos-receipt-line-qty-secondary">
                 {{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}
             </p>
-            @if ($item->notes)
-                <p class="pos-receipt-line-note">Catatan: {{ $item->notes }}</p>
-            @endif
         @endif
     </div>
 

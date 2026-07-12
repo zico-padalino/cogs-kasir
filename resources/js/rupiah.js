@@ -72,7 +72,8 @@ function syncRupiahInput(visibleInput) {
     const hiddenName = visibleInput.dataset.rupiahHidden;
     const decimals = parseInt(visibleInput.dataset.rupiahDecimals || '0', 10);
     const min = parseFloat(visibleInput.dataset.rupiahMin || '0');
-    const hiddenInput = document.querySelector(`input[data-rupiah-target="${hiddenName}"]`);
+    const scope = visibleInput.closest('form') || document;
+    const hiddenInput = scope.querySelector(`input[data-rupiah-target="${hiddenName}"]`);
 
     if (!hiddenInput) {
         return;
@@ -99,7 +100,8 @@ function initRupiahInputs(root = document) {
 
         input.addEventListener('input', () => {
             const hiddenName = input.dataset.rupiahHidden;
-            const hiddenInput = document.querySelector(`input[data-rupiah-target="${hiddenName}"]`);
+            const scope = input.closest('form') || document;
+            const hiddenInput = scope.querySelector(`input[data-rupiah-target="${hiddenName}"]`);
 
             if (!hiddenInput) {
                 return;

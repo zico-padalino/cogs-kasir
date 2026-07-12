@@ -15,6 +15,14 @@
         @php
             $price = $product->selling_price > 0 ? $product->selling_price : $product->standard_cost;
             $searchKey = strtolower($product->name.' '.$product->sku);
+            $addonsPayload = $product->relationLoaded('addons')
+                ? $product->addons->where('is_active', true)->values()->map(fn ($addon) => [
+                    'id' => $addon->id,
+                    'name' => $addon->name,
+                    'price' => (float) $addon->selling_price,
+                    'price_label' => '+'.$format::rupiah($addon->selling_price, 0),
+                ])->all()
+                : [];
         @endphp
         <article
             class="order-product-card"
@@ -24,11 +32,15 @@
             data-product-price="{{ $format::rupiah($price) }}"
             data-product-price-value="{{ $price }}"
             data-product-image="{{ $product->imageUrl() }}"
+            data-product-addons="{{ json_encode($addonsPayload, JSON_UNESCAPED_UNICODE) }}"
         >
             <div class="order-product-media">
                 <x-product-image :product="$product" class="order-product-image" />
                 @if ($price <= 0)
                     <span class="order-product-badge">Atur harga</span>
+                @endif
+                @if (count($addonsPayload) > 0)
+                    <span class="order-product-addon-badge">+add-on</span>
                 @endif
             </div>
             <div class="order-product-body">
@@ -87,6 +99,11 @@
                     >
                     <button type="button" class="order-qty-btn" data-order-qty-plus aria-label="Tambah">+</button>
                 </div>
+            </div>
+
+            <div class="order-modal-field hidden" data-order-addons-wrap>
+                <p class="order-modal-label">Add-on tambahan</p>
+                <div class="pos-addon-list" data-order-addons></div>
             </div>
 
             <div class="order-modal-field">

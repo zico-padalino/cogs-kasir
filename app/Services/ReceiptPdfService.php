@@ -68,6 +68,12 @@ class ReceiptPdfService
         }
 
         $pdf->separator();
+
+        if ($order->hasDiscount()) {
+            $pdf->twoColumns('Subtotal', Format::rupiah($order->subtotal), 9);
+            $pdf->twoColumns('Diskon', '- '.Format::rupiah($order->discount_amount), 9);
+        }
+
         $pdf->twoColumns('TOTAL', Format::rupiah($order->total), 11);
         $pdf->line('Bayar: '.($order->payment_method?->label() ?? '-'), 8.5, false, 'L');
 

@@ -36,7 +36,7 @@
         @endforeach
     </div>
 
-    <div class="hidden gap-1 sm:grid sm:grid-cols-5">
+    <div class="hidden gap-1 sm:grid sm:grid-cols-4">
         @foreach ($steps as $s)
             @php
                 $isActive = $s['number'] === $current;

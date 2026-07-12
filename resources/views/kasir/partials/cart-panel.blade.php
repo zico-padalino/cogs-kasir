@@ -44,15 +44,10 @@
 
     @if ($order->items->isNotEmpty() && $order->needsKasirConfirmation())
         <div class="pos-receipt-confirm" data-pos-receipt-confirm>
+            @include('kasir.partials.discount-panel', ['order' => $order, 'format' => $format])
+
             <div class="pos-receipt-pay-totals">
-                <div class="pos-receipt-subtotal">
-                    <span>Subtotal</span>
-                    <span>{{ $format::rupiah($order->subtotal) }}</span>
-                </div>
-                <div class="pos-receipt-grand">
-                    <span>Total Tagihan</span>
-                    <span>{{ $format::rupiah($order->total) }}</span>
-                </div>
+                @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format, 'totalLabel' => 'Total Tagihan'])
             </div>
 
             <div class="pos-confirm-notice">
@@ -66,27 +61,19 @@
         </div>
     @elseif ($order->items->isNotEmpty() && $order->canCheckoutAtKasir())
         <div class="pos-receipt-pay" data-pos-receipt-pay>
+            @include('kasir.partials.discount-panel', ['order' => $order, 'format' => $format])
+
             <div class="pos-receipt-pay-totals">
-                <div class="pos-receipt-subtotal">
-                    <span>Subtotal</span>
-                    <span>{{ $format::rupiah($order->subtotal) }}</span>
-                </div>
-                <div class="pos-receipt-grand">
-                    <span>Total Bayar</span>
-                    <span data-kasir-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</span>
-                </div>
+                @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format])
             </div>
 
-            <button type="button" class="pos-pay-submit" data-kasir-open-pay>
-                Bayar {{ $format::rupiah($order->total) }}
+            <button type="button" class="pos-pay-submit" data-kasir-open-pay data-kasir-pay-button>
+                Bayar <span data-kasir-pay-button-total>{{ $format::rupiah($order->total) }}</span>
             </button>
         </div>
     @elseif ($order->items->isNotEmpty())
         <div class="pos-receipt-foot">
-            <div class="pos-receipt-grand">
-                <span>Total</span>
-                <span>{{ $format::rupiah($order->total) }}</span>
-            </div>
+            @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format, 'totalLabel' => 'Total'])
         </div>
     @endif
 </div>

@@ -215,7 +215,50 @@ class KasirPageTest extends TestCase
             ->assertJsonStructure(['order_ids', 'html']);
     }
 
-    public function test_kasir_checkout_records_cogs_without_reducing_inventory(): void
+    public function test_kasir_can_apply_percent_discount_before_payment(): void
+    {
+        $product = $this->sellableProduct();
+        $kasir = $this->kasirUser();
+
+        $this->actingAs($kasir)->get(route('kasir.index'));
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.items.store'), [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($kasir)
+            ->patchJson(route('kasir.discount.update'), [
+                'discount_type' => 'percent',
+                'discount_value' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonPath('total', 18000);
+
+        $order = PosOrder::query()->where('status', 'open')->latest('id')->first();
+
+        $this->assertNotNull($order);
+        $this->assertEquals(20000, (float) $order->subtotal);
+        $this->assertEquals(2000, (float) $order->discount_amount);
+        $this->assertEquals(18000, (float) $order->total);
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.pay'), [
+                'payment_method' => 'cash',
+                'amount_received' => 20000,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('pos_orders', [
+            'id' => $order->id,
+            'status' => 'paid',
+            'total' => 18000,
+        ]);
+    }
+
+    public function test_kasir_checkout_reduces_finished_goods_inventory(): void
     {
         $product = $this->sellableProduct();
         $kasir = $this->kasirUser();
@@ -234,12 +277,74 @@ class KasirPageTest extends TestCase
                 'payment_method' => 'cash',
                 'amount_received' => 50000,
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
-        $this->assertEquals(50, $product->fresh()->availableQuantity());
+        $this->assertEquals(48, $product->fresh()->availableQuantity());
         $this->assertDatabaseHas('pos_orders', ['status' => 'paid']);
         $this->assertDatabaseHas('sales_transactions', ['product_id' => $product->id]);
         $this->assertDatabaseHas('cogs_calculations', ['product_id' => $product->id]);
+    }
+
+    public function test_kasir_checkout_reduces_recipe_material_stock(): void
+    {
+        $flour = Product::create([
+            'sku' => 'RM-FLOUR',
+            'name' => 'Tepung',
+            'type' => ProductType::RawMaterial,
+            'unit' => 'g',
+            'costing_method' => 'fifo',
+            'standard_cost' => 10,
+            'is_active' => true,
+        ]);
+
+        InventoryLot::create([
+            'product_id' => $flour->id,
+            'quantity_received' => 1000,
+            'quantity_remaining' => 1000,
+            'unit_cost' => 10,
+            'received_at' => now(),
+        ]);
+
+        $menu = Product::create([
+            'sku' => 'FG-ROTI',
+            'name' => 'Roti Resep',
+            'type' => ProductType::FinishedGood,
+            'unit' => 'pcs',
+            'selling_price' => 15000,
+            'costing_method' => 'weighted_average',
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        \App\Models\BillOfMaterial::create([
+            'parent_product_id' => $menu->id,
+            'child_product_id' => $flour->id,
+            'quantity' => 100,
+            'scrap_percentage' => 0,
+            'sequence' => 1,
+        ]);
+
+        $kasir = $this->kasirUser();
+        $this->actingAs($kasir)->get(route('kasir.index'));
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.items.store'), [
+                'product_id' => $menu->id,
+                'quantity' => 2,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.pay'), [
+                'payment_method' => 'cash',
+                'amount_received' => 50000,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(800, $flour->fresh()->availableQuantity());
+        $this->assertDatabaseHas('pos_orders', ['status' => 'paid']);
     }
 
     public function test_pos_order_number_uses_unique_daily_format(): void

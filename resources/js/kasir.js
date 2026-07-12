@@ -55,6 +55,14 @@ function initBrowserViewportChrome() {
 }
 
 function readProductCard(card) {
+    let addons = [];
+
+    try {
+        addons = JSON.parse(card.dataset.productAddons || '[]');
+    } catch (_) {
+        addons = [];
+    }
+
     return {
         id: card.dataset.productId,
         name: card.dataset.productName,
@@ -64,6 +72,7 @@ function readProductCard(card) {
         image: card.dataset.productImage,
         desc: card.dataset.productDesc || '',
         editUrl: card.dataset.productEditUrl || '#',
+        addons: Array.isArray(addons) ? addons : [],
     };
 }
 
@@ -83,6 +92,8 @@ function initKasirModals(root) {
     const addImage = addModal.querySelector('[data-kasir-modal-image]');
     const addQty = addModal.querySelector('[data-kasir-modal-qty]');
     const addNotes = addModal.querySelector('#kasir-modal-notes');
+    const addonsWrap = addModal.querySelector('[data-kasir-addons-wrap]');
+    const addonsBox = addModal.querySelector('[data-kasir-addons]');
 
     const detailTitle = detailModal.querySelector('[data-kasir-detail-title]');
     const detailPrice = detailModal.querySelector('[data-kasir-detail-price]');
@@ -95,6 +106,73 @@ function initKasirModals(root) {
     let activeProduct = null;
     const maxQty = 99;
 
+    const formatIdr = (amount) => new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(amount).replace(/\s/g, ' ');
+
+    const selectedAddonExtra = () => {
+        if (! addonsBox) {
+            return 0;
+        }
+
+        return Array.from(addonsBox.querySelectorAll('input[type="checkbox"]:checked'))
+            .reduce((sum, input) => sum + (parseFloat(input.dataset.addonPrice || '0') || 0), 0);
+    };
+
+    const refreshAddModalPrice = () => {
+        if (! activeProduct || ! addPrice) {
+            return;
+        }
+
+        const total = (activeProduct.priceValue || 0) + selectedAddonExtra();
+        addPrice.textContent = formatIdr(total);
+    };
+
+    const renderAddons = (product) => {
+        if (! addonsWrap || ! addonsBox) {
+            return;
+        }
+
+        addonsBox.innerHTML = '';
+        const list = product.addons || [];
+
+        if (list.length === 0) {
+            addonsWrap.classList.add('hidden');
+
+            return;
+        }
+
+        list.forEach((addon) => {
+            const label = document.createElement('label');
+            label.className = 'pos-addon-item';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = 'addon_ids[]';
+            input.value = String(addon.id);
+            input.dataset.addonPrice = String(addon.price || 0);
+            input.addEventListener('change', refreshAddModalPrice);
+
+            const text = document.createElement('span');
+            text.className = 'pos-addon-item-name';
+            text.textContent = addon.name;
+
+            const price = document.createElement('span');
+            price.className = 'pos-addon-item-price';
+            price.textContent = addon.price_label || formatIdr(addon.price || 0);
+
+            label.appendChild(input);
+            label.appendChild(text);
+            label.appendChild(price);
+            addonsBox.appendChild(label);
+        });
+
+        addonsWrap.classList.remove('hidden');
+    };
+
     const openAddModal = (product) => {
         if (! product || ! product.id || product.priceValue <= 0) {
             return;
@@ -104,12 +182,13 @@ function initKasirModals(root) {
 
         addProductId.value = product.id;
         addTitle.textContent = product.name;
-        addPrice.textContent = product.price;
         addImage.src = product.image;
         addImage.alt = product.name;
         addQty.value = '1';
         addQty.max = String(maxQty);
         addNotes.value = '';
+        renderAddons(product);
+        refreshAddModalPrice();
 
         if (product.desc && product.desc !== 'Belum ada deskripsi menu.') {
             addDesc.textContent = product.desc;
@@ -238,6 +317,7 @@ export function initKasirPos() {
     initKasirModals(root);
     initPosCategoryTabs(root);
     initPosOrderBar(root);
+    initPosDiscount(root);
     initPosCashPayment(root);
     initPosPayModal(root);
     initPosPendingPanel(root);
@@ -394,8 +474,8 @@ function syncMobilePayChrome(root, activeTab) {
     }
 
     if (goCartLabel) {
-        // Online submitted = Konfirmasi dulu. Order kasir = langsung Bayar.
-        goCartLabel.textContent = needsConfirm ? 'Konfirmasi' : 'Bayar';
+        // Tombol ini hanya pindah ke tab pesanan; konfirmasi sebenarnya di panel cart.
+        goCartLabel.textContent = needsConfirm ? 'Lihat pesanan' : 'Bayar';
     }
 }
 
@@ -634,6 +714,162 @@ function initPosOrderBar(root) {
     setOrderBarExpanded(false);
 }
 
+function updateOrderTotalsDisplay(root, data) {
+    root.querySelectorAll('[data-pos-order-totals]').forEach((block) => {
+        if (data.subtotal_label) {
+            block.querySelector('[data-pos-subtotal-label]')?.replaceChildren(document.createTextNode(data.subtotal_label));
+            block.dataset.posSubtotal = String(data.subtotal ?? '');
+        }
+
+        const discountRow = block.querySelector('[data-pos-discount-row]');
+        if (discountRow) {
+            const hasDiscount = Number(data.discount_amount || 0) > 0;
+            discountRow.classList.toggle('hidden', ! hasDiscount);
+
+            if (hasDiscount && data.discount_label) {
+                discountRow.querySelector('[data-pos-discount-label]')?.replaceChildren(document.createTextNode(data.discount_label));
+            }
+        }
+
+        block.querySelectorAll('[data-pos-order-total]').forEach((el) => {
+            if (data.total_label) {
+                el.textContent = data.total_label;
+            }
+
+            if (data.total !== undefined) {
+                el.dataset.posOrderTotal = String(data.total);
+            }
+        });
+    });
+
+    root.querySelectorAll('[data-kasir-pay-modal-total]').forEach((el) => {
+        if (data.total_label) {
+            el.textContent = data.total_label;
+        }
+
+        if (data.total !== undefined) {
+            el.dataset.posOrderTotal = String(data.total);
+        }
+    });
+
+    root.querySelector('[data-kasir-pay-button-total]')?.replaceChildren(
+        document.createTextNode(data.total_label || ''),
+    );
+}
+
+function initPosDiscount(root) {
+    const panel = root.querySelector('[data-pos-discount-panel]');
+    const form = panel?.querySelector('[data-pos-discount-form]');
+
+    if (! panel || ! form) {
+        return;
+    }
+
+    const typeSelect = form.querySelector('[data-pos-discount-type]');
+    const valueInput = form.querySelector('[data-pos-discount-value]');
+    const controlsEl = form.querySelector('[data-pos-discount-controls]');
+    const statusEl = form.querySelector('[data-pos-discount-status]') || panel.querySelector('[data-pos-discount-status]');
+    const hintEl = form.querySelector('[data-pos-discount-hint]');
+    const csrf = form.querySelector('input[name="_token"]')?.value;
+    let saveTimer = null;
+    let saving = false;
+
+    const setStatus = (state, message) => {
+        if (! statusEl) {
+            return;
+        }
+
+        statusEl.classList.remove('hidden', 'is-saving', 'is-success', 'is-error');
+        statusEl.classList.add(state === 'saving' ? 'is-saving' : state === 'error' ? 'is-error' : 'is-success');
+        statusEl.textContent = message;
+    };
+
+    const clearStatus = () => {
+        statusEl?.classList.add('hidden');
+    };
+
+    const syncDiscountControls = () => {
+        const enabled = Boolean(typeSelect?.value);
+
+        if (valueInput) {
+            valueInput.disabled = ! enabled;
+
+            if (! enabled) {
+                valueInput.value = '';
+            }
+
+            valueInput.placeholder = typeSelect?.value === 'percent' ? 'cth. 10' : 'cth. 5000';
+        }
+
+        controlsEl?.classList.toggle('is-no-discount', ! enabled);
+
+        if (! hintEl || ! typeSelect) {
+            return;
+        }
+
+        hintEl.textContent = typeSelect.value === 'percent'
+            ? 'Contoh: isi 10 untuk diskon 10% dari subtotal.'
+            : typeSelect.value === 'amount'
+                ? 'Contoh: isi 5000 untuk potong Rp 5.000.'
+                : 'Pilih jenis diskon, lalu isi nilainya.';
+    };
+
+    const saveDiscount = async () => {
+        if (saving || ! csrf) {
+            return;
+        }
+
+        saving = true;
+        setStatus('saving', 'Menyimpan...');
+
+        const body = new FormData();
+        body.append('_token', csrf);
+        body.append('_method', 'PATCH');
+        body.append('discount_type', typeSelect?.value || '');
+        body.append('discount_value', valueInput?.value || '0');
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body,
+            });
+
+            const data = await response.json();
+
+            if (! response.ok) {
+                throw new Error(data.message || 'Gagal menyimpan diskon.');
+            }
+
+            updateOrderTotalsDisplay(root, data);
+            setStatus('success', 'Tersimpan');
+            window.setTimeout(clearStatus, 1200);
+        } catch (error) {
+            setStatus('error', error.message || 'Gagal menyimpan diskon.');
+        } finally {
+            saving = false;
+        }
+    };
+
+    const queueSave = () => {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(saveDiscount, 450);
+    };
+
+    typeSelect?.addEventListener('change', () => {
+        syncDiscountControls();
+        queueSave();
+    });
+
+    valueInput?.addEventListener('input', queueSave);
+    valueInput?.addEventListener('blur', saveDiscount);
+
+    syncDiscountControls();
+}
+
 function initPosPendingPanel(root) {
     root.addEventListener('click', (event) => {
         const toggle = event.target.closest('[data-pos-pending-toggle]');
@@ -723,10 +959,6 @@ function initPosCashPayment(root) {
 
     forms.forEach((form) => {
         const cashPanel = form.querySelector('[data-pos-cash-panel]');
-        const totalEl = form.querySelector('[data-pos-order-total]')
-            || root.querySelector('[data-pos-order-total]')
-            || form.closest('[data-kasir-pay-modal]')?.querySelector('[data-pos-order-total]');
-        const total = parseFloat(totalEl?.dataset.posOrderTotal || root.dataset.posTotal || '0');
         const receivedInput = form.querySelector('[data-pos-amount-received]');
         const receivedValue = form.querySelector('[data-pos-amount-received-value]');
         const changeAmount = form.querySelector('[data-pos-change-amount]');
@@ -734,6 +966,23 @@ function initPosCashPayment(root) {
         const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
 
         const readReceivedAmount = () => parseRupiahInput(receivedInput?.value || '0');
+
+        const readTotal = () => parseFloat(
+            form.querySelector('[data-pos-order-total]')?.dataset.posOrderTotal
+            || root.querySelector('[data-pos-order-total]')?.dataset.posOrderTotal
+            || root.dataset.posTotal
+            || '0',
+        );
+
+        const syncChange = () => {
+            const received = readReceivedAmount();
+            const total = readTotal();
+            const change = Math.max(0, received - total);
+
+            if (changeAmount) {
+                changeAmount.textContent = formatRupiah(change);
+            }
+        };
 
         const syncReceivedAmount = () => {
             const numeric = readReceivedAmount();
@@ -744,15 +993,6 @@ function initPosCashPayment(root) {
 
             if (receivedInput) {
                 receivedInput.value = formatRupiahInput(receivedInput.value);
-            }
-        };
-
-        const syncChange = () => {
-            const received = readReceivedAmount();
-            const change = Math.max(0, received - total);
-
-            if (changeAmount) {
-                changeAmount.textContent = formatRupiah(change);
             }
         };
 

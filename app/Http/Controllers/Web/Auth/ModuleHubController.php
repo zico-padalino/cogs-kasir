@@ -15,13 +15,7 @@ class ModuleHubController extends Controller
         $modules = $user->accessibleModules();
 
         if (count($modules) <= 1) {
-            $module = $user->defaultModule();
-
-            if ($module === UserRole::Cogs) {
-                return redirect()->to(CogsNavigation::preferredUrl());
-            }
-
-            return redirect()->route($module->homeRoute());
+            return redirect()->to($user->homeUrl());
         }
 
         return view('auth.hub', [
@@ -36,7 +30,7 @@ class ModuleHubController extends Controller
         $user = $request->user();
 
         if (! $role || ! $user->hasModule($role)) {
-            return redirect()->route('hub')->with('error', 'Modul tidak tersedia untuk akun ini.');
+            return redirect()->to($user->homeUrl())->with('error', 'Modul tidak tersedia untuk akun ini.');
         }
 
         $request->session()->put('auth_module', $role->value);

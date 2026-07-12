@@ -51,8 +51,8 @@
         @else
             <div class="cogs-history-empty">
                 <p class="text-sm text-slate-600">Belum ada perhitungan modal.</p>
-                <p class="mt-1 text-xs text-slate-500">Catat produksi dulu — modal akan muncul di sini otomatis.</p>
-                <a href="{{ route('production-orders.index') }}" class="btn-primary btn-sm mt-4 inline-flex">Ke Produksi</a>
+                <p class="mt-1 text-xs text-slate-500">Modal muncul setelah resep menu lengkap dan harga dihitung.</p>
+                <a href="{{ route('products.index') }}" class="btn-primary btn-sm mt-4 inline-flex">Ke Menu & Resep</a>
             </div>
         @endif
     </x-table-card>

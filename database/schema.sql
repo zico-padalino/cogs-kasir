@@ -1,21 +1,16 @@
 -- =============================================================================
--- COGS PERHITUNGAN — Skema Database MySQL
--- Database: cogs_perhitungan
+-- COGS PERHITUNGAN — Skema Database
 --
--- Disarankan: php artisan migrate --force
--- Atau import: database/mysql_full.sql (skema + data demo)
--- Legacy SQLite: file ini TIDAK untuk SQLite — gunakan artisan migrate
+-- SKEMA LENGKAP (semua tabel):
+--   → database/mysql_schema_full.sql
+--
+-- PATCH INCREMENTAL (jika DB sudah ada):
+--   → database/unify_hpp_cogs.sql     (HPP = COGS)
+--   → database/add_admin_hr.sql       (Admin + HR)
+--   → database/pos_module.sql         (Modul POS)
+--
+-- DISARANKAN:
+--   php artisan migrate --force
+--
+-- Database: cogs_perhitungan (lihat .env)
 -- =============================================================================
-
-USE `cogs_perhitungan`;
-
--- Lihat definisi lengkap tabel di:
---   database/mysql_full.sql  (baris CREATE TABLE)
---
--- Tabel utama:
---   users, products, bill_of_materials, inventory_lots,
---   production_orders, production_order_materials, production_order_labors,
---   overhead_rates, sales_transactions, cogs_calculations
---
--- Kolom penting users:
---   role ENUM-like VARCHAR(20): 'cogs' | 'kasir'

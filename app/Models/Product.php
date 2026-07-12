@@ -46,6 +46,11 @@ class Product extends Model
         return $this->hasMany(BillOfMaterial::class, 'parent_product_id');
     }
 
+    public function addons(): HasMany
+    {
+        return $this->hasMany(ProductAddon::class)->orderBy('sort_order')->orderBy('name');
+    }
+
     public function usedInBillOfMaterials(): HasMany
     {
         return $this->hasMany(BillOfMaterial::class, 'child_product_id');

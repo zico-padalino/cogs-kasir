@@ -7,7 +7,12 @@
                     <p class="pos-pay-modal-eyebrow">Pembayaran</p>
                     <h2 id="kasir-pay-modal-title" class="pos-pay-modal-title">Total Bayar</h2>
                     <p class="pos-pay-modal-total" data-kasir-pay-modal-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</p>
-                    <p class="pos-pay-modal-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
+                    <p class="pos-pay-modal-meta">
+                        {{ $order->items->count() }} item · {{ $order->order_number }}
+                        @if ($order->hasDiscount())
+                            · diskon {{ $format::rupiah($order->discount_amount) }}
+                        @endif
+                    </p>
                 </div>
                 <button type="button" class="pos-add-modal-close" data-kasir-close-pay aria-label="Tutup">×</button>
             </div>

@@ -13,6 +13,7 @@ use App\Models\PosOrderItem;
 use App\Models\Product;
 use App\Models\SalesTransaction;
 use App\Models\User;
+use App\Support\PosDiscount;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -95,6 +96,23 @@ class PosOrderService
         return $order->fresh(['table']);
     }
 
+    public function updateDiscount(PosOrder $order, ?string $discountType, float $discountValue): PosOrder
+    {
+        $this->assertDiscountMutable($order);
+
+        $type = in_array($discountType, ['amount', 'percent'], true) ? $discountType : null;
+        $value = $type ? max(0, $discountValue) : 0.0;
+
+        $order->update([
+            'discount_type' => $type,
+            'discount_value' => $value,
+        ]);
+
+        $this->recalculateTotals($order);
+
+        return $order->fresh(['items.product', 'table']);
+    }
+
     public function resolveOnlineOrder(?int $sessionOrderId = null): PosOrder
     {
         if ($sessionOrderId) {
@@ -144,16 +162,33 @@ class PosOrderService
         return $order->fresh();
     }
 
-    public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false, ?string $notes = null): PosOrderItem
+    public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false, ?string $notes = null, array $addonIds = []): PosOrderItem
     {
         $this->assertOrderMutable($order, $fromKasir);
 
         $this->assertSellable($product, $quantity);
 
+        $addons = collect();
+        if ($addonIds !== []) {
+            $addons = $product->addons()
+                ->active()
+                ->whereIn('id', $addonIds)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get();
+        }
+
+        $addonExtra = (float) $addons->sum('selling_price');
         $price = $unitPrice ?? (float) $product->selling_price;
         if ($price <= 0) {
             $price = $product->effectiveUnitHpp();
         }
+        $price = round($price + $addonExtra, 4);
+
+        $addonNote = $addons->isNotEmpty()
+            ? $addons->map(fn ($addon) => '+'.$addon->name)->implode(' ')
+            : '';
+        $mergedNotes = \App\Support\PosItemNotes::merge($notes, $addonNote !== '' ? $addonNote : null);
 
         $item = PosOrderItem::create([
             'pos_order_id' => $order->id,
@@ -161,7 +196,8 @@ class PosOrderService
             'quantity' => $quantity,
             'unit_price' => $price,
             'line_total' => round($quantity * $price, 4),
-            'notes' => $notes ? trim($notes) : null,
+            'notes' => $mergedNotes,
+            'addon_ids' => $addons->pluck('id')->values()->all() ?: null,
         ]);
 
         $this->recalculateTotals($order);
@@ -294,19 +330,37 @@ class PosOrderService
             return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath) {
                 $invoiceBase = 'POS-'.$order->order_number;
                 $soldAt = now();
+                $subtotal = (float) $order->subtotal;
+                $payableTotal = (float) $order->total;
+                $allocatedRevenue = 0.0;
+                $itemCount = $order->items->count();
 
                 foreach ($order->items as $index => $item) {
+                    $lineSubtotal = (float) $item->line_total;
+
+                    if ($index === $itemCount - 1) {
+                        $lineRevenue = round($payableTotal - $allocatedRevenue, 4);
+                    } elseif ($subtotal > 0) {
+                        $lineRevenue = round($payableTotal * ($lineSubtotal / $subtotal), 4);
+                        $allocatedRevenue += $lineRevenue;
+                    } else {
+                        $lineRevenue = 0.0;
+                    }
+
                     $sale = SalesTransaction::create([
                         'pos_order_id' => $order->id,
                         'invoice_number' => $invoiceBase.'-'.($index + 1),
                         'product_id' => $item->product_id,
                         'quantity' => $item->quantity,
                         'selling_price' => $item->unit_price,
-                        'total_revenue' => $item->line_total,
+                        'total_revenue' => $lineRevenue,
                         'sold_at' => $soldAt,
                     ]);
 
-                    $this->cogsCalculationService->recordSaleCogs($sale);
+                    $this->cogsCalculationService->recordSaleCogs(
+                        $sale,
+                        $this->addonMaterialRequirements($item),
+                    );
                 }
 
                 $order->update([
@@ -339,6 +393,50 @@ class PosOrderService
         }
     }
 
+    /**
+     * @return list<array{product: Product, quantity: float, note: string}>
+     */
+    private function addonMaterialRequirements(PosOrderItem $item): array
+    {
+        $addonIds = collect($item->addon_ids ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($addonIds === []) {
+            return [];
+        }
+
+        $addons = $item->product->addons()
+            ->with('material')
+            ->whereIn('id', $addonIds)
+            ->get();
+
+        $requirements = [];
+        $itemQty = (float) $item->quantity;
+
+        foreach ($addons as $addon) {
+            if (! $addon->material_product_id || ! $addon->material || ! $addon->material_quantity) {
+                continue;
+            }
+
+            $qty = (float) $addon->material_quantity * $itemQty;
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $requirements[] = [
+                'product' => $addon->material,
+                'quantity' => $qty,
+                'note' => 'Add-on '.$addon->name.' · '.$item->product->name,
+            ];
+        }
+
+        return $requirements;
+    }
+
     public function cancelOrder(PosOrder $order): void
     {
         if ($order->status === PosOrderStatus::Paid) {
@@ -365,6 +463,7 @@ class PosOrderService
     public function sellableProducts(): Collection
     {
         return Product::sellable()
+            ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
             ->orderBy('menu_category')
             ->orderBy('name')
             ->get();
@@ -395,12 +494,29 @@ class PosOrderService
 
     private function recalculateTotals(PosOrder $order): void
     {
+        $order->refresh();
+
         $subtotal = (float) $order->items()->sum('line_total');
+        $discountAmount = PosDiscount::amountFor(
+            $subtotal,
+            $order->discount_type,
+            (float) $order->discount_value,
+        );
 
         $order->update([
             'subtotal' => $subtotal,
-            'total' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'total' => max(0, round($subtotal - $discountAmount, 4)),
         ]);
+    }
+
+    private function assertDiscountMutable(PosOrder $order): void
+    {
+        if ($order->isKasirEditable() || $order->canCheckoutAtKasir() || $order->needsKasirConfirmation()) {
+            return;
+        }
+
+        throw new RuntimeException('Diskon tidak bisa diubah untuk pesanan ini.');
     }
 
     private function assertSellable(Product $product, float $quantity): void

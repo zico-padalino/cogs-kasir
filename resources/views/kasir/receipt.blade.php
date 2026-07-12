@@ -36,13 +36,32 @@
                                 <span>{{ $item->product->name }} × {{ $format::number($item->quantity, 0) }}</span>
                                 <span class="shrink-0 font-medium">{{ $format::rupiah($item->line_total) }}</span>
                             </div>
-                            @if ($item->notes)
-                                <p class="mt-1 text-xs text-amber-700">Catatan: {{ $item->notes }}</p>
+                            @php
+                                $noteParts = \App\Support\PosItemNotes::split($item->notes);
+                            @endphp
+                            @if ($noteParts['addon_labels'] !== [])
+                                <p class="mt-1 text-xs text-brand-700">{{ implode(' · ', $noteParts['addon_labels']) }}</p>
+                            @endif
+                            @if ($noteParts['customer'])
+                                <p class="mt-0.5 text-xs text-amber-700">Catatan: {{ $noteParts['customer'] }}</p>
                             @endif
                         </div>
                     </div>
                 @endforeach
             </div>
+
+            @if ($order->hasDiscount())
+                <div class="my-4 space-y-1 border-t border-slate-200 pt-4 text-left text-sm text-slate-600">
+                    <div class="flex justify-between gap-3">
+                        <span>Subtotal</span>
+                        <span>{{ $format::rupiah($order->subtotal) }}</span>
+                    </div>
+                    <div class="flex justify-between gap-3 text-rose-600">
+                        <span>Diskon</span>
+                        <span>- {{ $format::rupiah($order->discount_amount) }}</span>
+                    </div>
+                </div>
+            @endif
 
             <p class="text-2xl font-bold text-brand-600">{{ $format::rupiah($order->total) }}</p>
             <p class="mt-1 text-sm text-slate-500">{{ $order->payment_method?->label() }}</p>

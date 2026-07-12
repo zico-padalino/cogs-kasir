@@ -44,6 +44,25 @@ function initOrderSearch() {
     });
 }
 
+function formatIdr(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(amount).replace(/\s/g, ' ');
+}
+
+function parseCardAddons(card) {
+    try {
+        const parsed = JSON.parse(card.dataset.productAddons || '[]');
+
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+        return [];
+    }
+}
+
 function initOrderModal() {
     const modal = document.querySelector('[data-order-modal]');
     if (! modal) {
@@ -56,20 +75,83 @@ function initOrderModal() {
     const productId = modal.querySelector('[data-order-modal-product-id]');
     const qtyInput = modal.querySelector('[data-order-modal-qty]');
     const notesInput = modal.querySelector('#order-modal-notes');
+    const addonsWrap = modal.querySelector('[data-order-addons-wrap]');
+    const addonsBox = modal.querySelector('[data-order-addons]');
     const form = modal.querySelector('.order-modal-form');
 
     let maxQty = 99;
+    let basePrice = 0;
+
+    const selectedAddonExtra = () => {
+        if (! addonsBox) {
+            return 0;
+        }
+
+        return Array.from(addonsBox.querySelectorAll('input[type="checkbox"]:checked'))
+            .reduce((sum, input) => sum + (parseFloat(input.dataset.addonPrice || '0') || 0), 0);
+    };
+
+    const refreshPrice = () => {
+        if (! price) {
+            return;
+        }
+
+        price.textContent = formatIdr(basePrice + selectedAddonExtra());
+    };
+
+    const renderAddons = (addons) => {
+        if (! addonsWrap || ! addonsBox) {
+            return;
+        }
+
+        addonsBox.innerHTML = '';
+
+        if (! addons.length) {
+            addonsWrap.classList.add('hidden');
+
+            return;
+        }
+
+        addons.forEach((addon) => {
+            const label = document.createElement('label');
+            label.className = 'pos-addon-item';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = 'addon_ids[]';
+            input.value = String(addon.id);
+            input.dataset.addonPrice = String(addon.price || 0);
+            input.addEventListener('change', refreshPrice);
+
+            const name = document.createElement('span');
+            name.className = 'pos-addon-item-name';
+            name.textContent = addon.name;
+
+            const priceEl = document.createElement('span');
+            priceEl.className = 'pos-addon-item-price';
+            priceEl.textContent = addon.price_label || formatIdr(addon.price || 0);
+
+            label.appendChild(input);
+            label.appendChild(name);
+            label.appendChild(priceEl);
+            addonsBox.appendChild(label);
+        });
+
+        addonsWrap.classList.remove('hidden');
+    };
 
     const openModal = (card) => {
         maxQty = parseInt(card.dataset.productMax || '99', 10);
+        basePrice = parseFloat(card.dataset.productPriceValue || '0') || 0;
         productId.value = card.dataset.productId;
         title.textContent = card.dataset.productName;
-        price.textContent = card.dataset.productPrice;
         image.src = card.dataset.productImage;
         image.alt = card.dataset.productName;
         qtyInput.value = '1';
         qtyInput.max = String(maxQty);
         notesInput.value = '';
+        renderAddons(parseCardAddons(card));
+        refreshPrice();
 
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');

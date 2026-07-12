@@ -82,6 +82,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
     Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
     Route::patch('/order', [KasirController::class, 'updateOrder'])->name('order.update');
+    Route::patch('/discount', [KasirController::class, 'updateDiscount'])->name('discount.update');
     Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
     Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
     Route::post('/orders/{order}/confirm', [KasirController::class, 'confirmOrder'])->name('orders.confirm');
@@ -115,10 +116,16 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::post('products/{product}/bom', [ProductController::class, 'storeBom'])->name('products.bom.store');
     Route::put('products/{product}/bom/{bom}', [ProductController::class, 'updateBom'])->name('products.bom.update');
     Route::delete('products/{product}/bom/{bom}', [ProductController::class, 'destroyBom'])->name('products.bom.destroy');
+    Route::post('products/{product}/addons', [ProductController::class, 'storeAddon'])->name('products.addons.store');
+    Route::put('products/{product}/addons/{addon}', [ProductController::class, 'updateAddon'])->name('products.addons.update');
+    Route::delete('products/{product}/addons/{addon}', [ProductController::class, 'destroyAddon'])->name('products.addons.destroy');
+    Route::post('products/{product}/hitung-modal', [ProductController::class, 'calculateModal'])->name('products.calculate-modal');
 
     Route::get('bahan', [InventoryController::class, 'index'])->name('materials.index');
+    Route::get('bahan/riwayat', [InventoryController::class, 'history'])->name('materials.history');
     Route::post('bahan', [InventoryController::class, 'storeMaterial'])->name('materials.store');
     Route::post('bahan/stok', [InventoryController::class, 'receive'])->name('materials.receive');
+    Route::put('bahan/{product}/stok-sisa', [InventoryController::class, 'adjust'])->name('materials.stock.adjust');
     Route::put('bahan/stok/{lot}', [InventoryController::class, 'update'])->name('materials.lots.update');
     Route::delete('bahan/stok/{lot}', [InventoryController::class, 'destroy'])->name('materials.lots.destroy');
     Route::redirect('inventory', '/bahan');
