@@ -2,9 +2,10 @@ name: Deploy to Domainesia
 
 # Secrets:
 #   FTP_SERVER         = ftp.kedaitjoan.online
-#   FTP_USERNAME       = kedaitjo   (akun utama) ATAU akun FTP yang path-nya = /home/.../public_html
-#   FTP_PASSWORD       = (password)
-#   FTP_SERVER_DIR     = /public_html/     ← WAJIB mengarah ke document root domain
+#   FTP_USERNAME       = zico-padalino@kedaitjoan.online
+#   FTP_PASSWORD       = (password akun FTP)
+#   FTP_SERVER_DIR     = ./
+#     Catatan: di cPanel, path akun FTP di atas HARUS /home/kedaitjo/public_html
 #   DEPLOY_TOKEN       = kedaiDeploy2026xyz
 #   DEPLOY_EXTRACT_URL = https://kedaitjoan.online/extract-deploy.php
 
@@ -100,22 +101,72 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq lftp
-          DIR="${FTP_SERVER_DIR:-/public_html/}"
-          echo "Upload ke ftp://${FTP_SERVER}${DIR}"
-          lftp -c "
-            set ftp:passive-mode true;
-            set net:timeout 60;
-            set net:max-retries 3;
-            set ssl:verify-certificate no;
-            open -p 21 -u \"${FTP_USERNAME}\",\"${FTP_PASSWORD}\" ftp://${FTP_SERVER};
-            cd ${DIR};
-            put -O . ftp-payload/deploy.zip;
-            put -O . ftp-payload/extract-deploy.php;
-            ls -la;
-            bye
-          "
+          set -euo pipefail
+
+          if [ -z "${FTP_SERVER}" ] || [ -z "${FTP_USERNAME}" ] || [ -z "${FTP_PASSWORD}" ]; then
+            echo "FTP_SERVER / FTP_USERNAME / FTP_PASSWORD belum lengkap."
+            exit 1
+          fi
+
+          # Normalisasi folder tujuan
+          DIR="${FTP_SERVER_DIR:-./}"
+          DIR="${DIR#/}"          # buang leading slash
+          DIR="${DIR%/}"          # buang trailing slash
+          if [ -z "$DIR" ] || [ "$DIR" = "." ]; then
+            REMOTE_BASE=""
+          else
+            REMOTE_BASE="${DIR}/"
+          fi
+
+          echo "Host: ${FTP_SERVER}"
+          echo "User: ${FTP_USERNAME}"
+          echo "Remote base: /${REMOTE_BASE}"
+          echo "DNS:"
+          getent hosts "${FTP_SERVER}" || true
+          echo "Port 21:"
+          (timeout 8 bash -c "echo > /dev/tcp/${FTP_SERVER}/21" && echo "port 21 open") || echo "port 21 tidak bisa diakses dari runner"
+
+          upload() {
+            local proto="$1"
+            local file="$2"
+            local remote_name="$3"
+            local url="${proto}://${FTP_SERVER}/${REMOTE_BASE}${remote_name}"
+            echo "Upload ${file} -> ${url}"
+            curl --fail --show-error --silent \
+              --connect-timeout 30 \
+              --max-time 600 \
+              --ftp-pasv \
+              --user "${FTP_USERNAME}:${FTP_PASSWORD}" \
+              -T "${file}" \
+              "${url}"
+          }
+
+          ok=0
+          for proto in ftp ftps; do
+            echo "=== Coba protokol: ${proto} ==="
+            if upload "${proto}" "ftp-payload/deploy.zip" "deploy.zip" \
+              && upload "${proto}" "ftp-payload/extract-deploy.php" "extract-deploy.php"; then
+              echo "Upload sukses via ${proto}"
+              ok=1
+              break
+            fi
+            echo "Gagal via ${proto}"
+          done
+
+          if [ "$ok" -ne 1 ]; then
+            echo
+            echo "FTP GAGAL (Not connected / auth)."
+            echo "Cek secret:"
+            echo "  FTP_SERVER   = ftp.kedaitjoan.online"
+            echo "  FTP_USERNAME = zico-padalino@kedaitjoan.online   (yang sebelumnya bisa connect)"
+            echo "  FTP_PASSWORD = password akun itu"
+            echo "  FTP_SERVER_DIR = ./     (jika path akun FTP sudah = public_html)"
+            echo "                 atau public_html/  (jika pakai akun utama kedaitjo)"
+            echo
+            echo "Di cPanel → FTP Accounts → path akun HARUS:"
+            echo "  /home/kedaitjo/public_html"
+            exit 1
+          fi
 
       - name: Verify extract script is public
         run: |
