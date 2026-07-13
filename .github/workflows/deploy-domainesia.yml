@@ -1,13 +1,14 @@
 name: Deploy to Domainesia
 
 # Secrets (Settings → Secrets and variables → Actions):
-#   FTP_SERVER      = ftp.kedaitjoan.online
+#   FTP_SERVER      = ftp.kedaitjoan.online   (atau IP: 202.155.137.36)
 #   FTP_USERNAME    = zico-padalino@kedaitjoan.online
 #   FTP_PASSWORD    = (password FTP)
-#   FTP_SERVER_DIR  = public_html/   ← folder web root di server (relative dari home FTP)
+#   FTP_SERVER_DIR  = ./     ← kalau akun FTP sudah di dalam public_html
+#                     ATAU public_html/  ← kalau akun FTP di home (/home/kedaitjo)
 #
-# Push ke main/master → build → upload langsung ke server (tanpa extract manual).
-# File .env di server TIDAK ditimpa (tidak ikut upload).
+# Default: SKIP folder vendor/ (sudah ada di server).
+# Kalau composer.json berubah: Actions → Run workflow → centang "Include vendor".
 
 on:
   push:
@@ -15,6 +16,11 @@ on:
       - main
       - master
   workflow_dispatch:
+    inputs:
+      include_vendor:
+        description: "Upload vendor/ juga (hanya jika dependency berubah)"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-domainesia
@@ -25,12 +31,53 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      INCLUDE_VENDOR: ${{ github.event_name == 'workflow_dispatch' && inputs.include_vendor && '1' || '0' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Normalize FTP secrets
+        id: ftp
+        env:
+          RAW_SERVER: ${{ secrets.FTP_SERVER }}
+          RAW_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          set -euo pipefail
+
+          SERVER=$(printf '%s' "${RAW_SERVER:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed -E 's#^(ftp|ftps|sftp)://##I' | sed 's#/$##')
+          DIR=$(printf '%s' "${RAW_DIR:-./}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+          if [ -z "$SERVER" ]; then
+            echo "::error::Secret FTP_SERVER kosong. Isi persis: ftp.kedaitjoan.online (atau 202.155.137.36)"
+            exit 1
+          fi
+
+          echo "FTP_SERVER length=${#SERVER}"
+          echo "FTP_SERVER_DIR=${DIR}"
+          echo "INCLUDE_VENDOR=${INCLUDE_VENDOR}"
+
+          if ! getent hosts "$SERVER" >/dev/null 2>&1; then
+            echo "::warning::Host tidak resolve via getent, coba diganti ke IP 202.155.137.36"
+            if [ "$SERVER" = "ftp.kedaitjoan.online" ] || [ "$SERVER" = "kedaitjoan.online" ]; then
+              SERVER="202.155.137.36"
+              echo "Fallback IP dipakai: $SERVER"
+            else
+              echo "::error::Host FTP tidak ketemu DNS. Cek typo di FTP_SERVER."
+              echo "Nilai yang benar: ftp.kedaitjoan.online atau 202.155.137.36"
+              printf 'Hex dump (untuk cek karakter aneh): '; printf '%s' "$SERVER" | od -An -tx1
+              exit 1
+            fi
+          fi
+
+          {
+            echo "server=$SERVER"
+            echo "dir=$DIR"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Setup PHP 8.4
+        if: env.INCLUDE_VENDOR == '1'
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
@@ -45,6 +92,7 @@ jobs:
           cache: npm
 
       - name: Install Composer dependencies
+        if: env.INCLUDE_VENDOR == '1'
         run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
       - name: Install NPM dependencies
@@ -59,10 +107,10 @@ jobs:
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.ftp.outputs.server }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          server-dir: ${{ steps.ftp.outputs.dir }}
           local-dir: ./release/
           port: 21
           protocol: ftp
@@ -76,8 +124,15 @@ jobs:
             **/.env
             **/.env.*
             **/.DS_Store
+            **/vendor/**
+            vendor/**
+            vendor
 
       - name: Deploy summary
         run: |
           echo "Deploy selesai — https://kedaitjoan.online"
-          echo "Deploy berikutnya hanya upload file yang berubah (incremental FTP)."
+          if [ "$INCLUDE_VENDOR" = "1" ]; then
+            echo "Mode: termasuk vendor/"
+          else
+            echo "Mode: skip vendor/ (pakai vendor yang sudah di server)"
+          fi

@@ -3,28 +3,35 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RELEASE_DIR="$ROOT/release"
+INCLUDE_VENDOR="${INCLUDE_VENDOR:-0}"
 
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
 
-rsync -a \
-  --exclude '.git' \
-  --exclude '.github' \
-  --exclude 'node_modules' \
-  --exclude 'tests' \
-  --exclude 'mobile' \
-  --exclude 'release' \
-  --exclude 'deploy-upload.zip' \
-  --exclude 'build-upload.zip' \
-  --exclude '.env' \
-  --exclude '.env.*' \
-  --exclude '.phpunit.cache' \
-  --exclude 'storage/logs/*' \
-  --exclude 'storage/framework/cache/data/*' \
-  --exclude 'storage/framework/sessions/*' \
-  --exclude 'storage/framework/views/*' \
-  --exclude 'storage/pail/*' \
-  "$ROOT/" "$RELEASE_DIR/"
+RSYNC_EXCLUDES=(
+  --exclude '.git'
+  --exclude '.github'
+  --exclude 'node_modules'
+  --exclude 'tests'
+  --exclude 'mobile'
+  --exclude 'release'
+  --exclude 'deploy-upload.zip'
+  --exclude 'build-upload.zip'
+  --exclude '.env'
+  --exclude '.env.*'
+  --exclude '.phpunit.cache'
+  --exclude 'storage/logs/*'
+  --exclude 'storage/framework/cache/data/*'
+  --exclude 'storage/framework/sessions/*'
+  --exclude 'storage/framework/views/*'
+  --exclude 'storage/pail/*'
+)
+
+if [ "$INCLUDE_VENDOR" != "1" ]; then
+  RSYNC_EXCLUDES+=(--exclude 'vendor')
+fi
+
+rsync -a "${RSYNC_EXCLUDES[@]}" "$ROOT/" "$RELEASE_DIR/"
 
 cp "$ROOT/deploy/public_html-index.php" "$RELEASE_DIR/index.php"
 cp "$ROOT/deploy/public_html.htaccess" "$RELEASE_DIR/.htaccess"
@@ -43,4 +50,8 @@ mkdir -p \
   "$RELEASE_DIR/storage/logs" \
   "$RELEASE_DIR/bootstrap/cache"
 
-echo "Release ready: $(du -sh "$RELEASE_DIR" | cut -f1)"
+if [ "$INCLUDE_VENDOR" = "1" ]; then
+  echo "Release ready (dengan vendor): $(du -sh "$RELEASE_DIR" | cut -f1)"
+else
+  echo "Release ready (skip vendor): $(du -sh "$RELEASE_DIR" | cut -f1)"
+fi
