@@ -45,17 +45,6 @@
                         Masuk
                     </button>
                 </form>
-
-                @if (config('app.debug'))
-                    <div class="auth-demo-box mt-6">
-                        <p class="font-semibold text-slate-700">Akun demo</p>
-                        <ul class="mt-2 space-y-1 text-xs text-slate-600">
-                            <li><strong>Admin:</strong> admin@local.test / password → panel Admin</li>
-                            <li><strong>Hitung Biaya:</strong> cogs@local.test / password → Hitung Biaya</li>
-                            <li><strong>Kasir:</strong> kasir@local.test / password → Kasir</li>
-                        </ul>
-                    </div>
-                @endif
             </div>
         </div>
     </div>
