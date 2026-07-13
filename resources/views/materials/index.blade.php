@@ -8,13 +8,23 @@
     <div class="module-page module-step-2">
         <div class="page-toolbar">
             <p class="text-sm text-slate-500">Kelola bahan, stok sisa, dan stok masuk</p>
-            <button
-                type="button"
-                class="btn-outline btn-sm shrink-0"
-                data-material-history-open
-            >
-                Riwayat
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+                <a
+                    href="{{ route('materials.pdf', ['autoprint' => 1]) }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="btn-outline btn-sm shrink-0"
+                >
+                    PDF Sisa Bahan
+                </a>
+                <button
+                    type="button"
+                    class="btn-outline btn-sm shrink-0"
+                    data-material-history-open
+                >
+                    Riwayat
+                </button>
+            </div>
         </div>
 
         <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Nama bahan, stok awal, dan harga beli — cukup sekali isi.">

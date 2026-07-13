@@ -138,6 +138,7 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::post('products/{product}/hitung-modal', [ProductController::class, 'calculateModal'])->name('products.calculate-modal');
 
     Route::get('bahan', [InventoryController::class, 'index'])->name('materials.index');
+    Route::get('bahan/pdf', [InventoryController::class, 'pdf'])->name('materials.pdf');
     Route::get('bahan/riwayat', [InventoryController::class, 'history'])->name('materials.history');
     Route::post('bahan', [InventoryController::class, 'storeMaterial'])->name('materials.store');
     Route::post('bahan/stok', [InventoryController::class, 'receive'])->name('materials.receive');

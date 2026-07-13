@@ -22,18 +22,7 @@ class InventoryController extends Controller
 {
     public function index(InventoryCostService $inventoryService)
     {
-        $materials = Product::query()
-            ->where('type', ProductType::RawMaterial->value)
-            ->where('is_active', true)
-            ->with(['inventoryLots' => fn ($q) => $q->orderByDesc('received_at')])
-            ->orderBy('name')
-            ->get()
-            ->map(function (Product $product) use ($inventoryService) {
-                $product->available_qty = $product->availableQuantity();
-                $product->avg_cost = $inventoryService->getWeightedAverageCost($product);
-
-                return $product;
-            });
+        $materials = $this->loadMaterials($inventoryService);
 
         $stockLogs = collect();
         $historyPeriod = 'day';
@@ -51,6 +40,22 @@ class InventoryController extends Controller
             'historyUrl' => route('materials.history'),
             'format' => Format::class,
             'unitPresets' => MaterialUnits::presets(),
+        ]);
+    }
+
+    public function pdf(InventoryCostService $inventoryService)
+    {
+        $materials = $this->loadMaterials($inventoryService);
+        $totalValue = $materials->sum(fn (Product $m) => (float) $m->available_qty * (float) $m->avg_cost);
+
+        return view('materials.pdf', [
+            'materials' => $materials,
+            'totalValue' => $totalValue,
+            'itemCount' => $materials->count(),
+            'inStockCount' => $materials->filter(fn (Product $m) => (float) $m->available_qty > 0)->count(),
+            'shopName' => config('pos.shop_name', 'Coffee & Kitchen'),
+            'printedAt' => now(),
+            'format' => Format::class,
         ]);
     }
 
@@ -335,6 +340,22 @@ class InventoryController extends Controller
         );
 
         return redirect()->route('materials.index')->with('success', 'Batch stok dihapus.');
+    }
+
+    private function loadMaterials(InventoryCostService $inventoryService)
+    {
+        return Product::query()
+            ->where('type', ProductType::RawMaterial->value)
+            ->where('is_active', true)
+            ->with(['inventoryLots' => fn ($q) => $q->orderByDesc('received_at')])
+            ->orderBy('name')
+            ->get()
+            ->map(function (Product $product) use ($inventoryService) {
+                $product->available_qty = $product->availableQuantity();
+                $product->avg_cost = $inventoryService->getWeightedAverageCost($product);
+
+                return $product;
+            });
     }
 
     private function generateMaterialSku(string $name): string
