@@ -105,7 +105,15 @@ class MaterialPurchase
         }
 
         try {
-            $purchaseInPortionUnit = MaterialUnits::convert($purchaseQty, $purchaseUnit, $portionUnit);
+            $purchaseFamily = MaterialUnits::family($purchaseUnit);
+
+            // Beli per pcs/buah: 1 pcs = 1 satuan stok (berat porsi hanya keterangan)
+            if ($purchaseFamily === 'count') {
+                $quantity = $purchaseQty;
+            } else {
+                $purchaseInPortionUnit = MaterialUnits::convert($purchaseQty, $purchaseUnit, $portionUnit);
+                $quantity = $purchaseInPortionUnit / $portionSize;
+            }
         } catch (InvalidArgumentException) {
             return [
                 'quantity' => 0.0,
@@ -114,8 +122,6 @@ class MaterialPurchase
                 'package_label' => null,
             ];
         }
-
-        $quantity = $purchaseInPortionUnit / $portionSize;
 
         if ($quantity <= 0) {
             return [
@@ -128,10 +134,17 @@ class MaterialPurchase
 
         $unitCost = $purchaseCost / $quantity;
 
-        return [
-            'quantity' => round($quantity, 6),
-            'unit_cost' => round($unitCost, 4),
-            'note' => sprintf(
+        $note = $purchaseFamily === 'count'
+            ? sprintf(
+                'beli %s %s = stok %s · 1 stok ≈ %s %s (harga %s)',
+                Format::number($purchaseQty, 2),
+                MaterialUnits::label($purchaseUnit),
+                Format::number($quantity, 2),
+                Format::number($portionSize, 2),
+                MaterialUnits::label($portionUnit),
+                Format::rupiah($purchaseCost, 0),
+            )
+            : sprintf(
                 '1 stok = %s %s · beli %s %s = stok %s (harga %s)',
                 Format::number($portionSize, 2),
                 MaterialUnits::label($portionUnit),
@@ -139,7 +152,12 @@ class MaterialPurchase
                 MaterialUnits::label($purchaseUnit),
                 Format::number($quantity, 2),
                 Format::rupiah($purchaseCost, 0),
-            ),
+            );
+
+        return [
+            'quantity' => round($quantity, 6),
+            'unit_cost' => round($unitCost, 4),
+            'note' => $note,
             'package_label' => null,
         ];
     }
@@ -182,7 +200,7 @@ class MaterialPurchase
             'portion_size' => ['nullable', 'numeric', 'gt:0', 'required_if:purchase_mode,portion'],
             'portion_unit' => ['nullable', 'string', 'max:20', 'required_if:purchase_mode,portion', 'in:gr,kg,ml,liter'],
             'purchase_qty' => ['nullable', 'numeric', 'gt:0', 'required_if:purchase_mode,portion'],
-            'purchase_unit' => ['nullable', 'string', 'max:20', 'required_if:purchase_mode,portion', 'in:gr,kg,ml,liter'],
+            'purchase_unit' => ['nullable', 'string', 'max:20', 'required_if:purchase_mode,portion', 'in:gr,kg,ml,liter,pcs'],
             'purchase_cost' => ['nullable', 'required_if:purchase_mode,portion'],
             'lot_number' => ['nullable', 'string', 'max:100'],
         ];

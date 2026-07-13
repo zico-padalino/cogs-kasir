@@ -193,9 +193,10 @@
                         <option value="gr" @selected($purchaseUnit === 'gr')>gram</option>
                         <option value="liter" @selected($purchaseUnit === 'liter')>liter</option>
                         <option value="ml" @selected($purchaseUnit === 'ml')>ml</option>
+                        <option value="pcs" @selected($purchaseUnit === 'pcs')>pcs</option>
                     </select>
                 </div>
-                <p class="form-hint">Contoh: beli 1 kg.</p>
+                <p class="form-hint">Contoh: beli 1 kg, atau beli 4 pcs.</p>
             </div>
         </div>
 
