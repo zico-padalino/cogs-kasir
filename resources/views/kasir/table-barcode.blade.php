@@ -4,35 +4,50 @@
 @section('heading', 'Barcode Pesanan')
 
 @section('content')
-    <div class="table-barcode-print mx-auto max-w-sm text-center" id="table-barcode-print">
-        <p class="text-xs uppercase tracking-widest text-slate-500">Scan untuk Pesan</p>
-        <h1 class="mt-2 text-2xl font-bold text-slate-900">{{ $shopName }}</h1>
-        <p class="text-sm text-slate-500">Menu & pesanan dari HP</p>
+    <div class="barcode-print-page">
+        <p class="barcode-print-hint no-print">
+            Ukuran stiker meja — unduh PNG lalu cetak kecil untuk ditempel.
+        </p>
 
-        <div class="mx-auto mt-6 inline-flex rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">
-            <canvas
-                data-table-qr-url="{{ $orderUrl }}"
-                data-table-qr-size="240"
-                width="240"
-                height="240"
-                aria-label="QR Code pesanan"
-            ></canvas>
+        <div
+            class="barcode-print-card"
+            id="table-barcode-print"
+            data-shop-name="{{ $shopName }}"
+            data-order-url="{{ $orderUrl }}"
+        >
+            <div class="barcode-print-mark" aria-hidden="true">QR</div>
+
+            <p class="barcode-print-eyebrow">Scan untuk pesan</p>
+            <h1 class="barcode-print-shop">{{ $shopName }}</h1>
+
+            <div class="barcode-print-qr-frame">
+                <canvas
+                    class="barcode-print-qr-canvas"
+                    data-table-qr-url="{{ $orderUrl }}"
+                    data-table-qr-size="180"
+                    data-table-qr-margin="1"
+                    data-table-qr-ecc="H"
+                    width="180"
+                    height="180"
+                    aria-label="QR Code pesanan"
+                ></canvas>
+            </div>
+
+            <p class="barcode-print-cta">Arahkan kamera ke kode ini</p>
+            <p class="barcode-print-flow">
+                <span>Scan</span>
+                <span aria-hidden="true">→</span>
+                <span>Pesan</span>
+                <span aria-hidden="true">→</span>
+                <span>Bayar di kasir</span>
+            </p>
         </div>
 
-        <p class="mt-4 break-all px-2 text-xs text-slate-500">{{ $orderUrl }}</p>
-        <p class="mt-6 text-sm text-slate-600">Satu barcode untuk seluruh toko · Pelanggan isi nama saat pesan</p>
+        <div class="barcode-print-actions form-actions no-print">
+            <button type="button" data-barcode-download class="btn-primary w-full sm:w-auto">
+                Unduh Stiker PNG
+            </button>
+            <a href="{{ route('kasir.tables') }}" class="btn-secondary w-full sm:w-auto">← Kembali</a>
+        </div>
     </div>
-
-    <div class="form-actions mt-6">
-        <button type="button" onclick="window.print()" class="btn-primary w-full sm:w-auto">Cetak Barcode</button>
-        <a href="{{ route('kasir.tables') }}" class="btn-secondary w-full sm:w-auto">← Kembali</a>
-    </div>
-
-    <style>
-        @media print {
-            header, #bottom-nav, .bottom-nav-spacer, .btn-primary, .btn-secondary { display: none !important; }
-            main, .app-scroll { padding: 0 !important; overflow: visible !important; }
-            #table-barcode-print { padding: 1rem; }
-        }
-    </style>
 @endsection

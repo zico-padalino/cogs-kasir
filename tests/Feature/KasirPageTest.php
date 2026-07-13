@@ -152,7 +152,9 @@ class KasirPageTest extends TestCase
         $this->actingAs($this->kasirUser())
             ->get(route('kasir.barcode'))
             ->assertOk()
-            ->assertSee('Scan untuk Pesan');
+            ->assertSee('Scan untuk pesan')
+            ->assertSee('Arahkan kamera ke kode ini')
+            ->assertSee('Unduh Stiker PNG');
     }
 
     public function test_kasir_tables_page_shows_single_barcode(): void
