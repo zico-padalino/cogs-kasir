@@ -10,9 +10,11 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\BillOfMaterial;
 use App\Models\Product;
 use App\Models\ProductAddon;
+use App\Services\BomCostService;
+use App\Services\CogsCalculationService;
+use App\Services\OverheadAllocationService;
 use App\Services\ProductDeletionService;
 use App\Services\ProductHppService;
-use App\Services\CogsCalculationService;
 use App\Support\Format;
 use App\Support\MaterialUnits;
 use Illuminate\Http\Request;
@@ -61,7 +63,7 @@ class ProductController extends Controller
       ->with('success', 'Menu ditambahkan. Lanjut isi bahan resepnya.');
   }
 
-  public function show(Product $product)
+  public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
   {
     if ($product->type === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
@@ -84,10 +86,30 @@ class ProductController extends Controller
       ],
     ])->all();
 
+    $bomLineCosts = [];
+    $materialCost = 0.0;
+    $overheadCost = 0.0;
+    $estimatedModal = 0.0;
+
+    if ($product->billOfMaterials->isNotEmpty()) {
+      $rollUp = $bomCostService->rollUpCost($product, 1);
+      $materialCost = (float) ($rollUp['total_cost'] ?? 0);
+      $overheadCost = (float) ($overheadService->allocateForSale($materialCost, 0, 0, 0, 1)['total'] ?? 0);
+      $estimatedModal = $materialCost + $overheadCost;
+
+      foreach ($rollUp['components'] ?? [] as $component) {
+        $bomLineCosts[(int) $component['product_id']] = $component;
+      }
+    }
+
     return view('products.show', [
       'product' => $product,
       'allProducts' => $allProducts,
       'materialUnits' => $materialUnits,
+      'bomLineCosts' => $bomLineCosts,
+      'materialCost' => $materialCost,
+      'overheadCost' => $overheadCost,
+      'estimatedModal' => $estimatedModal,
       'format' => Format::class,
       'units' => MaterialUnits::class,
     ]);

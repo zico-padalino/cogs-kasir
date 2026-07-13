@@ -12,7 +12,8 @@
             <div class="recipe-desktop__main">
                 <x-module-tip :step="3" title="Cara isi resep">
                     Pilih bahan, isi jumlah pakai (bisa gram/kg/ml), lalu <strong>Tambah ke Resep</strong>.
-                    Setelah lengkap, klik <strong>Hitung Modal</strong> di samping.
+                    Kolom <strong>Biaya</strong> dihitung otomatis dari harga beli bahan.
+                    Setelah lengkap, klik <strong>Hitung Modal</strong> untuk menyimpan modal resmi.
                 </x-module-tip>
 
                 <x-module-form-card
@@ -35,6 +36,8 @@
                                     <tr>
                                         <th>Bahan</th>
                                         <th>Jumlah pakai</th>
+                                        <th class="text-right">Harga / satuan</th>
+                                        <th class="text-right">Biaya</th>
                                         <th class="col-actions">Aksi</th>
                                     </tr>
                                 </thead>
@@ -46,6 +49,9 @@
                                             $editOptions = $units::recipeOptions($child?->unit);
                                             $editUnit = $presented['unit'];
                                             $qtyValue = rtrim(rtrim(number_format($presented['quantity'], 6, '.', ''), '0'), '.') ?: '0';
+                                            $line = $bomLineCosts[$child?->id] ?? null;
+                                            $unitCost = (float) ($line['unit_cost'] ?? 0);
+                                            $lineCost = (float) ($line['total_cost'] ?? 0);
                                         @endphp
                                         <tr>
                                             <td>
@@ -57,6 +63,13 @@
                                             <td class="font-medium tabular-nums text-slate-800">
                                                 {{ $format::number($presented['quantity'], $presented['quantity'] >= 10 ? 1 : 2) }}
                                                 <span class="text-slate-500">{{ $presented['label'] }}</span>
+                                            </td>
+                                            <td class="cell-money text-right text-sm text-slate-600">
+                                                {{ $format::rupiah($unitCost) }}
+                                                <span class="block text-[11px] font-normal text-slate-400">/ {{ $units::label($child?->unit) }}</span>
+                                            </td>
+                                            <td class="cell-highlight text-right font-semibold tabular-nums text-brand-700">
+                                                {{ $format::rupiah($lineCost) }}
                                             </td>
                                             <td class="col-actions">
                                                 <div class="recipe-row-actions">
@@ -85,6 +98,25 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
+                                <tfoot>
+                                    <tr class="border-t-2 border-slate-200 bg-slate-50 font-semibold">
+                                        <td colspan="3" class="text-slate-700">Total biaya bahan (untuk 1 {{ $product->unit }})</td>
+                                        <td class="text-right tabular-nums text-brand-700">{{ $format::rupiah($materialCost) }}</td>
+                                        <td></td>
+                                    </tr>
+                                    @if ($overheadCost > 0)
+                                        <tr class="bg-slate-50 text-sm">
+                                            <td colspan="3" class="text-slate-500">Biaya lain (overhead)</td>
+                                            <td class="text-right tabular-nums text-slate-700">{{ $format::rupiah($overheadCost) }}</td>
+                                            <td></td>
+                                        </tr>
+                                    @endif
+                                    <tr class="bg-brand-50 text-sm font-bold">
+                                        <td colspan="3" class="text-brand-900">Estimasi modal / {{ $product->unit }}</td>
+                                        <td class="text-right tabular-nums text-brand-800">{{ $format::rupiah($estimatedModal) }}</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     @else
@@ -326,11 +358,26 @@
                         <span>Stok siap jual</span>
                         <strong>{{ $format::number($product->availableQuantity(), 0) }} {{ $product->unit }}</strong>
                     </div>
+                    <div class="recipe-summary-card__stat">
+                        <span>Biaya bahan</span>
+                        <strong>{{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($materialCost) : '—' }}</strong>
+                    </div>
+                    @if ($overheadCost > 0)
+                        <div class="recipe-summary-card__stat">
+                            <span>Biaya lain</span>
+                            <strong>{{ $format::rupiah($overheadCost) }}</strong>
+                        </div>
+                    @endif
                     <div class="recipe-summary-card__modal">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Modal / {{ $product->unit }}</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Estimasi modal / {{ $product->unit }}</p>
                         <p class="mt-1 text-2xl font-bold text-brand-700">
-                            {{ $product->unit_hpp > 0 ? $format::rupiah($product->unit_hpp, 0) : 'Belum dihitung' }}
+                            {{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($estimatedModal, 0) : 'Isi resep dulu' }}
                         </p>
+                        @if ($product->unit_hpp > 0)
+                            <p class="mt-1 text-xs text-slate-500">
+                                Modal tersimpan: <span class="font-semibold text-slate-700">{{ $format::rupiah($product->unit_hpp, 0) }}</span>
+                            </p>
+                        @endif
                     </div>
 
                     @if ($product->billOfMaterials->isNotEmpty())
