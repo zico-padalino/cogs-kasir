@@ -42,7 +42,7 @@
             — transaksi akan tercatat atas nama pemilik PIN itu (bukan akun login).
         </p>
 
-        <form action="{{ route('kasir.pin.unlock.submit') }}" method="POST" class="space-y-4" autocomplete="off">
+        <form action="{{ route('kasir.pin.unlock.submit') }}" method="POST" class="space-y-4" autocomplete="off" id="kasir-pin-form">
             @csrf
             <div>
                 <label class="form-label" for="pin">PIN kasir (4–6 digit)</label>
@@ -60,8 +60,9 @@
                     autocomplete="one-time-code"
                     placeholder="••••"
                 >
+                <p class="mt-2 text-center text-xs text-slate-500">Isi PIN — otomatis masuk tanpa klik tombol</p>
             </div>
-            <button type="submit" class="btn-primary w-full py-3">Buka Kasir</button>
+            <button type="submit" class="btn-primary w-full py-3" id="kasir-pin-submit">Buka Kasir</button>
         </form>
 
         <div class="mt-5 space-y-2 text-center text-xs text-slate-500">
@@ -77,5 +78,66 @@
             </form>
         </div>
     </div>
+
+    <script>
+        (function () {
+            var form = document.getElementById('kasir-pin-form');
+            var input = document.getElementById('pin');
+            var button = document.getElementById('kasir-pin-submit');
+            if (! form || ! input) return;
+
+            var timer = null;
+            var submitting = false;
+
+            function onlyDigits(value) {
+                return String(value || '').replace(/\D+/g, '').slice(0, 6);
+            }
+
+            function submitPin() {
+                if (submitting) return;
+                var pin = onlyDigits(input.value);
+                if (pin.length < 4) return;
+
+                submitting = true;
+                input.value = pin;
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = 'Membuka…';
+                }
+                form.submit();
+            }
+
+            input.addEventListener('input', function () {
+                var pin = onlyDigits(input.value);
+                if (input.value !== pin) {
+                    input.value = pin;
+                }
+
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+
+                if (pin.length === 6) {
+                    submitPin();
+                    return;
+                }
+
+                // PIN 4–5 digit: tunggu sebentar jika user masih mengetik digit berikutnya
+                if (pin.length >= 4) {
+                    timer = setTimeout(submitPin, 450);
+                }
+            });
+
+            // Enter tetap bisa
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (timer) clearTimeout(timer);
+                    submitPin();
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
