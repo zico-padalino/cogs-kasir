@@ -14,6 +14,7 @@ use App\Services\MaterialStockLogService;
 use App\Support\Format;
 use App\Support\MaterialPurchase;
 use App\Support\MaterialUnits;
+use App\Support\StockQuantity;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -321,11 +322,19 @@ class InventoryController extends Controller
             abort(403, 'Hanya bahan baku yang bisa diubah stok sisanya di sini.');
         }
 
-        $validated = $request->validate([
-            'quantity_remaining' => ['required', 'numeric', 'min:0'],
+        $request->merge([
+            'adjust_mode' => $request->input('adjust_mode', 'direct'),
         ]);
 
-        $target = (float) $validated['quantity_remaining'];
+        $request->validate(StockQuantity::validationRules());
+
+        try {
+            $resolved = StockQuantity::resolveRemaining($request->all(), (string) $product->unit);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('materials.index')->with('error', $e->getMessage());
+        }
+
+        $target = $resolved['quantity'];
         $before = $product->availableQuantity();
 
         $inventoryService->syncAvailableQuantity($product, $target);
@@ -338,17 +347,18 @@ class InventoryController extends Controller
             product: $product,
             quantityBefore: $before,
             quantityAfter: $after,
-            note: 'Stock opname stok sisa',
+            note: 'Stock opname stok sisa · '.$resolved['note'],
         );
 
         return redirect()->route('materials.index')->with(
             'success',
             sprintf(
-                'Stok sisa %s diperbarui: %s → %s %s.',
+                'Stok sisa %s diperbarui: %s → %s %s (%s).',
                 $product->name,
                 Format::number($before, 2),
                 Format::number($after, 2),
                 $unit,
+                $resolved['note'],
             ),
         );
     }
@@ -358,16 +368,42 @@ class InventoryController extends Controller
         InventoryLot $lot,
         MaterialStockLogService $logService,
     ) {
-        $validated = $request->validate([
-            'lot_number' => ['nullable', 'string', 'max:255'],
-            'quantity_remaining' => ['required', 'numeric', 'min:0', 'max:'.$lot->quantity_received],
-            'unit_cost' => ['required'],
+        $request->merge([
+            'adjust_mode' => $request->input('adjust_mode', 'direct'),
         ]);
 
+        $validated = $request->validate(array_merge(
+            [
+                'lot_number' => ['nullable', 'string', 'max:255'],
+                'unit_cost' => ['required'],
+            ],
+            StockQuantity::validationRules(),
+        ));
+
         $product = $lot->product;
+
+        try {
+            $resolved = StockQuantity::resolveRemaining($request->all(), (string) $product->unit);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('materials.index')->with('error', $e->getMessage());
+        }
+
+        $newRemaining = $resolved['quantity'];
+        $maxReceived = (float) $lot->quantity_received;
+
+        if ($newRemaining > $maxReceived + 0.000001) {
+            return redirect()->route('materials.index')->with(
+                'error',
+                sprintf(
+                    'Sisa batch tidak boleh lebih dari jumlah masuk (%s %s).',
+                    Format::number($maxReceived, 2),
+                    $product->unit,
+                ),
+            );
+        }
+
         $beforeRemaining = (float) $lot->quantity_remaining;
         $productBefore = $product->availableQuantity();
-        $newRemaining = (float) $validated['quantity_remaining'];
         $unitCost = Format::parseRupiah($validated['unit_cost']);
 
         $lot->update([
@@ -386,9 +422,10 @@ class InventoryController extends Controller
             unitCost: $unitCost,
             lot: $lot->fresh(),
             note: sprintf(
-                'Batch sisa %s → %s',
+                'Batch sisa %s → %s (%s)',
                 Format::number($beforeRemaining, 2),
                 Format::number($newRemaining, 2),
+                $resolved['note'],
             ),
         );
 

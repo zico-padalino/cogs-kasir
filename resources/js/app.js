@@ -12,6 +12,7 @@ import './menu-pricing';
 import './unit-picker';
 import './menu-unit-select';
 import './material-purchase';
+import './stock-remaining';
 import './password-strength';
 import './material-history';
 

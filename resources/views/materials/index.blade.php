@@ -104,25 +104,14 @@
                                         >
                                             @csrf
                                             @method('PUT')
-                                            <div>
-                                                <p class="text-xs text-slate-600">
-                                                    Stok sistem sekarang:
-                                                    <strong>{{ $format::number($material->available_qty, 2) }} {{ $material->unit }}</strong>
-                                                </p>
-                                                <label class="form-label mt-2" for="stock-sisa-{{ $material->id }}">Stok sisa aktual</label>
-                                                <input
-                                                    id="stock-sisa-{{ $material->id }}"
-                                                    type="number"
-                                                    name="quantity_remaining"
-                                                    class="form-input text-lg font-semibold"
-                                                    step="0.01"
-                                                    min="0"
-                                                    required
-                                                    value="{{ old('quantity_remaining', number_format((float) $material->available_qty, 2, '.', '')) }}"
-                                                    placeholder="0"
-                                                >
-                                                <p class="form-hint">Isi sesuai hitungan fisik. Sistem menyesuaikan batch otomatis.</p>
-                                            </div>
+                                            <p class="text-xs text-slate-600">
+                                                Stok sistem sekarang:
+                                                <strong>{{ $format::number($material->available_qty, 2) }} {{ $material->unit }}</strong>
+                                            </p>
+                                            <x-stock-remaining-fields
+                                                :stock-unit="$material->unit"
+                                                :current-qty="$material->available_qty"
+                                            />
                                             <button type="submit" class="btn-primary btn-sm w-full">Simpan stok sisa</button>
                                         </form>
                                     </details>
@@ -174,20 +163,13 @@
                                                                     <label class="form-label text-xs">No. batch</label>
                                                                     <input type="text" name="lot_number" class="form-input text-xs" value="{{ $lot->lot_number }}">
                                                                 </div>
-                                                                <div>
-                                                                    <label class="form-label text-xs">Stok sisa</label>
-                                                                    <input
-                                                                        type="number"
-                                                                        name="quantity_remaining"
-                                                                        class="form-input text-xs"
-                                                                        step="0.01"
-                                                                        min="0"
-                                                                        max="{{ $lot->quantity_received }}"
-                                                                        value="{{ $lot->quantity_remaining }}"
-                                                                        required
-                                                                    >
-                                                                    <p class="form-hint">Maks. {{ $format::number($lot->quantity_received, 2) }} {{ $material->unit }} (jumlah masuk)</p>
-                                                                </div>
+                                                                <x-stock-remaining-fields
+                                                                    :stock-unit="$material->unit"
+                                                                    :current-qty="$lot->quantity_remaining"
+                                                                    :max-qty="$lot->quantity_received"
+                                                                    :compact="true"
+                                                                />
+                                                                <p class="form-hint -mt-1">Maks. {{ $format::number($lot->quantity_received, 2) }} {{ $material->unit }} (jumlah masuk batch).</p>
                                                                 <div>
                                                                     <label class="form-label text-xs">Harga/satuan</label>
                                                                     <x-rupiah-input name="unit_cost" :value="$lot->unit_cost" class="text-xs" />
