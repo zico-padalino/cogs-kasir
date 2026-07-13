@@ -6,6 +6,14 @@
 
 @section('content')
     <div class="module-page module-step-4">
+        <div class="module-toolbar">
+            <p class="module-toolbar__text">Atur harga jual berdasarkan modal — menu siap tampil di Kasir.</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('products.index') }}" class="btn-outline btn-sm shrink-0">← Menu & Resep</a>
+                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm shrink-0">← Bahan</a>
+            </div>
+        </div>
+
         <x-module-tip :step="4" title="Cara pakai">
             Isi <strong>harga jual</strong> langsung, atau isi <strong>persen untung</strong> — yang satu ikut terhitung otomatis.
             <span class="mt-1 block text-xs text-slate-500">Contoh: modal Rp 7.000 + untung 30% → harga jual ~Rp 10.000.</span>
