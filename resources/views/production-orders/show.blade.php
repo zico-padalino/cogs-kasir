@@ -62,12 +62,12 @@
             <x-stat-card label="Total Biaya" :value="$format::rupiah($cogs->total_cogs)" color="brand" />
             <x-stat-card label="Bahan" :value="$format::rupiah($cogs->direct_material)" color="green" />
             <x-stat-card label="Gaji Pekerja" :value="$format::rupiah($cogs->direct_labor)" color="amber" />
-            <x-stat-card label="Biaya per Unit" :value="$format::rupiah($cogs->unit_cogs, 2)" color="slate" />
+            <x-stat-card label="Biaya per Unit" :value="$format::rupiah($cogs->unit_cogs)" color="slate" />
         </div>
 
         <div class="hero-stat mb-6">
             <p class="text-sm text-slate-600">Biaya per 1 {{ $order->product->unit }} {{ $order->product->name }}</p>
-            <p class="hero-stat-value">{{ $format::rupiah($cogs->unit_cogs, 2) }}</p>
+            <p class="hero-stat-value">{{ $format::rupiah($cogs->unit_cogs) }}</p>
             <p class="mt-2 text-xs text-slate-500">= Bahan + Upah kerja + Biaya tambahan</p>
         </div>
     @else
@@ -91,7 +91,7 @@
                     @foreach ($order->materials as $material)
                         <tr>
                             <td>{{ $material->product->name }}</td>
-                            <td>{{ $format::number($material->quantity_used ?: $material->quantity_planned, 2) }}</td>
+                            <td>{{ $format::number($material->quantity_used ?: $material->quantity_planned) }}</td>
                             <td class="font-medium">{{ $format::rupiah($material->total_cost) }}</td>
                         </tr>
                     @endforeach
@@ -114,7 +114,7 @@
                         @foreach ($order->labors as $labor)
                             <tr>
                                 <td>{{ $labor->description }}</td>
-                                <td>{{ $format::number($labor->labor_hours, 1) }}</td>
+                                <td>{{ $format::number($labor->labor_hours) }}</td>
                                 <td>{{ $format::rupiah($labor->total_cost) }}</td>
                             </tr>
                         @endforeach

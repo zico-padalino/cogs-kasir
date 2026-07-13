@@ -60,7 +60,7 @@
                 class="form-input {{ $compact ? 'text-sm' : 'text-lg font-semibold' }} flex-1"
                 step="0.01"
                 min="0"
-                value="{{ old('quantity_remaining', number_format((float) $qtyDefault, 2, '.', '')) }}"
+                value="{{ old('quantity_remaining', \App\Support\Format::inputNumber($qtyDefault)) }}"
                 placeholder="0"
                 data-adjust-qty
                 @required($mode !== 'portion' || ! $showPortion)

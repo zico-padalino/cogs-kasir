@@ -16,12 +16,16 @@ const UNIT_LABEL = {
     pcs: 'pcs',
 };
 
-function formatNumber(value, decimals = 2) {
+function formatNumber(value, decimals = null) {
     const number = Number(value) || 0;
-    return new Intl.NumberFormat('id-ID', {
+    const options = {
         minimumFractionDigits: 0,
-        maximumFractionDigits: decimals,
-    }).format(number);
+        maximumFractionDigits: decimals === null || decimals === undefined ? 2 : decimals,
+    };
+    if (decimals === 0) {
+        options.maximumFractionDigits = 0;
+    }
+    return new Intl.NumberFormat('id-ID', options).format(number);
 }
 
 function formatRp(value) {

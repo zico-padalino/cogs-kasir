@@ -103,8 +103,8 @@ function updatePricingProfit(form) {
 
     if (Number.isFinite(persen)) {
         const persenText = persen.toLocaleString('id-ID', {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
         });
         percentEl.textContent = `(${persenText}%)`;
     } else {

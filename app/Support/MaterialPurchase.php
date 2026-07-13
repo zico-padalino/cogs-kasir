@@ -70,10 +70,10 @@ class MaterialPurchase
             'unit_cost' => round($unitCost, 4),
             'note' => sprintf(
                 '%s %s × %s = %s (harga %s/%s)',
-                Format::number($packageQty, 2),
+                Format::number($packageQty),
                 $packageLabel,
-                Format::number($unitsPerPackage, 2),
-                Format::number($quantity, 2),
+                Format::number($unitsPerPackage),
+                Format::number($quantity),
                 Format::rupiah($packageCost, 0),
                 $packageLabel,
             ),
@@ -137,20 +137,20 @@ class MaterialPurchase
         $note = $purchaseFamily === 'count'
             ? sprintf(
                 'beli %s %s = stok %s · 1 stok ≈ %s %s (harga %s)',
-                Format::number($purchaseQty, 2),
+                Format::number($purchaseQty),
                 MaterialUnits::label($purchaseUnit),
-                Format::number($quantity, 2),
-                Format::number($portionSize, 2),
+                Format::number($quantity),
+                Format::number($portionSize),
                 MaterialUnits::label($portionUnit),
                 Format::rupiah($purchaseCost, 0),
             )
             : sprintf(
                 '1 stok = %s %s · beli %s %s = stok %s (harga %s)',
-                Format::number($portionSize, 2),
+                Format::number($portionSize),
                 MaterialUnits::label($portionUnit),
-                Format::number($purchaseQty, 2),
+                Format::number($purchaseQty),
                 MaterialUnits::label($purchaseUnit),
-                Format::number($quantity, 2),
+                Format::number($quantity),
                 Format::rupiah($purchaseCost, 0),
             );
 

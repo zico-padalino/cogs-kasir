@@ -12,7 +12,7 @@
             <span class="ml-0 mt-0.5 block font-mono text-xs text-slate-500 sm:ml-2 sm:mt-0 sm:inline">{{ $node['sku'] }}</span>
         </div>
         <div class="text-left sm:text-right">
-            <span class="block text-xs text-slate-500 sm:inline sm:text-sm">{{ $format::number($node['quantity'], 4) }} × {{ $format::rupiah($node['unit_cost']) }}</span>
+            <span class="block text-xs text-slate-500 sm:inline sm:text-sm">{{ $format::number($node['quantity']) }} × {{ $format::rupiah($node['unit_cost']) }}</span>
             <span class="mt-0.5 block font-semibold text-brand-600 sm:ml-2 sm:mt-0 sm:inline">= {{ $format::rupiah($node['total_cost']) }}</span>
         </div>
     </div>

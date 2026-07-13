@@ -299,7 +299,7 @@
                             <td>{{ $material->name }}</td>
                             <td class="center">{{ $material->unit ?: '-' }}</td>
                             <td class="right mono {{ $qty <= 0 ? 'zero' : '' }}">
-                                {{ $format::number($qty, 2) }}
+                                {{ $format::number($qty) }}
                             </td>
                             <td class="right mono">{{ $format::rupiah($avg) }}</td>
                             <td class="right mono">{{ $format::rupiah($value) }}</td>

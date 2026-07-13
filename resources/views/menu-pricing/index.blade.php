@@ -105,7 +105,7 @@
                                 <div class="module-pricing-card__profit" data-pricing-profit>
                                     Untung per {{ $product->unit }}:
                                     <strong data-pricing-amount class="{{ $item['untung'] >= 0 ? 'text-green-700' : 'text-red-600' }}">{{ $format::rupiah($item['untung'], 0) }}</strong>
-                                    <span class="text-slate-600" data-pricing-percent>({{ $format::number($item['persen_untung'], 1) }}%)</span>
+                                    <span class="text-slate-600" data-pricing-percent>({{ $format::number($item['persen_untung']) }}%)</span>
                                 </div>
                             @else
                                 <p class="text-sm text-slate-500">Untung muncul otomatis setelah modal terisi.</p>
@@ -219,7 +219,7 @@
 
         if (percentEl) {
             percentEl.textContent = Number.isFinite(persen)
-                ? `(${persen.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)`
+                ? `(${persen.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%)`
                 : '(—%)';
         }
     };

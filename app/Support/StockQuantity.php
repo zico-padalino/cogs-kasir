@@ -42,12 +42,12 @@ class StockQuantity
         }
 
         $note = MaterialUnits::normalize($fromUnit) === MaterialUnits::normalize($stockUnit)
-            ? sprintf('%s %s', Format::number($converted, 2), MaterialUnits::label($stockUnit))
+            ? sprintf('%s %s', Format::number($converted), MaterialUnits::label($stockUnit))
             : sprintf(
                 '%s %s = %s %s',
-                Format::number($qty, 2),
+                Format::number($qty),
                 MaterialUnits::label($fromUnit),
-                Format::number($converted, 2),
+                Format::number($converted),
                 MaterialUnits::label($stockUnit),
             );
 
@@ -81,7 +81,7 @@ class StockQuantity
                 'quantity' => 0.0,
                 'note' => sprintf(
                     'sisa fisik 0 · 1 stok = %s %s',
-                    Format::number($portionSize, 2),
+                    Format::number($portionSize),
                     MaterialUnits::label($portionUnit),
                 ),
             ];
@@ -94,11 +94,11 @@ class StockQuantity
             'quantity' => $quantity,
             'note' => sprintf(
                 'sisa %s %s · 1 stok = %s %s → %s %s',
-                Format::number($physicalQty, 2),
+                Format::number($physicalQty),
                 MaterialUnits::label($physicalUnit),
-                Format::number($portionSize, 2),
+                Format::number($portionSize),
                 MaterialUnits::label($portionUnit),
-                Format::number($quantity, 2),
+                Format::number($quantity),
                 MaterialUnits::label($stockUnit),
             ),
         ];

@@ -10,13 +10,13 @@
         <p class="material-history-item-meta">
             @if ($log->quantity_before !== null || $log->quantity_after !== null)
                 Stok
-                {{ $log->quantity_before !== null ? $format::number($log->quantity_before, 2) : '-' }}
+                {{ $log->quantity_before !== null ? $format::number($log->quantity_before) : '-' }}
                 →
-                {{ $log->quantity_after !== null ? $format::number($log->quantity_after, 2) : '-' }}
+                {{ $log->quantity_after !== null ? $format::number($log->quantity_after) : '-' }}
                 {{ $log->product_unit }}
                 @if ($log->quantity_delta !== null && (float) $log->quantity_delta != 0)
                     <span class="{{ (float) $log->quantity_delta > 0 ? 'material-history-delta-up' : 'material-history-delta-down' }}">
-                        ({{ (float) $log->quantity_delta > 0 ? '+' : '' }}{{ $format::number($log->quantity_delta, 2) }})
+                        ({{ (float) $log->quantity_delta > 0 ? '+' : '' }}{{ $format::number($log->quantity_delta) }})
                     </span>
                 @endif
             @endif

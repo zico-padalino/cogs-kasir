@@ -111,7 +111,7 @@
                                     <td class="font-semibold text-slate-900">{{ $row['name'] }}</td>
                                     <td>{{ $format::number($row['total_quantity'], 0) }}</td>
                                     <td class="cell-money">{{ $format::rupiah($row['total_cogs']) }}</td>
-                                    <td class="cell-highlight">{{ $format::rupiah($row['average_unit_cogs'], 2) }}</td>
+                                    <td class="cell-highlight">{{ $format::rupiah($row['average_unit_cogs']) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

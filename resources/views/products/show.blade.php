@@ -85,11 +85,11 @@
                                             <td>
                                                 <p class="font-semibold text-slate-900">{{ $child?->name ?? 'Bahan dihapus' }}</p>
                                                 <p class="mt-0.5 text-xs text-slate-400">
-                                                    stok: {{ $format::number($bom->quantity, 4) }} {{ $units::label($child?->unit) }}
+                                                    stok: {{ $format::number($bom->quantity) }} {{ $units::label($child?->unit) }}
                                                 </p>
                                             </td>
                                             <td class="font-medium tabular-nums text-slate-800">
-                                                {{ $format::number($presented['quantity'], $presented['quantity'] >= 10 ? 1 : 2) }}
+                                                {{ $format::number($presented['quantity']) }}
                                                 <span class="text-slate-500">{{ $presented['label'] }}</span>
                                             </td>
                                             <td class="cell-money text-right text-sm text-slate-600">
@@ -184,7 +184,7 @@
                                             value="{{ $p->id }}"
                                             @selected((string) old('child_product_id') === (string) $p->id)
                                         >
-                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity(), 1) }} {{ $units::label($p->unit) }}
+                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -256,7 +256,7 @@
                                             <td class="font-medium tabular-nums">+{{ $format::rupiah($addon->selling_price, 0) }}</td>
                                             <td class="hidden text-sm text-slate-500 sm:table-cell">
                                                 @if ($presented && $mat)
-                                                    {{ $mat->name }} · {{ $format::number($presented['quantity'], 2) }} {{ $presented['label'] }}
+                                                    {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
                                                 @else
                                                     <span class="text-slate-400">—</span>
                                                 @endif

@@ -85,7 +85,7 @@
                                     </div>
                                     <div class="mt-2 flex flex-wrap gap-2">
                                         <span class="module-stat-pill module-stat-pill--stock">
-                                            Stok sisa {{ $format::number($material->available_qty, 2) }} {{ $material->unit }}
+                                            Stok sisa {{ $format::number($material->available_qty) }} {{ $material->unit }}
                                         </span>
                                         @if ($material->avg_cost > 0)
                                             <span class="module-stat-pill module-stat-pill--price">
@@ -106,7 +106,7 @@
                                             @method('PUT')
                                             <p class="text-xs text-slate-600">
                                                 Stok sistem sekarang:
-                                                <strong>{{ $format::number($material->available_qty, 2) }} {{ $material->unit }}</strong>
+                                                <strong>{{ $format::number($material->available_qty) }} {{ $material->unit }}</strong>
                                             </p>
                                             <x-stock-remaining-fields
                                                 :stock-unit="$material->unit"
@@ -151,8 +151,8 @@
                                             @foreach ($material->inventoryLots->where('quantity_remaining', '>', 0) as $lot)
                                                 <tr>
                                                     <td class="font-mono text-xs cell-muted">{{ $lot->lot_number ?? '-' }}</td>
-                                                    <td>{{ $format::number($lot->quantity_received, 2) }} {{ $material->unit }}</td>
-                                                    <td class="font-semibold text-slate-800">{{ $format::number($lot->quantity_remaining, 2) }} {{ $material->unit }}</td>
+                                                    <td>{{ $format::number($lot->quantity_received) }} {{ $material->unit }}</td>
+                                                    <td class="font-semibold text-slate-800">{{ $format::number($lot->quantity_remaining) }} {{ $material->unit }}</td>
                                                     <td class="cell-money">{{ $format::rupiah($lot->unit_cost) }}</td>
                                                     <td class="col-actions">
                                                         <details class="inline-edit text-left">
@@ -169,7 +169,7 @@
                                                                     :max-qty="$lot->quantity_received"
                                                                     :compact="true"
                                                                 />
-                                                                <p class="form-hint -mt-1">Maks. {{ $format::number($lot->quantity_received, 2) }} {{ $material->unit }} (jumlah masuk batch).</p>
+                                                                <p class="form-hint -mt-1">Maks. {{ $format::number($lot->quantity_received) }} {{ $material->unit }} (jumlah masuk batch).</p>
                                                                 <div>
                                                                     <label class="form-label text-xs">Harga/satuan</label>
                                                                     <x-rupiah-input name="unit_cost" :value="$lot->unit_cost" class="text-xs" />

@@ -104,11 +104,11 @@ class InventoryController extends Controller
                 'action_badge' => $log->actionBadgeClass(),
                 'product_name' => $log->product_name,
                 'product_unit' => $log->product_unit,
-                'quantity_before' => $log->quantity_before !== null ? Format::number($log->quantity_before, 2) : null,
-                'quantity_after' => $log->quantity_after !== null ? Format::number($log->quantity_after, 2) : null,
+                'quantity_before' => $log->quantity_before !== null ? Format::number($log->quantity_before) : null,
+                'quantity_after' => $log->quantity_after !== null ? Format::number($log->quantity_after) : null,
                 'quantity_delta' => $log->quantity_delta !== null ? (float) $log->quantity_delta : null,
                 'quantity_delta_label' => $log->quantity_delta !== null
-                    ? ((float) $log->quantity_delta > 0 ? '+' : '').Format::number($log->quantity_delta, 2)
+                    ? ((float) $log->quantity_delta > 0 ? '+' : '').Format::number($log->quantity_delta)
                     : null,
                 'unit_cost' => $log->unit_cost !== null ? Format::rupiah($log->unit_cost) : null,
                 'lot_number' => $log->lot_number,
@@ -219,7 +219,7 @@ class InventoryController extends Controller
         $success = sprintf(
             'Bahan %s ditambahkan. Stok masuk %s %s @ %s/%s.',
             $product->name,
-            Format::number($qty, 2),
+            Format::number($qty),
             $unit,
             Format::rupiah($unitCost, 0),
             $unit,
@@ -304,7 +304,7 @@ class InventoryController extends Controller
             sprintf(
                 'Stok %s bertambah %s %s @ %s/%s.',
                 $product->name,
-                Format::number($qty, 2),
+                Format::number($qty),
                 $product->unit,
                 Format::rupiah($unitCost, 0),
                 $product->unit,
@@ -355,8 +355,8 @@ class InventoryController extends Controller
             sprintf(
                 'Stok sisa %s diperbarui: %s → %s %s (%s).',
                 $product->name,
-                Format::number($before, 2),
-                Format::number($after, 2),
+                Format::number($before),
+                Format::number($after),
                 $unit,
                 $resolved['note'],
             ),
@@ -396,7 +396,7 @@ class InventoryController extends Controller
                 'error',
                 sprintf(
                     'Sisa batch tidak boleh lebih dari jumlah masuk (%s %s).',
-                    Format::number($maxReceived, 2),
+                    Format::number($maxReceived),
                     $product->unit,
                 ),
             );
@@ -423,8 +423,8 @@ class InventoryController extends Controller
             lot: $lot->fresh(),
             note: sprintf(
                 'Batch sisa %s → %s (%s)',
-                Format::number($beforeRemaining, 2),
-                Format::number($newRemaining, 2),
+                Format::number($beforeRemaining),
+                Format::number($newRemaining),
                 $resolved['note'],
             ),
         );
