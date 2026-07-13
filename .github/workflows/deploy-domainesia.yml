@@ -1,14 +1,14 @@
 name: Deploy to Domainesia
 
-# Secrets (Settings → Secrets and variables → Actions):
-#   FTP_SERVER      = ftp.kedaitjoan.online   (atau IP: 202.155.137.36)
-#   FTP_USERNAME    = zico-padalino@kedaitjoan.online
-#   FTP_PASSWORD    = (password FTP)
-#   FTP_SERVER_DIR  = ./     ← kalau akun FTP sudah di dalam public_html
-#                     ATAU public_html/  ← kalau akun FTP di home (/home/kedaitjo)
+# Secrets:
+#   FTP_SERVER      = ftp.kedaitjoan.online  (atau 202.155.137.36)
+#   FTP_USERNAME    = akun FTP yang Directory = public_html
+#   FTP_PASSWORD    = (password)
+#   FTP_SERVER_DIR  = ./
 #
-# Default: SKIP folder vendor/ (sudah ada di server).
-# Kalau composer.json berubah: Actions → Run workflow → centang "Include vendor".
+# HANYA upload file dari commit/push terbaru.
+# CSS/JS berubah → npm build + upload build/.
+# vendor/ di-skip (kecuali Run workflow → Include vendor).
 
 on:
   push:
@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       include_vendor:
-        description: "Upload vendor/ juga (hanya jika dependency berubah)"
+        description: "Upload vendor/ juga (jika composer berubah)"
         type: boolean
         default: false
 
@@ -28,15 +28,17 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build & Deploy
+    name: Deploy changed files
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
       INCLUDE_VENDOR: ${{ github.event_name == 'workflow_dispatch' && inputs.include_vendor && '1' || '0' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Normalize FTP secrets
         id: ftp
@@ -45,38 +47,42 @@ jobs:
           RAW_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
           set -euo pipefail
-
           SERVER=$(printf '%s' "${RAW_SERVER:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed -E 's#^(ftp|ftps|sftp)://##I' | sed 's#/$##')
           DIR=$(printf '%s' "${RAW_DIR:-./}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
           if [ -z "$SERVER" ]; then
-            echo "::error::Secret FTP_SERVER kosong. Isi persis: ftp.kedaitjoan.online (atau 202.155.137.36)"
+            echo "::error::Secret FTP_SERVER kosong"
             exit 1
           fi
-
-          echo "FTP_SERVER length=${#SERVER}"
-          echo "FTP_SERVER_DIR=${DIR}"
-          echo "INCLUDE_VENDOR=${INCLUDE_VENDOR}"
-
           if ! getent hosts "$SERVER" >/dev/null 2>&1; then
-            echo "::warning::Host tidak resolve via getent, coba diganti ke IP 202.155.137.36"
             if [ "$SERVER" = "ftp.kedaitjoan.online" ] || [ "$SERVER" = "kedaitjoan.online" ]; then
               SERVER="202.155.137.36"
-              echo "Fallback IP dipakai: $SERVER"
             else
-              echo "::error::Host FTP tidak ketemu DNS. Cek typo di FTP_SERVER."
-              echo "Nilai yang benar: ftp.kedaitjoan.online atau 202.155.137.36"
-              printf 'Hex dump (untuk cek karakter aneh): '; printf '%s' "$SERVER" | od -An -tx1
+              echo "::error::Host FTP tidak resolve"
               exit 1
             fi
           fi
+          echo "server=$SERVER" >> "$GITHUB_OUTPUT"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
-          {
-            echo "server=$SERVER"
-            echo "dir=$DIR"
-          } >> "$GITHUB_OUTPUT"
+      - name: Resolve deploy range
+        id: range
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BEFORE="${{ github.event.before }}"
+            if [ -z "$BEFORE" ] || [[ "$BEFORE" =~ ^0+$ ]]; then
+              RANGE="HEAD~1..HEAD"
+            else
+              RANGE="${BEFORE}..${{ github.sha }}"
+            fi
+          else
+            RANGE="HEAD~1..HEAD"
+          fi
+          echo "range=$RANGE" >> "$GITHUB_OUTPUT"
+          echo "Deploy range: $RANGE"
+          git log --oneline "$RANGE" || git log -1 --oneline
 
-      - name: Setup PHP 8.4
+      - name: Setup PHP (vendor only)
         if: env.INCLUDE_VENDOR == '1'
         uses: shivammathur/setup-php@v2
         with:
@@ -85,54 +91,47 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Install Composer (vendor only)
+        if: env.INCLUDE_VENDOR == '1'
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Prepare changed files only
+        id: prep
+        env:
+          DEPLOY_RANGE: ${{ steps.range.outputs.range }}
+        run: bash deploy/prepare-changed-release.sh
+
       - name: Setup Node.js
+        if: steps.prep.outputs.need_frontend == '1'
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
 
-      - name: Install Composer dependencies
-        if: env.INCLUDE_VENDOR == '1'
-        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-
-      - name: Install NPM dependencies
-        run: npm ci
-
       - name: Build frontend assets
-        run: npm run build
-
-      - name: Prepare release for public_html layout
-        run: bash deploy/prepare-release.sh
-
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ steps.ftp.outputs.server }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ steps.ftp.outputs.dir }}
-          local-dir: ./release/
-          port: 21
-          protocol: ftp
-          timeout: 600000
-          dangerous-clean-slate: false
-          state-name: .ftp-deploy-sync-state.json
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.env
-            **/.env.*
-            **/.DS_Store
-            **/vendor/**
-            vendor/**
-            vendor
-
-      - name: Deploy summary
+        if: steps.prep.outputs.need_frontend == '1'
         run: |
-          echo "Deploy selesai — https://kedaitjoan.online"
-          if [ "$INCLUDE_VENDOR" = "1" ]; then
-            echo "Mode: termasuk vendor/"
-          else
-            echo "Mode: skip vendor/ (pakai vendor yang sudah di server)"
-          fi
+          npm ci
+          npm run build
+          mkdir -p release/build
+          cp -a public/build/. release/build/
+
+      - name: Upload changed files via FTP
+        if: steps.prep.outputs.need_deploy == '1' || steps.prep.outputs.need_frontend == '1'
+        env:
+          FTP_SERVER: ${{ steps.ftp.outputs.server }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ steps.ftp.outputs.dir }}
+        run: bash deploy/upload-release-ftp.sh
+
+      - name: Nothing to deploy
+        if: steps.prep.outputs.need_deploy != '1' && steps.prep.outputs.need_frontend != '1'
+        run: echo "Tidak ada file aplikasi yang perlu di-upload."
+
+      - name: Summary
+        run: |
+          echo "Selesai — https://kedaitjoan.online"
+          echo "Mode: hanya file dari commit/push terbaru"
+          echo "Copied: ${{ steps.prep.outputs.copied }}"
+          echo "Frontend build: ${{ steps.prep.outputs.need_frontend }}"
