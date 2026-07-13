@@ -10,5 +10,7 @@ import './table-order';
 import './order-item-detail';
 import './menu-pricing';
 import './unit-picker';
+import './menu-unit-select';
 import './password-strength';
 import './material-history';
+

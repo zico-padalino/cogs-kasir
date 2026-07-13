@@ -24,6 +24,63 @@ class MaterialUnits
     }
 
     /**
+     * Satuan umum untuk menu jual.
+     *
+     * @return array<string, string> value => label
+     */
+    public static function menuPresets(): array
+    {
+        return [
+            'pcs' => 'pcs / buah',
+            'porsi' => 'porsi',
+            'loaf' => 'loaf / roti',
+            'pack' => 'pack',
+            'dus' => 'dus',
+            'box' => 'box',
+            'cup' => 'cup',
+            'gelas' => 'gelas',
+            'slice' => 'slice / potong',
+        ];
+    }
+
+    public static function resolveMenu(?string $preset, ?string $custom = null): string
+    {
+        $preset = trim((string) $preset);
+
+        if ($preset === 'other') {
+            return trim((string) $custom);
+        }
+
+        if ($preset !== '' && array_key_exists($preset, self::menuPresets())) {
+            return $preset;
+        }
+
+        $custom = trim((string) $custom);
+
+        return $custom !== '' ? $custom : 'pcs';
+    }
+
+    public static function guessMenuPreset(?string $unit): string
+    {
+        $unit = strtolower(trim((string) $unit));
+
+        if ($unit === '') {
+            return 'pcs';
+        }
+
+        if (array_key_exists($unit, self::menuPresets())) {
+            return $unit;
+        }
+
+        return match ($unit) {
+            'buah', 'pc', 'piece', 'pieces' => 'pcs',
+            'potong' => 'slice',
+            'roti' => 'loaf',
+            default => 'other',
+        };
+    }
+
+    /**
      * Faktor ke satuan dasar keluarga (kg / liter / pcs).
      *
      * @return array<string, array{family: string, to_base: float}>

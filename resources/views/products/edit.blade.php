@@ -5,6 +5,10 @@
 @section('subheading', $product->name)
 
 @section('content')
+    @php
+        $unitPreset = old('unit_preset', \App\Support\MaterialUnits::guessMenuPreset($product->unit));
+        $unitCustom = old('unit_custom', $unitPreset === 'other' ? $product->unit : '');
+    @endphp
     <div class="mx-auto max-w-lg">
         <div class="card p-4 sm:p-5">
             <form action="{{ route('products.update', $product) }}" method="POST" class="space-y-4">
@@ -17,10 +21,10 @@
                     <input type="text" name="name" class="form-input" value="{{ old('name', $product->name) }}" required>
                 </div>
 
-                <div>
-                    <label class="form-label">Satuan</label>
-                    <input type="text" name="unit" class="form-input" value="{{ old('unit', $product->unit) }}">
-                </div>
+                <x-menu-unit-select
+                    :selected="$unitPreset"
+                    :custom-value="$unitCustom"
+                />
 
                 <div>
                     <label class="form-label">Modal per {{ $product->unit }}</label>

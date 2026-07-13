@@ -448,6 +448,8 @@ class ProductController extends Controller
   /** @param  array<string, mixed>  $data */
   private function productPayload(array $data): array
   {
+    unset($data['unit_preset'], $data['unit_custom']);
+
     $type = $data['type'] ?? ProductType::FinishedGood->value;
     $sellableType = in_array($type, [ProductType::FinishedGood->value, ProductType::SemiFinished->value], true);
 

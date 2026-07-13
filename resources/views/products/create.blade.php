@@ -15,11 +15,10 @@
                     <input type="text" name="name" class="form-input" required placeholder="Roti tawar" value="{{ old('name') }}">
                 </div>
 
-                <div>
-                    <label class="form-label">Satuan</label>
-                    <input type="text" name="unit" class="form-input" placeholder="pcs, porsi, loaf" value="{{ old('unit', 'pcs') }}">
-                    <p class="form-hint">Cara hitung jualnya: per buah, per porsi, dll.</p>
-                </div>
+                <x-menu-unit-select
+                    :selected="old('unit_preset', 'pcs')"
+                    :custom-value="old('unit_custom', '')"
+                />
 
                 <div class="form-actions pt-1">
                     <button type="submit" class="btn-primary">Simpan & Isi Resep</button>
