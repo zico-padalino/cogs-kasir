@@ -2,6 +2,8 @@
 
 return [
     'shop_name' => env('POS_SHOP_NAME', 'Coffee & Kitchen'),
+    'shop_title' => env('POS_SHOP_TITLE', 'Menu & pesanan dari HP'),
+    'logo_path' => null,
 
     // Default seed only — runtime categories live in menu_categories table.
     'menu_categories' => [

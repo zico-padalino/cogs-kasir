@@ -71,7 +71,29 @@ export function initResponsiveTables() {
     });
 }
 
+export function initPasswordToggles() {
+    document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+        const field = button.closest('.password-field');
+        const input = field?.querySelector('input');
+        const showIcon = button.querySelector('[data-password-icon-show]');
+        const hideIcon = button.querySelector('[data-password-icon-hide]');
+
+        if (! input) {
+            return;
+        }
+
+        button.addEventListener('click', () => {
+            const revealing = input.type === 'password';
+            input.type = revealing ? 'text' : 'password';
+            button.setAttribute('aria-label', revealing ? 'Sembunyikan password' : 'Tampilkan password');
+            showIcon?.classList.toggle('hidden', revealing);
+            hideIcon?.classList.toggle('hidden', ! revealing);
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMobileNav();
     initResponsiveTables();
+    initPasswordToggles();
 });

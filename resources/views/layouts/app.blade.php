@@ -6,7 +6,8 @@
     <meta name="theme-color" content="#4f46e5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>@yield('title', 'Panduan') — Hitung Modal Menu</title>
+    <title>@yield('title', 'Panduan') — {{ config('pos.shop_name', 'Hitung Modal Menu') }}</title>
+    @include('layouts.partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">

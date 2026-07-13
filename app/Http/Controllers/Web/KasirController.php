@@ -115,6 +115,7 @@ class KasirController extends Controller
         return view('kasir.table-barcode', [
             'orderUrl' => PosMenu::orderUrl(),
             'shopName' => config('pos.shop_name'),
+            'shopTitle' => config('pos.shop_title'),
         ]);
     }
 

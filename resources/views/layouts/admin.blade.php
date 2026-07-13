@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') — {{ config('pos.shop_name', 'POS') }}</title>
+    @include('layouts.partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script>
         (function () {
@@ -33,7 +34,7 @@
                    class="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] -translate-x-full flex-col bg-slate-900 text-white transition-transform duration-300 ease-out md:z-30 md:w-64 md:translate-x-0">
                 <div class="border-b border-slate-800 px-5 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-lg font-bold">A</div>
+                        @include('layouts.partials.shop-brand-mark')
                         <div class="min-w-0">
                             <p class="truncate text-sm font-semibold">{{ config('pos.shop_name', 'Point of Sale') }}</p>
                             <p class="truncate text-xs text-slate-400">Modul Admin</p>
@@ -66,6 +67,11 @@
                        class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('admin.users.*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
                         <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🔐</span>
                         Akses Akun
+                    </a>
+                    <a href="{{ route('admin.settings.edit') }}"
+                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('admin.settings.*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
+                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">⚙</span>
+                        Pengaturan
                     </a>
                     @if (auth()->user()->accessibleModules() !== [] && count(auth()->user()->accessibleModules()) > 1)
                         <a href="{{ route('hub') }}"

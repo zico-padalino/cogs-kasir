@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\Admin\AdminDashboardController;
 use App\Http\Controllers\Web\Admin\AttendanceController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\SalaryController;
+use App\Http\Controllers\Web\Admin\SettingsController;
 use App\Http\Controllers\Web\Admin\UserAccessController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\Auth\ModuleHubController;
@@ -70,6 +71,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('salaries/{salary}/paid', [SalaryController::class, 'markPaid'])->name('salaries.paid');
     Route::delete('salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
     Route::resource('users', UserAccessController::class)->except(['show']);
+    Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
 });
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {

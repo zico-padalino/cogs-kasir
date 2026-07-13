@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Support\ShopSettings;
 use Illuminate\Http\JsonResponse;
 
 class PwaController extends Controller
@@ -27,24 +28,47 @@ class PwaController extends Controller
             default => abort(404),
         };
 
-        $icons = collect([72, 96, 128, 144, 152, 192, 384, 512])
-            ->map(fn (int $size) => [
-                'src' => asset("icons/icon-{$size}.png"),
-                'sizes' => "{$size}x{$size}",
-                'type' => 'image/png',
-                'purpose' => 'any',
-            ])
-            ->values()
-            ->all();
+        $logoUrl = ShopSettings::logoUrl();
 
-        $maskable = [
-            [
-                'src' => asset('icons/icon-512.png'),
-                'sizes' => '512x512',
-                'type' => 'image/png',
-                'purpose' => 'maskable',
-            ],
-        ];
+        if ($logoUrl) {
+            $icons = collect([192, 512])
+                ->map(fn (int $size) => [
+                    'src' => $logoUrl,
+                    'sizes' => "{$size}x{$size}",
+                    'type' => 'image/png',
+                    'purpose' => 'any',
+                ])
+                ->values()
+                ->all();
+
+            $maskable = [
+                [
+                    'src' => $logoUrl,
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'maskable',
+                ],
+            ];
+        } else {
+            $icons = collect([72, 96, 128, 144, 152, 192, 384, 512])
+                ->map(fn (int $size) => [
+                    'src' => asset("icons/icon-{$size}.png"),
+                    'sizes' => "{$size}x{$size}",
+                    'type' => 'image/png',
+                    'purpose' => 'any',
+                ])
+                ->values()
+                ->all();
+
+            $maskable = [
+                [
+                    'src' => asset('icons/icon-512.png'),
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'maskable',
+                ],
+            ];
+        }
 
         return response()->json([
             'id' => $config['scope'],

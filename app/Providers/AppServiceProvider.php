@@ -2,9 +2,10 @@
 
 namespace App\Providers;
 
+use App\Support\SetupProgress;
+use App\Support\ShopSettings;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
-use App\Support\SetupProgress;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with((string) config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        ShopSettings::applyToConfig();
 
         View::composer('layouts.app', function ($view) {
             $view->with('setupSteps', SetupProgress::steps());

@@ -12,8 +12,7 @@
 @endphp
 
 <link rel="manifest" href="{{ route('pwa.manifest', $manifestApp) }}">
-<link rel="icon" href="{{ asset('favicon.png') }}" type="image/png" sizes="192x192">
-<link rel="apple-touch-icon" href="{{ asset('icons/apple-touch-icon.png') }}">
+@include('layouts.partials.favicon')
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="{{ $appTitle }}">
 <meta name="apple-mobile-web-app-title" content="{{ $appTitle }}">

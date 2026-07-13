@@ -36,7 +36,7 @@ function roundRect(ctx, x, y, width, height, radius) {
 /**
  * Stiker meja kompak (~8×10 cm saat dicetak 300dpi dari 960×1200).
  */
-async function buildBarcodePoster({ shopName, orderUrl }) {
+async function buildBarcodePoster({ shopName, shopTitle, orderUrl }) {
     const width = 960;
     const height = 1200;
     const canvas = document.createElement('canvas');
@@ -44,17 +44,14 @@ async function buildBarcodePoster({ shopName, orderUrl }) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // Soft cream-white card background
     ctx.fillStyle = '#fffdf9';
     ctx.fillRect(0, 0, width, height);
 
-    // Outer border
     ctx.strokeStyle = '#e7e0d6';
     ctx.lineWidth = 8;
     roundRect(ctx, 24, 24, width - 48, height - 48, 48);
     ctx.stroke();
 
-    // Top brand ribbon
     const ribbon = ctx.createLinearGradient(0, 0, width, 0);
     ribbon.addColorStop(0, '#312e81');
     ribbon.addColorStop(0.45, '#4f46e5');
@@ -62,17 +59,13 @@ async function buildBarcodePoster({ shopName, orderUrl }) {
     ctx.fillStyle = ribbon;
     roundRect(ctx, 24, 24, width - 48, 120, 48);
     ctx.fill();
-    // square bottom of ribbon
     ctx.fillRect(24, 84, width - 48, 60);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '700 26px "Instrument Sans", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.letterSpacing = '4px';
     ctx.fillText('SCAN  ·  PESAN', width / 2, 98);
-    ctx.letterSpacing = '0px';
 
-    // Shop name
     ctx.fillStyle = '#0f172a';
     ctx.font = '800 54px "Instrument Sans", Arial, sans-serif';
     const shopLines = wrapText(ctx, shopName || 'Coffee & Kitchen', width - 140);
@@ -82,7 +75,16 @@ async function buildBarcodePoster({ shopName, orderUrl }) {
         shopY += 62;
     });
 
-    // QR
+    if (shopTitle) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '500 26px "Instrument Sans", Arial, sans-serif';
+        const titleLines = wrapText(ctx, shopTitle, width - 160);
+        titleLines.slice(0, 2).forEach((line) => {
+            ctx.fillText(line, width / 2, shopY + 8);
+            shopY += 34;
+        });
+    }
+
     const qrSize = 520;
     const qrCanvas = document.createElement('canvas');
     await QRCode.toCanvas(qrCanvas, orderUrl, {
@@ -118,17 +120,14 @@ async function buildBarcodePoster({ shopName, orderUrl }) {
 
     ctx.drawImage(qrCanvas, frameX + framePad, frameY + framePad);
 
-    // CTA
     const ctaY = frameY + frameSize + 70;
     ctx.fillStyle = '#334155';
     ctx.font = '600 30px "Instrument Sans", Arial, sans-serif';
     ctx.fillText('Arahkan kamera ke kode ini', width / 2, ctaY);
 
-    // Flow chips
     const chips = ['Scan', 'Pesan', 'Bayar'];
     const chipW = 150;
     const chipH = 56;
-    const chipGap = 28;
     const arrowGap = 36;
     const unit = chipW + arrowGap;
     const total = chips.length * chipW + (chips.length - 1) * arrowGap;
@@ -154,7 +153,6 @@ async function buildBarcodePoster({ shopName, orderUrl }) {
         chipX += unit;
     });
 
-    // Bottom note
     ctx.fillStyle = '#94a3b8';
     ctx.font = '600 22px "Instrument Sans", Arial, sans-serif';
     ctx.fillText('Tempel di meja · Bayar di kasir', width / 2, height - 70);
@@ -177,6 +175,7 @@ async function downloadBarcodeImage(button) {
     }
 
     const shopName = card.dataset.shopName || document.querySelector('.barcode-print-shop')?.textContent?.trim() || 'Toko';
+    const shopTitle = card.dataset.shopTitle || '';
     const orderUrl = card.dataset.orderUrl || document.querySelector('[data-table-qr-url]')?.dataset?.tableQrUrl;
 
     if (! orderUrl) {
@@ -189,7 +188,7 @@ async function downloadBarcodeImage(button) {
     button.textContent = 'Menyiapkan stiker…';
 
     try {
-        const canvas = await buildBarcodePoster({ shopName, orderUrl });
+        const canvas = await buildBarcodePoster({ shopName, shopTitle, orderUrl });
         const link = document.createElement('a');
         link.download = `stiker-meja-${slugify(shopName)}.png`;
         link.href = canvas.toDataURL('image/png');

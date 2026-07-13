@@ -5,11 +5,15 @@
 @section('content')
     <div class="order-table-shell" data-order-table>
         <header class="order-table-header">
-            <div class="order-table-header-badge">☕</div>
+            @include('layouts.partials.shop-brand-mark', ['sizeClass' => 'h-11 w-11', 'roundedClass' => 'rounded-2xl', 'textClass' => 'text-lg'])
             <div class="min-w-0 flex-1">
                 <p class="text-xs font-semibold uppercase tracking-wider text-brand-600">Pesan Online</p>
                 <h1 class="truncate text-xl font-bold text-slate-900 sm:text-2xl">{{ config('pos.shop_name') }}</h1>
                 <p class="text-xs text-slate-500">
+                    @if (config('pos.shop_title'))
+                        <span>{{ config('pos.shop_title') }}</span>
+                        <span aria-hidden="true"> · </span>
+                    @endif
                     <span class="font-mono">{{ $order->order_number }}</span>
                     @if ($order->customer_note)
                         · {{ $order->customer_note }}

@@ -13,12 +13,16 @@
             class="barcode-print-card"
             id="table-barcode-print"
             data-shop-name="{{ $shopName }}"
+            data-shop-title="{{ $shopTitle ?? config('pos.shop_title') }}"
             data-order-url="{{ $orderUrl }}"
         >
             <div class="barcode-print-mark" aria-hidden="true">QR</div>
 
             <p class="barcode-print-eyebrow">Scan untuk pesan</p>
             <h1 class="barcode-print-shop">{{ $shopName }}</h1>
+            @if (! empty($shopTitle ?? config('pos.shop_title')))
+                <p class="barcode-print-tagline">{{ $shopTitle ?? config('pos.shop_title') }}</p>
+            @endif
 
             <div class="barcode-print-qr-frame">
                 <canvas
