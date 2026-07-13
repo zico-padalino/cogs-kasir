@@ -21,7 +21,7 @@
             @endif
             <div class="login-brand-copy">
                 <h1 class="login-shop-name">{{ $shopName }}</h1>
-                <p class="login-shop-title">Buka kasir dengan PIN pribadi</p>
+                <p class="login-shop-title">PIN menentukan siapa yang bertugas</p>
             </div>
         </div>
 
@@ -36,6 +36,11 @@
         @if ($errors->any())
             <div class="auth-alert-error mb-4" role="alert">{{ $errors->first() }}</div>
         @endif
+
+        <p class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+            Login stasiun boleh tetap sama. Masukkan <strong>PIN milik kasir yang sedang bertugas</strong>
+            — transaksi akan tercatat atas nama pemilik PIN itu (bukan akun login).
+        </p>
 
         <form action="{{ route('kasir.pin.unlock.submit') }}" method="POST" class="space-y-4" autocomplete="off">
             @csrf

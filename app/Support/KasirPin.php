@@ -13,7 +13,7 @@ class KasirPin
 
     public const SESSION_VERIFIED_AT = 'kasir_pin_verified_at';
 
-    public const IDLE_MINUTES = 480; // 8 jam shift
+    public const IDLE_MINUTES = 15;
 
     public static function operator(): ?User
     {
