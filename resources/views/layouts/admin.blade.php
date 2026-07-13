@@ -87,6 +87,10 @@
                         <p class="truncate text-xs font-medium text-white">{{ auth()->user()->name }}</p>
                         <p class="truncate text-[11px] text-slate-400">Admin</p>
                     </div>
+                    <a href="{{ route('password.edit') }}"
+                       class="mb-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
+                        <span>🔑</span> Ubah Password
+                    </a>
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white">

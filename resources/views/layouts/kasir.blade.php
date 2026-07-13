@@ -100,24 +100,30 @@
                         <p class="truncate text-xs font-medium text-white">{{ auth()->user()->name }}</p>
                         <p class="truncate text-[11px] text-slate-400">{{ auth()->user()->role->label() }}</p>
                     </div>
-                    <div class="kasir-sidebar-foot-actions">
-                        <button
-                            type="button"
-                            class="kasir-sound-toggle"
-                            data-kasir-sound-toggle
-                            aria-pressed="true"
-                            title="Suara notifikasi"
-                        >
-                            <span class="kasir-sound-toggle-icon" aria-hidden="true">🔔</span>
-                            <span class="kasir-sound-toggle-label" data-kasir-sound-label>Suara aktif</span>
-                        </button>
-                        <form action="{{ route('logout') }}" method="POST" class="kasir-sidebar-foot-form">
-                            @csrf
-                            <button type="submit" class="kasir-sidebar-logout">
-                                <span aria-hidden="true">↩</span>
-                                <span>Keluar</span>
+                    <div class="space-y-2">
+                        <a href="{{ route('password.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
+                            <span aria-hidden="true">🔑</span>
+                            <span>Ubah Password</span>
+                        </a>
+                        <div class="kasir-sidebar-foot-actions">
+                            <button
+                                type="button"
+                                class="kasir-sound-toggle"
+                                data-kasir-sound-toggle
+                                aria-pressed="true"
+                                title="Suara notifikasi"
+                            >
+                                <span class="kasir-sound-toggle-icon" aria-hidden="true">🔔</span>
+                                <span class="kasir-sound-toggle-label" data-kasir-sound-label>Suara aktif</span>
                             </button>
-                        </form>
+                            <form action="{{ route('logout') }}" method="POST" class="kasir-sidebar-foot-form">
+                                @csrf
+                                <button type="submit" class="kasir-sidebar-logout">
+                                    <span aria-hidden="true">↩</span>
+                                    <span>Keluar</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </aside>

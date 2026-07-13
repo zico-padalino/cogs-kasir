@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\Admin\SettingsController;
 use App\Http\Controllers\Web\Admin\UserAccessController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\Auth\ModuleHubController;
+use App\Http\Controllers\Web\Auth\PasswordController;
 use App\Http\Controllers\Web\CogsController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InventoryController;
@@ -43,6 +44,8 @@ Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->
 Route::middleware('auth')->group(function () {
     Route::get('/hub', [ModuleHubController::class, 'index'])->name('hub');
     Route::get('/hub/{module}', [ModuleHubController::class, 'switch'])->name('hub.switch');
+    Route::get('/password', [PasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
 });
 
 Route::redirect('meja/{token}', '/pesan');

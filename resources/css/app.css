@@ -4359,6 +4359,89 @@
         @apply mt-1 w-full py-3 text-base;
     }
 
+    .password-strength {
+        @apply mt-3 space-y-2.5 rounded-2xl border border-slate-100 bg-slate-50/80 px-3.5 py-3;
+    }
+
+    .password-strength-head {
+        @apply flex items-center justify-between gap-3;
+    }
+
+    .password-strength-caption {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .password-strength-label {
+        @apply text-xs font-bold text-slate-500;
+    }
+
+    .password-strength-label[data-tone='weak'] {
+        @apply text-rose-600;
+    }
+
+    .password-strength-label[data-tone='fair'] {
+        @apply text-amber-600;
+    }
+
+    .password-strength-label[data-tone='good'] {
+        @apply text-sky-600;
+    }
+
+    .password-strength-label[data-tone='strong'],
+    .password-strength-label[data-tone='very-strong'] {
+        @apply text-emerald-600;
+    }
+
+    .password-strength-bars {
+        @apply grid grid-cols-5 gap-1.5;
+    }
+
+    .password-strength-bars span {
+        @apply h-1.5 rounded-full bg-slate-200 transition;
+    }
+
+    .password-strength-bars span[data-active='1'][data-tone='weak'] {
+        @apply bg-rose-500;
+    }
+
+    .password-strength-bars span[data-active='1'][data-tone='fair'] {
+        @apply bg-amber-500;
+    }
+
+    .password-strength-bars span[data-active='1'][data-tone='good'] {
+        @apply bg-sky-500;
+    }
+
+    .password-strength-bars span[data-active='1'][data-tone='strong'] {
+        @apply bg-emerald-500;
+    }
+
+    .password-strength-bars span[data-active='1'][data-tone='very-strong'] {
+        @apply bg-emerald-600;
+    }
+
+    .password-strength-tips {
+        @apply grid grid-cols-1 gap-1 sm:grid-cols-2;
+    }
+
+    .password-strength-tips li {
+        @apply relative pl-4 text-[11px] text-slate-500;
+    }
+
+    .password-strength-tips li::before {
+        content: '○';
+        @apply absolute left-0 top-0 text-[10px] text-slate-400;
+    }
+
+    .password-strength-tips li[data-ok='1'] {
+        @apply font-medium text-emerald-700;
+    }
+
+    .password-strength-tips li[data-ok='1']::before {
+        content: '✓';
+        @apply text-emerald-600;
+    }
+
     .auth-module-grid {
         @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
     }
