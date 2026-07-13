@@ -17,7 +17,7 @@ class MenuPricingController extends Controller
         $products = Product::query()
             ->whereIn('type', [ProductType::FinishedGood->value, ProductType::SemiFinished->value])
             ->where('is_active', true)
-            ->orderBy('name')
+            ->latest('id')
             ->get()
             ->map(function (Product $product) use ($hppService) {
                 $modal = $hppService->effectiveUnitHpp($product);
