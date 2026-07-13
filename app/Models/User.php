@@ -32,11 +32,7 @@ class User extends Authenticatable
     /** @return list<UserRole> */
     public function accessibleModules(): array
     {
-        $values = $this->modules ?? [];
-
-        if ($values === []) {
-            return [$this->role];
-        }
+        $values = $this->moduleValues();
 
         return collect($values)
             ->map(fn (string $value) => UserRole::tryFrom($value))
@@ -60,16 +56,20 @@ class User extends Authenticatable
             return array_values($this->modules);
         }
 
-        return [$this->role->value];
+        if ($this->role instanceof UserRole) {
+            return [$this->role->value];
+        }
+
+        return [];
     }
 
     public function defaultModule(): UserRole
     {
-        if ($this->hasModule($this->role)) {
+        if ($this->role instanceof UserRole && $this->hasModule($this->role)) {
             return $this->role;
         }
 
-        return $this->accessibleModules()[0] ?? $this->role;
+        return $this->accessibleModules()[0] ?? UserRole::Cogs;
     }
 
     public function homeUrl(): string
