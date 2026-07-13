@@ -63,8 +63,34 @@
                     @foreach ($materials as $material)
                         <div class="module-item-card">
                             <div class="flex flex-wrap items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <p class="text-base font-bold text-slate-900">{{ $material->name }}</p>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <p class="text-base font-bold text-slate-900">{{ $material->name }}</p>
+                                        <details class="inline-block">
+                                            <summary class="cursor-pointer text-xs font-semibold text-brand-600 hover:text-brand-700">Ubah nama</summary>
+                                            <form
+                                                action="{{ route('materials.update', $material) }}"
+                                                method="POST"
+                                                class="mt-2 flex flex-wrap items-end gap-2 rounded-xl border border-brand-100 bg-brand-50/50 p-2"
+                                            >
+                                                @csrf
+                                                @method('PUT')
+                                                <div class="min-w-[12rem] flex-1">
+                                                    <label class="form-label text-xs" for="material-name-{{ $material->id }}">Nama bahan</label>
+                                                    <input
+                                                        id="material-name-{{ $material->id }}"
+                                                        type="text"
+                                                        name="name"
+                                                        class="form-input text-sm"
+                                                        required
+                                                        maxlength="255"
+                                                        value="{{ old('name', $material->name) }}"
+                                                    >
+                                                </div>
+                                                <button type="submit" class="btn-primary btn-sm">Simpan</button>
+                                            </form>
+                                        </details>
+                                    </div>
                                     <div class="mt-2 flex flex-wrap gap-2">
                                         <span class="module-stat-pill module-stat-pill--stock">
                                             Stok sisa {{ $format::number($material->available_qty, 2) }} {{ $material->unit }}

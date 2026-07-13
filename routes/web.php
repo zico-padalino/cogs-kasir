@@ -142,6 +142,7 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::get('bahan/pdf', [InventoryController::class, 'pdf'])->name('materials.pdf');
     Route::get('bahan/riwayat', [InventoryController::class, 'history'])->name('materials.history');
     Route::post('bahan', [InventoryController::class, 'storeMaterial'])->name('materials.store');
+    Route::put('bahan/{product}', [InventoryController::class, 'updateMaterial'])->name('materials.update');
     Route::post('bahan/stok', [InventoryController::class, 'receive'])->name('materials.receive');
     Route::put('bahan/{product}/stok-sisa', [InventoryController::class, 'adjust'])->name('materials.stock.adjust');
     Route::put('bahan/stok/{lot}', [InventoryController::class, 'update'])->name('materials.lots.update');

@@ -201,6 +201,33 @@ class InventoryController extends Controller
             ->with('success', "Bahan {$product->name} ditambahkan beserta stok awal.");
     }
 
+    public function updateMaterial(Request $request, Product $product)
+    {
+        if ($product->type !== ProductType::RawMaterial) {
+            abort(403, 'Hanya bahan baku yang bisa diubah di sini.');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ], [
+            'name.required' => 'Nama bahan wajib diisi.',
+        ]);
+
+        $oldName = $product->name;
+        $newName = trim($validated['name']);
+
+        if ($newName === $oldName) {
+            return redirect()->route('materials.index')->with('success', 'Nama bahan tidak berubah.');
+        }
+
+        $product->update(['name' => $newName]);
+
+        return redirect()->route('materials.index')->with(
+            'success',
+            sprintf('Nama bahan diubah: %s → %s.', $oldName, $newName),
+        );
+    }
+
     public function receive(
         StoreInventoryReceiptRequest $request,
         InventoryCostService $inventoryService,
