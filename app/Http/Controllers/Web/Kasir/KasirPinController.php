@@ -26,6 +26,14 @@ class KasirPinController extends Controller
         ]);
     }
 
+    public function status(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(array_merge(KasirPin::statusPayload(), [
+            'redirect' => route('kasir.pin.unlock'),
+            'ttl_minutes' => KasirPin::idleMinutes(),
+        ]));
+    }
+
     public function unlock(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -49,7 +57,7 @@ class KasirPinController extends Controller
 
         return redirect()
             ->to($intended)
-            ->with('success', 'Kasir dibuka oleh '.$operator->name.'.');
+            ->with('success', 'Kasir dibuka oleh '.$operator->name.'. Sesi PIN '.KasirPin::idleMinutes().' menit.');
     }
 
     public function lock(Request $request): RedirectResponse

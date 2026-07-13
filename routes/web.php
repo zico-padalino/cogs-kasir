@@ -86,6 +86,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::get('/pin', [KasirPinController::class, 'show'])->name('pin.unlock');
     Route::post('/pin', [KasirPinController::class, 'unlock'])->name('pin.unlock.submit');
     Route::post('/pin/lock', [KasirPinController::class, 'lock'])->name('pin.lock');
+    Route::get('/pin/status', [KasirPinController::class, 'status'])->name('pin.status');
 
     Route::middleware('kasir.pin')->group(function () {
         Route::get('/', [KasirController::class, 'index'])->name('index');

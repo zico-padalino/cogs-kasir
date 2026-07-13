@@ -17,16 +17,22 @@ class EnsureKasirPinUnlocked
 
         KasirPin::lock();
 
-        if ($request->expectsJson() || $request->ajax()) {
+        $wantsJson = $request->expectsJson()
+            || $request->ajax()
+            || $request->routeIs('kasir.pending.poll', 'kasir.pin.status');
+
+        if ($wantsJson) {
             return response()->json([
                 'message' => 'Sesi PIN habis. Masukkan PIN lagi.',
                 'locked' => true,
+                'unlocked' => false,
                 'redirect' => route('kasir.pin.unlock'),
+                'remaining_seconds' => 0,
             ], 423);
         }
 
         return redirect()
             ->guest(route('kasir.pin.unlock'))
-            ->with('error', 'Sesi PIN habis ('.KasirPin::IDLE_MINUTES.' menit). Masukkan PIN lagi.');
+            ->with('error', 'Sesi PIN habis ('.KasirPin::idleMinutes().' menit). Masukkan PIN lagi.');
     }
 }

@@ -14,8 +14,12 @@ class KasirPin
 
     public const SESSION_VERIFIED_AT = 'kasir_pin_verified_at';
 
-    /** Durasi sesi PIN sebelum harus dimasukkan lagi. */
-    public const IDLE_MINUTES = 10;
+    public const SESSION_EXPIRES_AT = 'kasir_pin_expires_at';
+
+    public static function idleMinutes(): int
+    {
+        return max(1, (int) config('pos.kasir_pin_ttl_minutes', 10));
+    }
 
     public static function operator(): ?User
     {
@@ -35,46 +39,83 @@ class KasirPin
 
     public static function isUnlocked(): bool
     {
-        $operatorId = Session::get(self::SESSION_OPERATOR);
-        $verifiedTs = self::verifiedTimestamp(Session::get(self::SESSION_VERIFIED_AT));
-
-        if (! $operatorId || $verifiedTs === null) {
+        if (! Session::get(self::SESSION_OPERATOR)) {
             return false;
         }
 
-        $elapsed = now()->getTimestamp() - $verifiedTs;
+        $expiresAt = self::expiresAtTimestamp();
 
-        if ($elapsed < 0) {
+        if ($expiresAt === null) {
             return false;
         }
 
-        return $elapsed <= (self::IDLE_MINUTES * 60);
+        return now()->getTimestamp() < $expiresAt;
     }
 
     public static function expiresAtTimestamp(): ?int
     {
-        if (! Session::get(self::SESSION_OPERATOR)) {
+        $expiresAt = self::toUnix(Session::get(self::SESSION_EXPIRES_AT));
+
+        if ($expiresAt !== null) {
+            return $expiresAt;
+        }
+
+        // Kompatibilitas sesi lama yang hanya punya verified_at
+        $verifiedAt = self::toUnix(Session::get(self::SESSION_VERIFIED_AT));
+
+        if ($verifiedAt === null) {
             return null;
         }
 
-        $verifiedTs = self::verifiedTimestamp(Session::get(self::SESSION_VERIFIED_AT));
+        return $verifiedAt + (self::idleMinutes() * 60);
+    }
 
-        if ($verifiedTs === null) {
-            return null;
+    public static function remainingSeconds(): int
+    {
+        $expiresAt = self::expiresAtTimestamp();
+
+        if ($expiresAt === null) {
+            return 0;
         }
 
-        return $verifiedTs + (self::IDLE_MINUTES * 60);
+        return max(0, $expiresAt - now()->getTimestamp());
+    }
+
+    /** @return array{unlocked: bool, expires_at: ?int, server_now: int, remaining_seconds: int} */
+    public static function statusPayload(): array
+    {
+        $unlocked = self::isUnlocked();
+
+        if (! $unlocked) {
+            self::lock();
+        }
+
+        return [
+            'unlocked' => $unlocked,
+            'expires_at' => $unlocked ? self::expiresAtTimestamp() : null,
+            'server_now' => now()->getTimestamp(),
+            'remaining_seconds' => $unlocked ? self::remainingSeconds() : 0,
+        ];
     }
 
     public static function unlock(User $operator): void
     {
-        Session::put(self::SESSION_OPERATOR, $operator->id);
-        Session::put(self::SESSION_VERIFIED_AT, now()->getTimestamp());
+        $now = now()->getTimestamp();
+        $expiresAt = $now + (self::idleMinutes() * 60);
+
+        Session::put(self::SESSION_OPERATOR, (int) $operator->id);
+        Session::put(self::SESSION_VERIFIED_AT, $now);
+        Session::put(self::SESSION_EXPIRES_AT, $expiresAt);
+        Session::save();
     }
 
     public static function lock(): void
     {
-        Session::forget([self::SESSION_OPERATOR, self::SESSION_VERIFIED_AT]);
+        Session::forget([
+            self::SESSION_OPERATOR,
+            self::SESSION_VERIFIED_AT,
+            self::SESSION_EXPIRES_AT,
+        ]);
     }
 
     public static function findByPin(string $pin): ?User
@@ -122,28 +163,46 @@ class KasirPin
         return filled($user->pin_hash);
     }
 
-    private static function verifiedTimestamp(mixed $value): ?int
+    private static function toUnix(mixed $value): ?int
     {
         if ($value === null || $value === '') {
             return null;
         }
 
+        if ($value instanceof Carbon) {
+            return $value->getTimestamp();
+        }
+
         if (is_int($value)) {
-            return $value;
+            return $value > 1_000_000_000_000 ? (int) floor($value / 1000) : $value;
         }
 
         if (is_float($value)) {
-            return (int) $value;
+            $asInt = (int) $value;
+
+            return $asInt > 1_000_000_000_000 ? (int) floor($asInt / 1000) : $asInt;
         }
 
-        if (is_string($value) && ctype_digit($value)) {
-            return (int) $value;
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            if ($trimmed === '') {
+                return null;
+            }
+
+            if (ctype_digit($trimmed)) {
+                $asInt = (int) $trimmed;
+
+                return $asInt > 1_000_000_000_000 ? (int) floor($asInt / 1000) : $asInt;
+            }
+
+            try {
+                return Carbon::parse($trimmed)->getTimestamp();
+            } catch (\Throwable) {
+                return null;
+            }
         }
 
-        try {
-            return Carbon::parse($value)->getTimestamp();
-        } catch (\Throwable) {
-            return null;
-        }
+        return null;
     }
 }

@@ -68,7 +68,7 @@ class KasirController extends Controller
         $format = Format::class;
         $currentOrder = $this->activeKasirOrder();
 
-        return response()->json([
+        return response()->json(array_merge([
             'count' => $pendingOrders->count(),
             'total' => (float) $pendingOrders->sum('total'),
             'order_ids' => $pendingOrders->pluck('id')->values(),
@@ -77,7 +77,7 @@ class KasirController extends Controller
             'html' => $pendingOrders->isNotEmpty()
                 ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
                 : '',
-        ]);
+        ], KasirPin::statusPayload()));
     }
 
     public function orders()
