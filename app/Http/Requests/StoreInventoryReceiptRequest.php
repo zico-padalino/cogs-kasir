@@ -12,7 +12,7 @@ class StoreInventoryReceiptRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->normalizeRupiahFields(['unit_cost', 'package_cost']);
+        $this->normalizeRupiahFields(['unit_cost', 'package_cost', 'purchase_cost']);
 
         if (! $this->filled('purchase_mode')) {
             $this->merge(['purchase_mode' => 'direct']);

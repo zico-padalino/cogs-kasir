@@ -15,6 +15,8 @@
     ];
     $packagePreset = old('package_preset', 'dus');
     $packageCustom = old('package_custom', '');
+    $portionUnit = old('portion_unit', 'gr');
+    $purchaseUnit = old('purchase_unit', 'kg');
 @endphp
 
 <div
@@ -24,26 +26,33 @@
 >
     <div>
         <p class="form-label mb-2">Cara beli</p>
-        <div class="grid gap-2 sm:grid-cols-2">
+        <div class="grid gap-2 lg:grid-cols-3">
             <label class="module-choice">
                 <input type="radio" name="purchase_mode" value="direct" class="mt-1" data-purchase-mode @checked($mode === 'direct')>
                 <span class="text-sm">
-                    <strong class="text-slate-900">Langsung per satuan stok</strong>
-                    <span class="mt-0.5 block text-xs text-slate-500">Contoh: beli 25 kg, harga per kg.</span>
+                    <strong class="text-slate-900">Langsung</strong>
+                    <span class="mt-0.5 block text-xs text-slate-500">Beli 25 kg, harga per kg.</span>
                 </span>
             </label>
             <label class="module-choice">
                 <input type="radio" name="purchase_mode" value="pack" class="mt-1" data-purchase-mode @checked($mode === 'pack')>
                 <span class="text-sm">
-                    <strong class="text-slate-900">Beli per kemasan</strong>
-                    <span class="mt-0.5 block text-xs text-slate-500">Contoh: 2 dus × 40 pcs, harga per dus.</span>
+                    <strong class="text-slate-900">Per kemasan</strong>
+                    <span class="mt-0.5 block text-xs text-slate-500">2 dus × 40 pcs, harga per dus.</span>
+                </span>
+            </label>
+            <label class="module-choice">
+                <input type="radio" name="purchase_mode" value="portion" class="mt-1" data-purchase-mode @checked($mode === 'portion')>
+                <span class="text-sm">
+                    <strong class="text-slate-900">Konversi kg/liter</strong>
+                    <span class="mt-0.5 block text-xs text-slate-500">1 stok = 250 gram, beli 1 kg → 4 stok.</span>
                 </span>
             </label>
         </div>
     </div>
 
     <div class="space-y-3 {{ $mode === 'direct' ? '' : 'hidden' }}" data-purchase-direct>
-        <div class="grid gap-4 {{ $compact ? 'sm:grid-cols-2' : 'sm:grid-cols-2' }}">
+        <div class="grid gap-4 sm:grid-cols-2">
             <div>
                 <label class="form-label {{ $compact ? 'text-xs' : '' }}">Jumlah masuk</label>
                 <input
@@ -69,7 +78,7 @@
     </div>
 
     <div class="space-y-3 {{ $mode === 'pack' ? '' : 'hidden' }}" data-purchase-pack>
-        <div class="grid gap-3 {{ $compact ? 'sm:grid-cols-2' : 'sm:grid-cols-2' }}">
+        <div class="grid gap-3 sm:grid-cols-2">
             <div>
                 <label class="form-label {{ $compact ? 'text-xs' : '' }}">Jumlah kemasan</label>
                 <input
@@ -131,6 +140,69 @@
                 <x-rupiah-input name="package_cost" placeholder="120.000" :required="$mode === 'pack'" />
                 <p class="form-hint">Harga 1 dus / karton.</p>
             </div>
+        </div>
+    </div>
+
+    <div class="space-y-3 {{ $mode === 'portion' ? '' : 'hidden' }}" data-purchase-portion>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Cocok untuk keju/daging: stok dihitung per porsi (mis. 250 gram), sementara beli dalam kg.
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+                <label class="form-label {{ $compact ? 'text-xs' : '' }}">1 satuan stok =</label>
+                <div class="flex gap-2">
+                    <input
+                        type="number"
+                        name="portion_size"
+                        class="form-input {{ $compact ? 'text-sm' : 'text-lg font-semibold' }}"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="250"
+                        value="{{ old('portion_size', '250') }}"
+                        data-portion-size
+                        @disabled($mode !== 'portion')
+                        @required($mode === 'portion')
+                    >
+                    <select name="portion_unit" class="form-input max-w-[7rem] {{ $compact ? 'text-sm' : '' }}" data-portion-unit @disabled($mode !== 'portion')>
+                        <option value="gr" @selected($portionUnit === 'gr')>gram</option>
+                        <option value="kg" @selected($portionUnit === 'kg')>kg</option>
+                        <option value="ml" @selected($portionUnit === 'ml')>ml</option>
+                        <option value="liter" @selected($portionUnit === 'liter')>liter</option>
+                    </select>
+                </div>
+                <p class="form-hint">Isi 1 stok berapa gram/ml. Contoh: 250 gram.</p>
+            </div>
+            <div>
+                <label class="form-label {{ $compact ? 'text-xs' : '' }}">Jumlah dibeli</label>
+                <div class="flex gap-2">
+                    <input
+                        type="number"
+                        name="purchase_qty"
+                        class="form-input {{ $compact ? 'text-sm' : 'text-lg font-semibold' }}"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="1"
+                        value="{{ old('purchase_qty', '1') }}"
+                        data-purchase-qty
+                        @disabled($mode !== 'portion')
+                        @required($mode === 'portion')
+                    >
+                    <select name="purchase_unit" class="form-input max-w-[7rem] {{ $compact ? 'text-sm' : '' }}" data-purchase-unit @disabled($mode !== 'portion')>
+                        <option value="kg" @selected($purchaseUnit === 'kg')>kg</option>
+                        <option value="gr" @selected($purchaseUnit === 'gr')>gram</option>
+                        <option value="liter" @selected($purchaseUnit === 'liter')>liter</option>
+                        <option value="ml" @selected($purchaseUnit === 'ml')>ml</option>
+                    </select>
+                </div>
+                <p class="form-hint">Contoh: beli 1 kg.</p>
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga total pembelian</label>
+            <x-rupiah-input name="purchase_cost" placeholder="80.000" :required="$mode === 'portion'" />
+            <p class="form-hint">Harga untuk jumlah dibeli di atas (bukan per satuan stok).</p>
         </div>
     </div>
 
