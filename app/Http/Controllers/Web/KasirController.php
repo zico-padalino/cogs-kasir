@@ -13,18 +13,24 @@ use App\Models\Product;
 use App\Services\PosOrderService;
 use App\Services\ReceiptPdfService;
 use App\Support\Format;
+use App\Support\KasirPin;
 use App\Support\PosMenu;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class KasirController extends Controller
 {
+    private function cashier()
+    {
+        return KasirPin::operatorOrAuth();
+    }
+
     public function index(PosOrderService $posService)
     {
         $activeOrder = $this->activeKasirOrder();
 
         if (! $activeOrder) {
-            $activeOrder = $posService->createKasirOrder(auth()->user());
+            $activeOrder = $posService->createKasirOrder($this->cashier());
             session(['kasir_order_id' => $activeOrder->id]);
         }
 
@@ -133,7 +139,7 @@ class KasirController extends Controller
 
     public function newOrder(PosOrderService $posService)
     {
-        $order = $posService->createKasirOrder(auth()->user());
+        $order = $posService->createKasirOrder($this->cashier());
         session(['kasir_order_id' => $order->id]);
 
         return redirect()->route('kasir.index')->with('success', 'Order baru dibuat.');
@@ -152,7 +158,7 @@ class KasirController extends Controller
         // Online submitted → masuk ke kasir (siap bayar).
         if ($order->source === PosOrderSource::Online && $order->status === PosOrderStatus::Submitted) {
             try {
-                $order = $posService->confirmOrder($order, auth()->user());
+                $order = $posService->confirmOrder($order, $this->cashier());
             } catch (\Throwable $e) {
                 if ($request->expectsJson()) {
                     return response()->json(['message' => $e->getMessage()], 422);
@@ -180,7 +186,7 @@ class KasirController extends Controller
     public function confirmOrder(PosOrder $order, PosOrderService $posService)
     {
         try {
-            $posService->confirmOrder($order, auth()->user());
+            $posService->confirmOrder($order, $this->cashier());
         } catch (\RuntimeException $e) {
             if (request()->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
@@ -220,7 +226,7 @@ class KasirController extends Controller
 
         if ($wasActive) {
             session()->forget('kasir_order_id');
-            $newOrder = $posService->createKasirOrder(auth()->user());
+            $newOrder = $posService->createKasirOrder($this->cashier());
             session(['kasir_order_id' => $newOrder->id]);
         }
 
@@ -355,7 +361,7 @@ class KasirController extends Controller
 
         session()->forget('kasir_order_id');
 
-        $newOrder = $posService->createKasirOrder(auth()->user());
+        $newOrder = $posService->createKasirOrder($this->cashier());
         session(['kasir_order_id' => $newOrder->id]);
 
         return redirect()->route('kasir.index')->with('success', 'Pesanan dibatalkan.');
@@ -371,7 +377,7 @@ class KasirController extends Controller
             'addon_ids.*' => ['integer', 'exists:product_addons,id'],
         ]);
 
-        $order = $this->activeKasirOrder() ?? $posService->createKasirOrder(auth()->user());
+        $order = $this->activeKasirOrder() ?? $posService->createKasirOrder($this->cashier());
         session(['kasir_order_id' => $order->id]);
 
         $product = Product::findOrFail($validated['product_id']);
@@ -471,7 +477,7 @@ class KasirController extends Controller
             $result = $posService->payOrder(
                 $order,
                 $paymentMethod,
-                auth()->user(),
+                $this->cashier(),
                 $amountReceived,
                 $paymentProof,
             );

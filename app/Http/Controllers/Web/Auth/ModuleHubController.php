@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Auth;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Support\CogsNavigation;
+use App\Support\KasirPin;
 use Illuminate\Http\Request;
 
 class ModuleHubController extends Controller
@@ -34,6 +35,10 @@ class ModuleHubController extends Controller
         }
 
         $request->session()->put('auth_module', $role->value);
+
+        if ($role === UserRole::Kasir) {
+            KasirPin::lock();
+        }
 
         if ($role === UserRole::Cogs) {
             return redirect()->to(CogsNavigation::preferredUrl());

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Services\CashLedgerService;
 use App\Support\Format;
+use App\Support\KasirPin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -42,7 +43,7 @@ class KasTunaiController extends Controller
             $cashLedger->addFloatIn(
                 (float) $validated['amount'],
                 $validated['note'],
-                auth()->user(),
+                KasirPin::operatorOrAuth(),
             );
         } catch (RuntimeException $e) {
             return back()->with('error', $e->getMessage())->withInput();
@@ -65,7 +66,7 @@ class KasTunaiController extends Controller
             $cashLedger->addExpense(
                 (float) $validated['amount'],
                 $validated['note'],
-                auth()->user(),
+                KasirPin::operatorOrAuth(),
             );
         } catch (RuntimeException $e) {
             return back()->with('error', $e->getMessage())->withInput();

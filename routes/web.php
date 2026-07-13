@@ -9,9 +9,11 @@ use App\Http\Controllers\Web\Admin\UserAccessController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\Auth\ModuleHubController;
 use App\Http\Controllers\Web\Auth\PasswordController;
+use App\Http\Controllers\Web\Auth\PinSetupController;
 use App\Http\Controllers\Web\CogsController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InventoryController;
+use App\Http\Controllers\Web\Kasir\KasirPinController;
 use App\Http\Controllers\Web\KasirController;
 use App\Http\Controllers\Web\KasirProductController;
 use App\Http\Controllers\Web\MenuCategoryController;
@@ -46,6 +48,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/hub/{module}', [ModuleHubController::class, 'switch'])->name('hub.switch');
     Route::get('/password', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
+    Route::get('/pin', [PinSetupController::class, 'edit'])->name('pin.edit');
+    Route::put('/pin', [PinSetupController::class, 'update'])->name('pin.update');
 });
 
 Route::redirect('meja/{token}', '/pesan');
@@ -79,37 +83,43 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 });
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
-    Route::get('/', [KasirController::class, 'index'])->name('index');
-    Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
-    Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
-    Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
-    Route::get('/tables', [KasirController::class, 'tables'])->name('tables');
-    Route::get('/barcode', [KasirController::class, 'barcode'])->name('barcode');
-    Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
-    Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
-    Route::patch('/order', [KasirController::class, 'updateOrder'])->name('order.update');
-    Route::patch('/discount', [KasirController::class, 'updateDiscount'])->name('discount.update');
-    Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
-    Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
-    Route::post('/orders/{order}/confirm', [KasirController::class, 'confirmOrder'])->name('orders.confirm');
-    Route::post('/orders/{order}/cancel', [KasirController::class, 'cancelPendingOrder'])->name('orders.cancel');
-    Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
-    Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');
-    Route::delete('/items/{item}', [KasirController::class, 'removeItem'])->name('items.destroy');
-    Route::get('/products', [KasirProductController::class, 'index'])->name('products.index');
-    Route::get('/products/{product}/edit', [KasirProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{product}', [KasirProductController::class, 'update'])->name('products.update');
-    Route::get('/menu-categories', [MenuCategoryController::class, 'index'])->name('menu-categories.index');
-    Route::post('/menu-categories', [MenuCategoryController::class, 'store'])->name('menu-categories.store');
-    Route::delete('/menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('menu-categories.destroy');
-    Route::get('/pembukuan', [PembukuanController::class, 'index'])->name('pembukuan.index');
-    Route::get('/pembukuan/pdf', [PembukuanController::class, 'pdf'])->name('pembukuan.pdf');
-    Route::get('/kas-tunai', [KasTunaiController::class, 'index'])->name('kas-tunai.index');
-    Route::post('/kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
-    Route::post('/kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
-    Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
-    Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
-    Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
+    Route::get('/pin', [KasirPinController::class, 'show'])->name('pin.unlock');
+    Route::post('/pin', [KasirPinController::class, 'unlock'])->name('pin.unlock.submit');
+    Route::post('/pin/lock', [KasirPinController::class, 'lock'])->name('pin.lock');
+
+    Route::middleware('kasir.pin')->group(function () {
+        Route::get('/', [KasirController::class, 'index'])->name('index');
+        Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
+        Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
+        Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
+        Route::get('/tables', [KasirController::class, 'tables'])->name('tables');
+        Route::get('/barcode', [KasirController::class, 'barcode'])->name('barcode');
+        Route::post('/tables', [KasirController::class, 'storeTable'])->name('tables.store');
+        Route::post('/new-order', [KasirController::class, 'newOrder'])->name('new-order');
+        Route::patch('/order', [KasirController::class, 'updateOrder'])->name('order.update');
+        Route::patch('/discount', [KasirController::class, 'updateDiscount'])->name('discount.update');
+        Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
+        Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
+        Route::post('/orders/{order}/confirm', [KasirController::class, 'confirmOrder'])->name('orders.confirm');
+        Route::post('/orders/{order}/cancel', [KasirController::class, 'cancelPendingOrder'])->name('orders.cancel');
+        Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
+        Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');
+        Route::delete('/items/{item}', [KasirController::class, 'removeItem'])->name('items.destroy');
+        Route::get('/products', [KasirProductController::class, 'index'])->name('products.index');
+        Route::get('/products/{product}/edit', [KasirProductController::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product}', [KasirProductController::class, 'update'])->name('products.update');
+        Route::get('/menu-categories', [MenuCategoryController::class, 'index'])->name('menu-categories.index');
+        Route::post('/menu-categories', [MenuCategoryController::class, 'store'])->name('menu-categories.store');
+        Route::delete('/menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('menu-categories.destroy');
+        Route::get('/pembukuan', [PembukuanController::class, 'index'])->name('pembukuan.index');
+        Route::get('/pembukuan/pdf', [PembukuanController::class, 'pdf'])->name('pembukuan.pdf');
+        Route::get('/kas-tunai', [KasTunaiController::class, 'index'])->name('kas-tunai.index');
+        Route::post('/kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
+        Route::post('/kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
+        Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
+        Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
+        Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
+    });
 });
 
 Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {

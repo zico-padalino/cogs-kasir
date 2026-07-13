@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserRole::class,
             'cogs.route' => \App\Http\Middleware\RememberCogsRoute::class,
+            'kasir.pin' => \App\Http\Middleware\EnsureKasirPinUnlocked::class,
         ]);
 
         $middleware->trustProxies(at: '*');

@@ -97,14 +97,32 @@
 
                 <div class="border-t border-slate-800 px-4 py-4">
                     <div class="mb-3 rounded-lg bg-slate-800/80 px-3 py-2">
-                        <p class="truncate text-xs font-medium text-white">{{ auth()->user()->name }}</p>
-                        <p class="truncate text-[11px] text-slate-400">{{ auth()->user()->role->label() }}</p>
+                        @php $kasirOperator = \App\Support\KasirPin::operator(); @endphp
+                        <p class="truncate text-xs font-medium text-white">{{ $kasirOperator?->name ?? auth()->user()->name }}</p>
+                        <p class="truncate text-[11px] text-slate-400">
+                            @if ($kasirOperator)
+                                Bertugas · PIN aktif
+                            @else
+                                {{ auth()->user()->role->label() }}
+                            @endif
+                        </p>
                     </div>
                     <div class="space-y-2">
+                        <a href="{{ route('pin.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('pin.*') ? 'bg-slate-800 text-white' : '' }}">
+                            <span aria-hidden="true">🔢</span>
+                            <span>Atur PIN</span>
+                        </a>
                         <a href="{{ route('password.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
                             <span aria-hidden="true">🔑</span>
                             <span>Ubah Password</span>
                         </a>
+                        <form action="{{ route('kasir.pin.lock') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="kasir-sidebar-logout w-full">
+                                <span aria-hidden="true">🔒</span>
+                                <span>Kunci Kasir</span>
+                            </button>
+                        </form>
                         <div class="kasir-sidebar-foot-actions">
                             <button
                                 type="button"

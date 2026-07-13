@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use App\Support\KasirPin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -52,12 +53,14 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
         $request->session()->put('auth_module', $module->value);
+        KasirPin::lock();
 
         return redirect()->intended($user->homeUrl());
     }
 
     public function destroy(Request $request)
     {
+        KasirPin::lock();
         Auth::logout();
 
         $request->session()->invalidate();

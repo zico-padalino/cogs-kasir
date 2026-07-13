@@ -84,6 +84,12 @@
                        class="mb-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
                         <span>🔑</span> Ubah Password
                     </a>
+                    @if (auth()->user()->hasModule(\App\Enums\UserRole::Kasir))
+                        <a href="{{ route('pin.edit') }}"
+                           class="mb-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white {{ request()->routeIs('pin.*') ? 'bg-slate-800 text-white' : '' }}">
+                            <span>🔢</span> Atur PIN Kasir
+                        </a>
+                    @endif
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white">
