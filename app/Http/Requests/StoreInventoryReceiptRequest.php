@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\NormalizesRupiahInput;
+use App\Support\MaterialPurchase;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreInventoryReceiptRequest extends FormRequest
@@ -11,8 +12,13 @@ class StoreInventoryReceiptRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->normalizeRupiahFields(['unit_cost']);
+        $this->normalizeRupiahFields(['unit_cost', 'package_cost']);
+
+        if (! $this->filled('purchase_mode')) {
+            $this->merge(['purchase_mode' => 'direct']);
+        }
     }
+
     public function authorize(): bool
     {
         return true;
@@ -20,11 +26,16 @@ class StoreInventoryReceiptRequest extends FormRequest
 
     public function rules(): array
     {
+        return MaterialPurchase::validationRules(requireProductId: true);
+    }
+
+    public function messages(): array
+    {
         return [
-            'product_id' => ['required', 'exists:products,id'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit_cost' => ['required', 'numeric', 'min:0'],
-            'lot_number' => ['nullable', 'string', 'max:100'],
+            'package_custom.required_if' => 'Isi nama kemasan jika memilih Lainnya.',
+            'units_per_package.required_if' => 'Isi berapa jumlah stok dalam 1 kemasan.',
+            'package_qty.required_if' => 'Isi berapa kemasan yang dibeli.',
+            'package_cost.required_if' => 'Isi harga per kemasan.',
         ];
     }
 }

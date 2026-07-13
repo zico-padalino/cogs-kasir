@@ -27,31 +27,20 @@
             </div>
         </div>
 
-        <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Nama bahan, stok awal, dan harga beli — cukup sekali isi.">
+        <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Pilih satuan stok (untuk resep), lalu isi pembelian — bisa per dus/kemasan.">
             <form action="{{ route('materials.store') }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
                     <label class="form-label">Nama bahan</label>
-                    <input type="text" name="name" class="form-input text-base" required placeholder="Tepung terigu" value="{{ old('name') }}">
+                    <input type="text" name="name" class="form-input text-base" required placeholder="Mi goreng" value="{{ old('name') }}">
                 </div>
 
                 <x-unit-picker
-                    :selected="old('unit_preset', 'kg')"
+                    :selected="old('unit_preset', 'pcs')"
                     :custom-value="old('unit_custom', '')"
                 />
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label class="form-label">Stok masuk</label>
-                        <input type="number" name="quantity" class="form-input text-lg font-semibold" step="0.01" min="0.01" required placeholder="25" value="{{ old('quantity') }}">
-                        <p class="form-hint">Jumlah yang Anda beli sekarang.</p>
-                    </div>
-                    <div>
-                        <label class="form-label">Harga beli per satuan</label>
-                        <x-rupiah-input name="unit_cost" placeholder="12.000" required />
-                        <p class="form-hint">Harga untuk 1 satuan di atas.</p>
-                    </div>
-                </div>
+                <x-material-purchase-fields />
 
                 <button type="submit" class="btn-primary w-full py-3 text-base font-semibold">Simpan Bahan</button>
             </form>
@@ -137,22 +126,16 @@
 
                                     <details class="w-full sm:w-auto">
                                         <summary class="btn-primary btn-sm cursor-pointer list-none text-center">+ Tambah stok</summary>
-                                        <form action="{{ route('materials.receive') }}" method="POST" class="mt-3 space-y-2 rounded-xl border-2 border-emerald-100 bg-emerald-50/50 p-3">
+                                        <form action="{{ route('materials.receive') }}" method="POST" class="mt-3 space-y-3 rounded-xl border-2 border-emerald-100 bg-emerald-50/50 p-3">
                                             @csrf
                                             <input type="hidden" name="product_id" value="{{ $material->id }}">
-                                            <div class="grid gap-2 sm:grid-cols-3">
-                                                <div>
-                                                    <label class="form-label text-xs">Jumlah masuk</label>
-                                                    <input type="number" name="quantity" class="form-input text-sm" step="0.01" min="0.01" required placeholder="Jumlah">
-                                                </div>
-                                                <div>
-                                                    <label class="form-label text-xs">Harga/satuan</label>
-                                                    <x-rupiah-input name="unit_cost" placeholder="Harga/satuan" class="text-sm" required />
-                                                </div>
-                                                <div>
-                                                    <label class="form-label text-xs">No. batch</label>
-                                                    <input type="text" name="lot_number" class="form-input text-sm" placeholder="Opsional">
-                                                </div>
+                                            <p class="text-xs text-slate-600">
+                                                Satuan stok: <strong>{{ $material->unit }}</strong>
+                                            </p>
+                                            <x-material-purchase-fields :compact="true" :stock-unit-label="$material->unit" />
+                                            <div>
+                                                <label class="form-label text-xs">No. batch</label>
+                                                <input type="text" name="lot_number" class="form-input text-sm" placeholder="Opsional">
                                             </div>
                                             <button type="submit" class="btn-primary btn-sm w-full sm:w-auto">Simpan stok masuk</button>
                                         </form>

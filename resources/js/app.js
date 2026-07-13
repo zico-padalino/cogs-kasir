@@ -11,6 +11,7 @@ import './order-item-detail';
 import './menu-pricing';
 import './unit-picker';
 import './menu-unit-select';
+import './material-purchase';
 import './password-strength';
 import './material-history';
 

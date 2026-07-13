@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Services\InventoryCostService;
 use App\Services\MaterialStockLogService;
 use App\Support\Format;
+use App\Support\MaterialPurchase;
 use App\Support\MaterialUnits;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -155,18 +156,31 @@ class InventoryController extends Controller
         InventoryCostService $inventoryService,
         MaterialStockLogService $logService,
     ) {
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'name' => ['required', 'string', 'max:255'],
             'unit_preset' => ['required', 'string', 'max:20'],
             'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit_cost' => ['required'],
+        ], MaterialPurchase::validationRules()), [
+            'package_custom.required_if' => 'Isi nama kemasan jika memilih Lainnya.',
+            'units_per_package.required_if' => 'Isi berapa jumlah stok dalam 1 kemasan.',
+            'package_qty.required_if' => 'Isi berapa kemasan yang dibeli.',
+            'package_cost.required_if' => 'Isi harga per kemasan.',
         ]);
 
         $unit = MaterialUnits::resolve($validated['unit_preset'], $validated['unit_custom'] ?? '');
 
         if ($unit === '') {
             return back()->withErrors(['unit_custom' => 'Isi satuan bahan.'])->withInput();
+        }
+
+        $purchase = MaterialPurchase::resolve($validated);
+
+        if ($purchase['quantity'] <= 0) {
+            return back()->withErrors(['quantity' => 'Jumlah stok masuk tidak valid.'])->withInput();
+        }
+
+        if ($purchase['unit_cost'] < 0) {
+            return back()->withErrors(['unit_cost' => 'Harga tidak valid.'])->withInput();
         }
 
         $product = Product::create([
@@ -178,14 +192,18 @@ class InventoryController extends Controller
             'is_active' => true,
         ]);
 
-        $qty = (float) $validated['quantity'];
-        $unitCost = Format::parseRupiah($validated['unit_cost']);
+        $qty = $purchase['quantity'];
+        $unitCost = $purchase['unit_cost'];
 
         $lot = $inventoryService->receiveStock(
             product: $product,
             quantity: $qty,
             unitCost: $unitCost,
         );
+
+        $note = $purchase['note'] !== ''
+            ? 'Bahan baru + stok awal · '.$purchase['note']
+            : 'Bahan baru + stok awal';
 
         $logService->log(
             action: 'create',
@@ -194,11 +212,19 @@ class InventoryController extends Controller
             quantityAfter: $qty,
             unitCost: $unitCost,
             lot: $lot,
-            note: 'Bahan baru + stok awal',
+            note: $note,
         );
 
-        return redirect()->route('materials.index')
-            ->with('success', "Bahan {$product->name} ditambahkan beserta stok awal.");
+        $success = sprintf(
+            'Bahan %s ditambahkan. Stok masuk %s %s @ %s/%s.',
+            $product->name,
+            Format::number($qty, 2),
+            $unit,
+            Format::rupiah($unitCost, 0),
+            $unit,
+        );
+
+        return redirect()->route('materials.index')->with('success', $success);
     }
 
     public function updateMaterial(Request $request, Product $product)
@@ -235,8 +261,14 @@ class InventoryController extends Controller
     ) {
         $product = Product::findOrFail($request->product_id);
         $before = $product->availableQuantity();
-        $qty = (float) $request->quantity;
-        $unitCost = (float) $request->unit_cost;
+        $purchase = MaterialPurchase::resolve($request->validated());
+
+        if ($purchase['quantity'] <= 0) {
+            return back()->withErrors(['quantity' => 'Jumlah stok masuk tidak valid.'])->withInput();
+        }
+
+        $qty = $purchase['quantity'];
+        $unitCost = $purchase['unit_cost'];
 
         $lot = $inventoryService->receiveStock(
             product: $product,
@@ -245,6 +277,17 @@ class InventoryController extends Controller
             lotNumber: $request->lot_number,
         );
 
+        $noteParts = [];
+        if ($request->lot_number) {
+            $noteParts[] = 'Batch '.$request->lot_number;
+        }
+        if ($purchase['note'] !== '') {
+            $noteParts[] = $purchase['note'];
+        }
+        if ($noteParts === []) {
+            $noteParts[] = 'Stok masuk';
+        }
+
         $logService->log(
             action: 'receive',
             product: $product,
@@ -252,11 +295,20 @@ class InventoryController extends Controller
             quantityAfter: $before + $qty,
             unitCost: $unitCost,
             lot: $lot,
-            note: $request->lot_number ? 'Batch '.$request->lot_number : 'Stok masuk',
+            note: implode(' · ', $noteParts),
         );
 
-        return redirect()->route('materials.index')
-            ->with('success', "Stok {$product->name} bertambah.");
+        return redirect()->route('materials.index')->with(
+            'success',
+            sprintf(
+                'Stok %s bertambah %s %s @ %s/%s.',
+                $product->name,
+                Format::number($qty, 2),
+                $product->unit,
+                Format::rupiah($unitCost, 0),
+                $product->unit,
+            ),
+        );
     }
 
     public function adjust(
