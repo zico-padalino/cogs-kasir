@@ -35,7 +35,7 @@ Route::redirect('/api/v1/cogs/history', '/');
 Route::redirect('/api/v1/overhead-rates', '/');
 
 Route::get('/', [LoginController::class, 'create'])->name('home');
-Route::redirect('/login', '/')->name('login');
+Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->name('login.store');
 
 Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');

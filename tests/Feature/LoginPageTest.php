@@ -14,8 +14,36 @@ class LoginPageTest extends TestCase
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Selamat datang')
+            ->assertSee('Masuk')
+            ->assertSee('Gunakan email dan password akun Anda')
             ->assertDontSee('Pilih modul');
+    }
+
+    public function test_guest_cannot_open_kasir_or_admin_without_login(): void
+    {
+        $this->get(route('kasir.index'))
+            ->assertRedirect(route('home'));
+
+        $this->get(route('admin.dashboard'))
+            ->assertRedirect(route('home'));
+
+        $this->get('/dashboard')
+            ->assertRedirect(route('home'));
+    }
+
+    public function test_guest_opening_kasir_is_sent_back_after_login(): void
+    {
+        $user = User::factory()->kasir()->create([
+            'email' => 'kasir-intended@test.local',
+            'password' => 'secret123',
+        ]);
+
+        $this->get(route('kasir.index'))->assertRedirect(route('home'));
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'secret123',
+        ])->assertRedirect(route('kasir.index'));
     }
 
     public function test_authenticated_user_visiting_home_is_redirected(): void

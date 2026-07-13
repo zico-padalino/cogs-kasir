@@ -19,7 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->trustProxies(at: '*');
 
-        $middleware->redirectGuestsTo(fn () => route('login'));
+        // Semua route ber-middleware auth (kasir/admin/cogs) wajib login.
+        // Setelah login, user dikembalikan ke URL yang semula dibuka (intended).
+        $middleware->redirectGuestsTo(fn () => route('home'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

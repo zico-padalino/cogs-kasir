@@ -14,7 +14,7 @@ class EnsureUserRole
         $user = $request->user();
 
         if (! $user) {
-            return redirect()->route('home');
+            return redirect()->guest(route('home'));
         }
 
         $required = UserRole::tryFrom($role);
