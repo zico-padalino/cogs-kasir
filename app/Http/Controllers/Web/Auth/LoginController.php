@@ -55,6 +55,12 @@ class LoginController extends Controller
         $request->session()->put('auth_module', $module->value);
         KasirPin::lock();
 
+        if ($user->must_change_password) {
+            return redirect()
+                ->route('password.edit')
+                ->with('error', 'Akun baru wajib mengganti password sementara sebelum lanjut.');
+        }
+
         return redirect()->intended($user->homeUrl());
     }
 

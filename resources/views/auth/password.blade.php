@@ -2,7 +2,7 @@
 
 @section('title', 'Ubah Password')
 @section('heading', 'Ubah Password')
-@section('subheading', 'Ganti password akun Anda sendiri')
+@section('subheading', $mustChange ? 'Wajib ganti password sementara sebelum memakai aplikasi' : 'Ganti password akun Anda sendiri')
 
 @section('content')
     <form action="{{ route('password.update') }}" method="POST" class="mx-auto max-w-lg space-y-6">
@@ -10,6 +10,13 @@
         @method('PUT')
 
         <div class="card space-y-5">
+            @if ($mustChange)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Akun Anda masih memakai password sementara. Ganti dulu sebelum bisa membuka modul lain.
+                    Password saat ini biasanya: <strong>{{ config('pos.default_user_password', 'password') }}</strong>
+                </div>
+            @endif
+
             <div>
                 <p class="text-sm text-slate-500">
                     Login sebagai <span class="font-semibold text-slate-800">{{ auth()->user()->email }}</span>
@@ -115,7 +122,9 @@
 
         <div class="form-actions">
             <button type="submit" class="btn-primary w-full sm:w-auto">Simpan password</button>
-            <a href="{{ url()->previous() !== url()->current() ? url()->previous() : auth()->user()->homeUrl() }}" class="btn-secondary w-full sm:w-auto">Batal</a>
+            @unless ($mustChange)
+                <a href="{{ url()->previous() !== url()->current() ? url()->previous() : auth()->user()->homeUrl() }}" class="btn-secondary w-full sm:w-auto">Batal</a>
+            @endunless
         </div>
     </form>
 @endsection

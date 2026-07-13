@@ -52,7 +52,7 @@
         @else
             <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 Password awal otomatis: <strong>{{ config('pos.default_user_password', 'password') }}</strong>.
-                User bisa menggantinya sendiri lewat menu Ubah Password setelah login.
+                Saat login pertama, user <strong>wajib mengganti password</strong> sebelum bisa memakai modul.
             </div>
         @endif
 

@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -39,14 +38,15 @@ class UserAccessController extends Controller
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($defaultPassword),
+            'password' => $defaultPassword,
+            'must_change_password' => true,
             'role' => UserRole::from($validated['modules'][0]),
             'modules' => $validated['modules'],
         ]);
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'Akun '.$user->name.' berhasil dibuat. Password sementara: '.$defaultPassword.' (minta user ubah lewat Ubah Password).');
+            ->with('success', 'Akun '.$user->name.' berhasil dibuat. Password sementara: '.$defaultPassword.'. Saat login pertama, user wajib mengganti password.');
     }
 
     public function edit(User $user): View
@@ -66,7 +66,8 @@ class UserAccessController extends Controller
         $user->syncModules($validated['modules']);
 
         if (! empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
+            $user->password = $validated['password'];
+            $user->must_change_password = true;
         }
 
         $user->save();

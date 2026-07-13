@@ -15,8 +15,11 @@ class PasswordController extends Controller
 {
     public function edit(): View
     {
+        $user = auth()->user();
+
         return view('auth.password', [
             'layout' => $this->layoutName(),
+            'mustChange' => (bool) $user?->must_change_password,
         ]);
     }
 
@@ -48,13 +51,14 @@ class PasswordController extends Controller
 
         $user->forceFill([
             'password' => $validated['password'],
+            'must_change_password' => false,
         ])->save();
 
         $request->session()->regenerate();
 
         return redirect()
-            ->route('password.edit')
-            ->with('success', 'Password berhasil diubah.');
+            ->to($user->homeUrl())
+            ->with('success', 'Password berhasil diubah. Silakan lanjut memakai aplikasi.');
     }
 
     private function layoutName(): string

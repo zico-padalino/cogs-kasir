@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'role', 'modules', 'password'])]
+#[Fillable(['name', 'email', 'role', 'modules', 'password', 'must_change_password'])]
 #[Hidden(['password', 'remember_token', 'pin_hash'])]
 class User extends Authenticatable
 {
@@ -26,6 +26,7 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'modules' => 'array',
             'pin_set_at' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 

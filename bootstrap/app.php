@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'kasir.pin' => \App\Http\Middleware\EnsureKasirPinUnlocked::class,
         ]);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsurePasswordChanged::class,
+        ]);
+
         $middleware->trustProxies(at: '*');
 
         // Semua route ber-middleware auth (kasir/admin/cogs) wajib login.
