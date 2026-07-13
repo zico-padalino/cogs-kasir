@@ -32,4 +32,7 @@ return [
         'theme_color' => '#4f46e5',
         'background_color' => '#f1f5f9',
     ],
+
+    /** Password awal saat admin membuat akun baru (user bisa ubah sendiri lewat Ubah Password). */
+    'default_user_password' => env('DEFAULT_USER_PASSWORD', 'password'),
 ];

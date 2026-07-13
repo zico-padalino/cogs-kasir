@@ -34,16 +34,19 @@ class UserAccessController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
+        $defaultPassword = (string) config('pos.default_user_password', 'password');
 
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make($defaultPassword),
             'role' => UserRole::from($validated['modules'][0]),
             'modules' => $validated['modules'],
         ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'Akun '.$user->name.' berhasil dibuat.');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'Akun '.$user->name.' berhasil dibuat. Password sementara: '.$defaultPassword.' (minta user ubah lewat Ubah Password).');
     }
 
     public function edit(User $user): View
@@ -88,7 +91,7 @@ class UserAccessController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
-            'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => [Rule::in(array_column(UserRole::cases(), 'value'))],
         ]);

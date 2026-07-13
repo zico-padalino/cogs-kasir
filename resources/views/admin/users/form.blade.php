@@ -18,37 +18,43 @@
             <label class="form-label" for="email">Email</label>
             <input id="email" type="email" name="email" class="form-input" value="{{ old('email', $user->email) }}" required>
         </div>
-        <div>
-            <label class="form-label" for="password">Password {{ $user->exists ? '(kosongkan jika tidak diubah)' : '' }}</label>
-            <input
-                id="password"
-                type="password"
-                name="password"
-                class="form-input"
-                {{ $user->exists ? '' : 'required' }}
-                autocomplete="new-password"
-                data-password-strength="#password-strength"
-            >
-            <div id="password-strength" class="password-strength" aria-live="polite">
-                <div class="password-strength-head">
-                    <span class="password-strength-caption">Kekuatan password</span>
-                    <span class="password-strength-label" data-strength-label>Masukkan password baru</span>
+        @if ($user->exists)
+            <div>
+                <label class="form-label" for="password">Password (kosongkan jika tidak diubah)</label>
+                <input
+                    id="password"
+                    type="password"
+                    name="password"
+                    class="form-input"
+                    autocomplete="new-password"
+                    data-password-strength="#password-strength"
+                >
+                <div id="password-strength" class="password-strength" aria-live="polite">
+                    <div class="password-strength-head">
+                        <span class="password-strength-caption">Kekuatan password</span>
+                        <span class="password-strength-label" data-strength-label>Masukkan password baru</span>
+                    </div>
+                    <div class="password-strength-bars" aria-hidden="true">
+                        <span data-strength-bar></span>
+                        <span data-strength-bar></span>
+                        <span data-strength-bar></span>
+                        <span data-strength-bar></span>
+                        <span data-strength-bar></span>
+                    </div>
+                    <ul class="password-strength-tips">
+                        <li data-strength-tip="length">Minimal 8 karakter</li>
+                        <li data-strength-tip="mixed">Huruf besar &amp; kecil</li>
+                        <li data-strength-tip="number">Angka</li>
+                        <li data-strength-tip="symbol">Simbol (!@#...)</li>
+                    </ul>
                 </div>
-                <div class="password-strength-bars" aria-hidden="true">
-                    <span data-strength-bar></span>
-                    <span data-strength-bar></span>
-                    <span data-strength-bar></span>
-                    <span data-strength-bar></span>
-                    <span data-strength-bar></span>
-                </div>
-                <ul class="password-strength-tips">
-                    <li data-strength-tip="length">Minimal 8 karakter</li>
-                    <li data-strength-tip="mixed">Huruf besar &amp; kecil</li>
-                    <li data-strength-tip="number">Angka</li>
-                    <li data-strength-tip="symbol">Simbol (!@#...)</li>
-                </ul>
             </div>
-        </div>
+        @else
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Password awal otomatis: <strong>{{ config('pos.default_user_password', 'password') }}</strong>.
+                User bisa menggantinya sendiri lewat menu Ubah Password setelah login.
+            </div>
+        @endif
 
         <div>
             <p class="form-label mb-2">Akses modul</p>
