@@ -1,15 +1,13 @@
 name: Deploy to Domainesia
 
-# Secrets:
-#   FTP_SERVER     = ftp.kedaitjoan.online
-#   FTP_USERNAME   = zico-padalino@kedaitjoan.online
-#   FTP_PASSWORD   = (password)
-#   FTP_SERVER_DIR = ./
+# Secrets (Settings → Secrets and variables → Actions):
+#   FTP_SERVER      = ftp.kedaitjoan.online
+#   FTP_USERNAME    = zico-padalino@kedaitjoan.online
+#   FTP_PASSWORD    = (password FTP)
+#   FTP_SERVER_DIR  = public_html/   ← folder web root di server (relative dari home FTP)
 #
-# Setelah Actions hijau:
-#   1) cPanel → File Manager → cari deploy.zip
-#   2) Extract
-#   3) Domains → document root → folder public
+# Push ke main/master → build → upload langsung ke server (tanpa extract manual).
+# File .env di server TIDAK ditimpa (tidak ikut upload).
 
 on:
   push:
@@ -24,9 +22,9 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build & FTP Deploy
+    name: Build & Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -55,62 +53,31 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
-      - name: Pack release zip
-        run: |
-          mkdir -p ftp-payload
-          cat > ftp-payload/BACA_INI_DEPLOY.txt << 'EOF'
-          DEPLOY COGS-KASIR — langkah setelah upload
+      - name: Prepare release for public_html layout
+        run: bash deploy/prepare-release.sh
 
-          1. Di cPanel buka File Manager
-          2. Masuk folder akun FTP ini (biasanya public_html atau subfolder akun)
-          3. Klik kanan deploy.zip → Extract
-          4. Pastikan muncul folder: app, bootstrap, config, public, vendor, dll
-          5. Domains → kedaitjoan.online → Document Root = .../public
-          6. Buat file .env di ROOT project (sejajar folder app & public)
-          7. PHP version = 8.4 (atau minimal 8.3 jika 8.4 tidak ada)
-          EOF
-          zip -r ftp-payload/deploy.zip . \
-            -x "./.git/*" \
-            -x "./.github/*" \
-            -x "./node_modules/*" \
-            -x "./ftp-payload/*" \
-            -x "./tests/*" \
-            -x "./mobile/*" \
-            -x "./deploy/*" \
-            -x "./.env" \
-            -x "./.env.*" \
-            -x "./.phpunit.cache/*" \
-            -x "./storage/logs/*" \
-            -x "./storage/framework/cache/data/*" \
-            -x "./storage/framework/sessions/*" \
-            -x "./storage/framework/views/*" \
-            -x "./storage/pail/*"
-          ls -lh ftp-payload/deploy.zip
-
-      - name: Upload via FTP
+      - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          local-dir: ./ftp-payload/
+          local-dir: ./release/
           port: 21
           protocol: ftp
           timeout: 600000
           dangerous-clean-slate: false
+          state-name: .ftp-deploy-sync-state.json
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.env
+            **/.env.*
+            **/.DS_Store
 
-      - name: Next steps (manual extract)
+      - name: Deploy summary
         run: |
-          echo "=============================================="
-          echo "UPLOAD SELESAI"
-          echo "=============================================="
-          echo "Extract otomatis via URL tidak dipakai lagi"
-          echo "karena path FTP Domainesia ≠ document root web."
-          echo
-          echo "Lakukan di cPanel sekarang:"
-          echo "1. File Manager → cari file deploy.zip"
-          echo "2. Extract deploy.zip di folder yang sama"
-          echo "3. Domains → Document Root domain = folder public"
-          echo "4. Buat .env di root Laravel (sejajar app/)"
-          echo "=============================================="
+          echo "Deploy selesai — https://kedaitjoan.online"
+          echo "Deploy berikutnya hanya upload file yang berubah (incremental FTP)."
