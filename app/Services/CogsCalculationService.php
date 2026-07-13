@@ -86,6 +86,7 @@ class CogsCalculationService
         bool $consumeInventory = true,
         array $extraRequirements = [],
         ?string $consumeNote = null,
+        ?array $overheadRateIds = null,
     ): CogsResult
     {
         if ($quantity <= 0) {
@@ -178,6 +179,7 @@ class CogsCalculationService
         $overhead = $this->overheadAllocationService->allocateForSale(
             directMaterial: $directMaterial,
             units: $quantity,
+            overheadRateIds: $overheadRateIds,
         );
 
         $totalHpp = $directMaterial + $overhead['total'];
@@ -194,6 +196,7 @@ class CogsCalculationService
                 'inventory_consumed' => $consumeInventory,
                 'consumption_details' => $consumptionDetails,
                 'overhead' => $overhead,
+                'overhead_rate_ids' => $overheadRateIds,
             ],
         );
     }
@@ -248,8 +251,10 @@ class CogsCalculationService
 
     /**
      * Hitung modal per porsi dari resep (bahan + biaya lain), tanpa mengurangi stok.
+     *
+     * @param  list<int>|null  $overheadRateIds
      */
-    public function recalculateRecipeHpp(Product $product): CogsResult
+    public function recalculateRecipeHpp(Product $product, ?array $overheadRateIds = null): CogsResult
     {
         if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             throw new RuntimeException('Hanya menu yang bisa dihitung modalnya dari resep.');
@@ -259,7 +264,12 @@ class CogsCalculationService
             throw new RuntimeException('Resep masih kosong. Tambah bahan dulu.');
         }
 
-        $result = $this->calculateSaleCogs($product, 1, consumeInventory: false);
+        $result = $this->calculateSaleCogs(
+            $product,
+            1,
+            consumeInventory: false,
+            overheadRateIds: $overheadRateIds,
+        );
 
         if ($result->directMaterial <= 0) {
             throw new RuntimeException('Modal bahan Rp 0. Pastikan setiap bahan punya harga beli atau stok.');

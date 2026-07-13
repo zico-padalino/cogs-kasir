@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\BillOfMaterial;
+use App\Models\OverheadRate;
 use App\Models\Product;
 use App\Models\ProductAddon;
 use App\Services\BomCostService;
@@ -89,12 +90,23 @@ class ProductController extends Controller
     $bomLineCosts = [];
     $materialCost = 0.0;
     $overheadCost = 0.0;
+    $overheadDetails = [];
     $estimatedModal = 0.0;
+    $overheadRates = OverheadRate::query()
+      ->where('is_active', true)
+      ->orderBy('name')
+      ->get();
 
     if ($product->billOfMaterials->isNotEmpty()) {
       $rollUp = $bomCostService->rollUpCost($product, 1);
       $materialCost = (float) ($rollUp['total_cost'] ?? 0);
-      $overheadCost = (float) ($overheadService->allocateForSale($materialCost, 0, 0, 0, 1)['total'] ?? 0);
+      $overhead = $overheadService->allocateForSale(
+        directMaterial: $materialCost,
+        units: 1,
+        overheadRateIds: $overheadRates->pluck('id')->all(),
+      );
+      $overheadCost = (float) ($overhead['total'] ?? 0);
+      $overheadDetails = $overhead['details'] ?? [];
       $estimatedModal = $materialCost + $overheadCost;
 
       foreach ($rollUp['components'] ?? [] as $component) {
@@ -109,6 +121,8 @@ class ProductController extends Controller
       'bomLineCosts' => $bomLineCosts,
       'materialCost' => $materialCost,
       'overheadCost' => $overheadCost,
+      'overheadDetails' => $overheadDetails,
+      'overheadRates' => $overheadRates,
       'estimatedModal' => $estimatedModal,
       'format' => Format::class,
       'units' => MaterialUnits::class,
@@ -252,17 +266,29 @@ class ProductController extends Controller
     return redirect()->route('products.show', $product)->with('success', 'Bahan dihapus dari resep.');
   }
 
-  public function calculateModal(Product $product, CogsCalculationService $cogsService)
+  public function calculateModal(Request $request, Product $product, CogsCalculationService $cogsService)
   {
     if ($product->type === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
 
+    $validated = $request->validate([
+      'overhead_rate_ids' => ['nullable', 'array'],
+      'overhead_rate_ids.*' => ['integer', 'exists:overhead_rates,id'],
+    ]);
+
+    $overheadRateIds = array_values(array_unique(array_map(
+      'intval',
+      $validated['overhead_rate_ids'] ?? [],
+    )));
+
     try {
-      $result = $cogsService->recalculateRecipeHpp($product);
+      $result = $cogsService->recalculateRecipeHpp($product, $overheadRateIds);
     } catch (RuntimeException $e) {
       return redirect()->route('products.show', $product)->with('error', $e->getMessage());
     }
+
+    $overheadDetails = $result->breakdown['overhead']['details'] ?? [];
 
     $message = sprintf(
       'Modal dihitung: %s / %s (bahan %s + biaya lain %s).',
@@ -272,7 +298,12 @@ class ProductController extends Controller
       Format::rupiah($result->manufacturingOverhead, 0),
     );
 
-    return redirect()->route('products.show', $product)->with('success', $message);
+    return redirect()
+      ->route('products.show', $product)
+      ->with('success', $message)
+      ->with('modal_overhead_details', $overheadDetails)
+      ->with('modal_material_cost', $result->directMaterial)
+      ->with('modal_total', $result->unitHpp);
   }
 
   public function storeAddon(Request $request, Product $product)

@@ -53,6 +53,7 @@ class OverheadAllocationService
     }
 
     /**
+     * @param  list<int>|null  $overheadRateIds  null = semua rate aktif; [] = tanpa biaya lain
      * @return array{total: float, details: array<int, array<string, mixed>>}
      */
     public function allocateForSale(
@@ -61,8 +62,19 @@ class OverheadAllocationService
         float $laborHours = 0,
         float $machineHours = 0,
         float $units = 1,
+        ?array $overheadRateIds = null,
     ): array {
-        $rates = OverheadRate::where('is_active', true)->get();
+        $query = OverheadRate::query()->where('is_active', true);
+
+        if ($overheadRateIds !== null) {
+            $ids = array_values(array_unique(array_map('intval', $overheadRateIds)));
+            if ($ids === []) {
+                return ['total' => 0.0, 'details' => []];
+            }
+            $query->whereIn('id', $ids);
+        }
+
+        $rates = $query->orderBy('name')->get();
         $details = [];
         $total = 0.0;
 
@@ -80,7 +92,10 @@ class OverheadAllocationService
             $details[] = [
                 'overhead_rate_id' => $rate->id,
                 'name' => $rate->name,
+                'description' => $rate->description,
                 'allocation_base' => $rate->allocation_base->value,
+                'rule_label' => $rate->allocation_base->plainRule(),
+                'rate_label' => $rate->allocation_base->formatRate((float) $rate->rate),
                 'base_value' => round($baseValue, 4),
                 'rate' => (float) $rate->rate,
                 'allocated_cost' => round($allocated, 4),

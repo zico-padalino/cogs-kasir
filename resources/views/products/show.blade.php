@@ -2,11 +2,39 @@
 
 @section('title', $product->name)
 @section('heading', $product->name)
-@section('subheading', 'Resep bahan untuk 1 {{ $product->unit }}')
+@section('subheading', 'Resep bahan untuk 1 '.$product->unit)
 
 @section('content')
     <div class="module-page module-step-3">
         <a href="{{ route('products.index') }}" class="cogs-detail-back">← Kembali ke daftar menu</a>
+
+        @if (session('modal_overhead_details') !== null)
+            <div class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+                <p class="font-semibold">Rincian modal yang baru dihitung</p>
+                <p class="mt-1">
+                    Bahan: <strong>{{ $format::rupiah(session('modal_material_cost'), 0) }}</strong>
+                    · Total modal: <strong>{{ $format::rupiah(session('modal_total'), 0) }}</strong> / {{ $product->unit }}
+                </p>
+                @php $appliedOverheads = session('modal_overhead_details', []); @endphp
+                @if (count($appliedOverheads) > 0)
+                    <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-green-800">Biaya lain yang diambil</p>
+                    <ul class="mt-1 list-inside list-disc space-y-1 text-sm">
+                        @foreach ($appliedOverheads as $detail)
+                            <li>
+                                <strong>{{ $detail['name'] }}</strong>
+                                — {{ $detail['rate_label'] ?? '' }} ({{ $detail['rule_label'] ?? '' }})
+                                = {{ $format::rupiah($detail['allocated_cost'] ?? 0) }}
+                                @if (! empty($detail['description']))
+                                    <span class="text-green-700/80">· {{ $detail['description'] }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="mt-2 text-sm">Tidak memakai biaya lain — modal hanya dari bahan resep.</p>
+                @endif
+            </div>
+        @endif
 
         <div class="recipe-desktop">
             <div class="recipe-desktop__main">
@@ -101,19 +129,31 @@
                                 <tfoot>
                                     <tr class="border-t-2 border-slate-200 bg-slate-50 font-semibold">
                                         <td colspan="3" class="text-slate-700">Total biaya bahan (untuk 1 {{ $product->unit }})</td>
-                                        <td class="text-right tabular-nums text-brand-700">{{ $format::rupiah($materialCost) }}</td>
+                                        <td class="text-right tabular-nums text-brand-700" data-recipe-material-cost>{{ $format::rupiah($materialCost) }}</td>
                                         <td></td>
                                     </tr>
-                                    @if ($overheadCost > 0)
-                                        <tr class="bg-slate-50 text-sm">
-                                            <td colspan="3" class="text-slate-500">Biaya lain (overhead)</td>
-                                            <td class="text-right tabular-nums text-slate-700">{{ $format::rupiah($overheadCost) }}</td>
-                                            <td></td>
-                                        </tr>
-                                    @endif
+                                    <tr class="bg-slate-50 text-sm" data-recipe-overhead-row @class(['hidden' => $overheadCost <= 0 && empty($overheadDetails)])>
+                                        <td colspan="3" class="text-slate-500">
+                                            Biaya lain terpilih
+                                            <ul class="mt-1 space-y-0.5 text-xs font-normal text-slate-500" data-recipe-overhead-list>
+                                                @forelse ($overheadDetails as $detail)
+                                                    <li>
+                                                        {{ $detail['name'] }}
+                                                        · {{ $detail['rate_label'] ?? '' }}
+                                                        ({{ $detail['rule_label'] ?? '' }})
+                                                        = {{ $format::rupiah($detail['allocated_cost'] ?? 0) }}
+                                                    </li>
+                                                @empty
+                                                    <li class="text-slate-400">Tidak ada biaya lain dipilih</li>
+                                                @endforelse
+                                            </ul>
+                                        </td>
+                                        <td class="text-right tabular-nums text-slate-700" data-recipe-overhead-cost>{{ $format::rupiah($overheadCost) }}</td>
+                                        <td></td>
+                                    </tr>
                                     <tr class="bg-brand-50 text-sm font-bold">
                                         <td colspan="3" class="text-brand-900">Estimasi modal / {{ $product->unit }}</td>
-                                        <td class="text-right tabular-nums text-brand-800">{{ $format::rupiah($estimatedModal) }}</td>
+                                        <td class="text-right tabular-nums text-brand-800" data-recipe-estimated-modal>{{ $format::rupiah($estimatedModal) }}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -360,17 +400,15 @@
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Biaya bahan</span>
-                        <strong>{{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($materialCost) : '—' }}</strong>
+                        <strong data-recipe-side-material>{{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($materialCost) : '—' }}</strong>
                     </div>
-                    @if ($overheadCost > 0)
-                        <div class="recipe-summary-card__stat">
-                            <span>Biaya lain</span>
-                            <strong>{{ $format::rupiah($overheadCost) }}</strong>
-                        </div>
-                    @endif
+                    <div class="recipe-summary-card__stat">
+                        <span>Biaya lain</span>
+                        <strong data-recipe-side-overhead>{{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($overheadCost) : '—' }}</strong>
+                    </div>
                     <div class="recipe-summary-card__modal">
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Estimasi modal / {{ $product->unit }}</p>
-                        <p class="mt-1 text-2xl font-bold text-brand-700">
+                        <p class="mt-1 text-2xl font-bold text-brand-700" data-recipe-side-modal>
                             {{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($estimatedModal, 0) : 'Isi resep dulu' }}
                         </p>
                         @if ($product->unit_hpp > 0)
@@ -381,8 +419,81 @@
                     </div>
 
                     @if ($product->billOfMaterials->isNotEmpty())
-                        <form action="{{ route('products.calculate-modal', $product) }}" method="POST" class="mt-4">
+                        <form
+                            action="{{ route('products.calculate-modal', $product) }}"
+                            method="POST"
+                            class="mt-4 space-y-3"
+                            data-recipe-modal-form
+                            data-material-cost="{{ $materialCost }}"
+                        >
                             @csrf
+
+                            <div class="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pilih biaya lain</p>
+                                <p class="mt-1 text-[11px] leading-relaxed text-slate-500">
+                                    Centang biaya yang mau dimasukkan ke modal menu ini. Boleh kosong (modal = bahan saja).
+                                </p>
+
+                                @if ($overheadRates->isEmpty())
+                                    <p class="mt-2 text-xs text-amber-700">
+                                        Belum ada biaya lain.
+                                        <a href="{{ route('overhead-rates.index') }}" class="font-semibold underline">Tambah di Langkah 1 →</a>
+                                    </p>
+                                @else
+                                    <div class="mt-2 max-h-52 space-y-2 overflow-y-auto pr-1">
+                                        @foreach ($overheadRates as $rate)
+                                            @php
+                                                $detail = collect($overheadDetails)->firstWhere('overhead_rate_id', $rate->id);
+                                                $allocated = (float) ($detail['allocated_cost'] ?? 0);
+                                            @endphp
+                                            <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-2 hover:border-brand-200">
+                                                <input
+                                                    type="checkbox"
+                                                    name="overhead_rate_ids[]"
+                                                    value="{{ $rate->id }}"
+                                                    class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                                                    data-overhead-check
+                                                    data-overhead-amount="{{ $allocated }}"
+                                                    data-overhead-name="{{ $rate->name }}"
+                                                    data-overhead-rule="{{ $rate->allocation_base->plainRule() }}"
+                                                    data-overhead-rate="{{ $rate->allocation_base->formatRate((float) $rate->rate) }}"
+                                                    checked
+                                                >
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block text-sm font-semibold text-slate-900">{{ $rate->name }}</span>
+                                                    <span class="mt-0.5 block text-[11px] text-slate-500">
+                                                        {{ $rate->allocation_base->formatRate((float) $rate->rate) }}
+                                                        · {{ $rate->allocation_base->plainRule() }}
+                                                    </span>
+                                                    @if ($rate->description)
+                                                        <span class="mt-0.5 block text-[11px] text-slate-400">{{ $rate->description }}</span>
+                                                    @endif
+                                                    <span class="mt-0.5 block text-xs font-medium text-brand-700" data-overhead-line-amount>
+                                                        ≈ {{ $format::rupiah($allocated) }}
+                                                    </span>
+                                                </span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="rounded-lg border border-brand-100 bg-brand-50/70 px-3 py-2 text-xs text-brand-900" data-recipe-overhead-explain>
+                                @if (count($overheadDetails) > 0)
+                                    <p class="font-semibold">Biaya lain yang akan dihitung:</p>
+                                    <ul class="mt-1 list-inside list-disc space-y-0.5">
+                                        @foreach ($overheadDetails as $detail)
+                                            <li>
+                                                {{ $detail['name'] }} ({{ $detail['rate_label'] }} — {{ $detail['rule_label'] }})
+                                                = {{ $format::rupiah($detail['allocated_cost']) }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    <p>Tidak ada biaya lain — modal hanya dari bahan.</p>
+                                @endif
+                            </div>
+
                             <button type="submit" class="btn-primary w-full py-3 font-semibold">Hitung Modal</button>
                         </form>
                         <a href="{{ route('menu-pricing.index') }}" class="btn-secondary mt-2 w-full justify-center py-2.5">Atur Harga Jual →</a>
@@ -473,6 +584,77 @@
 
     materialSelect.addEventListener('change', fillUnits);
     fillUnits();
+})();
+
+(() => {
+    const form = document.querySelector('[data-recipe-modal-form]');
+    if (! form) return;
+
+    const materialCost = parseFloat(form.getAttribute('data-material-cost') || '0') || 0;
+    const checks = form.querySelectorAll('[data-overhead-check]');
+    const explain = form.querySelector('[data-recipe-overhead-explain]');
+    const sideOverhead = document.querySelector('[data-recipe-side-overhead]');
+    const sideModal = document.querySelector('[data-recipe-side-modal]');
+    const tableOverhead = document.querySelector('[data-recipe-overhead-cost]');
+    const tableModal = document.querySelector('[data-recipe-estimated-modal]');
+    const tableList = document.querySelector('[data-recipe-overhead-list]');
+    const tableRow = document.querySelector('[data-recipe-overhead-row]');
+
+    const formatRp = (amount) => {
+        const n = Math.round(Number(amount) || 0);
+        return 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
+    const sync = () => {
+        let overhead = 0;
+        const lines = [];
+
+        checks.forEach((input) => {
+            if (! input.checked) return;
+            const amount = parseFloat(input.getAttribute('data-overhead-amount') || '0') || 0;
+            overhead += amount;
+            lines.push({
+                name: input.getAttribute('data-overhead-name') || 'Biaya',
+                rate: input.getAttribute('data-overhead-rate') || '',
+                rule: input.getAttribute('data-overhead-rule') || '',
+                amount,
+            });
+        });
+
+        const modal = materialCost + overhead;
+
+        if (sideOverhead) sideOverhead.textContent = formatRp(overhead);
+        if (sideModal) sideModal.textContent = formatRp(modal);
+        if (tableOverhead) tableOverhead.textContent = formatRp(overhead);
+        if (tableModal) tableModal.textContent = formatRp(modal);
+
+        if (tableRow) {
+            tableRow.classList.toggle('hidden', lines.length === 0 && overhead <= 0);
+        }
+
+        if (tableList) {
+            if (lines.length === 0) {
+                tableList.innerHTML = '<li class="text-slate-400">Tidak ada biaya lain dipilih</li>';
+            } else {
+                tableList.innerHTML = lines.map((line) => (
+                    `<li>${line.name} · ${line.rate} (${line.rule}) = ${formatRp(line.amount)}</li>`
+                )).join('');
+            }
+        }
+
+        if (explain) {
+            if (lines.length === 0) {
+                explain.innerHTML = '<p>Tidak ada biaya lain — modal hanya dari bahan.</p>';
+            } else {
+                explain.innerHTML = '<p class="font-semibold">Biaya lain yang akan dihitung:</p><ul class="mt-1 list-inside list-disc space-y-0.5">'
+                    + lines.map((line) => `<li>${line.name} (${line.rate} — ${line.rule}) = ${formatRp(line.amount)}</li>`).join('')
+                    + '</ul>';
+            }
+        }
+    };
+
+    checks.forEach((input) => input.addEventListener('change', sync));
+    sync();
 })();
 
 (() => {
