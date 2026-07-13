@@ -72,6 +72,16 @@
                         </a>
                     @endforeach
                 @endif
+
+                @auth
+                    @if (count(auth()->user()->accessibleModules()) > 1)
+                        <a href="{{ route('hub') }}"
+                           class="mt-2 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition text-slate-300 hover:bg-slate-800">
+                            <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">↔</span>
+                            Ganti Modul
+                        </a>
+                    @endif
+                @endauth
             </nav>
 
             <div class="border-t border-slate-800 px-4 py-4">
