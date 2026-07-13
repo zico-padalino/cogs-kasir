@@ -27,7 +27,7 @@
                     @csrf
 
                     <div>
-                        <label class="form-label" for="email">Emaill</label>
+                        <label class="form-label" for="email">Emaile</label>
                         <input type="email" name="email" id="email" class="form-input" value="{{ old('email') }}" required autofocus autocomplete="username">
                     </div>
 
