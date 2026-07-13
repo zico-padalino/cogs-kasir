@@ -5,6 +5,7 @@ const UNIT_TO_BASE = {
     gr: { family: 'mass', toBase: 0.001 },
     liter: { family: 'volume', toBase: 1 },
     ml: { family: 'volume', toBase: 0.001 },
+    pcs: { family: 'count', toBase: 1 },
 };
 
 const UNIT_LABEL = {
@@ -12,6 +13,7 @@ const UNIT_LABEL = {
     gr: 'gram',
     liter: 'liter',
     ml: 'ml',
+    pcs: 'pcs',
 };
 
 function formatNumber(value, decimals = 2) {
@@ -141,6 +143,17 @@ function syncPurchaseBox(box) {
     const pUnit = portionUnit?.value || 'gr';
     const bUnit = purchaseUnit?.value || 'kg';
     const buyCost = readRupiahField(portionBox, 'purchase_cost');
+
+    if (bUnit === 'pcs') {
+        if (buyQty > 0) {
+            const unitCost = buyCost / buyQty;
+            preview.textContent = `Beli ${formatNumber(buyQty)} pcs = stok ${formatNumber(buyQty)} · 1 stok ≈ ${formatNumber(size)} ${UNIT_LABEL[pUnit] || pUnit} · harga ${formatRp(unitCost)} / stok.`;
+        } else {
+            preview.textContent = 'Isi jumlah pcs dibeli dan harga total.';
+        }
+        return;
+    }
+
     const converted = convertUnits(buyQty, bUnit, pUnit);
 
     if (size > 0 && buyQty > 0 && converted !== null) {
@@ -148,7 +161,7 @@ function syncPurchaseBox(box) {
         const unitCost = totalQty > 0 ? buyCost / totalQty : 0;
         preview.textContent = `1 stok = ${formatNumber(size)} ${UNIT_LABEL[pUnit] || pUnit} · beli ${formatNumber(buyQty)} ${UNIT_LABEL[bUnit] || bUnit} = stok ${formatNumber(totalQty)} · harga ${formatRp(unitCost)} / stok.`;
     } else if (converted === null) {
-        preview.textContent = 'Satuan tidak cocok. Gram/kg hanya dengan gram/kg; ml/liter hanya dengan ml/liter.';
+        preview.textContent = 'Satuan tidak cocok. Gram/kg hanya dengan gram/kg; ml/liter hanya dengan ml/liter. Atau pilih pcs.';
     } else {
         preview.textContent = 'Isi 1 satuan stok berapa gram/ml, jumlah dibeli, dan harga total.';
     }
