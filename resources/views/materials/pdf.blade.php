@@ -221,25 +221,6 @@
             color: #64748b;
         }
 
-        .sign-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-top: 36px;
-            page-break-inside: avoid;
-        }
-
-        .sign-box {
-            text-align: center;
-            font-size: 11px;
-            color: #475569;
-        }
-
-        .sign-line {
-            margin: 56px 0 8px;
-            border-bottom: 1px solid #94a3b8;
-        }
-
         @media print {
             body {
                 background: #fff;
@@ -333,19 +314,6 @@
         @else
             <p class="empty">Belum ada data bahan aktif.</p>
         @endif
-
-        <div class="sign-row">
-            <div class="sign-box">
-                <div>Dibuat oleh</div>
-                <div class="sign-line"></div>
-                <div>( ........................ )</div>
-            </div>
-            <div class="sign-box">
-                <div>Diperiksa oleh</div>
-                <div class="sign-line"></div>
-                <div>( ........................ )</div>
-            </div>
-        </div>
 
         <div class="footer">
             <span>Rekapan sisa bahan · {{ $shopName }}</span>
