@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 
@@ -13,7 +14,8 @@ class KasirPin
 
     public const SESSION_VERIFIED_AT = 'kasir_pin_verified_at';
 
-    public const IDLE_MINUTES = 15;
+    /** Durasi sesi PIN sebelum harus dimasukkan lagi. */
+    public const IDLE_MINUTES = 10;
 
     public static function operator(): ?User
     {
@@ -33,19 +35,41 @@ class KasirPin
 
     public static function isUnlocked(): bool
     {
-        $verifiedAt = Session::get(self::SESSION_VERIFIED_AT);
+        $operatorId = Session::get(self::SESSION_OPERATOR);
+        $verifiedTs = self::verifiedTimestamp(Session::get(self::SESSION_VERIFIED_AT));
 
-        if (! $verifiedAt || ! Session::get(self::SESSION_OPERATOR)) {
+        if (! $operatorId || $verifiedTs === null) {
             return false;
         }
 
-        return now()->diffInMinutes($verifiedAt) <= self::IDLE_MINUTES;
+        $elapsed = now()->getTimestamp() - $verifiedTs;
+
+        if ($elapsed < 0) {
+            return false;
+        }
+
+        return $elapsed <= (self::IDLE_MINUTES * 60);
+    }
+
+    public static function expiresAtTimestamp(): ?int
+    {
+        if (! Session::get(self::SESSION_OPERATOR)) {
+            return null;
+        }
+
+        $verifiedTs = self::verifiedTimestamp(Session::get(self::SESSION_VERIFIED_AT));
+
+        if ($verifiedTs === null) {
+            return null;
+        }
+
+        return $verifiedTs + (self::IDLE_MINUTES * 60);
     }
 
     public static function unlock(User $operator): void
     {
         Session::put(self::SESSION_OPERATOR, $operator->id);
-        Session::put(self::SESSION_VERIFIED_AT, now());
+        Session::put(self::SESSION_VERIFIED_AT, now()->getTimestamp());
     }
 
     public static function lock(): void
@@ -96,5 +120,30 @@ class KasirPin
     public static function hasPin(User $user): bool
     {
         return filled($user->pin_hash);
+    }
+
+    private static function verifiedTimestamp(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) $value;
+        }
+
+        if (is_string($value) && ctype_digit($value)) {
+            return (int) $value;
+        }
+
+        try {
+            return Carbon::parse($value)->getTimestamp();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

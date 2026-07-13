@@ -32,6 +32,8 @@
     data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 12) }}"
     data-kasir-index-url="{{ route('kasir.index') }}"
     data-kasir-auto-load="{{ config('pos.notifications.auto_load_new_order', true) ? '1' : '0' }}"
+    data-kasir-pin-unlock-url="{{ route('kasir.pin.unlock') }}"
+    data-kasir-pin-expires-at="{{ \App\Support\KasirPin::expiresAtTimestamp() ?? '' }}"
 >
     @include('layouts.partials.pwa-install-banner', ['app' => 'kasir'])
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>

@@ -15,9 +15,11 @@ class EnsureKasirPinUnlocked
             return $next($request);
         }
 
+        KasirPin::lock();
+
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
-                'message' => 'Kasir terkunci. Masukkan PIN terlebih dahulu.',
+                'message' => 'Sesi PIN habis. Masukkan PIN lagi.',
                 'locked' => true,
                 'redirect' => route('kasir.pin.unlock'),
             ], 423);
@@ -25,6 +27,6 @@ class EnsureKasirPinUnlocked
 
         return redirect()
             ->guest(route('kasir.pin.unlock'))
-            ->with('error', 'Masukkan PIN kasir untuk melanjutkan.');
+            ->with('error', 'Sesi PIN habis ('.KasirPin::IDLE_MINUTES.' menit). Masukkan PIN lagi.');
     }
 }

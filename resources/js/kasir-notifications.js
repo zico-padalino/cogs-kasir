@@ -239,6 +239,20 @@ async function pollPendingOrders(pollUrl, shell) {
         credentials: 'same-origin',
     });
 
+    if (response.status === 423) {
+        let redirectUrl = shell.dataset.kasirPinUnlockUrl || '/kasir/pin';
+        try {
+            const payload = await response.json();
+            if (payload?.redirect) {
+                redirectUrl = payload.redirect;
+            }
+        } catch {
+            //
+        }
+        window.location.assign(redirectUrl);
+        return;
+    }
+
     if (! response.ok) {
         return;
     }
@@ -339,6 +353,28 @@ function initKasirNotifications() {
             runPoll();
         }
     });
+
+    schedulePinExpiryRedirect(shell);
+}
+
+function schedulePinExpiryRedirect(shell) {
+    const unlockUrl = shell.dataset.kasirPinUnlockUrl;
+    const expiresAt = parseInt(shell.dataset.kasirPinExpiresAt || '', 10);
+
+    if (! unlockUrl || ! expiresAt) {
+        return;
+    }
+
+    const delayMs = (expiresAt * 1000) - Date.now();
+
+    if (delayMs <= 0) {
+        window.location.assign(unlockUrl);
+        return;
+    }
+
+    window.setTimeout(() => {
+        window.location.assign(unlockUrl);
+    }, delayMs + 500);
 }
 
 document.addEventListener('DOMContentLoaded', initKasirNotifications);
