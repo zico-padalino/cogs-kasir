@@ -34,18 +34,29 @@ function enhanceSelect(select) {
 
     const trigger = document.createElement('button');
     trigger.type = 'button';
-    trigger.className = 'searchable-select__trigger form-input';
+    trigger.className = 'searchable-select__trigger';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerLabel = document.createElement('span');
+    triggerLabel.className = 'searchable-select__trigger-label';
+    trigger.appendChild(triggerLabel);
+
+    const triggerChevron = document.createElement('span');
+    triggerChevron.className = 'searchable-select__chevron';
+    triggerChevron.setAttribute('aria-hidden', 'true');
+    trigger.appendChild(triggerChevron);
+
     wrap.appendChild(trigger);
 
     const panel = document.createElement('div');
-    panel.className = 'searchable-select__panel hidden';
+    panel.className = 'searchable-select__panel';
+    panel.hidden = true;
     panel.setAttribute('role', 'listbox');
 
     const search = document.createElement('input');
     search.type = 'search';
-    search.className = 'searchable-select__search form-input';
+    search.className = 'searchable-select__search';
     search.placeholder = searchPlaceholder;
     search.autocomplete = 'off';
     search.setAttribute('aria-label', searchPlaceholder);
@@ -56,11 +67,12 @@ function enhanceSelect(select) {
     panel.appendChild(list);
 
     const empty = document.createElement('p');
-    empty.className = 'searchable-select__empty hidden';
+    empty.className = 'searchable-select__empty';
+    empty.hidden = true;
     empty.textContent = 'Tidak ada yang cocok';
     panel.appendChild(empty);
 
-    wrap.appendChild(panel);
+    document.body.appendChild(panel);
 
     let open = false;
     let activeIndex = -1;
@@ -69,20 +81,47 @@ function enhanceSelect(select) {
     const syncTrigger = () => {
         const selected = select.options[select.selectedIndex];
         const hasValue = Boolean(select.value);
-        trigger.textContent = hasValue && selected ? optionLabel(selected) : placeholder;
+        triggerLabel.textContent = hasValue && selected ? optionLabel(selected) : placeholder;
         trigger.classList.toggle('is-placeholder', ! hasValue);
+    };
+
+    const placePanel = () => {
+        const rect = trigger.getBoundingClientRect();
+        const gap = 6;
+        const maxHeight = Math.min(280, window.innerHeight - 24);
+        const spaceBelow = window.innerHeight - rect.bottom - gap - 12;
+        const spaceAbove = rect.top - gap - 12;
+        const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+        const height = Math.max(140, Math.min(maxHeight, openUp ? spaceAbove : spaceBelow));
+
+        panel.style.width = `${Math.max(rect.width, 240)}px`;
+        panel.style.left = `${Math.min(rect.left, window.innerWidth - Math.max(rect.width, 240) - 8)}px`;
+        panel.style.maxHeight = `${height}px`;
+
+        if (openUp) {
+            panel.style.top = 'auto';
+            panel.style.bottom = `${window.innerHeight - rect.top + gap}px`;
+        } else {
+            panel.style.bottom = 'auto';
+            panel.style.top = `${rect.bottom + gap}px`;
+        }
     };
 
     const setOpen = (next) => {
         open = next;
-        panel.classList.toggle('hidden', ! open);
+        panel.hidden = ! open;
         trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
         wrap.classList.toggle('is-open', open);
+        panel.classList.toggle('is-open', open);
 
         if (open) {
             search.value = '';
+            placePanel();
             renderList();
-            requestAnimationFrame(() => search.focus());
+            requestAnimationFrame(() => {
+                placePanel();
+                search.focus();
+            });
         }
     };
 
@@ -140,11 +179,14 @@ function enhanceSelect(select) {
             visibleItems.push(li);
         });
 
-        empty.classList.toggle('hidden', visibleItems.length > 0);
+        empty.hidden = visibleItems.length > 0;
         setActive(visibleItems.length ? 0 : -1);
     };
 
-    trigger.addEventListener('click', () => setOpen(! open));
+    trigger.addEventListener('click', (event) => {
+        event.preventDefault();
+        setOpen(! open);
+    });
 
     search.addEventListener('input', () => {
         renderList();
@@ -174,10 +216,26 @@ function enhanceSelect(select) {
     });
 
     document.addEventListener('click', (event) => {
-        if (open && ! wrap.contains(event.target)) {
-            setOpen(false);
+        if (! open) {
+            return;
+        }
+        if (wrap.contains(event.target) || panel.contains(event.target)) {
+            return;
+        }
+        setOpen(false);
+    });
+
+    window.addEventListener('resize', () => {
+        if (open) {
+            placePanel();
         }
     });
+
+    window.addEventListener('scroll', () => {
+        if (open) {
+            placePanel();
+        }
+    }, true);
 
     select.addEventListener('change', syncTrigger);
     syncTrigger();
