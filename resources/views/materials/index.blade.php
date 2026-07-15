@@ -48,9 +48,23 @@
 
         <x-table-card :step="2" title="Daftar Bahan" :subtitle="$materials->count() . ' bahan terdaftar'">
             @if ($materials->isNotEmpty())
-                <div class="space-y-3 p-4 sm:p-5">
+                <div class="space-y-3 p-4 sm:p-5" data-materials-list>
+                    <div class="materials-search">
+                        <input
+                            type="search"
+                            class="form-input"
+                            placeholder="Cari bahan..."
+                            data-materials-search
+                            autocomplete="off"
+                        >
+                    </div>
+
                     @foreach ($materials as $material)
-                        <div class="module-item-card material-card">
+                        <div
+                            class="module-item-card material-card"
+                            data-material-card
+                            data-search="{{ strtolower($material->name.' '.$material->unit) }}"
+                        >
                             <div class="material-card__top">
                                 <div class="min-w-0 flex-1">
                                     <p class="text-base font-bold text-slate-900">{{ $material->name }}</p>
@@ -204,6 +218,11 @@
                             @endif
                         </div>
                     @endforeach
+
+                    <div class="module-empty hidden !py-8" data-materials-search-empty>
+                        <p class="module-empty__title">Tidak ada bahan yang cocok</p>
+                        <p class="module-empty__hint">Coba kata kunci lain.</p>
+                    </div>
                 </div>
 
                 <x-slot:footer>

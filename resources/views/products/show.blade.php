@@ -244,7 +244,16 @@
                             @csrf
                             <div class="recipe-add-form__material">
                                 <label class="form-label" for="bom_child_product_id">Pilih bahan</label>
-                                <select id="bom_child_product_id" name="child_product_id" class="form-input" required data-bom-material>
+                                <select
+                                    id="bom_child_product_id"
+                                    name="child_product_id"
+                                    class="form-input"
+                                    required
+                                    data-bom-material
+                                    data-searchable-select
+                                    data-search-placeholder="Pilih bahan..."
+                                    data-search-input-placeholder="Cari nama bahan..."
+                                >
                                     <option value="">Pilih bahan...</option>
                                     @foreach ($allProducts as $p)
                                         <option

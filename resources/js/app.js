@@ -15,4 +15,6 @@ import './material-purchase';
 import './stock-remaining';
 import './password-strength';
 import './material-history';
+import './searchable-select';
+import './materials-list-search';
 
