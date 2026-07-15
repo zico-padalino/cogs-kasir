@@ -29,98 +29,127 @@
                 </div>
             </div>
         @else
-            <div class="pricing-desktop-grid">
-                @foreach ($items as $item)
-                    @php
-                        $product = $item['product'];
-                        $modal = $item['modal'];
-                        $belumModal = $modal <= 0;
-                        $persen = old('margin_percent', $item['persen_untung'] > 0 ? $item['persen_untung'] : null);
-                    @endphp
-                    <div class="module-pricing-card {{ $belumModal ? 'is-warning' : '' }}">
-                        <form action="{{ route('menu-pricing.update', $product) }}" method="POST" class="space-y-4"
-                              data-pricing-form
-                              data-modal="{{ $belumModal ? 0 : $modal }}"
-                              data-unit="{{ $product->unit }}">
-                            @csrf @method('PUT')
-                            <input type="hidden" name="pricing_mode" value="price" data-pricing-mode>
+            <div class="pricing-list" data-pricing-list>
+                <div class="materials-search mb-3">
+                    <input
+                        type="search"
+                        class="form-input"
+                        placeholder="Cari menu..."
+                        data-pricing-search
+                        autocomplete="off"
+                    >
+                </div>
+                <p class="mb-3 text-xs text-slate-500" data-pricing-count>
+                    {{ $items->count() }} menu
+                </p>
 
-                            <div class="module-pricing-card__head">
-                                <div class="min-w-0">
-                                    <p class="text-lg font-bold text-slate-900">{{ $product->name }}</p>
-                                    <p class="text-sm text-slate-500">per {{ $product->unit }}</p>
-                                </div>
-                                <div class="module-pricing-card__modal {{ $belumModal ? '!bg-amber-600' : '' }}">
-                                    <p class="module-pricing-card__modal-label">Modal</p>
-                                    @if ($belumModal)
-                                        <p class="module-pricing-card__modal-value text-sm">Belum dihitung</p>
-                                    @else
-                                        <p class="module-pricing-card__modal-value">{{ $format::rupiah($modal, 0) }}</p>
-                                    @endif
-                                </div>
-                            </div>
+                <div class="pricing-desktop-grid">
+                    @foreach ($items as $item)
+                        @php
+                            $product = $item['product'];
+                            $modal = $item['modal'];
+                            $belumModal = $modal <= 0;
+                            $persen = old('margin_percent', $item['persen_untung'] > 0 ? $item['persen_untung'] : null);
+                        @endphp
+                        <div
+                            class="module-pricing-card {{ $belumModal ? 'is-warning' : '' }}"
+                            data-pricing-card
+                            data-search="{{ strtolower($product->name.' '.$product->unit.' '.($product->sku ?? '')) }}"
+                        >
+                            <form action="{{ route('menu-pricing.update', $product) }}" method="POST" class="space-y-4"
+                                  data-pricing-form
+                                  data-modal="{{ $belumModal ? 0 : $modal }}"
+                                  data-unit="{{ $product->unit }}">
+                                @csrf @method('PUT')
+                                <input type="hidden" name="pricing_mode" value="price" data-pricing-mode>
 
-                            @if ($belumModal)
-                                <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                                    Modal belum terisi. Lengkapi resep bahan di menu dulu.
-                                    <a href="{{ route('products.show', $product) }}" class="font-bold underline">Isi Resep →</a>
-                                </p>
-                            @endif
-
-                            <div class="pricing-fields">
-                                <div>
-                                    <label class="form-label">Harga jual (Rp)</label>
-                                    <x-rupiah-input name="selling_price" :value="old('selling_price', $product->selling_price)" placeholder="15.000" />
-                                    <p class="form-hint mt-1">Isi nominal langsung</p>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="margin_percent_{{ $product->id }}">Persen untung (%)</label>
-                                    <div class="relative">
-                                        <input
-                                            type="number"
-                                            id="margin_percent_{{ $product->id }}"
-                                            name="margin_percent"
-                                            class="form-input pr-10"
-                                            data-pricing-margin
-                                            step="0.1"
-                                            min="0"
-                                            max="99.9"
-                                            placeholder="30"
-                                            value="{{ $persen !== null && $persen !== '' ? rtrim(rtrim(number_format((float) $persen, 1, '.', ''), '0'), '.') : '' }}"
-                                            @disabled($belumModal)
+                                <div class="module-pricing-card__head">
+                                    <div class="min-w-0">
+                                        <a
+                                            href="{{ route('products.show', $product) }}"
+                                            class="text-lg font-bold text-slate-900 hover:text-brand-700 hover:underline"
                                         >
-                                        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">%</span>
+                                            {{ $product->name }}
+                                        </a>
+                                        <p class="text-sm text-slate-500">per {{ $product->unit }}</p>
                                     </div>
-                                    <p class="form-hint mt-1">
+                                    <div class="module-pricing-card__modal {{ $belumModal ? '!bg-amber-600' : '' }}">
+                                        <p class="module-pricing-card__modal-label">Modal</p>
                                         @if ($belumModal)
-                                            Aktif setelah modal terisi
+                                            <p class="module-pricing-card__modal-value text-sm">Belum dihitung</p>
                                         @else
-                                            Atau isi persen — harga ikut dihitung
+                                            <p class="module-pricing-card__modal-value">{{ $format::rupiah($modal, 0) }}</p>
                                         @endif
+                                    </div>
+                                </div>
+
+                                @if ($belumModal)
+                                    <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                        Modal belum terisi. Lengkapi resep bahan di menu dulu.
+                                        <a href="{{ route('products.show', $product) }}" class="font-bold underline">Isi Resep →</a>
                                     </p>
-                                </div>
-                            </div>
+                                @endif
 
-                            @if (! $belumModal)
-                                <div class="module-pricing-card__profit" data-pricing-profit>
-                                    Untung per {{ $product->unit }}:
-                                    <strong data-pricing-amount class="{{ $item['untung'] >= 0 ? 'text-green-700' : 'text-red-600' }}">{{ $format::rupiah($item['untung'], 0) }}</strong>
-                                    <span class="text-slate-600" data-pricing-percent>({{ $format::number($item['persen_untung']) }}%)</span>
+                                <div class="pricing-fields">
+                                    <div>
+                                        <label class="form-label">Harga jual (Rp)</label>
+                                        <x-rupiah-input name="selling_price" :value="old('selling_price', $product->selling_price)" placeholder="15.000" />
+                                        <p class="form-hint mt-1">Isi nominal langsung</p>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="margin_percent_{{ $product->id }}">Persen untung (%)</label>
+                                        <div class="relative">
+                                            <input
+                                                type="number"
+                                                id="margin_percent_{{ $product->id }}"
+                                                name="margin_percent"
+                                                class="form-input pr-10"
+                                                data-pricing-margin
+                                                step="0.1"
+                                                min="0"
+                                                max="99.9"
+                                                placeholder="30"
+                                                value="{{ $persen !== null && $persen !== '' ? rtrim(rtrim(number_format((float) $persen, 1, '.', ''), '0'), '.') : '' }}"
+                                                @disabled($belumModal)
+                                            >
+                                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">%</span>
+                                        </div>
+                                        <p class="form-hint mt-1">
+                                            @if ($belumModal)
+                                                Aktif setelah modal terisi
+                                            @else
+                                                Atau isi persen — harga ikut dihitung
+                                            @endif
+                                        </p>
+                                    </div>
                                 </div>
-                            @else
-                                <p class="text-sm text-slate-500">Untung muncul otomatis setelah modal terisi.</p>
-                            @endif
 
-                            <div class="pricing-card-footer">
-                                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                                    <input type="checkbox" name="is_menu_item" value="1" class="rounded" @checked(old('is_menu_item', $product->is_menu_item))>
-                                    <span class="text-sm font-medium">Tampilkan di Kasir</span>
-                                </label>
-                                <button type="submit" class="btn-primary px-5 py-2.5 font-semibold">Simpan Harga</button>
-                            </div>
-                        </form>
-                    </div>
-                @endforeach
+                                @if (! $belumModal)
+                                    <div class="module-pricing-card__profit" data-pricing-profit>
+                                        Untung per {{ $product->unit }}:
+                                        <strong data-pricing-amount class="{{ $item['untung'] >= 0 ? 'text-green-700' : 'text-red-600' }}">{{ $format::rupiah($item['untung'], 0) }}</strong>
+                                        <span class="text-slate-600" data-pricing-percent>({{ $format::number($item['persen_untung']) }}%)</span>
+                                    </div>
+                                @else
+                                    <p class="text-sm text-slate-500">Untung muncul otomatis setelah modal terisi.</p>
+                                @endif
+
+                                <div class="pricing-card-footer">
+                                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                        <input type="checkbox" name="is_menu_item" value="1" class="rounded" @checked(old('is_menu_item', $product->is_menu_item))>
+                                        <span class="text-sm font-medium">Tampilkan di Kasir</span>
+                                    </label>
+                                    <button type="submit" class="btn-primary px-5 py-2.5 font-semibold">Simpan Harga</button>
+                                </div>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="module-empty hidden !py-8" data-pricing-search-empty>
+                    <p class="module-empty__title">Tidak ada menu yang cocok</p>
+                    <p class="module-empty__hint">Coba kata kunci lain.</p>
+                </div>
             </div>
 
             <x-table-card :step="4" title="Rincian Modal" subtitle="Detail perhitungan bahan & biaya lain">

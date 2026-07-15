@@ -210,6 +210,47 @@ function initMenuPricing(root = document) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => initMenuPricing());
+document.addEventListener('DOMContentLoaded', () => {
+    initMenuPricing();
+    initMenuPricingSearch();
+});
+
+function initMenuPricingSearch() {
+    const list = document.querySelector('[data-pricing-list]');
+    const searchInput = document.querySelector('[data-pricing-search]');
+
+    if (! list || ! searchInput) {
+        return;
+    }
+
+    const cards = list.querySelectorAll('[data-pricing-card]');
+    const empty = list.querySelector('[data-pricing-search-empty]');
+    const countLabel = list.querySelector('[data-pricing-count]');
+    const total = cards.length;
+
+    const apply = () => {
+        const query = (searchInput.value || '').trim().toLowerCase();
+        let visible = 0;
+
+        cards.forEach((card) => {
+            const haystack = (card.dataset.search || '').toLowerCase();
+            const match = query === '' || haystack.includes(query);
+            card.classList.toggle('hidden', ! match);
+            if (match) {
+                visible += 1;
+            }
+        });
+
+        empty?.classList.toggle('hidden', visible > 0);
+
+        if (countLabel) {
+            countLabel.textContent = query
+                ? `${visible} dari ${total} menu`
+                : `${total} menu`;
+        }
+    };
+
+    searchInput.addEventListener('input', apply);
+}
 
 export { initMenuPricing, updatePricingProfit };
