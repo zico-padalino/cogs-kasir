@@ -41,6 +41,7 @@ class InventoryController extends Controller
             'historyDate' => $historyDate,
             'historyUrl' => route('materials.history'),
             'format' => Format::class,
+            'units' => MaterialUnits::class,
             'unitPresets' => MaterialUnits::presets(),
         ]);
     }
@@ -236,22 +237,49 @@ class InventoryController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'unit_preset' => ['required', 'string', 'max:20'],
+            'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
         ], [
             'name.required' => 'Nama bahan wajib diisi.',
+            'unit_custom.required_if' => 'Isi satuan bahan jika memilih Lainnya.',
         ]);
 
-        $oldName = $product->name;
         $newName = trim($validated['name']);
+        $newUnit = MaterialUnits::resolve($validated['unit_preset'], $validated['unit_custom'] ?? '');
 
-        if ($newName === $oldName) {
-            return redirect()->route('materials.index')->with('success', 'Nama bahan tidak berubah.');
+        if ($newUnit === '') {
+            return back()->withErrors(['unit_custom' => 'Isi satuan bahan.'])->withInput();
         }
 
-        $product->update(['name' => $newName]);
+        $oldName = $product->name;
+        $oldUnit = (string) $product->unit;
+        $changes = [];
+
+        if ($newName !== $oldName) {
+            $changes[] = sprintf('nama %s → %s', $oldName, $newName);
+        }
+
+        if (MaterialUnits::normalize($newUnit) !== MaterialUnits::normalize($oldUnit)
+            && strtolower(trim($newUnit)) !== strtolower(trim($oldUnit))) {
+            $changes[] = sprintf(
+                'satuan %s → %s',
+                MaterialUnits::label($oldUnit),
+                MaterialUnits::label($newUnit),
+            );
+        }
+
+        if ($changes === []) {
+            return redirect()->route('materials.index')->with('success', 'Data bahan tidak berubah.');
+        }
+
+        $product->update([
+            'name' => $newName,
+            'unit' => $newUnit,
+        ]);
 
         return redirect()->route('materials.index')->with(
             'success',
-            sprintf('Nama bahan diubah: %s → %s.', $oldName, $newName),
+            'Bahan diperbarui: '.implode(', ', $changes).'.',
         );
     }
 
