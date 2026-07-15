@@ -296,11 +296,24 @@ function shouldForcePinLock(response) {
 }
 
 function goToPinUnlock(shell, redirectUrl) {
-    const url = redirectUrl || shell.dataset.kasirPinUnlockUrl || '/kasir/pin';
-    if (window.location.pathname.includes('/kasir/pin')) {
+    // Jangan paksa keluar dari halaman atur/ubah PIN.
+    if (isPinManagementPage()) {
         return;
     }
+
+    const path = window.location.pathname || '';
+    if (path.includes('/kasir/pin')) {
+        return;
+    }
+
+    const url = redirectUrl || shell?.dataset?.kasirPinUnlockUrl || '/kasir/pin';
     window.location.assign(url);
+}
+
+function isPinManagementPage() {
+    const path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+
+    return path === '/pin';
 }
 
 let pinExpiryTimer = null;
@@ -398,6 +411,12 @@ function openCartTabFromQuery() {
 function initKasirNotifications() {
     const shell = document.querySelector('[data-kasir-notifications]');
     if (! shell) {
+        return;
+    }
+
+    // Halaman /pin (atur PIN) share layout kasir — jangan auto-redirect ke unlock.
+    if (isPinManagementPage()) {
+        syncSoundToggleUi();
         return;
     }
 

@@ -60,6 +60,13 @@ class PinSetupController extends Controller
 
         KasirPin::setPin($user, $validated['pin']);
 
+        // Setelah buat/ubah PIN dari layar unlock, kembalikan ke form PIN agar langsung bisa buka kasir.
+        if (! KasirPin::isUnlocked() && $user->hasModule(UserRole::Kasir)) {
+            return redirect()
+                ->route('kasir.pin.unlock')
+                ->with('success', 'PIN berhasil disimpan. Masukkan PIN untuk membuka kasir.');
+        }
+
         return redirect()
             ->route('pin.edit')
             ->with('success', 'PIN kasir berhasil disimpan.');

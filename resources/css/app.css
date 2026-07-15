@@ -1691,7 +1691,7 @@
 
     /* ── Kasir POS (tampilan kasir sungguhan) ── */
     .is-kasir-pos .kasir-page-header {
-        @apply hidden;
+        display: none !important;
     }
 
     /* Saat sidebar disembunyikan: tampilkan header atas (tombol ☰ satu saja) */
@@ -2099,23 +2099,31 @@
     }
 
     .pos-receipt-context {
-        @apply flex flex-wrap gap-2 border-b border-slate-100 px-4 py-2.5;
+        @apply flex flex-wrap gap-1.5 border-b border-slate-100 px-3 py-1.5;
     }
 
     .pos-flow-steps {
-        @apply grid shrink-0 grid-cols-4 gap-1 border-b border-slate-200 bg-white px-2 py-2.5 sm:px-3;
+        @apply grid shrink-0 grid-cols-4 gap-0.5 border-b border-slate-200 bg-white px-1.5 py-1.5 sm:px-2;
+    }
+
+    .pos-flow-steps.is-compact .pos-flow-step-label {
+        @apply hidden;
+    }
+
+    .pos-flow-steps.is-compact {
+        @apply py-1;
     }
 
     .pos-flow-step {
-        @apply flex min-w-0 flex-col items-center gap-1 text-center;
+        @apply flex min-w-0 flex-col items-center gap-0.5 text-center;
     }
 
     .pos-flow-step-num {
-        @apply flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-500;
+        @apply flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-500;
     }
 
     .pos-flow-step-label {
-        @apply truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+        @apply truncate text-[9px] font-semibold uppercase tracking-wide text-slate-400;
     }
 
     .pos-flow-step.is-done .pos-flow-step-num,
@@ -2165,11 +2173,11 @@
     }
 
     .pos-pending {
-        @apply shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-3 sm:px-5;
+        @apply shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2 sm:px-4;
     }
 
     .pos-pending-toggle {
-        @apply flex w-full items-center justify-between gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-xs font-semibold text-amber-900 shadow-sm transition active:scale-[0.99] lg:hidden;
+        @apply flex w-full items-center justify-between gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-xs font-semibold text-amber-900 shadow-sm transition active:scale-[0.99];
     }
 
     .pos-pending-toggle-icon {
@@ -2181,20 +2189,24 @@
     }
 
     .pos-pending-body {
-        @apply mt-2 lg:mt-0 lg:block;
+        @apply mt-2 hidden;
+    }
+
+    .pos-pending.is-expanded .pos-pending-body {
+        @apply block;
     }
 
     .pos-pending-title {
-        @apply text-xs font-bold uppercase tracking-wide text-amber-900;
+        @apply text-[11px] font-bold uppercase tracking-wide text-amber-900;
     }
 
     .pos-pending-list {
-        @apply mt-2 flex gap-2 overflow-x-auto pb-1;
+        @apply mt-1.5 flex gap-2 overflow-x-auto pb-0.5;
     }
 
     .pos-pending-card {
-        @apply inline-flex w-[min(100%,16rem)] shrink-0 flex-col gap-2 rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-left text-sm shadow-sm;
-        min-width: min(100%, 11rem);
+        @apply inline-flex w-[min(100%,14rem)] shrink-0 flex-col gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-2 text-left text-sm shadow-sm;
+        min-width: min(100%, 10rem);
     }
 
     .pos-pending-card-head {
@@ -2231,7 +2243,7 @@
     }
 
     .pos-pending-action {
-        @apply min-h-10 w-full touch-manipulation rounded-lg px-2 py-2 text-xs font-semibold transition active:scale-[0.98];
+        @apply min-h-9 w-full touch-manipulation rounded-lg px-2 py-1.5 text-xs font-semibold transition active:scale-[0.98];
     }
 
     .pos-pending-action-confirm {
@@ -2512,6 +2524,11 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    .pos-receipt-body:has(.pos-receipt-lines) {
+        flex: 1 1 auto;
+        min-height: 5.5rem;
+    }
+
     .pos-receipt-body:has(.pos-receipt-empty) {
         @apply overflow-hidden;
     }
@@ -2521,11 +2538,11 @@
     }
 
     .pos-receipt-line {
-        @apply flex items-start gap-3 px-4 py-3;
+        @apply flex items-start gap-2 px-3 py-2;
     }
 
     .pos-receipt-thumb {
-        @apply h-14 w-14 shrink-0 rounded-xl object-cover;
+        @apply h-10 w-10 shrink-0 rounded-lg object-cover;
     }
 
     .pos-receipt-line-detail {
@@ -2955,11 +2972,11 @@
     }
 
     .pos-receipt-line-name {
-        @apply font-semibold text-slate-900;
+        @apply text-sm font-semibold leading-snug text-slate-900;
     }
 
     .pos-receipt-line-qty {
-        @apply mt-0.5 text-xs text-slate-500;
+        @apply mt-0.5 text-[11px] text-slate-500;
     }
 
     .pos-receipt-line-note {
@@ -2967,7 +2984,7 @@
     }
 
     .pos-order-item {
-        @apply flex items-start gap-3;
+        @apply flex items-start gap-2;
     }
 
     .pos-order-item-thumb-btn {
@@ -3060,7 +3077,11 @@
 
     .pos-receipt-foot,
     .pos-receipt-pay {
-        @apply shrink-0 border-t border-slate-200 bg-slate-50 p-4;
+        @apply shrink-0 border-t border-slate-200 bg-slate-50 p-3;
+    }
+
+    .pos-receipt.is-checkout-ready .pos-receipt-pay {
+        @apply space-y-2 p-2.5;
     }
 
     .pos-receipt-pay-totals .pos-receipt-grand {
@@ -3068,23 +3089,23 @@
     }
 
     .pos-order-totals {
-        @apply space-y-2;
+        @apply space-y-1.5;
     }
 
     .pos-receipt-subtotal {
-        @apply flex items-center justify-between gap-3 text-sm text-slate-600;
+        @apply flex items-center justify-between gap-2 text-xs text-slate-600;
     }
 
     .pos-receipt-discount {
-        @apply flex items-center justify-between gap-3 text-sm font-medium text-rose-600;
+        @apply flex items-center justify-between gap-2 text-xs font-medium text-rose-600;
     }
 
     .pos-discount-panel {
-        @apply border-t border-slate-200 bg-white;
+        @apply shrink-0 border-t border-slate-200 bg-white;
     }
 
     .pos-discount-toggle {
-        @apply flex w-full min-h-11 touch-manipulation items-center justify-between gap-2 px-4 py-2.5 text-left transition active:bg-slate-50;
+        @apply flex w-full min-h-9 touch-manipulation items-center justify-between gap-2 px-3 py-2 text-left transition active:bg-slate-50;
     }
 
     .pos-discount-toggle-main {
@@ -3116,7 +3137,7 @@
     }
 
     .pos-discount-body {
-        @apply hidden border-t border-slate-100 px-4 pb-3 pt-2;
+        @apply hidden border-t border-slate-100 px-3 pb-2.5 pt-2;
     }
 
     .pos-discount-panel.is-expanded .pos-discount-body {
@@ -3165,15 +3186,19 @@
     }
 
     .pos-receipt-grand {
-        @apply flex items-center justify-between gap-3 border-t border-slate-200 pt-3 text-base font-bold text-slate-900;
+        @apply flex items-center justify-between gap-2 border-t border-slate-200 pt-2 text-sm font-bold text-slate-900;
     }
 
     .pos-receipt-grand span:first-child {
-        @apply shrink-0 text-sm font-semibold text-slate-800 sm:text-base;
+        @apply shrink-0 text-xs font-semibold text-slate-800 sm:text-sm;
     }
 
     .pos-receipt-grand span:last-child {
-        @apply min-w-0 text-right text-xl font-bold tabular-nums leading-none text-brand-700 sm:text-2xl;
+        @apply min-w-0 text-right text-lg font-bold tabular-nums leading-none text-brand-700 sm:text-xl;
+    }
+
+    .pos-receipt.is-checkout-ready .pos-receipt-grand span:last-child {
+        @apply text-base sm:text-lg;
     }
 
     .pos-pay-label {
@@ -3193,7 +3218,7 @@
     }
 
     .pos-pay-submit {
-        @apply relative z-10 flex w-full min-h-12 touch-manipulation cursor-pointer items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-base font-bold text-white shadow-lg transition hover:bg-green-700 active:scale-[0.98];
+        @apply relative z-10 flex w-full min-h-11 touch-manipulation cursor-pointer items-center justify-center rounded-xl bg-green-600 px-3 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-green-700 active:scale-[0.98];
     }
 
     .pos-receipt-confirm {
@@ -3919,7 +3944,12 @@
         }
 
         .pos-receipt-context {
-            @apply px-3 py-2;
+            @apply px-2.5 py-1.5;
+        }
+
+        .pos-receipt-body:has(.pos-receipt-lines) {
+            flex: 1 1 0%;
+            min-height: 7rem;
         }
 
         .pos-receipt-empty {

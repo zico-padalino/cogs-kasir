@@ -9,7 +9,7 @@
     };
 @endphp
 
-<div class="pos-receipt">
+<div @class(['pos-receipt', 'is-checkout-ready' => $order->canCheckoutAtKasir()])>
     <div class="pos-receipt-head">
         <div>
             <h2 class="pos-receipt-title">Pesanan</h2>
@@ -19,7 +19,7 @@
     </div>
 
     @if ($isOnline)
-        <nav class="pos-flow-steps" aria-label="Alur pesanan">
+        <nav @class(['pos-flow-steps', 'is-compact' => $step >= 3]) aria-label="Alur pesanan">
             <div class="pos-flow-step {{ $step >= 1 ? 'is-done' : '' }} {{ $step === 1 ? 'is-current' : '' }}">
                 <span class="pos-flow-step-num">1</span>
                 <span class="pos-flow-step-label">Pesan</span>
@@ -79,12 +79,8 @@
 
         <div class="pos-receipt-pay" data-pos-receipt-pay>
             <div class="pos-receipt-pay-totals">
-                @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format, 'totalLabel' => 'Total Tagihan'])
+                @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format, 'totalLabel' => 'Total'])
             </div>
-
-            @if ($isOnline)
-                <p class="pos-pay-flow-hint">Langkah 3: terima pembayaran, lalu pesanan selesai.</p>
-            @endif
 
             <button type="button" class="pos-pay-submit" data-kasir-open-pay data-kasir-pay-button>
                 Bayar <span data-kasir-pay-button-total>{{ $format::rupiah($order->total) }}</span>

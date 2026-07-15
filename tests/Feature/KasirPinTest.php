@@ -76,10 +76,39 @@ class KasirPinTest extends TestCase
                 'pin' => '1357',
                 'pin_confirmation' => '1357',
             ])
-            ->assertRedirect(route('pin.edit'));
+            ->assertRedirect(route('kasir.pin.unlock'));
 
         $user->refresh();
         $this->assertTrue(KasirPin::hasPin($user));
         $this->assertNotNull(KasirPin::findByPin('1357'));
+    }
+
+    public function test_pin_setup_page_is_reachable_while_kasir_locked(): void
+    {
+        $user = User::factory()->kasir()->create();
+        KasirPin::setPin($user, '1234');
+        KasirPin::lock();
+
+        $this->actingAs($user)
+            ->get(route('pin.edit'))
+            ->assertOk()
+            ->assertSee('PIN baru', false);
+    }
+
+    public function test_unlocked_kasir_stays_on_pin_edit_after_update(): void
+    {
+        $user = User::factory()->kasir()->create([
+            'password' => Hash::make('secret123'),
+        ]);
+        KasirPin::setPin($user, '1234');
+        KasirPin::unlock($user);
+
+        $this->actingAs($user)
+            ->put(route('pin.update'), [
+                'current_password' => 'secret123',
+                'pin' => '2468',
+                'pin_confirmation' => '2468',
+            ])
+            ->assertRedirect(route('pin.edit'));
     }
 }

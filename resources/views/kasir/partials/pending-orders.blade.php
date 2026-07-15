@@ -5,10 +5,20 @@
     $pendingTotal = $pendingOrders->sum('total');
     $waitingCount = $pendingOrders->where('status', PosOrderStatus::Submitted)->count();
     $currentOrderId = $currentOrder?->id;
+    // Expand only when there are other online orders still needing attention.
+    $hasActionable = $pendingOrders->contains(
+        fn ($pending) => ! $currentOrderId || (int) $pending->id !== (int) $currentOrderId
+    );
+    $defaultExpanded = $hasActionable;
 @endphp
 
-<div class="pos-pending" data-pos-pending>
-    <button type="button" class="pos-pending-toggle lg:hidden" data-pos-pending-toggle aria-expanded="false">
+<div @class(['pos-pending', 'is-expanded' => $defaultExpanded]) data-pos-pending>
+    <button
+        type="button"
+        class="pos-pending-toggle"
+        data-pos-pending-toggle
+        aria-expanded="{{ $defaultExpanded ? 'true' : 'false' }}"
+    >
         <span>
             {{ $pendingOrders->count() }} pesanan online
             @if ($waitingCount > 0)
