@@ -15,7 +15,7 @@
 
     <button
         type="button"
-        class="pos-order-bar-toggle lg:hidden"
+        class="pos-order-bar-toggle"
         data-pos-order-bar-toggle
         aria-expanded="false"
         aria-controls="pos-order-bar-body"
@@ -49,8 +49,10 @@
                         @checked($activeType === $orderType->value)
                     >
                     <span class="pos-order-type-icon-lg" aria-hidden="true">{{ $orderType->icon() }}</span>
-                    <span class="pos-order-type-name">{{ $orderType->label() }}</span>
-                    <span class="pos-order-type-hint">{{ $orderType->hint() }}</span>
+                    <span class="pos-order-type-text">
+                        <span class="pos-order-type-name">{{ $orderType->label() }}</span>
+                        <span class="pos-order-type-hint">{{ $orderType->hint() }}</span>
+                    </span>
                 </label>
             @endforeach
         </div>

@@ -536,7 +536,7 @@ function initPosOrderBar(root) {
     };
 
     const collapseOrderBarOnMobile = () => {
-        if (window.innerWidth < POS_DESKTOP_BP && bar.classList.contains('is-expanded')) {
+        if (bar.classList.contains('is-expanded')) {
             setOrderBarExpanded(false);
         }
     };
@@ -656,7 +656,7 @@ function initPosOrderBar(root) {
             updateReceiptContext(data);
             updateOrderSummary(data);
             setSaveStatus('success', 'Tersimpan');
-            const collapseDelay = window.innerWidth < POS_DESKTOP_BP ? 350 : 1200;
+            const collapseDelay = window.innerWidth < POS_DESKTOP_BP ? 350 : 450;
             window.setTimeout(() => {
                 clearSaveStatus();
                 setOrderBarExpanded(false);

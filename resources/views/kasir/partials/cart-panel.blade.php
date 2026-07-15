@@ -68,8 +68,8 @@
         @else
             <div class="pos-receipt-empty">
                 <span class="pos-receipt-empty-icon">☕</span>
-                <p>Belum ada item</p>
-                <p class="pos-receipt-empty-hint">Tap menu di kiri untuk mulai pesanan</p>
+                <p class="font-medium text-slate-600">Belum ada item</p>
+                <p class="pos-receipt-empty-hint">Pilih menu untuk mulai pesanan</p>
             </div>
         @endif
     </div>
