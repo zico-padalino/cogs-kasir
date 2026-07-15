@@ -122,7 +122,8 @@ function syncPurchaseBox(box) {
     const purchaseQty = box.querySelector('[data-purchase-qty]');
     const purchaseUnit = box.querySelector('[data-purchase-unit]');
 
-    const directCostHidden = directBox?.querySelector('input[type="hidden"][name="unit_cost"]');
+    const directCostHidden = directBox?.querySelector('input[type="hidden"][name="direct_total"]')
+        || directBox?.querySelector('input[type="hidden"][name="unit_cost"]');
     const packCostHidden = packBox?.querySelector('input[type="hidden"][name="package_cost"]');
     const purchaseCostHidden = portionBox?.querySelector('input[type="hidden"][name="purchase_cost"]');
     const directCostVisible = directBox?.querySelector('.rupiah-input');
@@ -154,10 +155,13 @@ function syncPurchaseBox(box) {
 
     if (mode === 'direct') {
         const qty = parseFloat(directQty?.value || '0') || 0;
-        const cost = readRupiahField(directBox, 'unit_cost');
-        preview.textContent = qty > 0
-            ? `Stok masuk ${formatNumber(qty)} ${stockUnit} · harga ${formatRp(cost)} / ${stockUnit}.`
-            : `Isi jumlah & harga per ${stockUnit}.`;
+        const total = readRupiahField(directBox, 'direct_total');
+        if (qty > 0) {
+            const unitCost = total / qty;
+            preview.textContent = `Stok masuk ${formatNumber(qty)} ${stockUnit} · harga ${formatRp(unitCost)} / ${stockUnit} (dari ${formatRp(total)} total).`;
+        } else {
+            preview.textContent = `Isi jumlah & harga total — harga per ${stockUnit} dihitung otomatis.`;
+        }
         return;
     }
 
@@ -189,9 +193,9 @@ function syncPurchaseBox(box) {
     if (bUnit === 'pcs') {
         if (buyQty > 0) {
             const unitCost = buyCost / buyQty;
-            preview.textContent = `Beli ${formatNumber(buyQty)} pcs = stok ${formatNumber(buyQty)} · 1 stok ≈ ${formatNumber(size)} ${UNIT_LABEL[pUnit] || pUnit} · harga ${formatRp(unitCost)} / stok.`;
+            preview.textContent = `Beli ${formatNumber(buyQty)} pcs = stok ${formatNumber(buyQty)} · 1 stok ≈ ${formatNumber(size)} ${UNIT_LABEL[pUnit] || pUnit} · harga ${formatRp(unitCost)} / stok (dari ${formatRp(buyCost)}).`;
         } else {
-            preview.textContent = 'Isi jumlah pcs dibeli dan harga total.';
+            preview.textContent = 'Isi jumlah pcs dibeli dan harga total — harga per stok dihitung otomatis.';
         }
         return;
     }
@@ -201,11 +205,11 @@ function syncPurchaseBox(box) {
     if (size > 0 && buyQty > 0 && converted !== null) {
         const totalQty = converted / size;
         const unitCost = totalQty > 0 ? buyCost / totalQty : 0;
-        preview.textContent = `1 stok = ${formatNumber(size)} ${UNIT_LABEL[pUnit] || pUnit} · beli ${formatNumber(buyQty)} ${UNIT_LABEL[bUnit] || bUnit} = stok ${formatNumber(totalQty)} · harga ${formatRp(unitCost)} / stok.`;
+        preview.textContent = `1 stok = ${formatNumber(size)} ${UNIT_LABEL[pUnit] || pUnit} · beli ${formatNumber(buyQty)} ${UNIT_LABEL[bUnit] || bUnit} = stok ${formatNumber(totalQty)} · harga ${formatRp(unitCost)} / stok (dari ${formatRp(buyCost)}).`;
     } else if (converted === null) {
         preview.textContent = 'Satuan tidak cocok. Gram/kg hanya dengan gram/kg; ml/liter hanya dengan ml/liter. Atau pilih pcs.';
     } else {
-        preview.textContent = 'Isi 1 satuan stok berapa gram/ml, jumlah dibeli, dan harga total.';
+        preview.textContent = 'Isi 1 satuan stok, jumlah dibeli, dan harga total — harga per stok dihitung otomatis.';
     }
 }
 

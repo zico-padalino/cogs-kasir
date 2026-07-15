@@ -12,7 +12,7 @@ class StoreInventoryReceiptRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->normalizeRupiahFields(['unit_cost', 'package_cost', 'purchase_cost']);
+        $this->normalizeRupiahFields(['direct_total', 'unit_cost', 'package_cost', 'purchase_cost']);
 
         if (! $this->filled('purchase_mode')) {
             $this->merge(['purchase_mode' => 'direct']);
@@ -35,7 +35,9 @@ class StoreInventoryReceiptRequest extends FormRequest
             'package_custom.required_if' => 'Isi nama kemasan jika memilih Lainnya.',
             'units_per_package.required_if' => 'Isi berapa jumlah stok dalam 1 kemasan.',
             'package_qty.required_if' => 'Isi berapa kemasan yang dibeli.',
-            'package_cost.required_if' => 'Isi harga per kemasan.',
+            'package_cost.required_if' => 'Isi harga per wadah.',
+            'direct_total.required_if' => 'Isi harga total pembelian.',
+            'purchase_cost.required_if' => 'Isi harga total pembelian.',
         ];
     }
 }

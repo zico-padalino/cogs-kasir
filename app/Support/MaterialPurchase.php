@@ -28,13 +28,40 @@ class MaterialPurchase
             return self::resolvePortion($input);
         }
 
+        return self::resolveDirect($input);
+    }
+
+    /**
+     * Beli langsung: jumlah stok + harga total → harga per satuan otomatis.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{quantity: float, unit_cost: float, note: string, package_label: ?string}
+     */
+    private static function resolveDirect(array $input): array
+    {
         $quantity = (float) ($input['quantity'] ?? 0);
-        $unitCost = Format::parseRupiah($input['unit_cost'] ?? 0);
+        $totalCost = Format::parseRupiah($input['direct_total'] ?? $input['unit_cost'] ?? 0);
+
+        if ($quantity <= 0 || $totalCost < 0) {
+            return [
+                'quantity' => 0.0,
+                'unit_cost' => 0.0,
+                'note' => '',
+                'package_label' => null,
+            ];
+        }
+
+        $unitCost = $totalCost / $quantity;
 
         return [
             'quantity' => round($quantity, 6),
             'unit_cost' => round($unitCost, 4),
-            'note' => '',
+            'note' => sprintf(
+                'beli %s @ %s (= %s / satuan stok)',
+                Format::number($quantity),
+                Format::rupiah($totalCost, 0),
+                Format::rupiah($unitCost, 0),
+            ),
             'package_label' => null,
         ];
     }
@@ -137,21 +164,23 @@ class MaterialPurchase
 
         $note = $purchaseFamily === 'count'
             ? sprintf(
-                'beli %s %s = stok %s · 1 stok ≈ %s %s (harga %s)',
+                'beli %s %s = stok %s · 1 stok ≈ %s %s · harga %s / stok (dari %s)',
                 Format::number($purchaseQty),
                 MaterialUnits::label($purchaseUnit),
                 Format::number($quantity),
                 Format::number($portionSize),
                 MaterialUnits::label($portionUnit),
+                Format::rupiah($unitCost, 0),
                 Format::rupiah($purchaseCost, 0),
             )
             : sprintf(
-                '1 stok = %s %s · beli %s %s = stok %s (harga %s)',
+                '1 stok = %s %s · beli %s %s = stok %s · harga %s / stok (dari %s)',
                 Format::number($portionSize),
                 MaterialUnits::label($portionUnit),
                 Format::number($purchaseQty),
                 MaterialUnits::label($purchaseUnit),
                 Format::number($quantity),
+                Format::rupiah($unitCost, 0),
                 Format::rupiah($purchaseCost, 0),
             );
 
@@ -192,7 +221,8 @@ class MaterialPurchase
         $rules = [
             'purchase_mode' => ['required', 'in:direct,pack,portion'],
             'quantity' => ['nullable', 'numeric', 'gt:0', 'required_if:purchase_mode,direct'],
-            'unit_cost' => ['nullable', 'required_if:purchase_mode,direct'],
+            'direct_total' => ['nullable', 'required_if:purchase_mode,direct'],
+            'unit_cost' => ['nullable'],
             'package_qty' => ['nullable', 'numeric', 'gt:0', 'required_if:purchase_mode,pack'],
             'units_per_package' => ['nullable', 'numeric', 'gt:0', 'required_if:purchase_mode,pack'],
             'package_cost' => ['nullable', 'required_if:purchase_mode,pack'],

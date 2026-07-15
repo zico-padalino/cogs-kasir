@@ -42,7 +42,7 @@
                 <input type="radio" name="purchase_mode" value="direct" class="mt-1" data-purchase-mode @checked($mode === 'direct')>
                 <span class="text-sm">
                     <strong class="text-slate-900">Langsung</strong>
-                    <span class="mt-0.5 block text-xs text-slate-500">Beli 25 kg, harga per kg.</span>
+                    <span class="mt-0.5 block text-xs text-slate-500">Beli 25 kg @ Rp 300.000 → harga/kg otomatis.</span>
                 </span>
             </label>
             <label class="module-choice">
@@ -56,16 +56,22 @@
                 <input type="radio" name="purchase_mode" value="portion" class="mt-1" data-purchase-mode @checked($mode === 'portion')>
                 <span class="text-sm">
                     <strong class="text-slate-900">Konversi kg/liter</strong>
-                    <span class="mt-0.5 block text-xs text-slate-500">1 stok = 250 gram, beli 1 kg → 4 stok.</span>
+                    <span class="mt-0.5 block text-xs text-slate-500">1 stok = 250 g, beli 1 kg @ Rp 80.000 → harga/stok otomatis.</span>
                 </span>
             </label>
         </div>
     </div>
 
     <div class="space-y-3 {{ $mode === 'direct' ? '' : 'hidden' }}" data-purchase-direct>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Isi jumlah masuk + harga total. Sistem otomatis hitung harga per <strong data-pack-stock-unit-text>{{ $stockHint }}</strong>.
+        </div>
         <div class="grid gap-4 sm:grid-cols-2">
             <div>
-                <label class="form-label {{ $compact ? 'text-xs' : '' }}">Jumlah masuk</label>
+                <label class="form-label {{ $compact ? 'text-xs' : '' }}">
+                    Jumlah masuk
+                    <span class="font-normal text-slate-500">(<span data-pack-stock-unit-text>{{ $stockHint }}</span>)</span>
+                </label>
                 <input
                     type="number"
                     name="quantity"
@@ -78,12 +84,12 @@
                     @disabled($mode !== 'direct')
                     @required($require && $mode === 'direct')
                 >
-                <p class="form-hint">Dalam satuan stok{{ $stockUnitLabel ? ' ('.$stockUnitLabel.')' : '' }}.</p>
+                <p class="form-hint">Dalam satuan stok (mis. 25 kg, atau 750 ml).</p>
             </div>
             <div>
-                <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga per satuan stok</label>
-                <x-rupiah-input name="unit_cost" placeholder="12.000" :required="$require && $mode === 'direct'" />
-                <p class="form-hint">Harga untuk 1 satuan stok.</p>
+                <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga total pembelian</label>
+                <x-rupiah-input name="direct_total" placeholder="300.000" :required="$require && $mode === 'direct'" />
+                <p class="form-hint">Harga untuk seluruh jumlah di atas. Harga per <span data-pack-stock-unit-text>{{ $stockHint }}</span> dihitung otomatis.</p>
             </div>
         </div>
     </div>
@@ -165,6 +171,7 @@
     <div class="space-y-3 {{ $mode === 'portion' ? '' : 'hidden' }}" data-purchase-portion>
         <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
             Cocok untuk keju/daging: stok dihitung per porsi (mis. 250 gram), sementara beli dalam kg.
+            Harga per satuan stok dihitung otomatis dari harga total.
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
@@ -222,7 +229,7 @@
         <div>
             <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga total pembelian</label>
             <x-rupiah-input name="purchase_cost" placeholder="80.000" :required="$require && $mode === 'portion'" />
-            <p class="form-hint">Harga untuk jumlah dibeli di atas (bukan per satuan stok).</p>
+            <p class="form-hint">Harga untuk jumlah dibeli di atas. Harga per stok dihitung otomatis.</p>
         </div>
     </div>
 

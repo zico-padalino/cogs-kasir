@@ -166,7 +166,9 @@ class InventoryController extends Controller
             'package_custom.required_if' => 'Isi nama kemasan jika memilih Lainnya.',
             'units_per_package.required_if' => 'Isi berapa jumlah stok dalam 1 kemasan.',
             'package_qty.required_if' => 'Isi berapa kemasan yang dibeli.',
-            'package_cost.required_if' => 'Isi harga per kemasan.',
+            'package_cost.required_if' => 'Isi harga per wadah.',
+            'direct_total.required_if' => 'Isi harga total pembelian.',
+            'purchase_cost.required_if' => 'Isi harga total pembelian.',
         ]);
 
         $unit = MaterialUnits::resolve($validated['unit_preset'], $validated['unit_custom'] ?? '');
@@ -182,7 +184,7 @@ class InventoryController extends Controller
         }
 
         if ($purchase['unit_cost'] < 0) {
-            return back()->withErrors(['unit_cost' => 'Harga tidak valid.'])->withInput();
+            return back()->withErrors(['direct_total' => 'Harga tidak valid.'])->withInput();
         }
 
         $product = Product::create([
@@ -263,7 +265,9 @@ class InventoryController extends Controller
             'package_custom.required_if' => 'Isi nama kemasan jika memilih Lainnya.',
             'units_per_package.required_if' => 'Isi berapa jumlah stok dalam 1 kemasan.',
             'package_qty.required_if' => 'Isi berapa kemasan yang dibeli.',
-            'package_cost.required_if' => 'Isi harga per kemasan.',
+            'package_cost.required_if' => 'Isi harga per wadah.',
+            'direct_total.required_if' => 'Isi harga total pembelian.',
+            'purchase_cost.required_if' => 'Isi harga total pembelian.',
         ]);
 
         $newName = trim($validated['name']);
@@ -303,7 +307,7 @@ class InventoryController extends Controller
             }
 
             if ($purchase['unit_cost'] < 0) {
-                return back()->withErrors(['unit_cost' => 'Harga tidak valid.'])->withInput();
+                return back()->withErrors(['direct_total' => 'Harga tidak valid.'])->withInput();
             }
 
             $before = $product->availableQuantity();
