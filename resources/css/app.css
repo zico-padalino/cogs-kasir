@@ -2337,13 +2337,13 @@
     }
 
     .pos-product-grid {
-        @apply grid flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:grid-cols-3;
+        @apply grid flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:grid-cols-3 xl:grid-cols-4;
         grid-auto-rows: max-content;
         -webkit-overflow-scrolling: touch;
     }
 
     .pos-product-card {
-        @apply flex h-auto min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition active:scale-[0.98] hover:border-brand-200 hover:shadow-md;
+        @apply flex h-auto min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition active:scale-[0.98] hover:border-brand-200 hover:shadow-md;
     }
 
     .pos-product-card.hidden {
@@ -2351,7 +2351,7 @@
     }
 
     .pos-product-card-media {
-        @apply relative block aspect-[3/2] w-full overflow-hidden bg-slate-100;
+        @apply relative block aspect-[2/1] w-full overflow-hidden bg-slate-100;
     }
 
     .pos-product-card-image {
@@ -2364,11 +2364,11 @@
     }
 
     .pos-product-card-body {
-        @apply flex flex-1 flex-col p-3;
+        @apply flex flex-1 flex-col gap-2 p-2.5 sm:p-3;
     }
 
     .pos-product-card-info {
-        @apply w-full text-left;
+        @apply w-full min-w-0 text-left;
     }
 
     .pos-product-desc {
@@ -2376,7 +2376,7 @@
     }
 
     .pos-product-card-foot {
-        @apply mt-auto flex items-center justify-between gap-2 pt-3;
+        @apply mt-auto flex items-end justify-between gap-2 border-t border-slate-100 pt-2;
     }
 
     .pos-product-card-actions {
@@ -2404,7 +2404,7 @@
     }
 
     .pos-product-name {
-        @apply line-clamp-2 text-sm font-bold leading-snug text-slate-900;
+        @apply line-clamp-2 break-words text-[13px] font-bold leading-snug text-slate-900 sm:text-sm;
     }
 
     .pos-product-sku {
@@ -2416,15 +2416,15 @@
     }
 
     .pos-product-price {
-        @apply min-w-0 flex-1 truncate text-sm font-bold text-brand-700;
+        @apply whitespace-nowrap text-[13px] font-bold tabular-nums leading-tight text-brand-700 sm:text-sm;
     }
 
     .pos-product-add {
-        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xl font-bold leading-none text-white shadow-sm transition hover:bg-brand-700 active:scale-95 active:bg-brand-700;
+        @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-lg font-bold leading-none text-white shadow-sm transition hover:bg-brand-700 active:scale-95 active:bg-brand-700 sm:h-9 sm:w-9;
     }
 
     .pos-product-setup {
-        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800 transition hover:bg-amber-100;
+        @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-sm text-amber-800 transition hover:bg-amber-100 sm:h-9 sm:w-9;
     }
 
     .pos-product-stock {
@@ -2440,7 +2440,7 @@
     }
 
     .pos-order-panel {
-        @apply flex min-h-0 w-full shrink-0 flex-col overflow-hidden bg-white lg:w-[min(100%,22rem)] xl:w-[min(100%,26rem)];
+        @apply flex min-h-0 w-full shrink-0 flex-col overflow-hidden bg-white lg:w-[15.5rem] xl:w-[17rem];
     }
 
     .pos-receipt {
@@ -2448,15 +2448,15 @@
     }
 
     .pos-receipt-head {
-        @apply flex shrink-0 items-start justify-between gap-2 border-b border-slate-700 bg-slate-900 px-4 py-3 text-white;
+        @apply flex shrink-0 items-start justify-between gap-2 border-b border-slate-700 bg-slate-900 px-3 py-2.5 text-white;
     }
 
     .pos-receipt-title {
-        @apply text-base font-bold;
+        @apply text-sm font-bold;
     }
 
     .pos-receipt-meta {
-        @apply text-[11px] text-slate-400;
+        @apply text-[10px] text-slate-400;
     }
 
     .pos-receipt-table {
@@ -3648,10 +3648,14 @@
 
         .pos-product-add,
         .pos-product-setup {
-            @apply h-9 w-9 text-lg;
+            @apply h-8 w-8 text-base;
         }
 
         .pos-product-price {
+            @apply whitespace-nowrap text-xs;
+        }
+
+        .pos-product-name {
             @apply text-xs;
         }
 
@@ -3867,7 +3871,19 @@
         }
 
         .pos-order-panel {
-            @apply shadow-[-8px_0_24px_rgba(15,23,42,0.06)];
+            @apply shadow-[-6px_0_18px_rgba(15,23,42,0.05)];
+        }
+
+        .pos-receipt-context {
+            @apply px-3 py-2;
+        }
+
+        .pos-receipt-empty {
+            @apply px-3 py-8 text-sm;
+        }
+
+        .pos-receipt-empty-hint {
+            @apply text-[11px];
         }
 
         .pos-order-bar-head,
