@@ -86,17 +86,31 @@ function enhanceSelect(select) {
     };
 
     const placePanel = () => {
-        const rect = trigger.getBoundingClientRect();
-        const gap = 6;
-        const maxHeight = Math.min(280, window.innerHeight - 24);
-        const spaceBelow = window.innerHeight - rect.bottom - gap - 12;
-        const spaceAbove = rect.top - gap - 12;
-        const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
-        const height = Math.max(140, Math.min(maxHeight, openUp ? spaceAbove : spaceBelow));
+        if (panel.parentElement !== document.body) {
+            document.body.appendChild(panel);
+        }
 
-        panel.style.width = `${Math.max(rect.width, 240)}px`;
-        panel.style.left = `${Math.min(rect.left, window.innerWidth - Math.max(rect.width, 240) - 8)}px`;
+        const rect = trigger.getBoundingClientRect();
+        const gap = 8;
+        const viewportPad = 12;
+        const preferred = 280;
+        const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPad;
+        const spaceAbove = rect.top - gap - viewportPad;
+        const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+        const available = openUp ? spaceAbove : spaceBelow;
+        const height = Math.max(180, Math.min(preferred, Math.max(available, 180)));
+        const width = Math.max(rect.width, 260);
+        const left = Math.max(
+            viewportPad,
+            Math.min(rect.left, window.innerWidth - width - viewportPad),
+        );
+
+        panel.style.position = 'fixed';
+        panel.style.zIndex = '9999';
+        panel.style.width = `${width}px`;
+        panel.style.left = `${left}px`;
         panel.style.maxHeight = `${height}px`;
+        panel.style.height = 'auto';
 
         if (openUp) {
             panel.style.top = 'auto';
@@ -116,11 +130,13 @@ function enhanceSelect(select) {
 
         if (open) {
             search.value = '';
+            // Pastikan trigger punya ruang di viewport sebelum panel diposisikan.
+            trigger.scrollIntoView({ block: 'center', inline: 'nearest' });
             placePanel();
             renderList();
             requestAnimationFrame(() => {
                 placePanel();
-                search.focus();
+                search.focus({ preventScroll: true });
             });
         }
     };

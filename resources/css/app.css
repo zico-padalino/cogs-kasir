@@ -482,11 +482,11 @@
     }
 
     .recipe-add-form {
-        @apply mt-4 grid gap-3 border-t border-slate-100 pt-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end;
+        @apply relative z-10 mt-4 grid gap-3 overflow-visible border-t border-slate-100 pt-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end;
     }
 
     .recipe-add-form__material {
-        @apply min-w-0;
+        @apply relative z-20 min-w-0 overflow-visible;
     }
 
     .recipe-add-form__qty {
@@ -566,7 +566,9 @@
     }
 
     .searchable-select__panel {
-        @apply fixed z-[80] flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl;
+        position: fixed !important;
+        z-index: 9999 !important;
+        @apply flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl;
     }
 
     .searchable-select__panel[hidden] {
@@ -790,7 +792,7 @@
     }
 
     .module-form-card {
-        @apply overflow-hidden rounded-2xl border-2 bg-white shadow-md;
+        @apply overflow-visible rounded-2xl border-2 bg-white shadow-md;
     }
 
     .module-step-1.module-form-card {
@@ -814,7 +816,7 @@
     }
 
     .module-form-card__header {
-        @apply flex items-start gap-3 border-b px-4 py-4 sm:px-5 sm:py-4;
+        @apply flex items-start gap-3 overflow-hidden rounded-t-[1.15rem] border-b px-4 py-4 sm:px-5 sm:py-4;
     }
 
     .module-step-1 .module-form-card__header {
