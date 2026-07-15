@@ -27,26 +27,22 @@
             </div>
         </div>
 
-        <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Pilih satuan stok untuk resep, lalu isi pembelian (langsung, botol/wadah, atau konversi kg→porsi).">
+        <x-module-form-card :step="2" title="Tambah Bahan" description="Nama, satuan stok, lalu cara beli.">
             <form action="{{ route('materials.store') }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
                     <label class="form-label">Nama bahan</label>
-                    <input type="text" name="name" class="form-input text-base" required placeholder="Saus tiram" value="{{ old('name') }}">
+                    <input type="text" name="name" class="form-input" required placeholder="Saus tiram" value="{{ old('name') }}">
                 </div>
 
                 <x-unit-picker
                     :selected="old('unit_preset', 'ml')"
                     :custom-value="old('unit_custom', '')"
                 />
-                <p class="-mt-2 text-xs text-slate-500">
-                    Contoh botol 750 ml: satuan stok pilih <strong>ml</strong>, cara beli <strong>Isi wadah / kemasan</strong>
-                    (1 botol = 750, harga botol Rp 120.000 → harga/ml otomatis).
-                </p>
 
                 <x-material-purchase-fields />
 
-                <button type="submit" class="btn-primary w-full py-3 text-base font-semibold">Simpan Bahan</button>
+                <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan</button>
             </form>
         </x-module-form-card>
 
@@ -85,19 +81,13 @@
                                                     :selected="old('unit_preset', $units::guessPreset($material->unit))"
                                                     :custom-value="old('unit_custom', $units::guessPreset($material->unit) === 'other' ? $material->unit : '')"
                                                 />
-                                                <p class="-mt-2 text-xs text-slate-500">
-                                                    Untuk keju/daging yang dihitung per porsi, satuan stok biasanya <strong>pcs / buah</strong>, lalu di cara beli pilih <strong>Konversi kg/liter</strong>.
-                                                </p>
 
                                                 <x-material-purchase-fields
                                                     :optional="true"
                                                     :stock-unit-label="$material->unit"
                                                 />
 
-                                                <p class="text-xs text-amber-700">
-                                                    Mengubah satuan hanya mengganti label (angka stok tetap). Isi cara beli hanya jika ingin sekalian menambah stok.
-                                                </p>
-                                                <button type="submit" class="btn-primary w-full py-3 text-base font-semibold">Simpan Bahan</button>
+                                                <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan</button>
                                             </form>
                                         </details>
                                     </div>
