@@ -15,9 +15,21 @@
             </div>
         </div>
 
-        <x-table-card :step="3" title="Daftar Menu" :subtitle="$products->total() . ' menu'">
+        <x-table-card :step="3" title="Daftar Menu" :subtitle="$products->count() . ' menu'">
             @if ($products->isNotEmpty())
-                <table class="table-default">
+                <div class="p-4 pb-0 sm:px-5" data-products-list>
+                    <div class="materials-search">
+                        <input
+                            type="search"
+                            class="form-input"
+                            placeholder="Cari menu..."
+                            data-products-search
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+
+                <table class="table-default" data-products-table>
                     <thead>
                         <tr>
                             <th>Nama menu</th>
@@ -28,9 +40,17 @@
                     </thead>
                     <tbody>
                         @foreach ($products as $product)
-                            <tr>
+                            <tr
+                                data-product-row
+                                data-search="{{ strtolower($product->name.' '.$product->unit.' '.($product->sku ?? '')) }}"
+                            >
                                 <td>
-                                    <p class="font-bold text-slate-900">{{ $product->name }}</p>
+                                    <a
+                                        href="{{ route('products.show', $product) }}"
+                                        class="font-bold text-slate-900 hover:text-brand-700 hover:underline"
+                                    >
+                                        {{ $product->name }}
+                                    </a>
                                     <p class="text-xs cell-muted">per {{ $product->unit }}</p>
                                 </td>
                                 <td>
@@ -60,6 +80,11 @@
                     </tbody>
                 </table>
 
+                <div class="module-empty hidden !py-8" data-products-search-empty>
+                    <p class="module-empty__title">Tidak ada menu yang cocok</p>
+                    <p class="module-empty__hint">Coba kata kunci lain.</p>
+                </div>
+
                 <x-slot:footer>
                     <p class="text-sm font-medium text-slate-600">Resep sudah lengkap? Atur harga jual.</p>
                     <a href="{{ route('menu-pricing.index') }}" class="btn-primary btn-sm">Ke Harga Jual →</a>
@@ -74,8 +99,4 @@
             @endif
         </x-table-card>
     </div>
-
-    @if ($products->hasPages())
-        <div class="pagination-wrap mt-3">{{ $products->links() }}</div>
-    @endif
 @endsection

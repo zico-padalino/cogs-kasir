@@ -17,4 +17,5 @@ import './password-strength';
 import './material-history';
 import './searchable-select';
 import './materials-list-search';
+import './products-list-search';
 

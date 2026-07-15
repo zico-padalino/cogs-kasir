@@ -31,8 +31,8 @@ class ProductController extends Controller
     $products = Product::query()
       ->whereIn('type', [ProductType::SemiFinished->value, ProductType::FinishedGood->value])
       ->withCount('billOfMaterials')
-      ->latest()
-      ->paginate(15);
+      ->orderBy('name')
+      ->get();
 
     return view('products.index', [
       'products' => $products,
