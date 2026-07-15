@@ -14,6 +14,10 @@ const UNIT_LABEL = {
     liter: 'liter',
     ml: 'ml',
     pcs: 'pcs',
+    buah: 'buah',
+    bungkus: 'bungkus',
+    kaleng: 'kaleng',
+    ikat: 'ikat',
 };
 
 function formatNumber(value, decimals = null) {
@@ -31,6 +35,35 @@ function formatNumber(value, decimals = null) {
 function formatRp(value) {
     const number = Math.round(Number(value) || 0);
     return 'Rp ' + number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function resolveStockUnitLabel(box) {
+    if (box.dataset.stockUnitLabel) {
+        return box.dataset.stockUnitLabel;
+    }
+
+    const form = box.closest('form');
+    if (! form) {
+        return 'satuan stok';
+    }
+
+    const selected = form.querySelector('[data-unit-picker] input[type="radio"]:checked')?.value;
+    if (! selected) {
+        return 'satuan stok';
+    }
+
+    if (selected === 'other') {
+        const custom = (form.querySelector('[data-unit-custom] input')?.value || '').trim();
+        return custom || 'satuan stok';
+    }
+
+    return UNIT_LABEL[selected] || selected;
+}
+
+function updatePackStockUnitTexts(box, stockUnit) {
+    box.querySelectorAll('[data-pack-stock-unit-text]').forEach((el) => {
+        el.textContent = stockUnit;
+    });
 }
 
 function readRupiahField(section, name) {
@@ -66,6 +99,7 @@ function syncPurchaseBox(box) {
     const mode = box.querySelector('input[data-purchase-mode]:checked')?.value || 'direct';
     const optional = box.dataset.optional === '1';
     const requireFields = ! optional;
+    const stockUnit = resolveStockUnitLabel(box);
     const directBox = box.querySelector('[data-purchase-direct]');
     const packBox = box.querySelector('[data-purchase-pack]');
     const portionBox = box.querySelector('[data-purchase-portion]');
@@ -73,6 +107,8 @@ function syncPurchaseBox(box) {
     const packagePreset = box.querySelector('[data-pack-preset]');
     const customWrap = box.querySelector('[data-pack-custom-wrap]');
     const customInput = box.querySelector('[data-pack-custom]');
+
+    updatePackStockUnitTexts(box, stockUnit);
 
     if (directBox) directBox.classList.toggle('hidden', mode !== 'direct');
     if (packBox) packBox.classList.toggle('hidden', mode !== 'pack');
@@ -120,8 +156,8 @@ function syncPurchaseBox(box) {
         const qty = parseFloat(directQty?.value || '0') || 0;
         const cost = readRupiahField(directBox, 'unit_cost');
         preview.textContent = qty > 0
-            ? `Stok masuk ${formatNumber(qty)} · harga ${formatRp(cost)} / satuan stok.`
-            : 'Isi jumlah & harga per satuan stok.';
+            ? `Stok masuk ${formatNumber(qty)} ${stockUnit} · harga ${formatRp(cost)} / ${stockUnit}.`
+            : `Isi jumlah & harga per ${stockUnit}.`;
         return;
     }
 
@@ -129,17 +165,17 @@ function syncPurchaseBox(box) {
         const packages = parseFloat(packQty?.value || '0') || 0;
         const units = parseFloat(packUnits?.value || '0') || 0;
         const packageCost = readRupiahField(packBox, 'package_cost');
-        let packageLabel = packagePreset?.value || 'dus';
+        let packageLabel = packagePreset?.value || 'botol';
         if (packageLabel === 'other') {
-            packageLabel = (customInput?.value || '').trim() || 'kemasan';
+            packageLabel = (customInput?.value || '').trim() || 'wadah';
         }
 
         if (packages > 0 && units > 0) {
             const totalQty = packages * units;
             const unitCost = packageCost / units;
-            preview.textContent = `${formatNumber(packages)} ${packageLabel} × ${formatNumber(units)} = stok ${formatNumber(totalQty)} · harga ${formatRp(unitCost)} / satuan stok (dari ${formatRp(packageCost)}/${packageLabel}).`;
+            preview.textContent = `${formatNumber(packages)} ${packageLabel} × ${formatNumber(units)} ${stockUnit} = stok ${formatNumber(totalQty)} ${stockUnit} · harga ${formatRp(unitCost)} / ${stockUnit} (dari ${formatRp(packageCost)}/${packageLabel}).`;
         } else {
-            preview.textContent = 'Isi jumlah kemasan, isi per kemasan, dan harga per kemasan.';
+            preview.textContent = `Isi jumlah wadah, isi per wadah (dalam ${stockUnit}), dan harga per wadah.`;
         }
         return;
     }
@@ -181,6 +217,12 @@ function initMaterialPurchase(root = document) {
         const sync = () => syncPurchaseBox(box);
 
         box.querySelectorAll('input, select').forEach((el) => {
+            el.addEventListener('input', sync);
+            el.addEventListener('change', sync);
+        });
+
+        const form = box.closest('form');
+        form?.querySelectorAll('[data-unit-picker] input, [data-unit-custom] input').forEach((el) => {
             el.addEventListener('input', sync);
             el.addEventListener('change', sync);
         });

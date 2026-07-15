@@ -69,13 +69,14 @@ class MaterialPurchase
             'quantity' => round($quantity, 6),
             'unit_cost' => round($unitCost, 4),
             'note' => sprintf(
-                '%s %s × %s = %s (harga %s/%s)',
+                '%s %s × %s = stok %s · harga %s/%s (= %s / satuan stok)',
                 Format::number($packageQty),
                 $packageLabel,
                 Format::number($unitsPerPackage),
                 Format::number($quantity),
                 Format::rupiah($packageCost, 0),
                 $packageLabel,
+                Format::rupiah($unitCost, 0),
             ),
             'package_label' => $packageLabel,
         ];
@@ -169,10 +170,10 @@ class MaterialPurchase
         if ($preset === 'other') {
             $custom = trim((string) $custom);
 
-            return $custom !== '' ? $custom : 'kemasan';
+            return $custom !== '' ? $custom : 'wadah';
         }
 
-        $allowed = ['dus', 'karton', 'sak', 'pack', 'box', 'bal'];
+        $allowed = ['botol', 'kaleng', 'jerigen', 'dus', 'karton', 'sak', 'pack', 'box', 'bal'];
 
         if (in_array($preset, $allowed, true)) {
             return $preset;
@@ -180,7 +181,7 @@ class MaterialPurchase
 
         $custom = trim((string) $custom);
 
-        return $custom !== '' ? $custom : 'dus';
+        return $custom !== '' ? $custom : 'botol';
     }
 
     /**

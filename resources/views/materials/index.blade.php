@@ -27,20 +27,21 @@
             </div>
         </div>
 
-        <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Pilih satuan stok untuk resep, lalu isi pembelian (langsung, dus, atau konversi kg→porsi).">
+        <x-module-form-card :step="2" title="Tambah Bahan Baru" description="Pilih satuan stok untuk resep, lalu isi pembelian (langsung, botol/wadah, atau konversi kg→porsi).">
             <form action="{{ route('materials.store') }}" method="POST" class="space-y-4">
                 @csrf
                 <div>
                     <label class="form-label">Nama bahan</label>
-                    <input type="text" name="name" class="form-input text-base" required placeholder="Keju slice" value="{{ old('name') }}">
+                    <input type="text" name="name" class="form-input text-base" required placeholder="Saus tiram" value="{{ old('name') }}">
                 </div>
 
                 <x-unit-picker
-                    :selected="old('unit_preset', 'pcs')"
+                    :selected="old('unit_preset', 'ml')"
                     :custom-value="old('unit_custom', '')"
                 />
-                <p class=" -mt-2 text-xs text-slate-500">
-                    Untuk keju/daging yang dihitung per porsi, satuan stok biasanya <strong>pcs / buah</strong>, lalu di cara beli pilih <strong>Konversi kg/liter</strong>.
+                <p class="-mt-2 text-xs text-slate-500">
+                    Contoh botol 750 ml: satuan stok pilih <strong>ml</strong>, cara beli <strong>Isi wadah / kemasan</strong>
+                    (1 botol = 750, harga botol Rp 120.000 → harga/ml otomatis).
                 </p>
 
                 <x-material-purchase-fields />
