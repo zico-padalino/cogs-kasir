@@ -27,16 +27,16 @@
             </div>
         </div>
 
-        <x-module-form-card :step="2" title="Tambah Bahan" description="Nama, satuan stok, lalu cara beli.">
-            <form action="{{ route('materials.store') }}" method="POST" class="space-y-4">
+        <x-module-form-card :step="2" title="Tambah Bahan" description="Isi nama, satuan, lalu pembelian.">
+            <form action="{{ route('materials.store') }}" method="POST" class="material-add-form">
                 @csrf
                 <div>
                     <label class="form-label">Nama bahan</label>
-                    <input type="text" name="name" class="form-input" required placeholder="Saus tiram" value="{{ old('name') }}">
+                    <input type="text" name="name" class="form-input" required placeholder="Bubuk kopi" value="{{ old('name') }}">
                 </div>
 
                 <x-unit-picker
-                    :selected="old('unit_preset', 'ml')"
+                    :selected="old('unit_preset', 'gr')"
                     :custom-value="old('unit_custom', '')"
                 />
 
@@ -142,6 +142,17 @@
                                     </form>
                                 </details>
                             </div>
+
+                            <form
+                                action="{{ route('materials.destroy', $material) }}"
+                                method="POST"
+                                class="mt-2"
+                                onsubmit="return confirm(@js('Hapus bahan '.$material->name."?\n\nStok & batch ikut terhapus. Jika dipakai di resep, bahan juga hilang dari resep menu tersebut."))"
+                            >
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-outline-danger btn-sm w-full">Hapus bahan</button>
+                            </form>
 
                             @if ($material->inventoryLots->where('quantity_remaining', '>', 0)->isNotEmpty())
                                 <div class="material-lots">

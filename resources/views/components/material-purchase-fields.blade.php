@@ -35,31 +35,25 @@
     @if ($stockUnitLabel) data-stock-unit-label="{{ $stockUnitLabel }}" @endif
 >
     <div>
-        <p class="form-label mb-2">Cara beli</p>
+        <p class="form-label mb-1.5">Cara beli</p>
         @if ($optional)
-            <p class="mb-2 text-xs text-slate-500">Kosongkan jumlah jika hanya ubah nama/satuan.</p>
+            <p class="mb-1.5 text-xs text-slate-500">Kosongkan jumlah jika hanya ubah nama/satuan.</p>
         @endif
-        <div class="purchase-mode-grid grid gap-2 sm:grid-cols-3">
-            <label class="module-choice">
-                <input type="radio" name="purchase_mode" value="direct" class="mt-0.5" data-purchase-mode @checked($mode === 'direct')>
-                <span class="min-w-0">
-                    <strong class="block text-sm text-slate-900">Langsung</strong>
-                    <span class="block text-[11px] leading-snug text-slate-500">Jumlah + harga total</span>
-                </span>
+        <div class="purchase-mode-tabs" role="radiogroup" aria-label="Cara beli">
+            <label class="purchase-mode-tab">
+                <input type="radio" name="purchase_mode" value="direct" class="sr-only" data-purchase-mode @checked($mode === 'direct')>
+                <span class="purchase-mode-tab__title">Langsung</span>
+                <span class="purchase-mode-tab__hint">Jumlah + total</span>
             </label>
-            <label class="module-choice">
-                <input type="radio" name="purchase_mode" value="pack" class="mt-0.5" data-purchase-mode @checked($mode === 'pack')>
-                <span class="min-w-0">
-                    <strong class="block text-sm text-slate-900">Isi wadah</strong>
-                    <span class="block text-[11px] leading-snug text-slate-500">Botol / dus → isi stok</span>
-                </span>
+            <label class="purchase-mode-tab">
+                <input type="radio" name="purchase_mode" value="pack" class="sr-only" data-purchase-mode @checked($mode === 'pack')>
+                <span class="purchase-mode-tab__title">Isi wadah</span>
+                <span class="purchase-mode-tab__hint">Botol / dus</span>
             </label>
-            <label class="module-choice">
-                <input type="radio" name="purchase_mode" value="portion" class="mt-0.5" data-purchase-mode @checked($mode === 'portion')>
-                <span class="min-w-0">
-                    <strong class="block text-sm text-slate-900">Konversi</strong>
-                    <span class="block text-[11px] leading-snug text-slate-500">Porsi ↔ kg / liter</span>
-                </span>
+            <label class="purchase-mode-tab">
+                <input type="radio" name="purchase_mode" value="portion" class="sr-only" data-purchase-mode @checked($mode === 'portion')>
+                <span class="purchase-mode-tab__title">Konversi</span>
+                <span class="purchase-mode-tab__hint">kg ↔ porsi</span>
             </label>
         </div>
     </div>
@@ -210,12 +204,12 @@
         </div>
     </div>
 
-    <div class="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-xs text-emerald-900" data-purchase-preview>
+    <div class="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800" data-purchase-preview>
         <p class="leading-relaxed" data-purchase-preview-text>
             @if ($optional)
                 Isi angka untuk menambah stok, atau kosongkan jika hanya ubah data.
             @else
-                Hasil hitung muncul di sini setelah angka diisi.
+                Hasil hitung muncul di sini.
             @endif
         </p>
     </div>

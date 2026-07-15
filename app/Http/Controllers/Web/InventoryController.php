@@ -11,6 +11,7 @@ use App\Models\MaterialStockLog;
 use App\Models\Product;
 use App\Services\InventoryCostService;
 use App\Services\MaterialStockLogService;
+use App\Services\ProductDeletionService;
 use App\Support\Format;
 use App\Support\MaterialPurchase;
 use App\Support\MaterialUnits;
@@ -351,6 +352,47 @@ class InventoryController extends Controller
         return redirect()->route('materials.index')->with(
             'success',
             'Bahan diperbarui: '.implode(', ', $changes).'.',
+        );
+    }
+
+    public function destroyMaterial(
+        Product $product,
+        ProductDeletionService $deletionService,
+        MaterialStockLogService $logService,
+    ) {
+        if ($product->type !== ProductType::RawMaterial) {
+            abort(403, 'Hanya bahan baku yang bisa dihapus di sini.');
+        }
+
+        $name = $product->name;
+        $before = $product->availableQuantity();
+        $usedInRecipes = $product->usedInBillOfMaterials()->count();
+
+        if (Schema::hasTable('material_stock_logs')) {
+            $logService->log(
+                action: 'remove',
+                product: $product,
+                quantityBefore: $before,
+                quantityAfter: 0,
+                note: $usedInRecipes > 0
+                    ? sprintf('Hapus bahan (dipakai di %d resep)', $usedInRecipes)
+                    : 'Hapus bahan',
+            );
+        }
+
+        try {
+            $deletionService->delete($product);
+        } catch (\RuntimeException $e) {
+            return redirect()->route('materials.index')->with('error', $e->getMessage());
+        }
+
+        $suffix = $usedInRecipes > 0
+            ? sprintf(' Juga dihapus dari %d resep menu.', $usedInRecipes)
+            : '';
+
+        return redirect()->route('materials.index')->with(
+            'success',
+            sprintf('Bahan %s dihapus.%s', $name, $suffix),
         );
     }
 
