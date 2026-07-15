@@ -364,6 +364,10 @@ class InventoryController extends Controller
             abort(403, 'Hanya bahan baku yang bisa dihapus di sini.');
         }
 
+        if ($reason = $deletionService->canDelete($product)) {
+            return redirect()->route('materials.index')->with('error', $reason);
+        }
+
         $name = $product->name;
         $before = $product->availableQuantity();
         $usedInRecipes = $product->usedInBillOfMaterials()->count();
@@ -380,11 +384,7 @@ class InventoryController extends Controller
             );
         }
 
-        try {
-            $deletionService->delete($product);
-        } catch (\RuntimeException $e) {
-            return redirect()->route('materials.index')->with('error', $e->getMessage());
-        }
+        $deletionService->delete($product);
 
         $suffix = $usedInRecipes > 0
             ? sprintf(' Juga dihapus dari %d resep menu.', $usedInRecipes)

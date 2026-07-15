@@ -79,7 +79,16 @@ function syncRupiahInput(visibleInput) {
         return;
     }
 
-    let numeric = parseRupiahInput(visibleInput.value);
+    const raw = String(visibleInput.value ?? '').trim();
+
+    // Jangan ubah field kosong jadi 0 — di form edit terlihat seperti sudah terisi.
+    if (raw === '') {
+        hiddenInput.value = '';
+        visibleInput.value = '';
+        return;
+    }
+
+    let numeric = parseRupiahInput(raw);
 
     if (numeric < min) {
         numeric = min;
@@ -104,6 +113,12 @@ function initRupiahInputs(root = document) {
             const hiddenInput = scope.querySelector(`input[data-rupiah-target="${hiddenName}"]`);
 
             if (!hiddenInput) {
+                return;
+            }
+
+            if (String(input.value ?? '').trim() === '') {
+                hiddenInput.value = '';
+                input.value = '';
                 return;
             }
 

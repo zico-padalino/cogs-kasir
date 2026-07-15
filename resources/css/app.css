@@ -529,6 +529,10 @@
         @apply flex flex-wrap gap-2;
     }
 
+    .material-card__top {
+        @apply flex flex-wrap items-start justify-between gap-3;
+    }
+
     .material-card__actions {
         @apply mt-3 grid grid-cols-3 gap-2;
     }

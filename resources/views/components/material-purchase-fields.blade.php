@@ -25,6 +25,15 @@
     $stockHint = $stockUnitLabel ?: 'satuan stok';
     $labelClass = $compact ? 'text-xs' : '';
     $inputClass = $compact ? 'text-sm' : '';
+    // Edit: kosongkan placeholder agar tidak terlihat seperti data terisi.
+    $qtyExample = $optional ? '' : 'cth. 25';
+    $packQtyExample = $optional ? '' : 'cth. 1';
+    $packUnitsExample = $optional ? '' : 'cth. 750';
+    $portionSizeExample = $optional ? '' : 'cth. 250';
+    $purchaseQtyExample = $optional ? '' : 'cth. 1';
+    $moneyExample = $optional ? '' : '300.000';
+    $packMoneyExample = $optional ? '' : '120.000';
+    $portionMoneyExample = $optional ? '' : '80.000';
 @endphp
 
 <div
@@ -71,7 +80,7 @@
                     class="form-input {{ $inputClass }}"
                     step="0.01"
                     min="0.01"
-                    placeholder="25"
+                    placeholder="{{ $qtyExample }}"
                     value="{{ old('quantity') }}"
                     data-direct-qty
                     @disabled($mode !== 'direct')
@@ -80,7 +89,7 @@
             </div>
             <div>
                 <label class="form-label {{ $labelClass }}">Harga total</label>
-                <x-rupiah-input name="direct_total" placeholder="300.000" :required="$require && $mode === 'direct'" />
+                <x-rupiah-input name="direct_total" :placeholder="$moneyExample" :required="$require && $mode === 'direct'" />
             </div>
         </div>
     </div>
@@ -95,7 +104,7 @@
                     class="form-input {{ $inputClass }}"
                     step="0.01"
                     min="0.01"
-                    placeholder="1"
+                    placeholder="{{ $packQtyExample }}"
                     value="{{ old('package_qty') }}"
                     data-pack-qty
                     @disabled($mode !== 'pack')
@@ -134,7 +143,7 @@
                     class="form-input {{ $inputClass }}"
                     step="0.01"
                     min="0.01"
-                    placeholder="750"
+                    placeholder="{{ $packUnitsExample }}"
                     value="{{ old('units_per_package') }}"
                     data-pack-units
                     @disabled($mode !== 'pack')
@@ -143,7 +152,7 @@
             </div>
             <div>
                 <label class="form-label {{ $labelClass }}">Harga per wadah</label>
-                <x-rupiah-input name="package_cost" placeholder="120.000" :required="$require && $mode === 'pack'" />
+                <x-rupiah-input name="package_cost" :placeholder="$packMoneyExample" :required="$require && $mode === 'pack'" />
             </div>
         </div>
     </div>
@@ -159,8 +168,8 @@
                         class="form-input {{ $inputClass }} flex-1"
                         step="0.01"
                         min="0.01"
-                        placeholder="250"
-                        value="{{ old('portion_size', $optional ? '' : '250') }}"
+                        placeholder="{{ $portionSizeExample }}"
+                        value="{{ old('portion_size') }}"
                         data-portion-size
                         @disabled($mode !== 'portion')
                         @required($require && $mode === 'portion')
@@ -182,8 +191,8 @@
                         class="form-input {{ $inputClass }} flex-1"
                         step="0.01"
                         min="0.01"
-                        placeholder="1"
-                        value="{{ old('purchase_qty', $optional ? '' : '1') }}"
+                        placeholder="{{ $purchaseQtyExample }}"
+                        value="{{ old('purchase_qty') }}"
                         data-purchase-qty
                         @disabled($mode !== 'portion')
                         @required($require && $mode === 'portion')
@@ -199,7 +208,7 @@
             </div>
             <div class="sm:col-span-2">
                 <label class="form-label {{ $labelClass }}">Harga total</label>
-                <x-rupiah-input name="purchase_cost" placeholder="80.000" :required="$require && $mode === 'portion'" />
+                <x-rupiah-input name="purchase_cost" :placeholder="$portionMoneyExample" :required="$require && $mode === 'portion'" />
             </div>
         </div>
     </div>
