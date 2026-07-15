@@ -39,7 +39,7 @@
         @if ($optional)
             <p class="mb-2 text-xs text-slate-500">Kosongkan jumlah jika hanya ubah nama/satuan.</p>
         @endif
-        <div class="grid gap-2 sm:grid-cols-3">
+        <div class="purchase-mode-grid grid gap-2 sm:grid-cols-3">
             <label class="module-choice">
                 <input type="radio" name="purchase_mode" value="direct" class="mt-0.5" data-purchase-mode @checked($mode === 'direct')>
                 <span class="min-w-0">

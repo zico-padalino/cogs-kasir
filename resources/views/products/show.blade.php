@@ -38,7 +38,7 @@
 
         <div class="recipe-desktop">
             <div class="recipe-desktop__main">
-                <x-module-tip :step="3" title="Cara isi resep">
+                <x-module-tip :step="3" title="Cara isi resep" class="recipe-tip-desktop">
                     Pilih bahan, isi jumlah pakai (bisa gram/kg/ml), lalu <strong>Tambah ke Resep</strong>.
                     Kolom <strong>Biaya</strong> dihitung otomatis dari harga beli bahan.
                     Setelah lengkap, klik <strong>Hitung Modal</strong> untuk menyimpan modal resmi.
@@ -58,7 +58,8 @@
                     @endif
 
                     @if ($product->billOfMaterials->isNotEmpty())
-                        <div class="recipe-table-wrap">
+                        {{-- Desktop table --}}
+                        <div class="recipe-table-wrap recipe-table-wrap--desktop">
                             <table class="table-default">
                                 <thead>
                                     <tr>
@@ -158,6 +159,72 @@
                                     </tr>
                                 </tfoot>
                             </table>
+                        </div>
+
+                        {{-- Mobile cards --}}
+                        <div class="recipe-bom-cards">
+                            @foreach ($product->billOfMaterials as $bom)
+                                @php
+                                    $child = $bom->childProduct;
+                                    $presented = $units::present((float) $bom->quantity, $child?->unit);
+                                    $editOptions = $units::recipeOptions($child?->unit);
+                                    $editUnit = $presented['unit'];
+                                    $qtyValue = rtrim(rtrim(number_format($presented['quantity'], 6, '.', ''), '0'), '.') ?: '0';
+                                    $line = $bomLineCosts[$child?->id] ?? null;
+                                    $unitCost = (float) ($line['unit_cost'] ?? 0);
+                                    $lineCost = (float) ($line['total_cost'] ?? 0);
+                                @endphp
+                                <article class="recipe-bom-card">
+                                    <div class="recipe-bom-card__head">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="font-semibold text-slate-900">{{ $child?->name ?? 'Bahan dihapus' }}</p>
+                                            <p class="mt-0.5 text-xs text-slate-500">
+                                                {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
+                                                <span class="text-slate-300">·</span>
+                                                {{ $format::rupiah($unitCost) }}/{{ $units::label($child?->unit) }}
+                                            </p>
+                                        </div>
+                                        <p class="shrink-0 text-base font-bold tabular-nums text-brand-700">{{ $format::rupiah($lineCost) }}</p>
+                                    </div>
+                                    <div class="recipe-bom-card__actions">
+                                        <details class="inline-edit recipe-edit flex-1 text-left">
+                                            <summary class="btn-outline btn-sm w-full cursor-pointer list-none text-center">Ubah jumlah</summary>
+                                            <form action="{{ route('products.bom.update', [$product, $bom]) }}" method="POST" class="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                                @csrf @method('PUT')
+                                                <label class="form-label text-xs">Jumlah dipakai</label>
+                                                <div class="bom-qty-row">
+                                                    <input type="number" name="quantity" class="form-input" step="any" min="0.0001" value="{{ $qtyValue }}" required>
+                                                    <select name="unit" class="form-input" required>
+                                                        @foreach ($editOptions as $value => $label)
+                                                            <option value="{{ $value }}" @selected($value === $editUnit)>{{ $label }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <button type="submit" class="btn-primary btn-sm w-full">Simpan</button>
+                                            </form>
+                                        </details>
+                                        <form action="{{ route('products.bom.destroy', [$product, $bom]) }}" method="POST" class="shrink-0" onsubmit="return confirm('Hapus dari resep?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn-outline-danger btn-sm">Hapus</button>
+                                        </form>
+                                    </div>
+                                </article>
+                            @endforeach
+
+                            <div class="recipe-bom-totals">
+                                <div class="flex justify-between gap-3 text-sm">
+                                    <span class="text-slate-600">Biaya bahan</span>
+                                    <strong class="tabular-nums text-brand-700" data-recipe-material-cost>{{ $format::rupiah($materialCost) }}</strong>
+                                </div>
+                                <div class="mt-1.5 flex justify-between gap-3 text-sm" data-recipe-overhead-row @class(['hidden' => $overheadCost <= 0 && empty($overheadDetails)])>
+                                    <span class="text-slate-500">Biaya lain</span>
+                                    <strong class="tabular-nums text-slate-700" data-recipe-overhead-cost>{{ $format::rupiah($overheadCost) }}</strong>
+                                </div>
+                                <div class="mt-2 flex justify-between gap-3 border-t border-brand-100 pt-2 text-sm font-bold">
+                                    <span class="text-brand-900">Estimasi modal / {{ $product->unit }}</span>
+                                    <span class="tabular-nums text-brand-800" data-recipe-estimated-modal>{{ $format::rupiah($estimatedModal) }}</span>
+                                </div>
+                            </div>
                         </div>
                     @else
                         <div class="module-empty !py-8">
@@ -595,10 +662,10 @@
     const explain = form.querySelector('[data-recipe-overhead-explain]');
     const sideOverhead = document.querySelector('[data-recipe-side-overhead]');
     const sideModal = document.querySelector('[data-recipe-side-modal]');
-    const tableOverhead = document.querySelector('[data-recipe-overhead-cost]');
-    const tableModal = document.querySelector('[data-recipe-estimated-modal]');
+    const tableOverheadEls = document.querySelectorAll('[data-recipe-overhead-cost]');
+    const tableModalEls = document.querySelectorAll('[data-recipe-estimated-modal]');
     const tableList = document.querySelector('[data-recipe-overhead-list]');
-    const tableRow = document.querySelector('[data-recipe-overhead-row]');
+    const tableRows = document.querySelectorAll('[data-recipe-overhead-row]');
 
     const formatRp = (amount) => {
         const n = Math.round(Number(amount) || 0);
@@ -625,12 +692,12 @@
 
         if (sideOverhead) sideOverhead.textContent = formatRp(overhead);
         if (sideModal) sideModal.textContent = formatRp(modal);
-        if (tableOverhead) tableOverhead.textContent = formatRp(overhead);
-        if (tableModal) tableModal.textContent = formatRp(modal);
+        tableOverheadEls.forEach((el) => { el.textContent = formatRp(overhead); });
+        tableModalEls.forEach((el) => { el.textContent = formatRp(modal); });
 
-        if (tableRow) {
-            tableRow.classList.toggle('hidden', lines.length === 0 && overhead <= 0);
-        }
+        tableRows.forEach((row) => {
+            row.classList.toggle('hidden', lines.length === 0 && overhead <= 0);
+        });
 
         if (tableList) {
             if (lines.length === 0) {
