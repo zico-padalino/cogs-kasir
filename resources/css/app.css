@@ -1321,11 +1321,6 @@
         body.is-sidebar-collapsed .sidebar-expand-btn:not([hidden]) {
             display: inline-flex;
         }
-
-        /* POS: header kasir tersembunyi — tombol menu di toolbar */
-        body.is-sidebar-collapsed.is-kasir-pos .sidebar-expand-btn {
-            display: none;
-        }
     }
 
     .app-scroll {
@@ -1699,6 +1694,17 @@
         @apply hidden;
     }
 
+    /* Saat sidebar disembunyikan: tampilkan header atas (tombol ☰ satu saja) */
+    @media (min-width: 768px) {
+        body.is-sidebar-collapsed.is-kasir-pos .kasir-page-header {
+            display: block !important;
+        }
+
+        body.is-sidebar-collapsed.is-kasir-pos .sidebar-expand-btn {
+            display: none !important;
+        }
+    }
+
     .mobile-topbar-title {
         @apply text-slate-900;
     }
@@ -1816,10 +1822,6 @@
 
     .pos-toolbar-menu {
         @apply inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white shadow-sm transition active:scale-95 hover:bg-white/25 md:hidden;
-    }
-
-    body.is-sidebar-collapsed .pos-toolbar-menu {
-        @apply md:inline-flex;
     }
 
     .pos-toolbar-menu svg {
