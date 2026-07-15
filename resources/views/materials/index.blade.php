@@ -58,36 +58,45 @@
                                 <div class="min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <p class="text-base font-bold text-slate-900">{{ $material->name }}</p>
-                                        <details class="w-full sm:w-auto">
+                                        <details class="w-full">
                                             <summary class="cursor-pointer text-xs font-semibold text-brand-600 hover:text-brand-700">Edit bahan</summary>
                                             <form
                                                 action="{{ route('materials.update', $material) }}"
                                                 method="POST"
-                                                class="mt-2 space-y-3 rounded-xl border border-brand-100 bg-brand-50/50 p-3"
+                                                class="mt-3 space-y-4 rounded-xl border-2 border-brand-100 bg-white p-4 shadow-sm"
                                             >
                                                 @csrf
                                                 @method('PUT')
                                                 <div>
-                                                    <label class="form-label text-xs" for="material-name-{{ $material->id }}">Nama bahan</label>
+                                                    <label class="form-label" for="material-name-{{ $material->id }}">Nama bahan</label>
                                                     <input
                                                         id="material-name-{{ $material->id }}"
                                                         type="text"
                                                         name="name"
-                                                        class="form-input text-sm"
+                                                        class="form-input text-base"
                                                         required
                                                         maxlength="255"
                                                         value="{{ old('name', $material->name) }}"
                                                     >
                                                 </div>
+
                                                 <x-unit-picker
                                                     :selected="old('unit_preset', $units::guessPreset($material->unit))"
                                                     :custom-value="old('unit_custom', $units::guessPreset($material->unit) === 'other' ? $material->unit : '')"
-                                                    class="text-sm"
                                                 />
-                                                <p class="text-xs text-amber-700">
-                                                    Mengubah satuan hanya mengganti label stok (angka stok tetap). Pastikan cocok dengan cara hitung di resep.
+                                                <p class="-mt-2 text-xs text-slate-500">
+                                                    Untuk keju/daging yang dihitung per porsi, satuan stok biasanya <strong>pcs / buah</strong>, lalu di cara beli pilih <strong>Konversi kg/liter</strong>.
                                                 </p>
-                                                <button type="submit" class="btn-primary btn-sm w-full sm:w-auto">Simpan bahan</button>
+
+                                                <x-material-purchase-fields
+                                                    :optional="true"
+                                                    :stock-unit-label="$material->unit"
+                                                />
+
+                                                <p class="text-xs text-amber-700">
+                                                    Mengubah satuan hanya mengganti label (angka stok tetap). Isi cara beli hanya jika ingin sekalian menambah stok.
+                                                </p>
+                                                <button type="submit" class="btn-primary w-full py-3 text-base font-semibold">Simpan Bahan</button>
                                             </form>
                                         </details>
                                     </div>

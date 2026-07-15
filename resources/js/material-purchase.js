@@ -64,6 +64,8 @@ function convertUnits(quantity, fromUnit, toUnit) {
 
 function syncPurchaseBox(box) {
     const mode = box.querySelector('input[data-purchase-mode]:checked')?.value || 'direct';
+    const optional = box.dataset.optional === '1';
+    const requireFields = ! optional;
     const directBox = box.querySelector('[data-purchase-direct]');
     const packBox = box.querySelector('[data-purchase-pack]');
     const portionBox = box.querySelector('[data-purchase-portion]');
@@ -91,26 +93,26 @@ function syncPurchaseBox(box) {
     const packCostVisible = packBox?.querySelector('.rupiah-input');
     const purchaseCostVisible = portionBox?.querySelector('.rupiah-input');
 
-    setFieldEnabled(directQty, mode === 'direct', true);
-    setFieldEnabled(directCostHidden, mode === 'direct', true);
-    setFieldEnabled(directCostVisible, mode === 'direct', true);
+    setFieldEnabled(directQty, mode === 'direct', requireFields);
+    setFieldEnabled(directCostHidden, mode === 'direct', requireFields);
+    setFieldEnabled(directCostVisible, mode === 'direct', requireFields);
 
-    setFieldEnabled(packQty, mode === 'pack', true);
-    setFieldEnabled(packUnits, mode === 'pack', true);
+    setFieldEnabled(packQty, mode === 'pack', requireFields);
+    setFieldEnabled(packUnits, mode === 'pack', requireFields);
     setFieldEnabled(packagePreset, mode === 'pack', false);
-    setFieldEnabled(packCostHidden, mode === 'pack', true);
-    setFieldEnabled(packCostVisible, mode === 'pack', true);
+    setFieldEnabled(packCostHidden, mode === 'pack', requireFields);
+    setFieldEnabled(packCostVisible, mode === 'pack', requireFields);
 
-    setFieldEnabled(portionSize, mode === 'portion', true);
+    setFieldEnabled(portionSize, mode === 'portion', requireFields);
     setFieldEnabled(portionUnit, mode === 'portion', false);
-    setFieldEnabled(purchaseQty, mode === 'portion', true);
+    setFieldEnabled(purchaseQty, mode === 'portion', requireFields);
     setFieldEnabled(purchaseUnit, mode === 'portion', false);
-    setFieldEnabled(purchaseCostHidden, mode === 'portion', true);
-    setFieldEnabled(purchaseCostVisible, mode === 'portion', true);
+    setFieldEnabled(purchaseCostHidden, mode === 'portion', requireFields);
+    setFieldEnabled(purchaseCostVisible, mode === 'portion', requireFields);
 
     const isOther = (packagePreset?.value || '') === 'other';
     if (customWrap) customWrap.classList.toggle('hidden', ! isOther || mode !== 'pack');
-    setFieldEnabled(customInput, mode === 'pack' && isOther, true);
+    setFieldEnabled(customInput, mode === 'pack' && isOther, requireFields);
 
     if (! preview) return;
 

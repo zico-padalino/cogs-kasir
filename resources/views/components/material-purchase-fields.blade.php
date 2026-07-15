@@ -1,6 +1,7 @@
 @props([
     'stockUnitLabel' => null,
     'compact' => false,
+    'optional' => false,
 ])
 
 @php
@@ -17,15 +18,20 @@
     $packageCustom = old('package_custom', '');
     $portionUnit = old('portion_unit', 'gr');
     $purchaseUnit = old('purchase_unit', 'kg');
+    $require = ! $optional;
 @endphp
 
 <div
     {{ $attributes->merge(['class' => 'space-y-3']) }}
     data-material-purchase
     data-compact="{{ $compact ? '1' : '0' }}"
+    data-optional="{{ $optional ? '1' : '0' }}"
 >
     <div>
         <p class="form-label mb-2">Cara beli</p>
+        @if ($optional)
+            <p class="mb-2 text-xs text-slate-500">Pilih cara beli seperti saat tambah bahan. Kosongkan jumlah jika hanya ubah nama/satuan.</p>
+        @endif
         <div class="grid gap-2 lg:grid-cols-3">
             <label class="module-choice">
                 <input type="radio" name="purchase_mode" value="direct" class="mt-1" data-purchase-mode @checked($mode === 'direct')>
@@ -65,13 +71,13 @@
                     value="{{ old('quantity') }}"
                     data-direct-qty
                     @disabled($mode !== 'direct')
-                    @required($mode === 'direct')
+                    @required($require && $mode === 'direct')
                 >
                 <p class="form-hint">Dalam satuan stok{{ $stockUnitLabel ? ' ('.$stockUnitLabel.')' : '' }}.</p>
             </div>
             <div>
                 <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga per satuan stok</label>
-                <x-rupiah-input name="unit_cost" placeholder="12.000" :required="$mode === 'direct'" />
+                <x-rupiah-input name="unit_cost" placeholder="12.000" :required="$require && $mode === 'direct'" />
                 <p class="form-hint">Harga untuk 1 satuan stok.</p>
             </div>
         </div>
@@ -91,7 +97,7 @@
                     value="{{ old('package_qty') }}"
                     data-pack-qty
                     @disabled($mode !== 'pack')
-                    @required($mode === 'pack')
+                    @required($require && $mode === 'pack')
                 >
                 <p class="form-hint">Misal: beli 2 dus.</p>
             </div>
@@ -131,13 +137,13 @@
                     value="{{ old('units_per_package') }}"
                     data-pack-units
                     @disabled($mode !== 'pack')
-                    @required($mode === 'pack')
+                    @required($require && $mode === 'pack')
                 >
                 <p class="form-hint">1 dus berisi berapa satuan stok? Misal 40 pcs.</p>
             </div>
             <div>
                 <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga per kemasan</label>
-                <x-rupiah-input name="package_cost" placeholder="120.000" :required="$mode === 'pack'" />
+                <x-rupiah-input name="package_cost" placeholder="120.000" :required="$require && $mode === 'pack'" />
                 <p class="form-hint">Harga 1 dus / karton.</p>
             </div>
         </div>
@@ -159,10 +165,10 @@
                         step="0.01"
                         min="0.01"
                         placeholder="250"
-                        value="{{ old('portion_size', '250') }}"
+                        value="{{ old('portion_size', $optional ? '' : '250') }}"
                         data-portion-size
                         @disabled($mode !== 'portion')
-                        @required($mode === 'portion')
+                        @required($require && $mode === 'portion')
                     >
                     <select name="portion_unit" class="form-input max-w-[7rem] {{ $compact ? 'text-sm' : '' }}" data-portion-unit @disabled($mode !== 'portion')>
                         <option value="gr" @selected($portionUnit === 'gr')>gram</option>
@@ -183,10 +189,10 @@
                         step="0.01"
                         min="0.01"
                         placeholder="1"
-                        value="{{ old('purchase_qty', '1') }}"
+                        value="{{ old('purchase_qty', $optional ? '' : '1') }}"
                         data-purchase-qty
                         @disabled($mode !== 'portion')
-                        @required($mode === 'portion')
+                        @required($require && $mode === 'portion')
                     >
                     <select name="purchase_unit" class="form-input max-w-[7rem] {{ $compact ? 'text-sm' : '' }}" data-purchase-unit @disabled($mode !== 'portion')>
                         <option value="kg" @selected($purchaseUnit === 'kg')>kg</option>
@@ -202,7 +208,7 @@
 
         <div>
             <label class="form-label {{ $compact ? 'text-xs' : '' }}">Harga total pembelian</label>
-            <x-rupiah-input name="purchase_cost" placeholder="80.000" :required="$mode === 'portion'" />
+            <x-rupiah-input name="purchase_cost" placeholder="80.000" :required="$require && $mode === 'portion'" />
             <p class="form-hint">Harga untuk jumlah dibeli di atas (bukan per satuan stok).</p>
         </div>
     </div>
@@ -210,7 +216,11 @@
     <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-900" data-purchase-preview>
         <p class="font-semibold">Hasil hitung stok</p>
         <p class="mt-1 text-xs leading-relaxed" data-purchase-preview-text>
-            Pilih cara beli dan isi angka — stok & harga per satuan dihitung otomatis.
+            @if ($optional)
+                Pilih cara beli — isi angka untuk menambah stok, atau kosongkan jika hanya ubah data bahan.
+            @else
+                Pilih cara beli dan isi angka — stok & harga per satuan dihitung otomatis.
+            @endif
         </p>
     </div>
 </div>

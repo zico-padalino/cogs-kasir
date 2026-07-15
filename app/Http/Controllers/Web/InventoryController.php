@@ -229,19 +229,41 @@ class InventoryController extends Controller
         return redirect()->route('materials.index')->with('success', $success);
     }
 
-    public function updateMaterial(Request $request, Product $product)
-    {
+    public function updateMaterial(
+        Request $request,
+        Product $product,
+        InventoryCostService $inventoryService,
+        MaterialStockLogService $logService,
+    ) {
         if ($product->type !== ProductType::RawMaterial) {
             abort(403, 'Hanya bahan baku yang bisa diubah di sini.');
         }
 
-        $validated = $request->validate([
+        $request->merge([
+            'purchase_mode' => $request->input('purchase_mode', 'direct'),
+        ]);
+
+        $wantsStock = $this->materialEditHasPurchase($request);
+
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'unit_preset' => ['required', 'string', 'max:20'],
             'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
-        ], [
+        ];
+
+        if ($wantsStock) {
+            $rules = array_merge($rules, MaterialPurchase::validationRules());
+        } else {
+            $rules['purchase_mode'] = ['nullable', 'in:direct,pack,portion'];
+        }
+
+        $validated = $request->validate($rules, [
             'name.required' => 'Nama bahan wajib diisi.',
             'unit_custom.required_if' => 'Isi satuan bahan jika memilih Lainnya.',
+            'package_custom.required_if' => 'Isi nama kemasan jika memilih Lainnya.',
+            'units_per_package.required_if' => 'Isi berapa jumlah stok dalam 1 kemasan.',
+            'package_qty.required_if' => 'Isi berapa kemasan yang dibeli.',
+            'package_cost.required_if' => 'Isi harga per kemasan.',
         ]);
 
         $newName = trim($validated['name']);
@@ -268,19 +290,75 @@ class InventoryController extends Controller
             );
         }
 
-        if ($changes === []) {
-            return redirect()->route('materials.index')->with('success', 'Data bahan tidak berubah.');
-        }
-
         $product->update([
             'name' => $newName,
             'unit' => $newUnit,
         ]);
 
+        if ($wantsStock) {
+            $purchase = MaterialPurchase::resolve($validated);
+
+            if ($purchase['quantity'] <= 0) {
+                return back()->withErrors(['quantity' => 'Jumlah stok masuk tidak valid.'])->withInput();
+            }
+
+            if ($purchase['unit_cost'] < 0) {
+                return back()->withErrors(['unit_cost' => 'Harga tidak valid.'])->withInput();
+            }
+
+            $before = $product->availableQuantity();
+            $qty = $purchase['quantity'];
+            $unitCost = $purchase['unit_cost'];
+
+            $lot = $inventoryService->receiveStock(
+                product: $product,
+                quantity: $qty,
+                unitCost: $unitCost,
+                lotNumber: $validated['lot_number'] ?? null,
+            );
+
+            $note = $purchase['note'] !== ''
+                ? 'Edit bahan + stok · '.$purchase['note']
+                : 'Edit bahan + stok masuk';
+
+            $logService->log(
+                action: 'receive',
+                product: $product,
+                quantityBefore: $before,
+                quantityAfter: $before + $qty,
+                unitCost: $unitCost,
+                lot: $lot,
+                note: $note,
+            );
+
+            $changes[] = sprintf(
+                'stok +%s %s @ %s/%s',
+                Format::number($qty),
+                $newUnit,
+                Format::rupiah($unitCost, 0),
+                $newUnit,
+            );
+        }
+
+        if ($changes === []) {
+            return redirect()->route('materials.index')->with('success', 'Data bahan tidak berubah.');
+        }
+
         return redirect()->route('materials.index')->with(
             'success',
             'Bahan diperbarui: '.implode(', ', $changes).'.',
         );
+    }
+
+    private function materialEditHasPurchase(Request $request): bool
+    {
+        $mode = (string) $request->input('purchase_mode', 'direct');
+
+        return match ($mode) {
+            'pack' => $request->filled('package_qty') || $request->filled('units_per_package'),
+            'portion' => $request->filled('portion_size') || $request->filled('purchase_qty'),
+            default => $request->filled('quantity'),
+        };
     }
 
     public function receive(
