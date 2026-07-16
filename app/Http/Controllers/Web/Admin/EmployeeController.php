@@ -6,10 +6,13 @@ use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\AttendanceService;
 use App\Support\Format;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use RuntimeException;
 
 class EmployeeController extends Controller
 {
@@ -61,9 +64,37 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee): RedirectResponse
     {
+        if ($employee->face_photo_path) {
+            Storage::disk('public')->delete($employee->face_photo_path);
+        }
+
         $employee->delete();
 
         return redirect()->route('admin.employees.index')->with('success', 'Data karyawan dihapus.');
+    }
+
+    public function enrollFace(Request $request, Employee $employee, AttendanceService $attendanceService): RedirectResponse
+    {
+        $validated = $request->validate([
+            'photo' => ['required', 'string'],
+            'descriptor' => ['required', 'string'],
+        ], [
+            'photo.required' => 'Foto wajah wajib diambil.',
+            'descriptor.required' => 'Wajah belum terdeteksi.',
+        ]);
+
+        $descriptor = json_decode($validated['descriptor'], true);
+        if (! is_array($descriptor)) {
+            return back()->with('error', 'Data wajah tidak valid.');
+        }
+
+        try {
+            $attendanceService->enrollFace($employee, $validated['photo'], $descriptor);
+        } catch (RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Wajah karyawan berhasil didaftarkan.');
     }
 
     /** @return array<string, mixed> */

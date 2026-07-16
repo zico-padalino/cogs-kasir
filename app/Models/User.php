@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -88,6 +89,31 @@ class User extends Authenticatable
         return route($module->homeRoute());
     }
 
+    /**
+     * Setelah login: prioritaskan kasir (PIN) jika punya akses.
+     */
+    public function preferredLoginUrl(): string
+    {
+        if ($this->hasModule(UserRole::Kasir)) {
+            return route('kasir.index');
+        }
+
+        return $this->homeUrl();
+    }
+
+    public function preferredLoginModule(): UserRole
+    {
+        if ($this->hasModule(UserRole::Kasir)) {
+            return UserRole::Kasir;
+        }
+
+        if ($this->hasModule(UserRole::Admin)) {
+            return UserRole::Admin;
+        }
+
+        return $this->defaultModule();
+    }
+
     public function syncModules(array $modules, ?UserRole $primary = null): void
     {
         $values = collect($modules)
@@ -103,6 +129,11 @@ class User extends Authenticatable
 
         $this->modules = $values;
         $this->role = $primary ?? UserRole::from($values[0]);
+    }
+
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
     }
 
     public function isCogs(): bool

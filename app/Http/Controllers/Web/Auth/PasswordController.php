@@ -57,7 +57,7 @@ class PasswordController extends Controller
         $request->session()->regenerate();
 
         return redirect()
-            ->to($user->homeUrl())
+            ->to($user->preferredLoginUrl())
             ->with('success', 'Password berhasil diubah. Silakan lanjut memakai aplikasi.');
     }
 

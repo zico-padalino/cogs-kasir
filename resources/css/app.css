@@ -4758,6 +4758,23 @@
         @apply my-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent;
     }
 
+    .attendance-camera-wrap {
+        @apply overflow-hidden rounded-2xl border border-slate-200 bg-slate-900;
+    }
+
+    .attendance-video {
+        @apply aspect-[4/3] w-full object-cover;
+        transform: scaleX(-1);
+    }
+
+    .attendance-status {
+        @apply border-t border-slate-700 bg-slate-900 px-3 py-2 text-center text-xs text-slate-200;
+    }
+
+    .attendance-status.is-error {
+        @apply text-amber-300;
+    }
+
     .login-form-head {
         @apply mb-5;
     }

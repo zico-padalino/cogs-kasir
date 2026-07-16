@@ -21,6 +21,8 @@ class Employee extends Model
         'status',
         'user_id',
         'notes',
+        'face_photo_path',
+        'face_descriptor',
     ];
 
     protected function casts(): array
@@ -29,7 +31,42 @@ class Employee extends Model
             'hire_date' => 'date',
             'base_salary' => 'decimal:4',
             'status' => EmployeeStatus::class,
+            'face_descriptor' => 'array',
         ];
+    }
+
+    public function hasFaceEnrollment(): bool
+    {
+        return filled($this->face_photo_path)
+            && is_array($this->face_descriptor)
+            && count($this->face_descriptor) >= 64;
+    }
+
+    /**
+     * Data karyawan dasar + wajah harus lengkap sebelum absen/kerja.
+     */
+    public function isProfileComplete(): bool
+    {
+        return filled(trim((string) $this->phone))
+            && filled(trim((string) $this->position))
+            && $this->hasFaceEnrollment();
+    }
+
+    /** @return list<string> */
+    public function missingProfileFields(): array
+    {
+        $missing = [];
+        if (! filled(trim((string) $this->phone))) {
+            $missing[] = 'telepon';
+        }
+        if (! filled(trim((string) $this->position))) {
+            $missing[] = 'jabatan';
+        }
+        if (! $this->hasFaceEnrollment()) {
+            $missing[] = 'wajah';
+        }
+
+        return $missing;
     }
 
     public function user(): BelongsTo

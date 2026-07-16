@@ -10,12 +10,20 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v1';
+    public const CACHE_KEY = 'shop_settings.v4';
 
     public const KEYS = [
         'shop_name',
         'shop_title',
         'logo_path',
+        'attendance_enabled',
+        'attendance_clock_in',
+        'attendance_clock_out',
+        'attendance_early_minutes',
+        'attendance_latitude',
+        'attendance_longitude',
+        'attendance_radius_meters',
+        'attendance_required_user_ids',
     ];
 
     public static function defaults(): array
@@ -24,6 +32,14 @@ class ShopSettings
             'shop_name' => (string) config('pos.shop_name', 'Coffee & Kitchen'),
             'shop_title' => (string) config('pos.shop_title', 'Menu & pesanan dari HP'),
             'logo_path' => null,
+            'attendance_enabled' => '1',
+            'attendance_clock_in' => '08:00',
+            'attendance_clock_out' => '17:00',
+            'attendance_early_minutes' => '60',
+            'attendance_latitude' => '',
+            'attendance_longitude' => '',
+            'attendance_radius_meters' => '100',
+            'attendance_required_user_ids' => '',
         ];
     }
 

@@ -14,7 +14,7 @@
 
     <form method="POST" action="{{ route('admin.attendances.store') }}" class="card mb-4 space-y-4 p-4">
         @csrf
-        <h2 class="text-sm font-semibold text-slate-900">Catat absensi</h2>
+        <h2 class="text-sm font-semibold text-slate-900">Catat absensi manual</h2>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
                 <label class="form-label" for="employee_id">Karyawan</label>
@@ -58,14 +58,40 @@
             <h2 class="text-sm font-semibold">Absensi {{ $date->translatedFormat('d M Y') }}</h2>
         </div>
         @forelse ($attendances as $row)
-            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
-                <div>
-                    <p class="font-medium text-slate-900">{{ $row->employee->name }}</p>
+            <div class="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 flex-1">
+                    <p class="font-medium text-slate-900">
+                        {{ $row->employee->name }}
+                        @if ($row->is_late)
+                            <span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">Terlambat</span>
+                        @endif
+                    </p>
                     <p class="text-xs text-slate-500">
                         {{ $row->status->label() }}
-                        @if ($row->check_in) · Masuk {{ substr($row->check_in, 0, 5) }} @endif
-                        @if ($row->check_out) · Pulang {{ substr($row->check_out, 0, 5) }} @endif
+                        @if ($row->check_in) · Masuk {{ substr((string) $row->check_in, 0, 5) }} @endif
+                        @if ($row->check_out) · Pulang {{ substr((string) $row->check_out, 0, 5) }} @endif
+                        @if ($row->notes) · {{ $row->notes }} @endif
                     </p>
+                    <div class="mt-2 flex flex-wrap gap-3">
+                        @if ($row->checkInPhotoUrl())
+                            <div class="text-center">
+                                <img src="{{ $row->checkInPhotoUrl() }}" alt="Foto masuk" class="h-14 w-14 rounded-lg object-cover ring-1 ring-slate-200">
+                                <p class="mt-0.5 text-[10px] text-slate-500">Masuk</p>
+                                @if ($row->check_in_lat)
+                                    <p class="text-[10px] text-slate-400">{{ number_format($row->check_in_lat, 5) }}, {{ number_format($row->check_in_lng, 5) }}</p>
+                                @endif
+                            </div>
+                        @endif
+                        @if ($row->checkOutPhotoUrl())
+                            <div class="text-center">
+                                <img src="{{ $row->checkOutPhotoUrl() }}" alt="Foto pulang" class="h-14 w-14 rounded-lg object-cover ring-1 ring-slate-200">
+                                <p class="mt-0.5 text-[10px] text-slate-500">Pulang</p>
+                                @if ($row->check_out_lat)
+                                    <p class="text-[10px] text-slate-400">{{ number_format($row->check_out_lat, 5) }}, {{ number_format($row->check_out_lng, 5) }}</p>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
                 </div>
                 <form action="{{ route('admin.attendances.destroy', $row) }}" method="POST" onsubmit="return confirm('Hapus absensi?')">
                     @csrf

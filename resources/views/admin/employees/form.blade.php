@@ -71,4 +71,41 @@
             <a href="{{ route('admin.employees.index') }}" class="btn-outline">Batal</a>
         </div>
     </form>
+
+    @if ($employee->exists)
+        <div class="card mt-6 max-w-2xl space-y-4" data-attendance-enroll>
+            <div>
+                <h2 class="text-base font-semibold text-slate-900">Daftarkan wajah</h2>
+                <p class="mt-1 text-sm text-slate-500">Wajib agar karyawan bisa absen muka. Ambil foto jelas dari depan.</p>
+            </div>
+
+            @if ($employee->hasFaceEnrollment())
+                <div class="flex items-center gap-3">
+                    <img
+                        src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($employee->face_photo_path) }}"
+                        alt="Wajah terdaftar"
+                        class="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                    >
+                    <p class="text-sm text-green-700">Wajah sudah terdaftar. Ambil ulang untuk mengganti.</p>
+                </div>
+            @else
+                <p class="text-sm text-amber-700">Belum ada wajah terdaftar.</p>
+            @endif
+
+            <div class="attendance-camera-wrap">
+                <video data-attendance-video class="attendance-video" playsinline muted autoplay></video>
+                <canvas data-attendance-canvas class="hidden"></canvas>
+                <p class="attendance-status" data-attendance-status>Menyiapkan kamera…</p>
+            </div>
+
+            <form action="{{ route('admin.employees.face', $employee) }}" method="POST" data-attendance-form>
+                @csrf
+                <input type="hidden" name="photo" data-attendance-photo>
+                <input type="hidden" name="descriptor" data-attendance-descriptor>
+                <button type="submit" class="btn-primary" data-attendance-submit disabled>Simpan wajah dari kamera</button>
+            </form>
+        </div>
+
+        @vite(['resources/js/attendance-face.js'])
+    @endif
 @endsection

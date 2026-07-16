@@ -6,7 +6,9 @@ use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\SalaryController;
 use App\Http\Controllers\Web\Admin\SettingsController;
 use App\Http\Controllers\Web\Admin\UserAccessController;
+use App\Http\Controllers\Web\AttendanceCheckController;
 use App\Http\Controllers\Web\Auth\LoginController;
+use App\Http\Controllers\Web\EmployeeProfileSetupController;
 use App\Http\Controllers\Web\Auth\ModuleHubController;
 use App\Http\Controllers\Web\Auth\PasswordController;
 use App\Http\Controllers\Web\Auth\PinSetupController;
@@ -50,6 +52,14 @@ Route::middleware('auth')->group(function () {
     Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
     Route::get('/pin', [PinSetupController::class, 'edit'])->name('pin.edit');
     Route::put('/pin', [PinSetupController::class, 'update'])->name('pin.update');
+
+    Route::get('/attendance/check-in', [AttendanceCheckController::class, 'checkIn'])->name('attendance.check-in');
+    Route::post('/attendance/check-in', [AttendanceCheckController::class, 'storeCheckIn'])->name('attendance.check-in.store');
+    Route::get('/attendance/check-out', [AttendanceCheckController::class, 'checkOut'])->name('attendance.check-out');
+    Route::post('/attendance/check-out', [AttendanceCheckController::class, 'storeCheckOut'])->name('attendance.check-out.store');
+
+    Route::get('/employee/profile-setup', [EmployeeProfileSetupController::class, 'edit'])->name('employee.profile.setup');
+    Route::put('/employee/profile-setup', [EmployeeProfileSetupController::class, 'update'])->name('employee.profile.setup.update');
 });
 
 Route::redirect('meja/{token}', '/pesan');
@@ -70,6 +80,7 @@ Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::resource('employees', EmployeeController::class)->except(['show']);
+    Route::post('employees/{employee}/face', [EmployeeController::class, 'enrollFace'])->name('employees.face');
     Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
     Route::post('attendances', [AttendanceController::class, 'store'])->name('attendances.store');
     Route::delete('attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');

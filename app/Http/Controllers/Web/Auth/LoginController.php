@@ -18,7 +18,7 @@ class LoginController extends Controller
         $user = $request->user();
 
         if ($user) {
-            return redirect()->to($user->homeUrl());
+            return redirect()->to($user->preferredLoginUrl());
         }
 
         return view('auth.login');
@@ -47,9 +47,7 @@ class LoginController extends Controller
             ]);
         }
 
-        $module = $user->hasModule(UserRole::Admin)
-            ? UserRole::Admin
-            : $user->defaultModule();
+        $module = $user->preferredLoginModule();
 
         $request->session()->regenerate();
         $request->session()->put('auth_module', $module->value);
@@ -61,7 +59,9 @@ class LoginController extends Controller
                 ->with('error', 'Akun baru wajib mengganti password sementara sebelum lanjut.');
         }
 
-        return redirect()->intended($user->homeUrl());
+        // Selalu arahkan ke kasir dulu (jika punya akses). Middleware absensi
+        // akan memaksa absen sebelum layar PIN jika belum absen.
+        return redirect()->to($user->preferredLoginUrl());
     }
 
     public function destroy(Request $request)

@@ -22,6 +22,10 @@
                         {{ $employee->position ?: '—' }}
                         @if ($employee->department) · {{ $employee->department }} @endif
                         · Gaji pokok {{ $format::rupiah($employee->base_salary) }}
+                        @if ($employee->user)
+                            · Akun: {{ $employee->user->email }}
+                        @endif
+                        · {{ $employee->hasFaceEnrollment() ? 'Wajah ✓' : 'Wajah belum didaftar' }}
                     </p>
                 </div>
                 <div class="flex shrink-0 gap-1">
