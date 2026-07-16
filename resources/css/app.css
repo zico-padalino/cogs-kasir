@@ -2390,7 +2390,7 @@
     }
 
     .pos-product-grid {
-        @apply grid flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:grid-cols-3 xl:grid-cols-4;
+        @apply grid flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:grid-cols-4 xl:grid-cols-4;
         grid-auto-rows: max-content;
         -webkit-overflow-scrolling: touch;
     }
@@ -3973,6 +3973,10 @@
 
         .pos-menu-head > div:has(.pos-panel-title) {
             @apply mb-0;
+        }
+
+        .pos-product-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
         }
     }
 
