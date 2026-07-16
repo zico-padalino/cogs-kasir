@@ -65,17 +65,26 @@
             <button type="submit" class="btn-primary w-full py-3" id="kasir-pin-submit">Buka Kasir</button>
         </form>
 
-        <div class="mt-5 space-y-2 text-center text-xs text-slate-500">
+        <div class="mt-5 space-y-3 text-center text-xs text-slate-500">
             <p>Login stasiun: <span class="font-semibold text-slate-700">{{ $currentUser->name }}</span></p>
             @if (! $hasOwnPin)
                 <p class="text-amber-700">Anda belum punya PIN. <a href="{{ route('pin.edit') }}" class="font-semibold text-brand-600 underline">Buat PIN dulu</a></p>
             @else
                 <p><a href="{{ route('pin.edit') }}" class="font-medium text-brand-600 hover:underline">Kelola PIN saya</a></p>
             @endif
-            <form action="{{ route('logout') }}" method="POST" class="pt-2">
+        </div>
+
+        <div class="mt-5 border-t border-slate-200 pt-4">
+            <form action="{{ route('logout') }}" method="POST">
                 @csrf
-                <button type="submit" class="text-slate-400 hover:text-slate-700">Keluar akun</button>
+                <button
+                    type="submit"
+                    class="btn-outline w-full min-h-11 border-slate-300 text-slate-700 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                >
+                    Keluar / Logout
+                </button>
             </form>
+            <p class="mt-2 text-center text-[11px] text-slate-400">Keluar dari akun login stasiun ini</p>
         </div>
     </div>
 
