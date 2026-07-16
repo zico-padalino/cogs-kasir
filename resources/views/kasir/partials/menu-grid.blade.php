@@ -46,6 +46,9 @@
                 @elseif (count($addonsPayload) > 0)
                     <span class="pos-product-card-badge !bg-brand-600">Add-on</span>
                 @endif
+                @if ($canAdd)
+                    <span class="pos-product-add-fab" aria-hidden="true">+</span>
+                @endif
             </button>
 
             <div class="pos-product-card-body">

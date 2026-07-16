@@ -3,15 +3,7 @@
 @section('title', 'Lengkapi Profil')
 
 @section('content')
-    @php
-        $needFace = ! $employee->hasFaceEnrollment();
-        $needPhone = ! filled(trim((string) $employee->phone));
-    @endphp
-
-    <div
-        class="profile-setup-card"
-        @if ($needFace) data-attendance-enroll data-face-guide="1" @endif
-    >
+    <div class="profile-setup-card">
         <header class="profile-setup-head">
             <div class="profile-setup-mark" aria-hidden="true">{{ \App\Support\ShopSettings::initial() }}</div>
             <div class="min-w-0">
@@ -28,17 +20,13 @@
             <div class="profile-setup-alert profile-setup-alert-error">{{ $errors->first() }}</div>
         @endif
 
-        <ol class="profile-setup-steps" aria-label="Progress">
-            <li class="{{ $needPhone ? 'is-current' : 'is-done' }}">
+        <ol class="profile-setup-steps profile-setup-steps-2" aria-label="Progress">
+            <li class="is-current">
                 <span class="profile-setup-step-num">1</span>
                 <span>Telepon</span>
             </li>
-            <li class="{{ $needFace ? ($needPhone ? '' : 'is-current') : 'is-done' }}">
-                <span class="profile-setup-step-num">2</span>
-                <span>Wajah</span>
-            </li>
             <li>
-                <span class="profile-setup-step-num">3</span>
+                <span class="profile-setup-step-num">2</span>
                 <span>Selesai</span>
             </li>
         </ol>
@@ -47,7 +35,6 @@
             action="{{ route('employee.profile.setup.update') }}"
             method="POST"
             class="profile-setup-form"
-            @if ($needFace) data-attendance-form @endif
         >
             @csrf
             @method('PUT')
@@ -68,71 +55,14 @@
                 <p class="profile-setup-hint">Dipakai kasir untuk menghubungi jika perlu.</p>
             </section>
 
-            @if ($needFace)
-                <section class="profile-setup-section">
-                    <div class="profile-setup-face-head">
-                        <p class="form-label mb-0">Daftarkan wajah</p>
-                        <p class="profile-setup-pose-count" data-face-pose-count>0 / 5</p>
-                    </div>
-
-                    <div class="profile-setup-progress" aria-hidden="true">
-                        <span class="profile-setup-progress-fill" data-face-progress-fill></span>
-                    </div>
-
-                    <div class="attendance-camera-wrap profile-setup-camera face-cam">
-                        <video data-attendance-video class="attendance-video" playsinline muted autoplay></video>
-                        <canvas data-attendance-canvas class="hidden"></canvas>
-
-                        <div class="attendance-camera-overlay" aria-hidden="true">
-                            <div class="attendance-face-frame" data-face-frame></div>
-                        </div>
-
-                        <div class="face-cam-flash" data-face-flash aria-hidden="true"></div>
-
-                        <div class="face-cam-top">
-                            <p class="face-cam-title" data-face-guide-text>Menyiapkan kamera…</p>
-                            <p class="face-cam-hint" data-face-guide-hint>Ikuti arah yang diminta</p>
-                        </div>
-
-                        <div class="face-cam-bottom">
-                            <div class="face-hold-track">
-                                <span class="face-hold-bar" data-face-hold-bar></span>
-                            </div>
-                            <p class="attendance-status" data-attendance-status>Mohon tunggu…</p>
-                        </div>
-                    </div>
-
-                    <ul class="profile-setup-pose-list" data-face-pose-list>
-                        <li data-pose="center">Depan</li>
-                        <li data-pose="left">Kiri</li>
-                        <li data-pose="right">Kanan</li>
-                        <li data-pose="up">Atas</li>
-                        <li data-pose="down">Bawah</li>
-                    </ul>
-
-                    <input type="hidden" name="photo" data-attendance-photo>
-                    <input type="hidden" name="descriptor" data-attendance-descriptor>
-                </section>
-
-                <button type="submit" class="btn-primary w-full py-3" data-attendance-submit disabled>
-                    Simpan & lanjut
-                </button>
-            @else
-                <section class="profile-setup-section profile-setup-face-done">
-                    <img
-                        src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($employee->face_photo_path) }}"
-                        alt="Wajah terdaftar"
-                        class="profile-setup-face-thumb"
-                    >
-                    <p class="text-sm font-medium text-green-800">Wajah sudah terdaftar</p>
-                </section>
-                <button type="submit" class="btn-primary w-full py-3">Simpan & lanjut</button>
-            @endif
+            <button type="submit" class="btn-primary w-full py-3">
+                Simpan & lanjut
+            </button>
         </form>
 
         <form action="{{ route('logout') }}" method="POST" class="profile-setup-logout">
             @csrf
-                <button type="submit" class="text-xs text-slate-400 hover:text-slate-700">Keluar akun</button>
+            <button type="submit" class="text-xs text-slate-400 hover:text-slate-700">Keluar akun</button>
         </form>
     </div>
 @endsection

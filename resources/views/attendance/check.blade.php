@@ -27,21 +27,17 @@
             @unless ($settings['has_location'])
                 <p class="font-semibold text-amber-700">Lokasi toko belum diatur — hubungi admin.</p>
             @endunless
-            @unless ($hasFace)
-                <p class="font-semibold text-amber-700">Wajah belum didaftarkan di Data Karyawan — hubungi admin.</p>
-            @endunless
         </div>
 
-        <div class="attendance-camera-wrap face-cam">
-            <video data-attendance-video class="attendance-video" playsinline muted autoplay></video>
-            <canvas data-attendance-canvas class="hidden"></canvas>
-            <div class="attendance-camera-overlay" aria-hidden="true">
-                <div class="attendance-face-frame" data-face-frame></div>
+        <div class="attendance-gps-panel">
+            <div class="attendance-gps-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-8 w-8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z" />
+                    <circle cx="12" cy="10" r="2.5" />
+                </svg>
             </div>
-            <div class="face-cam-flash" data-face-flash aria-hidden="true"></div>
-            <div class="face-cam-bottom">
-                <p class="attendance-status" data-attendance-status>Menyiapkan kamera & model wajah…</p>
-            </div>
+            <p class="attendance-gps-title">Absen dengan lokasi GPS</p>
+            <p class="attendance-status" data-attendance-status>Membaca lokasi…</p>
         </div>
 
         <form
@@ -53,11 +49,9 @@
             @csrf
             <input type="hidden" name="latitude" data-attendance-lat>
             <input type="hidden" name="longitude" data-attendance-lng>
-            <input type="hidden" name="photo" data-attendance-photo>
-            <input type="hidden" name="descriptor" data-attendance-descriptor>
 
             <button type="submit" class="btn-primary w-full py-3" data-attendance-submit disabled>
-                {{ $mode === 'check_out' ? 'Ambil & Absen Pulang' : 'Ambil & Absen Masuk' }}
+                {{ $mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk' }}
             </button>
         </form>
 

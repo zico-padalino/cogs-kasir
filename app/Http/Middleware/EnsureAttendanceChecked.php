@@ -43,14 +43,14 @@ class EnsureAttendanceChecked
         if ($this->attendanceService->needsProfileSetup($user)) {
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
-                    'message' => 'Lengkapi data karyawan dan daftar wajah terlebih dahulu.',
+                    'message' => 'Lengkapi nomor telepon terlebih dahulu.',
                     'redirect' => route('employee.profile.setup'),
                 ], 403);
             }
 
             return redirect()
                 ->route('employee.profile.setup')
-                ->with('error', 'Lengkapi nomor telepon dan daftarkan wajah dulu.');
+                ->with('error', 'Lengkapi nomor telepon dulu.');
         }
 
         $action = $this->attendanceService->requiredAction($user);
@@ -72,7 +72,7 @@ class EnsureAttendanceChecked
         return redirect()
             ->route($route)
             ->with('error', $action === 'check_out'
-                ? 'Waktunya absen pulang. Ambil foto wajah dan lokasi dulu.'
-                : 'Silakan absen masuk dulu (foto wajah + lokasi) sebelum lanjut.');
+                ? 'Waktunya absen pulang. Konfirmasi lokasi GPS dulu.'
+                : 'Silakan absen masuk dulu (lokasi GPS) sebelum lanjut.');
     }
 }

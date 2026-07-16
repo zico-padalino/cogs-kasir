@@ -74,7 +74,7 @@
         <div class="card space-y-5">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Absensi (jam & lokasi)</h2>
-                <p class="mt-1 text-sm text-slate-500">Atur jam masuk/pulang dan titik koordinat toko untuk absen muka + GPS.</p>
+                <p class="mt-1 text-sm text-slate-500">Atur jam masuk/pulang dan titik koordinat toko untuk absen GPS.</p>
             </div>
 
             <label class="flex items-center gap-2 text-sm text-slate-700">
@@ -85,12 +85,12 @@
                     class="rounded border-slate-300 text-brand-600"
                     @checked(old('attendance_enabled', $settings['attendance_enabled'] ?? '1') === '1')
                 >
-                Aktifkan absensi muka + GPS
+                Aktifkan absensi GPS
             </label>
 
             <div>
                 <p class="form-label">Siapa yang wajib absen</p>
-                <p class="mb-2 text-xs text-slate-500">Centang akun. Saat disimpan, akun masuk ke Data Karyawan otomatis. Login pertama wajib lengkapi data + wajah.</p>
+                <p class="mb-2 text-xs text-slate-500">Centang akun. Saat disimpan, akun masuk ke Data Karyawan otomatis. Login pertama wajib lengkapi nomor telepon.</p>
                 <div class="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
                     @forelse ($users as $user)
                         <label class="flex cursor-pointer items-start gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-100 hover:ring-brand-200">

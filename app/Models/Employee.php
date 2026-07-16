@@ -43,12 +43,11 @@ class Employee extends Model
     }
 
     /**
-     * Telepon + wajah harus lengkap sebelum absen/kerja.
+     * Nomor telepon wajib sebelum absen/kerja.
      */
     public function isProfileComplete(): bool
     {
-        return filled(trim((string) $this->phone))
-            && $this->hasFaceEnrollment();
+        return filled(trim((string) $this->phone));
     }
 
     /** @return list<string> */
@@ -57,9 +56,6 @@ class Employee extends Model
         $missing = [];
         if (! filled(trim((string) $this->phone))) {
             $missing[] = 'telepon';
-        }
-        if (! $this->hasFaceEnrollment()) {
-            $missing[] = 'wajah';
         }
 
         return $missing;

@@ -51,7 +51,6 @@ class AttendanceCheckController extends Controller
             'mode' => $mode,
             'employee' => $employee,
             'settings' => $settings,
-            'hasFace' => $employee?->hasFaceEnrollment() ?? false,
             'user' => $user,
         ]);
     }
@@ -68,18 +67,10 @@ class AttendanceCheckController extends Controller
         $validated = $request->validate([
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'photo' => ['required', 'string'],
-            'descriptor' => ['required', 'string'],
         ], [
             'latitude.required' => 'Lokasi GPS wajib diaktifkan.',
-            'photo.required' => 'Foto wajah wajib diambil.',
-            'descriptor.required' => 'Wajah belum terdeteksi. Pastikan kamera menghadap wajah.',
+            'longitude.required' => 'Lokasi GPS wajib diaktifkan.',
         ]);
-
-        $descriptor = json_decode($validated['descriptor'], true);
-        if (! is_array($descriptor)) {
-            return back()->with('error', 'Data wajah tidak valid. Coba lagi.');
-        }
 
         try {
             if ($mode === 'check_out') {
@@ -87,8 +78,6 @@ class AttendanceCheckController extends Controller
                     $employee,
                     (float) $validated['latitude'],
                     (float) $validated['longitude'],
-                    $validated['photo'],
-                    $descriptor,
                 );
                 $message = 'Absen pulang berhasil. Terima kasih.';
             } else {
@@ -96,8 +85,6 @@ class AttendanceCheckController extends Controller
                     $employee,
                     (float) $validated['latitude'],
                     (float) $validated['longitude'],
-                    $validated['photo'],
-                    $descriptor,
                 );
                 $message = 'Absen masuk berhasil. Selamat bekerja.';
             }

@@ -2476,6 +2476,10 @@
         @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-lg font-bold leading-none text-white shadow-sm transition hover:bg-brand-700 active:scale-95 active:bg-brand-700 sm:h-9 sm:w-9;
     }
 
+    .pos-product-add-fab {
+        @apply pointer-events-none absolute bottom-1.5 right-1.5 hidden h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-base font-bold leading-none text-white shadow-md;
+    }
+
     .pos-product-setup {
         @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-sm text-amber-800 transition hover:bg-amber-100 sm:h-9 sm:w-9;
     }
@@ -3680,7 +3684,7 @@
             flex: 1 1 0%;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             align-content: start;
-            gap: 0.5rem;
+            gap: 0.4rem;
             min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
@@ -3695,7 +3699,8 @@
             flex-direction: column;
             min-height: 0;
             height: auto;
-            border-radius: 0.75rem;
+            border-radius: 0.65rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         }
 
         .pos-product-card-media {
@@ -3704,26 +3709,57 @@
             height: auto;
         }
 
+        .pos-product-card-badge {
+            @apply left-1 top-1 px-1.5 py-px text-[8px] leading-none;
+            max-width: calc(100% - 1.75rem);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pos-product-add-fab {
+            @apply flex;
+            height: 1.35rem;
+            width: 1.35rem;
+            bottom: 0.25rem;
+            right: 0.25rem;
+            font-size: 0.85rem;
+        }
+
         .pos-product-card-body {
-            padding: 0.4rem;
-            gap: 0.35rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            padding: 0.3rem 0.35rem 0.4rem;
+        }
+
+        .pos-product-category-label {
+            display: none;
         }
 
         .pos-product-card-foot {
-            padding-top: 0.35rem;
+            margin-top: 0.1rem;
+            padding-top: 0;
+            border-top: 0;
+            align-items: center;
+            gap: 0.15rem;
         }
 
-        .pos-product-add,
+        .pos-product-card-foot .pos-product-add {
+            display: none;
+        }
+
         .pos-product-setup {
-            @apply h-7 w-7 text-sm;
+            @apply h-6 w-6 text-[10px];
         }
 
         .pos-product-price {
-            @apply whitespace-nowrap text-[10px] leading-tight;
+            @apply min-w-0 truncate whitespace-nowrap text-[10px] font-bold leading-none text-brand-700;
         }
 
         .pos-product-name {
-            @apply text-[10px] leading-tight;
+            @apply line-clamp-2 break-words text-[10px] font-semibold leading-[1.2] text-slate-900;
+            min-height: 2.4em;
         }
 
         .pos-product-empty {
@@ -3840,21 +3876,30 @@
         }
 
         .pos-product-grid {
-            gap: 0.5rem;
-            padding: 0.5rem;
-            padding-bottom: max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)));
+            gap: 0.35rem;
+            padding: 0.4rem;
+            padding-bottom: max(0.75rem, calc(0.4rem + env(safe-area-inset-bottom, 0px)));
         }
 
         .pos-product-card-body {
-            padding: 0.55rem;
+            padding: 0.25rem 0.3rem 0.35rem;
+            gap: 0.1rem;
         }
 
         .pos-product-card-foot {
-            padding-top: 0.5rem;
+            padding-top: 0;
+            border-top: 0;
         }
 
         .pos-product-name {
-            @apply text-xs;
+            @apply text-[10px] leading-[1.2];
+            min-height: 2.4em;
+        }
+
+        .pos-product-add-fab {
+            height: 1.25rem;
+            width: 1.25rem;
+            font-size: 0.8rem;
         }
     }
 
@@ -3895,9 +3940,26 @@
 
         .pos-product-grid {
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.6rem;
+            gap: 0.55rem;
             padding: 0.75rem;
             padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
+        }
+
+        .pos-product-name {
+            @apply text-[11px] leading-snug;
+            min-height: 2.5em;
+        }
+
+        .pos-product-price {
+            @apply text-[11px];
+        }
+
+        .pos-product-add-fab {
+            height: 1.5rem;
+            width: 1.5rem;
+            font-size: 0.95rem;
+            bottom: 0.35rem;
+            right: 0.35rem;
         }
 
         .is-kasir-pos.is-mobile-cart-tab .pos-receipt-body:has(.pos-receipt-lines) {
@@ -4869,6 +4931,26 @@
         @apply text-amber-300;
     }
 
+    .attendance-gps-panel {
+        @apply flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center;
+    }
+
+    .attendance-gps-icon {
+        @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-700;
+    }
+
+    .attendance-gps-title {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .attendance-gps-panel .attendance-status {
+        @apply text-xs text-slate-500;
+    }
+
+    .attendance-gps-panel .attendance-status.is-error {
+        @apply text-amber-700;
+    }
+
     .profile-setup-progress {
         @apply mb-2 h-1.5 overflow-hidden rounded-full bg-slate-100;
     }
@@ -4915,6 +4997,10 @@
 
     .profile-setup-steps {
         @apply mt-4 grid grid-cols-3 gap-2;
+    }
+
+    .profile-setup-steps-2 {
+        @apply grid-cols-2;
     }
 
     .profile-setup-steps li {

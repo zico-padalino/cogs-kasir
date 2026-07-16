@@ -277,10 +277,7 @@ class AttendanceService
         return $distance;
     }
 
-    /**
-     * @param  list<float|int>  $descriptor
-     */
-    public function checkIn(Employee $employee, float $lat, float $lng, string $photoBase64, array $descriptor): EmployeeAttendance
+    public function checkIn(Employee $employee, float $lat, float $lng): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
         if (! $this->canCheckInNow($attendance)) {
@@ -288,8 +285,6 @@ class AttendanceService
         }
 
         $this->assertWithinRadius($lat, $lng);
-        $faceDistance = $this->assertFaceMatch($employee, $descriptor);
-        $photoPath = $this->storePhoto($employee, $photoBase64, 'in');
 
         $settings = $this->settings();
         $clockIn = $this->todayAt($settings['clock_in']);
@@ -305,8 +300,8 @@ class AttendanceService
                 'check_in' => now()->format('H:i:s'),
                 'check_in_lat' => $lat,
                 'check_in_lng' => $lng,
-                'check_in_photo_path' => $photoPath,
-                'check_in_face_distance' => round($faceDistance, 4),
+                'check_in_photo_path' => null,
+                'check_in_face_distance' => null,
                 'status' => AttendanceStatus::Hadir,
                 'is_late' => $isLate,
                 'notes' => $notes,
@@ -314,10 +309,7 @@ class AttendanceService
         );
     }
 
-    /**
-     * @param  list<float|int>  $descriptor
-     */
-    public function checkOut(Employee $employee, float $lat, float $lng, string $photoBase64, array $descriptor): EmployeeAttendance
+    public function checkOut(Employee $employee, float $lat, float $lng): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
         if (! $this->canCheckOutNow($attendance)) {
@@ -325,15 +317,13 @@ class AttendanceService
         }
 
         $this->assertWithinRadius($lat, $lng);
-        $faceDistance = $this->assertFaceMatch($employee, $descriptor);
-        $photoPath = $this->storePhoto($employee, $photoBase64, 'out');
 
         $attendance->update([
             'check_out' => now()->format('H:i:s'),
             'check_out_lat' => $lat,
             'check_out_lng' => $lng,
-            'check_out_photo_path' => $photoPath,
-            'check_out_face_distance' => round($faceDistance, 4),
+            'check_out_photo_path' => null,
+            'check_out_face_distance' => null,
         ]);
 
         return $attendance->fresh();

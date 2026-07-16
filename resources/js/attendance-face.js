@@ -271,6 +271,65 @@ function flashCapture(root) {
     window.setTimeout(() => flash.classList.remove('is-on'), 420);
 }
 
+function bindGpsCheck(root) {
+    const form = root.querySelector('[data-attendance-form]');
+    const status = root.querySelector('[data-attendance-status]');
+    const submit = root.querySelector('[data-attendance-submit]');
+    const latInput = root.querySelector('[data-attendance-lat]');
+    const lngInput = root.querySelector('[data-attendance-lng]');
+
+    if (! form || ! latInput || ! lngInput) {
+        return;
+    }
+
+    let ready = false;
+
+    const boot = async () => {
+        try {
+            setStatus(status, 'Membaca lokasi GPS…');
+            const gps = await readGps();
+            latInput.value = String(gps.lat);
+            lngInput.value = String(gps.lng);
+            ready = true;
+            if (submit) submit.disabled = false;
+            setStatus(status, 'Lokasi siap — tekan tombol absen.');
+        } catch (error) {
+            setStatus(status, error.message || 'Gagal membaca lokasi.', true);
+            if (submit) submit.disabled = true;
+        }
+    };
+
+    boot();
+
+    form.addEventListener('submit', async (event) => {
+        if (! ready) {
+            event.preventDefault();
+            return;
+        }
+
+        if (! latInput.value || ! lngInput.value) {
+            event.preventDefault();
+            if (submit) {
+                submit.disabled = true;
+                submit.textContent = 'Membaca GPS…';
+            }
+            try {
+                const gps = await readGps();
+                latInput.value = String(gps.lat);
+                lngInput.value = String(gps.lng);
+                form.submit();
+            } catch (error) {
+                setStatus(status, error.message || 'Gagal membaca lokasi.', true);
+                if (submit) {
+                    submit.disabled = false;
+                    const mode = root.getAttribute('data-mode');
+                    submit.textContent = mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk';
+                }
+            }
+        }
+    });
+}
+
 function bindSimpleCapture(root, { needGps }) {
     const video = root.querySelector('[data-attendance-video]');
     const canvas = root.querySelector('[data-attendance-canvas]');
@@ -354,7 +413,7 @@ function bindSimpleCapture(root, { needGps }) {
             setFrameState(frame, 'is-found');
             if (submit) {
                 submit.disabled = false;
-                submit.textContent = needGps ? 'Ambil & Absen' : 'Simpan & lanjut';
+                submit.textContent = needGps ? 'Ambil & Absen' : 'Simpan wajah dari kamera';
             }
         }
     });
@@ -616,7 +675,7 @@ function bindGuidedEnroll(root) {
 document.addEventListener('DOMContentLoaded', () => {
     const check = document.querySelector('[data-attendance-check]');
     if (check) {
-        bindSimpleCapture(check, { needGps: true });
+        bindGpsCheck(check);
     }
 
     const enroll = document.querySelector('[data-attendance-enroll]');
