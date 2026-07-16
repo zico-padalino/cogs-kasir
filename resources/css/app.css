@@ -4765,7 +4765,7 @@
     .attendance-video {
         @apply block h-full w-full object-cover;
         aspect-ratio: 3 / 4;
-        max-height: min(58vh, 28rem);
+        max-height: min(52vh, 24rem);
         transform: scaleX(-1);
         background: #0f172a;
     }
@@ -4773,7 +4773,7 @@
     @media (orientation: landscape) {
         .attendance-video {
             aspect-ratio: 16 / 10;
-            max-height: min(52vh, 22rem);
+            max-height: min(48vh, 20rem);
         }
     }
 
@@ -4782,7 +4782,79 @@
     }
 
     .attendance-face-frame {
-        @apply h-[58%] w-[62%] max-w-[16rem] rounded-[42%] border-2 border-white/70 shadow-[0_0_0_999px_rgba(15,23,42,0.35)];
+        @apply h-[56%] w-[58%] max-w-[15rem] rounded-[46%] border-2 border-white/55 transition-[border-color,box-shadow,transform] duration-200;
+        box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.42);
+    }
+
+    .attendance-face-frame.is-searching {
+        @apply border-white/45;
+    }
+
+    .attendance-face-frame.is-found {
+        @apply border-sky-300;
+        box-shadow:
+            0 0 0 999px rgba(15, 23, 42, 0.38),
+            0 0 0 3px rgba(56, 189, 248, 0.35);
+    }
+
+    .attendance-face-frame.is-locking {
+        @apply border-emerald-300;
+        box-shadow:
+            0 0 0 999px rgba(15, 23, 42, 0.32),
+            0 0 0 4px rgba(52, 211, 153, 0.45);
+        transform: scale(1.02);
+    }
+
+    .attendance-face-frame.is-locked {
+        @apply border-emerald-400;
+        box-shadow:
+            0 0 0 999px rgba(6, 78, 59, 0.35),
+            0 0 0 5px rgba(16, 185, 129, 0.55);
+    }
+
+    .face-cam-flash {
+        @apply pointer-events-none absolute inset-0 bg-white opacity-0;
+    }
+
+    .face-cam-flash.is-on {
+        animation: face-cam-flash 0.38s ease-out;
+    }
+
+    @keyframes face-cam-flash {
+        0% { opacity: 0.85; }
+        100% { opacity: 0; }
+    }
+
+    .face-cam-top {
+        @apply pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-slate-950/90 via-slate-950/45 to-transparent px-3 pb-10 pt-3 text-center;
+    }
+
+    .face-cam-title {
+        @apply text-[0.95rem] font-semibold leading-snug text-white;
+    }
+
+    .face-cam-hint {
+        @apply mt-0.5 text-[11px] text-slate-300;
+    }
+
+    .face-cam-bottom {
+        @apply absolute inset-x-0 bottom-0 space-y-1.5 border-t border-white/10 bg-slate-950/82 px-3 py-2.5;
+    }
+
+    .face-hold-track {
+        @apply h-1.5 overflow-hidden rounded-full bg-white/15;
+    }
+
+    .face-hold-track.is-active .face-hold-bar {
+        @apply bg-sky-400;
+    }
+
+    .face-hold-track.is-complete .face-hold-bar {
+        @apply bg-emerald-400;
+    }
+
+    .face-hold-bar {
+        @apply block h-full w-0 rounded-full bg-white/70 transition-[width] duration-75 ease-linear;
     }
 
     .attendance-guide {
@@ -4790,11 +4862,19 @@
     }
 
     .attendance-status {
-        @apply absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/80 px-3 py-2 text-center text-xs text-slate-200;
+        @apply text-center text-xs text-slate-200;
     }
 
     .attendance-status.is-error {
         @apply text-amber-300;
+    }
+
+    .profile-setup-progress {
+        @apply mb-2 h-1.5 overflow-hidden rounded-full bg-slate-100;
+    }
+
+    .profile-setup-progress-fill {
+        @apply block h-full w-0 rounded-full bg-brand-600 transition-[width] duration-300 ease-out;
     }
 
     .profile-setup-card {
@@ -4894,7 +4974,7 @@
     }
 
     .profile-setup-pose-list li {
-        @apply rounded-lg bg-slate-100 px-1 py-1.5 text-center text-[10px] font-semibold text-slate-500;
+        @apply rounded-lg bg-slate-100 px-1 py-1.5 text-center text-[10px] font-semibold text-slate-500 transition-colors;
     }
 
     .profile-setup-pose-list li.is-current {
@@ -4903,10 +4983,6 @@
 
     .profile-setup-pose-list li.is-done {
         @apply bg-emerald-600 text-white;
-    }
-
-    .profile-setup-auto-hint {
-        @apply mt-2 text-center text-xs leading-relaxed text-slate-500;
     }
 
     .profile-setup-face-done {

@@ -75,14 +75,31 @@
                         <p class="profile-setup-pose-count" data-face-pose-count>0 / 5</p>
                     </div>
 
-                    <div class="attendance-camera-wrap profile-setup-camera">
+                    <div class="profile-setup-progress" aria-hidden="true">
+                        <span class="profile-setup-progress-fill" data-face-progress-fill></span>
+                    </div>
+
+                    <div class="attendance-camera-wrap profile-setup-camera face-cam">
                         <video data-attendance-video class="attendance-video" playsinline muted autoplay></video>
                         <canvas data-attendance-canvas class="hidden"></canvas>
+
                         <div class="attendance-camera-overlay" aria-hidden="true">
-                            <div class="attendance-face-frame"></div>
+                            <div class="attendance-face-frame" data-face-frame></div>
                         </div>
-                        <p class="attendance-guide" data-face-guide-text>Menyiapkan kamera…</p>
-                        <p class="attendance-status" data-attendance-status>Mohon tunggu…</p>
+
+                        <div class="face-cam-flash" data-face-flash aria-hidden="true"></div>
+
+                        <div class="face-cam-top">
+                            <p class="face-cam-title" data-face-guide-text>Menyiapkan kamera…</p>
+                            <p class="face-cam-hint" data-face-guide-hint>Ikuti arah yang diminta</p>
+                        </div>
+
+                        <div class="face-cam-bottom">
+                            <div class="face-hold-track">
+                                <span class="face-hold-bar" data-face-hold-bar></span>
+                            </div>
+                            <p class="attendance-status" data-attendance-status>Mohon tunggu…</p>
+                        </div>
                     </div>
 
                     <ul class="profile-setup-pose-list" data-face-pose-list>
@@ -92,10 +109,6 @@
                         <li data-pose="up">Atas</li>
                         <li data-pose="down">Bawah</li>
                     </ul>
-
-                    <p class="profile-setup-auto-hint" data-face-auto-hint>
-                        Pindahkan wajah sesuai instruksi — foto diambil otomatis.
-                    </p>
 
                     <input type="hidden" name="photo" data-attendance-photo>
                     <input type="hidden" name="descriptor" data-attendance-descriptor>

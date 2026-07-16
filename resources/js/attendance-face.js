@@ -1,18 +1,69 @@
 /**
  * Face capture + GPS for attendance check-in/out and guided face enroll.
  * Uses @vladmandic/face-api from CDN.
+ *
+ * Guided enroll scans with a lightweight detector+landmarks loop,
+ * and only computes the heavy face descriptor when a pose is locked.
  */
 
 const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 const FACE_API_SRC = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js';
 
 const ENROLL_POSES = [
-    { id: 'center', label: 'Hadap depan (lurus ke kamera)', yawMin: -0.12, yawMax: 0.12, pitchMin: -0.12, pitchMax: 0.12 },
-    { id: 'left', label: 'Putar wajah ke KIRI', yawMin: 0.18, yawMax: 0.85, pitchMin: -0.25, pitchMax: 0.25 },
-    { id: 'right', label: 'Putar wajah ke KANAN', yawMin: -0.85, yawMax: -0.18, pitchMin: -0.25, pitchMax: 0.25 },
-    { id: 'up', label: 'Angkat wajah ke ATAS', yawMin: -0.2, yawMax: 0.2, pitchMin: 0.12, pitchMax: 0.7 },
-    { id: 'down', label: 'Tundukkan wajah ke BAWAH', yawMin: -0.2, yawMax: 0.2, pitchMin: -0.7, pitchMax: -0.12 },
+    {
+        id: 'center',
+        short: 'Depan',
+        label: 'Hadap lurus ke kamera',
+        hint: 'Wajah di tengah bingkai',
+        yawMin: -0.22,
+        yawMax: 0.22,
+        pitchMin: -0.2,
+        pitchMax: 0.2,
+    },
+    {
+        id: 'left',
+        short: 'Kiri',
+        label: 'Putar ke kiri',
+        hint: 'Pelan saja, jangan terlalu jauh',
+        yawMin: 0.12,
+        yawMax: 0.95,
+        pitchMin: -0.32,
+        pitchMax: 0.32,
+    },
+    {
+        id: 'right',
+        short: 'Kanan',
+        label: 'Putar ke kanan',
+        hint: 'Pelan saja, jangan terlalu jauh',
+        yawMin: -0.95,
+        yawMax: -0.12,
+        pitchMin: -0.32,
+        pitchMax: 0.32,
+    },
+    {
+        id: 'up',
+        short: 'Atas',
+        label: 'Angkat sedikit ke atas',
+        hint: 'Dagu naik pelan',
+        yawMin: -0.28,
+        yawMax: 0.28,
+        pitchMin: 0.08,
+        pitchMax: 0.85,
+    },
+    {
+        id: 'down',
+        short: 'Bawah',
+        label: 'Tundukkan sedikit',
+        hint: 'Dagu turun pelan',
+        yawMin: -0.28,
+        yawMax: 0.28,
+        pitchMin: -0.85,
+        pitchMax: -0.08,
+    },
 ];
+
+const SCAN_OPTIONS = { inputSize: 224, scoreThreshold: 0.4 };
+const LOCK_OPTIONS = { inputSize: 320, scoreThreshold: 0.4 };
 
 let modelsReady = null;
 let faceapi = null;
@@ -54,7 +105,7 @@ async function ensureModels() {
     return modelsReady;
 }
 
-async function startCamera(video) {
+async function startCamera(video, { lowRes = false } = {}) {
     const previous = video.srcObject;
     if (previous) {
         previous.getTracks().forEach((track) => track.stop());
@@ -65,8 +116,9 @@ async function startCamera(video) {
         audio: false,
         video: {
             facingMode: { ideal: 'user' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: lowRes ? 640 : 960 },
+            height: { ideal: lowRes ? 480 : 720 },
+            frameRate: { ideal: 24, max: 30 },
         },
     });
     video.srcObject = stream;
@@ -91,6 +143,26 @@ function setStatus(el, text, isError = false) {
     el.classList.toggle('is-error', isError);
 }
 
+function setFrameState(frame, state) {
+    if (! frame) {
+        return;
+    }
+    frame.classList.remove('is-searching', 'is-found', 'is-locking', 'is-locked');
+    if (state) {
+        frame.classList.add(state);
+    }
+}
+
+function setHoldProgress(bar, ratio) {
+    if (! bar) {
+        return;
+    }
+    const pct = Math.max(0, Math.min(1, ratio)) * 100;
+    bar.style.width = `${pct}%`;
+    bar.parentElement?.classList.toggle('is-active', pct > 0 && pct < 100);
+    bar.parentElement?.classList.toggle('is-complete', pct >= 100);
+}
+
 function estimatePose(landmarks) {
     const nose = landmarks.getNose()[3];
     const leftEye = landmarks.getLeftEye()[0];
@@ -110,9 +182,27 @@ function estimatePose(landmarks) {
     return { yaw, pitch };
 }
 
-async function detectFace(video) {
+function detectorOptions(opts) {
+    return new faceapi.TinyFaceDetectorOptions(opts);
+}
+
+/** Fast path: face box + landmarks only (for live pose guidance). */
+async function detectFaceLite(video) {
     const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 }))
+        .detectSingleFace(video, detectorOptions(SCAN_OPTIONS))
+        .withFaceLandmarks();
+
+    if (! detection) {
+        return null;
+    }
+
+    return detection;
+}
+
+/** Full path: include descriptor (only when locking a pose / check-in). */
+async function detectFaceFull(video) {
+    const detection = await faceapi
+        .detectSingleFace(video, detectorOptions(LOCK_OPTIONS))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -123,6 +213,10 @@ async function detectFace(video) {
     return detection;
 }
 
+async function detectFace(video) {
+    return detectFaceFull(video);
+}
+
 function capturePhoto(video, canvas) {
     const width = video.videoWidth || 640;
     const height = video.videoHeight || 480;
@@ -130,7 +224,7 @@ function capturePhoto(video, canvas) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, width, height);
-    return canvas.toDataURL('image/jpeg', 0.85);
+    return canvas.toDataURL('image/jpeg', 0.82);
 }
 
 function averageDescriptors(list) {
@@ -165,6 +259,18 @@ function readGps() {
     });
 }
 
+function flashCapture(root) {
+    const flash = root.querySelector('[data-face-flash]');
+    if (! flash) {
+        return;
+    }
+    flash.classList.remove('is-on');
+    // force reflow so animation can replay
+    void flash.offsetWidth;
+    flash.classList.add('is-on');
+    window.setTimeout(() => flash.classList.remove('is-on'), 420);
+}
+
 function bindSimpleCapture(root, { needGps }) {
     const video = root.querySelector('[data-attendance-video]');
     const canvas = root.querySelector('[data-attendance-canvas]');
@@ -175,6 +281,7 @@ function bindSimpleCapture(root, { needGps }) {
     const descriptorInput = root.querySelector('[data-attendance-descriptor]');
     const latInput = root.querySelector('[data-attendance-lat]');
     const lngInput = root.querySelector('[data-attendance-lng]');
+    const frame = root.querySelector('[data-face-frame]');
 
     if (! video || ! canvas || ! form || ! photoInput || ! descriptorInput) {
         return;
@@ -184,10 +291,12 @@ function bindSimpleCapture(root, { needGps }) {
 
     const boot = async () => {
         try {
-            setStatus(status, 'Memuat model wajah…');
-            await ensureModels();
-            setStatus(status, 'Mengaktifkan kamera…');
-            await startCamera(video);
+            setStatus(status, 'Menyiapkan kamera…');
+            setFrameState(frame, 'is-searching');
+            await Promise.all([
+                ensureModels(),
+                startCamera(video, { lowRes: false }),
+            ]);
             if (needGps) {
                 setStatus(status, 'Membaca lokasi GPS…');
                 const gps = await readGps();
@@ -196,10 +305,12 @@ function bindSimpleCapture(root, { needGps }) {
             }
             ready = true;
             if (submit) submit.disabled = false;
+            setFrameState(frame, 'is-found');
             setStatus(status, 'Siap — hadapkan wajah lalu tekan tombol.');
         } catch (error) {
             setStatus(status, error.message || 'Gagal menyiapkan absensi.', true);
             if (submit) submit.disabled = true;
+            setFrameState(frame, 'is-searching');
         }
     };
 
@@ -207,7 +318,7 @@ function bindSimpleCapture(root, { needGps }) {
 
     const onOrientation = () => {
         if (! ready) return;
-        startCamera(video).catch(() => {});
+        startCamera(video, { lowRes: false }).catch(() => {});
     };
     window.addEventListener('orientationchange', onOrientation);
     window.addEventListener('resize', onOrientation);
@@ -229,14 +340,18 @@ function bindSimpleCapture(root, { needGps }) {
             }
 
             setStatus(status, 'Mendeteksi wajah…');
-            const detection = await detectFace(video);
+            setFrameState(frame, 'is-locking');
+            const detection = await detectFaceFull(video);
             descriptorInput.value = JSON.stringify(Array.from(detection.descriptor));
             photoInput.value = capturePhoto(video, canvas);
+            flashCapture(root);
+            setFrameState(frame, 'is-locked');
             setStatus(status, 'Mengirim data…');
             stopCamera(video);
             form.submit();
         } catch (error) {
             setStatus(status, error.message || 'Gagal mengambil wajah.', true);
+            setFrameState(frame, 'is-found');
             if (submit) {
                 submit.disabled = false;
                 submit.textContent = needGps ? 'Ambil & Absen' : 'Simpan & lanjut';
@@ -253,38 +368,63 @@ function bindGuidedEnroll(root) {
     const form = root.querySelector('[data-attendance-form]');
     const status = root.querySelector('[data-attendance-status]');
     const guideText = root.querySelector('[data-face-guide-text]');
+    const guideHint = root.querySelector('[data-face-guide-hint]');
     const poseCount = root.querySelector('[data-face-pose-count]');
     const poseList = root.querySelector('[data-face-pose-list]');
-    const autoHint = root.querySelector('[data-face-auto-hint]');
+    const progressFill = root.querySelector('[data-face-progress-fill]');
+    const holdBar = root.querySelector('[data-face-hold-bar]');
     const submit = root.querySelector('[data-attendance-submit]');
     const photoInput = root.querySelector('[data-attendance-photo]');
     const descriptorInput = root.querySelector('[data-attendance-descriptor]');
+    const frame = root.querySelector('[data-face-frame]');
 
     if (! video || ! canvas || ! form || ! photoInput || ! descriptorInput) {
         return;
     }
 
-    const HOLD_MS = 700;
-    const SCAN_MS = 280;
+    const HOLD_MS = 380;
+    const COOLDOWN_MS = 280;
+    const LOOP_GAP_MS = 40;
 
     let poseIndex = 0;
     const captured = [];
     let centerPhoto = null;
     let ready = false;
-    let scanning = false;
+    let alive = true;
     let holdStartedAt = 0;
-    let scanTimer = null;
     let cooldownUntil = 0;
+    let locking = false;
+    let lastStatusKey = '';
+
+    const speakStatus = (text, isError = false) => {
+        const key = `${isError ? 'e' : 'o'}:${text}`;
+        if (key === lastStatusKey) {
+            return;
+        }
+        lastStatusKey = key;
+        setStatus(status, text, isError);
+    };
 
     const refreshPoseUi = () => {
         const pose = ENROLL_POSES[poseIndex];
+        const doneCount = captured.length;
+        const total = ENROLL_POSES.length;
+
         if (guideText) {
             guideText.textContent = pose
                 ? pose.label
-                : 'Semua pose selesai. Tekan Simpan & lanjut.';
+                : 'Selesai — tekan Simpan & lanjut';
+        }
+        if (guideHint) {
+            guideHint.textContent = pose
+                ? pose.hint
+                : 'Wajah sudah terdaftar';
         }
         if (poseCount) {
-            poseCount.textContent = `${captured.length} / ${ENROLL_POSES.length}`;
+            poseCount.textContent = `${doneCount} / ${total}`;
+        }
+        if (progressFill) {
+            progressFill.style.width = `${(doneCount / total) * 100}%`;
         }
         poseList?.querySelectorAll('[data-pose]').forEach((item) => {
             const id = item.getAttribute('data-pose');
@@ -293,113 +433,158 @@ function bindGuidedEnroll(root) {
             item.classList.toggle('is-done', done);
             item.classList.toggle('is-current', Boolean(current));
         });
-        if (autoHint) {
-            autoHint.textContent = pose
-                ? 'Pindahkan wajah sesuai instruksi — foto diambil otomatis.'
-                : 'Selesai. Tekan Simpan & lanjut.';
-        }
         if (submit) {
-            submit.disabled = captured.length < ENROLL_POSES.length;
+            submit.disabled = doneCount < total;
         }
     };
 
-    const stopScan = () => {
-        if (scanTimer) {
-            clearTimeout(scanTimer);
-            scanTimer = null;
-        }
-        scanning = false;
+    const finishAll = (detection) => {
+        descriptorInput.value = JSON.stringify(
+            averageDescriptors(captured.map((c) => c.descriptor)),
+        );
+        photoInput.value = centerPhoto || capturePhoto(video, canvas);
+        speakStatus('Semua pose selesai. Tekan Simpan & lanjut.');
+        setFrameState(frame, 'is-locked');
+        setHoldProgress(holdBar, 1);
+        if (submit) submit.disabled = false;
+        alive = false;
+        return detection;
     };
 
-    const captureCurrentPose = (detection, pose) => {
-        captured.push({
-            id: pose.id,
-            descriptor: Array.from(detection.descriptor),
-        });
+    const lockPose = async (pose) => {
+        locking = true;
+        setFrameState(frame, 'is-locking');
+        speakStatus('Mengunci pose…');
 
-        if (pose.id === 'center' || ! centerPhoto) {
-            centerPhoto = capturePhoto(video, canvas);
+        try {
+            const detection = await detectFaceFull(video);
+            const { yaw, pitch } = estimatePose(detection.landmarks);
+            const okYaw = yaw >= pose.yawMin && yaw <= pose.yawMax;
+            const okPitch = pitch >= pose.pitchMin && pitch <= pose.pitchMax;
+
+            if (! okYaw || ! okPitch) {
+                holdStartedAt = 0;
+                setHoldProgress(holdBar, 0);
+                setFrameState(frame, 'is-found');
+                speakStatus('Tahan pose lagi…');
+                return;
+            }
+
+            captured.push({
+                id: pose.id,
+                descriptor: Array.from(detection.descriptor),
+            });
+
+            if (pose.id === 'center' || ! centerPhoto) {
+                centerPhoto = capturePhoto(video, canvas);
+            }
+
+            flashCapture(root);
+            poseIndex += 1;
+            holdStartedAt = 0;
+            cooldownUntil = Date.now() + COOLDOWN_MS;
+            setHoldProgress(holdBar, 0);
+            refreshPoseUi();
+            speakStatus(`✓ ${pose.short} tersimpan`);
+
+            if (captured.length >= ENROLL_POSES.length) {
+                finishAll(detection);
+                setFrameState(frame, 'is-locked');
+                return;
+            }
+
+            setFrameState(frame, 'is-found');
+        } catch (_) {
+            holdStartedAt = 0;
+            setHoldProgress(holdBar, 0);
+            setFrameState(frame, 'is-searching');
+            speakStatus('Wajah hilang — masukkan lagi ke bingkai');
+        } finally {
+            locking = false;
         }
-
-        poseIndex += 1;
-        holdStartedAt = 0;
-        cooldownUntil = Date.now() + 500;
-        setStatus(status, `✓ ${pose.label.replace(/^Hadap |^Putar |^Angkat |^Tundukkan /, '')} tersimpan`);
-        refreshPoseUi();
-
-        if (captured.length >= ENROLL_POSES.length) {
-            descriptorInput.value = JSON.stringify(averageDescriptors(captured.map((c) => c.descriptor)));
-            photoInput.value = centerPhoto || capturePhoto(video, canvas);
-            setStatus(status, 'Semua pose selesai. Tekan Simpan & lanjut.');
-            if (submit) submit.disabled = false;
-            stopScan();
-            return false;
-        }
-
-        return true;
     };
 
     const scanLoop = async () => {
-        if (! ready || poseIndex >= ENROLL_POSES.length) {
+        if (! alive || ! ready || poseIndex >= ENROLL_POSES.length) {
             return;
         }
 
-        scanning = true;
         const pose = ENROLL_POSES[poseIndex];
+        const now = Date.now();
 
         try {
-            if (Date.now() < cooldownUntil) {
-                // pause singkat antar pose
+            if (locking || now < cooldownUntil) {
+                // pause singkat antar pose / saat mengunci
             } else {
-                const detection = await detectFace(video);
-                const { yaw, pitch } = estimatePose(detection.landmarks);
-                const okYaw = yaw >= pose.yawMin && yaw <= pose.yawMax;
-                const okPitch = pitch >= pose.pitchMin && pitch <= pose.pitchMax;
+                const detection = await detectFaceLite(video);
 
-                if (okYaw && okPitch) {
-                    if (! holdStartedAt) {
-                        holdStartedAt = Date.now();
-                        setStatus(status, 'Tahan sebentar…');
-                    } else if (Date.now() - holdStartedAt >= HOLD_MS) {
-                        const cont = captureCurrentPose(detection, pose);
-                        if (! cont) {
-                            return;
-                        }
-                    }
-                } else {
+                if (! detection) {
                     holdStartedAt = 0;
-                    setStatus(status, pose.label);
+                    setHoldProgress(holdBar, 0);
+                    setFrameState(frame, 'is-searching');
+                    speakStatus('Cari wajah di bingkai…');
+                } else {
+                    const { yaw, pitch } = estimatePose(detection.landmarks);
+                    const okYaw = yaw >= pose.yawMin && yaw <= pose.yawMax;
+                    const okPitch = pitch >= pose.pitchMin && pitch <= pose.pitchMax;
+
+                    if (okYaw && okPitch) {
+                        if (! holdStartedAt) {
+                            holdStartedAt = now;
+                        }
+                        const held = now - holdStartedAt;
+                        const ratio = held / HOLD_MS;
+                        setHoldProgress(holdBar, ratio);
+                        setFrameState(frame, 'is-locking');
+                        speakStatus('Tahan…');
+
+                        if (held >= HOLD_MS) {
+                            await lockPose(pose);
+                        }
+                    } else {
+                        holdStartedAt = 0;
+                        setHoldProgress(holdBar, 0);
+                        setFrameState(frame, 'is-found');
+                        speakStatus(pose.label);
+                    }
                 }
             }
         } catch (_) {
             holdStartedAt = 0;
-            setStatus(status, 'Cari wajah di dalam bingkai…');
+            setHoldProgress(holdBar, 0);
+            setFrameState(frame, 'is-searching');
+            speakStatus('Cari wajah di bingkai…');
         }
 
-        scanTimer = window.setTimeout(scanLoop, SCAN_MS);
+        if (alive && poseIndex < ENROLL_POSES.length) {
+            window.setTimeout(scanLoop, LOOP_GAP_MS);
+        }
     };
 
     const boot = async () => {
         try {
-            setStatus(status, 'Memuat model wajah…');
-            await ensureModels();
-            setStatus(status, 'Mengaktifkan kamera…');
-            await startCamera(video);
+            speakStatus('Menyiapkan kamera…');
+            setFrameState(frame, 'is-searching');
+            refreshPoseUi();
+            await Promise.all([
+                ensureModels(),
+                startCamera(video, { lowRes: true }),
+            ]);
             ready = true;
             refreshPoseUi();
-            setStatus(status, 'Hadap depan — foto otomatis.');
+            speakStatus('Hadap depan — otomatis');
             scanLoop();
         } catch (error) {
-            setStatus(status, error.message || 'Gagal menyiapkan kamera.', true);
-            stopScan();
+            speakStatus(error.message || 'Gagal menyiapkan kamera.', true);
+            alive = false;
         }
     };
 
     boot();
 
     const restartCam = () => {
-        if (! ready) return;
-        startCamera(video).catch(() => {});
+        if (! ready || ! alive) return;
+        startCamera(video, { lowRes: true }).catch(() => {});
     };
     window.addEventListener('orientationchange', restartCam);
     window.addEventListener('resize', restartCam);
@@ -407,21 +592,23 @@ function bindGuidedEnroll(root) {
     form.addEventListener('submit', (event) => {
         if (captured.length < ENROLL_POSES.length) {
             event.preventDefault();
-            setStatus(status, 'Tunggu sampai semua pose otomatis tersimpan.', true);
+            speakStatus('Tunggu sampai semua pose tersimpan.', true);
             return;
         }
 
         if (! descriptorInput.value || ! photoInput.value) {
-            descriptorInput.value = JSON.stringify(averageDescriptors(captured.map((c) => c.descriptor)));
+            descriptorInput.value = JSON.stringify(
+                averageDescriptors(captured.map((c) => c.descriptor)),
+            );
             photoInput.value = centerPhoto || capturePhoto(video, canvas);
         }
 
-        stopScan();
+        alive = false;
         stopCamera(video);
     });
 
     window.addEventListener('beforeunload', () => {
-        stopScan();
+        alive = false;
         stopCamera(video);
     });
 }
