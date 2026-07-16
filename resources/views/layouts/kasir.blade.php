@@ -137,25 +137,13 @@
                                 <span>Kunci Kasir</span>
                             </button>
                         </form>
-                        <div class="kasir-sidebar-foot-actions">
-                            <button
-                                type="button"
-                                class="kasir-sound-toggle"
-                                data-kasir-sound-toggle
-                                aria-pressed="true"
-                                title="Suara notifikasi"
-                            >
-                                <span class="kasir-sound-toggle-icon" aria-hidden="true">🔔</span>
-                                <span class="kasir-sound-toggle-label" data-kasir-sound-label>Suara aktif</span>
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="kasir-sidebar-logout w-full">
+                                <span aria-hidden="true">↩</span>
+                                <span>Keluar</span>
                             </button>
-                            <form action="{{ route('logout') }}" method="POST" class="kasir-sidebar-foot-form">
-                                @csrf
-                                <button type="submit" class="kasir-sidebar-logout">
-                                    <span aria-hidden="true">↩</span>
-                                    <span>Keluar</span>
-                                </button>
-                            </form>
-                        </div>
+                        </form>
                     </div>
                 </div>
             </aside>

@@ -1,134 +1,15 @@
 /**
- * Notifikasi kasir — polling pesanan online + suara + auto load.
+ * Notifikasi kasir — polling pesanan online + toast visual + auto load.
  */
 import { refreshKasirOrderUi } from './kasir';
 
-const SOUND_STORAGE_KEY = 'kasir_sound_enabled';
-const TTS_LANG = 'id-ID';
-
 let knownOrderIds = null;
 let isHandlingNewOrder = false;
-let cachedGoogleVoice = null;
-
-function isSoundEnabled() {
-    return localStorage.getItem(SOUND_STORAGE_KEY) !== '0';
-}
-
-function setSoundEnabled(enabled) {
-    localStorage.setItem(SOUND_STORAGE_KEY, enabled ? '1' : '0');
-    syncSoundToggleUi();
-}
-
-function pickGoogleVoice() {
-    const synth = window.speechSynthesis;
-    if (! synth) {
-        return null;
-    }
-
-    const voices = synth.getVoices();
-    if (voices.length === 0) {
-        return cachedGoogleVoice;
-    }
-
-    const indonesianGoogle = voices.find((voice) => {
-        const lang = voice.lang.toLowerCase();
-        const name = voice.name.toLowerCase();
-
-        return lang.startsWith('id') && name.includes('google');
-    });
-
-    if (indonesianGoogle) {
-        cachedGoogleVoice = indonesianGoogle;
-
-        return indonesianGoogle;
-    }
-
-    const anyGoogle = voices.find((voice) => voice.name.toLowerCase().includes('google'));
-    if (anyGoogle) {
-        cachedGoogleVoice = anyGoogle;
-
-        return anyGoogle;
-    }
-
-    const indonesian = voices.find((voice) => voice.lang.toLowerCase().startsWith('id'));
-    if (indonesian) {
-        cachedGoogleVoice = indonesian;
-
-        return indonesian;
-    }
-
-    return cachedGoogleVoice;
-}
-
-function initSpeechVoices() {
-    if (! window.speechSynthesis) {
-        return;
-    }
-
-    pickGoogleVoice();
-    window.speechSynthesis.addEventListener('voiceschanged', pickGoogleVoice);
-}
-
-function speakNotification(text) {
-    if (! isSoundEnabled() || ! text) {
-        return;
-    }
-
-    const synth = window.speechSynthesis;
-    if (! synth) {
-        return;
-    }
-
-    try {
-        synth.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = TTS_LANG;
-        utterance.volume = 1;
-        utterance.rate = 1;
-        utterance.pitch = 1;
-
-        const voice = pickGoogleVoice();
-        if (voice) {
-            utterance.voice = voice;
-        }
-
-        synth.speak(utterance);
-    } catch {
-        // Browser memblokir TTS tanpa interaksi pengguna.
-    }
-}
-
-function playNewOrderSound() {
-    speakNotification('Perhatian. Ada pesanan baru masuk. Silakan dibuka di kasir.');
-}
-
-function playSuccessSound() {
-    speakNotification('Suara notifikasi aktif.');
-}
-
-function unlockAudio() {
-    initSpeechVoices();
-    pickGoogleVoice();
-}
+let deferredOrderAlert = false;
+let wasTransactionActive = false;
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-}
-
-function syncSoundToggleUi() {
-    document.querySelectorAll('[data-kasir-sound-toggle]').forEach((button) => {
-        const enabled = isSoundEnabled();
-        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-        button.classList.toggle('is-muted', ! enabled);
-
-        const label = button.querySelector('[data-kasir-sound-label]');
-        if (label) {
-            label.textContent = enabled ? 'Suara aktif' : 'Suara mati';
-        }
-
-        button.title = enabled ? 'Matikan suara notifikasi' : 'Nyalakan suara notifikasi';
-    });
 }
 
 function showKasirToast(message) {
@@ -155,6 +36,12 @@ function showKasirToast(message) {
     window.requestAnimationFrame(() => {
         toast.classList.add('is-visible');
     });
+}
+
+function alertNewOrder(toast) {
+    if (toast) {
+        showKasirToast(toast);
+    }
 }
 
 function updatePendingPanel(html) {
@@ -213,16 +100,73 @@ function hasActiveKasirDraftWithItems() {
         return false;
     }
 
-    // Order online aktif punya form konfirmasi / status submitted.
-    // Draft kasir punya form bayar langsung — jangan ditimpa auto-load.
     const isOnlineConfirm = Boolean(root.querySelector('[data-pos-receipt-confirm]'));
     const itemCount = root.querySelectorAll('[data-kasir-item]').length;
 
     return itemCount > 0 && ! isOnlineConfirm;
 }
 
-async function handleIncomingOrders(newIds, data, shell) {
+function isKasirTransactionActive() {
+    const root = document.getElementById('kasir-pos');
+    if (! root) {
+        return false;
+    }
+
+    if (root.querySelector('[data-kasir-pay-modal]:not(.hidden)')) {
+        return true;
+    }
+
+    if (root.querySelector('[data-kasir-confirm-modal]:not(.hidden)')) {
+        return true;
+    }
+
+    return root.querySelectorAll('[data-kasir-item]').length > 0;
+}
+
+function flushDeferredOrderAlertIfIdle() {
+    const busy = isKasirTransactionActive();
+
+    if (wasTransactionActive && ! busy && deferredOrderAlert) {
+        alertNewOrder('Ada pesanan baru menunggu — buka dari banner atas');
+        flashPendingPanel();
+        deferredOrderAlert = false;
+    }
+
+    wasTransactionActive = busy;
+}
+
+function observeKasirTransactionState() {
+    const root = document.getElementById('kasir-pos');
+    if (! root || root.dataset.kasirTransactionObserver === '1') {
+        return;
+    }
+
+    root.dataset.kasirTransactionObserver = '1';
+    wasTransactionActive = isKasirTransactionActive();
+
+    const observer = new MutationObserver(() => {
+        flushDeferredOrderAlertIfIdle();
+    });
+
+    observer.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'hidden'],
+    });
+}
+
+async function handleIncomingOrders(newIds, data, shell, currentIds) {
     if (isHandlingNewOrder || newIds.length === 0) {
+        return;
+    }
+
+    if (isKasirTransactionActive()) {
+        deferredOrderAlert = true;
+        updatePendingPanel(data.html ?? '');
+        knownOrderIds = currentIds;
+        flushDeferredOrderAlertIfIdle();
+
         return;
     }
 
@@ -235,8 +179,7 @@ async function handleIncomingOrders(newIds, data, shell) {
         ? Number(data.latest_order_id)
         : Math.max(...newIds);
 
-    playNewOrderSound();
-    showKasirToast(preserveKasirDraft
+    alertNewOrder(preserveKasirDraft
         ? 'Pesanan online baru masuk — cek banner atas, lanjutkan transaksi kasir dulu'
         : (autoLoad
             ? 'Pesanan baru masuk ke kasir'
@@ -330,20 +273,21 @@ async function pollPendingOrders(pollUrl, shell) {
 
     if (newIds.length > 0) {
         if (pinPollOnly) {
-            playNewOrderSound();
-            showKasirToast('Pesanan baru masuk — masukkan PIN untuk membuka kasir');
+            alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir');
             knownOrderIds = currentIds;
 
             return;
         }
 
-        await handleIncomingOrders(newIds, data, shell);
+        await handleIncomingOrders(newIds, data, shell, currentIds);
     } else if (! pinPollOnly && currentIds.size !== knownOrderIds.size) {
         updatePendingPanel(data.html ?? '');
         knownOrderIds = currentIds;
     } else {
         knownOrderIds = currentIds;
     }
+
+    flushDeferredOrderAlertIfIdle();
 }
 
 function shouldForcePinLock(response) {
@@ -351,7 +295,6 @@ function shouldForcePinLock(response) {
         return true;
     }
 
-    // Redirect ke halaman PIN (fetch manual) atau opaqueredirect
     if (response.type === 'opaqueredirect') {
         return true;
     }
@@ -369,7 +312,6 @@ function goToPinUnlock(shell, redirectUrl) {
         return;
     }
 
-    // Jangan paksa keluar dari halaman atur/ubah PIN.
     if (isPinManagementPage()) {
         return;
     }
@@ -424,7 +366,6 @@ function schedulePinExpiryRedirect(shell, remainingSeconds, serverNow, expiresAt
             return;
         }
 
-        // Koreksi selisih jam perangkat vs server
         const offset = Number.isFinite(server) ? (server - client) : 0;
         const remaining = expires - (client + offset);
         delayMs = Math.max(0, remaining) * 1000;
@@ -486,16 +427,12 @@ function openCartTabFromQuery() {
 }
 
 function initKasirNotifications() {
-    initSpeechVoices();
-
     const shell = document.querySelector('[data-kasir-notifications]');
     if (! shell) {
         return;
     }
 
-    // Halaman /pin (atur PIN) share layout kasir — jangan auto-redirect ke unlock.
     if (isPinManagementPage()) {
-        syncSoundToggleUi();
         return;
     }
 
@@ -503,41 +440,16 @@ function initKasirNotifications() {
     const intervalSeconds = Math.max(5, parseInt(shell.dataset.kasirPollInterval || '5', 10));
     const pinPollOnly = isPinPollOnly(shell);
 
-    syncSoundToggleUi();
     if (! pinPollOnly) {
         openCartTabFromQuery();
         schedulePinExpiryRedirect(shell);
         pollPinStatus(shell);
+        observeKasirTransactionState();
 
         if (pinStatusTimer) {
             window.clearInterval(pinStatusTimer);
         }
         pinStatusTimer = window.setInterval(() => pollPinStatus(shell), 20_000);
-    }
-
-    document.querySelectorAll('[data-kasir-sound-toggle]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const next = ! isSoundEnabled();
-            setSoundEnabled(next);
-
-            if (next) {
-                unlockAudio();
-                playSuccessSound();
-            }
-        });
-    });
-
-    const unlockOnce = () => {
-        unlockAudio();
-        document.removeEventListener('pointerdown', unlockOnce, true);
-        document.removeEventListener('keydown', unlockOnce, true);
-    };
-
-    document.addEventListener('pointerdown', unlockOnce, true);
-    document.addEventListener('keydown', unlockOnce, true);
-
-    if (document.querySelector('[data-pos-flash-success]')) {
-        playSuccessSound();
     }
 
     if (! pollUrl) {

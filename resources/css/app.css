@@ -2277,45 +2277,8 @@
         }
     }
 
-    .kasir-sound-toggle.is-muted {
-        @apply text-slate-500;
-    }
-
-    .kasir-sound-toggle.is-muted .kasir-sound-toggle-label {
-        @apply line-through;
-    }
-
-    .kasir-sidebar-foot-actions {
-        @apply grid grid-cols-2 gap-2;
-    }
-
-    .kasir-sound-toggle,
     .kasir-sidebar-logout {
         @apply inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white;
-    }
-
-    .kasir-sound-toggle {
-        @apply border border-slate-700/80 bg-slate-800/50;
-    }
-
-    .kasir-sound-toggle.is-muted {
-        @apply border-slate-800 bg-slate-900/40 text-slate-500;
-    }
-
-    .kasir-sound-toggle-icon {
-        @apply shrink-0 text-sm;
-    }
-
-    .kasir-sound-toggle-label {
-        @apply truncate;
-    }
-
-    .kasir-sidebar-foot-form {
-        @apply min-w-0;
-    }
-
-    .kasir-sidebar-logout {
-        @apply w-full;
     }
 
     .kasir-toast {
