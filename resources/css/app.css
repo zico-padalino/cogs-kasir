@@ -4759,20 +4759,162 @@
     }
 
     .attendance-camera-wrap {
-        @apply overflow-hidden rounded-2xl border border-slate-200 bg-slate-900;
+        @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-900;
     }
 
     .attendance-video {
-        @apply aspect-[4/3] w-full object-cover;
+        @apply block h-full w-full object-cover;
+        aspect-ratio: 3 / 4;
+        max-height: min(58vh, 28rem);
         transform: scaleX(-1);
+        background: #0f172a;
+    }
+
+    @media (orientation: landscape) {
+        .attendance-video {
+            aspect-ratio: 16 / 10;
+            max-height: min(52vh, 22rem);
+        }
+    }
+
+    .attendance-camera-overlay {
+        @apply pointer-events-none absolute inset-0 flex items-center justify-center;
+    }
+
+    .attendance-face-frame {
+        @apply h-[58%] w-[62%] max-w-[16rem] rounded-[42%] border-2 border-white/70 shadow-[0_0_0_999px_rgba(15,23,42,0.35)];
+    }
+
+    .attendance-guide {
+        @apply absolute inset-x-0 top-0 bg-gradient-to-b from-slate-950/85 to-transparent px-3 pb-8 pt-3 text-center text-sm font-semibold text-white;
     }
 
     .attendance-status {
-        @apply border-t border-slate-700 bg-slate-900 px-3 py-2 text-center text-xs text-slate-200;
+        @apply absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/80 px-3 py-2 text-center text-xs text-slate-200;
     }
 
     .attendance-status.is-error {
         @apply text-amber-300;
+    }
+
+    .profile-setup-card {
+        @apply relative z-10 mx-auto w-full max-w-md rounded-[1.5rem] border border-white/70 bg-white/95 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6;
+    }
+
+    .profile-setup-head {
+        @apply flex items-center gap-3;
+    }
+
+    .profile-setup-mark {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-lg font-bold text-white shadow-md;
+    }
+
+    .profile-setup-eyebrow {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-brand-600;
+    }
+
+    .profile-setup-title {
+        @apply text-xl font-bold tracking-tight text-slate-900;
+    }
+
+    .profile-setup-sub {
+        @apply truncate text-sm text-slate-500;
+    }
+
+    .profile-setup-alert {
+        @apply mt-4 rounded-xl px-3 py-2.5 text-sm;
+    }
+
+    .profile-setup-alert-warn {
+        @apply border border-amber-200 bg-amber-50 text-amber-900;
+    }
+
+    .profile-setup-alert-error {
+        @apply border border-rose-200 bg-rose-50 text-rose-800;
+    }
+
+    .profile-setup-steps {
+        @apply mt-4 grid grid-cols-3 gap-2;
+    }
+
+    .profile-setup-steps li {
+        @apply flex flex-col items-center gap-1 rounded-xl bg-slate-50 px-2 py-2 text-center text-[11px] font-medium text-slate-400;
+    }
+
+    .profile-setup-step-num {
+        @apply flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-500;
+    }
+
+    .profile-setup-steps li.is-current {
+        @apply bg-brand-50 text-brand-800;
+    }
+
+    .profile-setup-steps li.is-current .profile-setup-step-num {
+        @apply bg-brand-600 text-white;
+    }
+
+    .profile-setup-steps li.is-done {
+        @apply bg-emerald-50 text-emerald-800;
+    }
+
+    .profile-setup-steps li.is-done .profile-setup-step-num {
+        @apply bg-emerald-600 text-white;
+    }
+
+    .profile-setup-form {
+        @apply mt-4 space-y-4;
+    }
+
+    .profile-setup-section {
+        @apply space-y-1.5;
+    }
+
+    .profile-setup-input {
+        @apply min-h-12 text-base;
+    }
+
+    .profile-setup-hint {
+        @apply text-xs text-slate-500;
+    }
+
+    .profile-setup-face-head {
+        @apply mb-1.5 flex items-center justify-between gap-2;
+    }
+
+    .profile-setup-pose-count {
+        @apply text-xs font-semibold tabular-nums text-brand-700;
+    }
+
+    .profile-setup-camera {
+        @apply mt-0;
+    }
+
+    .profile-setup-pose-list {
+        @apply mt-2 grid grid-cols-5 gap-1;
+    }
+
+    .profile-setup-pose-list li {
+        @apply rounded-lg bg-slate-100 px-1 py-1.5 text-center text-[10px] font-semibold text-slate-500;
+    }
+
+    .profile-setup-pose-list li.is-current {
+        @apply bg-brand-600 text-white;
+    }
+
+    .profile-setup-pose-list li.is-done {
+        @apply bg-emerald-600 text-white;
+    }
+
+    .profile-setup-face-done {
+        @apply flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3;
+    }
+
+    .profile-setup-face-thumb {
+        @apply h-14 w-14 rounded-xl object-cover ring-1 ring-emerald-200;
+    }
+
+    .profile-setup-logout {
+        @apply mt-5 text-center;
     }
 
     .login-form-head {

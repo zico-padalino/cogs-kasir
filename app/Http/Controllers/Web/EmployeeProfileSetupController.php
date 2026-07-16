@@ -44,35 +44,28 @@ class EmployeeProfileSetupController extends Controller
 
         $validated = $request->validate([
             'phone' => ['required', 'string', 'max:32'],
-            'position' => ['required', 'string', 'max:255'],
-            'department' => ['nullable', 'string', 'max:255'],
             'photo' => ['nullable', 'string'],
             'descriptor' => ['nullable', 'string'],
         ], [
             'phone.required' => 'Nomor telepon wajib diisi.',
-            'position.required' => 'Jabatan wajib diisi.',
         ]);
 
         $employee->update([
             'name' => $user->name,
             'email' => $user->email,
             'phone' => trim($validated['phone']),
-            'position' => trim($validated['position']),
-            'department' => filled($validated['department'] ?? null)
-                ? trim((string) $validated['department'])
-                : $employee->department,
         ]);
 
         $employee = $employee->fresh();
 
         if (! $employee->hasFaceEnrollment()) {
             if (! filled($validated['photo'] ?? null) || ! filled($validated['descriptor'] ?? null)) {
-                return back()->withInput()->with('error', 'Wajah wajib didaftarkan dari kamera.');
+                return back()->withInput()->with('error', 'Ikuti instruksi wajah sampai selesai, lalu simpan.');
             }
 
             $descriptor = json_decode((string) $validated['descriptor'], true);
             if (! is_array($descriptor)) {
-                return back()->withInput()->with('error', 'Data wajah tidak valid. Coba ambil ulang.');
+                return back()->withInput()->with('error', 'Data wajah tidak valid. Coba ulangi panduan wajah.');
             }
 
             try {
@@ -82,29 +75,16 @@ class EmployeeProfileSetupController extends Controller
             }
 
             $employee = $employee->fresh();
-        } elseif (filled($validated['photo'] ?? null) && filled($validated['descriptor'] ?? null)) {
-            $descriptor = json_decode((string) $validated['descriptor'], true);
-            if (is_array($descriptor)) {
-                try {
-                    $attendanceService->enrollFace($employee, $validated['photo'], $descriptor);
-                    $employee = $employee->fresh();
-                } catch (RuntimeException $e) {
-                    return back()->withInput()->with('error', $e->getMessage());
-                }
-            }
         }
 
         if (! $employee->isProfileComplete()) {
             $missing = implode(', ', $employee->missingProfileFields());
 
-            return back()->withInput()->with(
-                'error',
-                'Lengkapi dulu: '.$missing.'.',
-            );
+            return back()->withInput()->with('error', 'Lengkapi dulu: '.$missing.'.');
         }
 
         return redirect()
             ->to($user->preferredLoginUrl())
-            ->with('success', 'Data karyawan & wajah tersimpan. Silakan lanjut.');
+            ->with('success', 'Profil & wajah tersimpan. Silakan lanjut.');
     }
 }

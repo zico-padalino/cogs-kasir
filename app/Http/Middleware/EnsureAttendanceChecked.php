@@ -50,7 +50,7 @@ class EnsureAttendanceChecked
 
             return redirect()
                 ->route('employee.profile.setup')
-                ->with('error', 'Lengkapi data karyawan (telepon, jabatan) dan daftarkan wajah dulu.');
+                ->with('error', 'Lengkapi nomor telepon dan daftarkan wajah dulu.');
         }
 
         $action = $this->attendanceService->requiredAction($user);
