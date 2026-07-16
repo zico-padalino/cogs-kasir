@@ -35,6 +35,13 @@ export function initMobileNav() {
 
     const setExpandButtonsVisible = (visible) => {
         expandBtns.forEach((btn) => {
+            // Floating btn diganti header toggle — jangan unhide keduanya (double ☰).
+            if (btn.classList.contains('sidebar-expand-btn')) {
+                btn.hidden = true;
+                btn.setAttribute('aria-hidden', 'true');
+                return;
+            }
+
             btn.hidden = ! visible;
             btn.setAttribute('aria-hidden', visible ? 'false' : 'true');
         });

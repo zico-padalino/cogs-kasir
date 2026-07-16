@@ -1318,8 +1318,9 @@
             padding-left: 0 !important;
         }
 
-        body.is-sidebar-collapsed .sidebar-expand-btn:not([hidden]) {
-            display: inline-flex;
+        /* Satu tombol ☰ saja: pakai yang di header, bukan floating */
+        body.is-sidebar-collapsed .sidebar-expand-btn {
+            display: none !important;
         }
     }
 
@@ -1694,14 +1695,10 @@
         display: none !important;
     }
 
-    /* Saat sidebar disembunyikan: tampilkan header atas (tombol ☰ satu saja) */
+    /* Saat sidebar disembunyikan: tampilkan header atas (tombol ☰ di header) */
     @media (min-width: 768px) {
         body.is-sidebar-collapsed.is-kasir-pos .kasir-page-header {
             display: block !important;
-        }
-
-        body.is-sidebar-collapsed.is-kasir-pos .sidebar-expand-btn {
-            display: none !important;
         }
     }
 

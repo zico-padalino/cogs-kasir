@@ -153,7 +153,6 @@
             </aside>
 
             <div class="app-content flex min-h-0 min-w-0 flex-1 flex-col md:pl-64">
-                @include('layouts.partials.sidebar-expand-btn')
                 <div class="mobile-topbar shrink-0 md:hidden">
                     <button type="button" class="mobile-menu-btn" data-mobile-menu-toggle aria-label="Buka menu">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
