@@ -177,13 +177,7 @@ class KasirController extends Controller
         session(['kasir_order_id' => $order->id]);
 
         if ($request->expectsJson()) {
-            return response()->json([
-                'message' => 'Order #'.$order->order_number.' masuk ke kasir.',
-                'order_number' => $order->order_number,
-                'needs_confirmation' => false,
-                'can_checkout' => $order->canCheckoutAtKasir(),
-                'redirect' => route('kasir.index'),
-            ]);
+            return response()->json($this->kasirOrderAjaxPayload($order, 'Order #'.$order->order_number.' masuk ke kasir.'));
         }
 
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' masuk ke kasir. Lanjut bayar.');
@@ -544,5 +538,36 @@ class KasirController extends Controller
             ->where('id', $orderId)
             ->whereIn('status', ['open', 'submitted', 'confirmed'])
             ->first();
+    }
+
+    /** @return array<string, mixed> */
+    private function kasirOrderAjaxPayload(PosOrder $order, string $message): array
+    {
+        $order->loadMissing(['items.product', 'table']);
+        $format = Format::class;
+
+        return [
+            'message' => $message,
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'total' => (float) $order->total,
+            'item_count' => $order->items->count(),
+            'can_checkout' => $order->canCheckoutAtKasir(),
+            'fragments' => [
+                'cart' => view('kasir.partials.cart-panel', compact('order', 'format'))->render(),
+                'pay_modal' => view('kasir.partials.pay-modal', compact('order', 'format'))->render(),
+                'mobile_checkout' => view('kasir.partials.mobile-checkout', compact('order', 'format'))->render(),
+            ],
+            'toolbar' => [
+                'order_number' => $order->order_number,
+                'order_type' => $order->order_type
+                    ? $order->order_type->icon().' '.$order->order_type->label()
+                    : null,
+                'customer_note' => $order->customer_note,
+                'status_label' => $order->status->label(),
+                'status_badge' => $order->status->badgeClass(),
+                'formatted_total' => $format::rupiah($order->total),
+            ],
+        ];
     }
 }

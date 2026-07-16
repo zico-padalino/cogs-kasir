@@ -1,6 +1,8 @@
 /**
  * Notifikasi kasir — polling pesanan online + suara + auto load.
  */
+import { refreshKasirOrderUi } from './kasir';
+
 const SOUND_STORAGE_KEY = 'kasir_sound_enabled';
 
 let audioContext = null;
@@ -149,10 +151,25 @@ function updatePendingPanel(html) {
     wrap.innerHTML = html;
 }
 
+function flashPendingPanel() {
+    const pending = document.querySelector('[data-pos-pending]');
+    if (! pending) {
+        return;
+    }
+
+    pending.classList.add('is-new-alert', 'is-expanded');
+    const toggle = pending.querySelector('[data-pos-pending-toggle]');
+    toggle?.setAttribute('aria-expanded', 'true');
+
+    window.setTimeout(() => {
+        pending.classList.remove('is-new-alert');
+    }, 2800);
+}
+
 async function loadOrderIntoKasir(orderId) {
     const token = csrfToken();
     if (! token || ! orderId) {
-        return false;
+        return null;
     }
 
     const formData = new FormData();
@@ -168,7 +185,11 @@ async function loadOrderIntoKasir(orderId) {
         credentials: 'same-origin',
     });
 
-    return response.ok;
+    if (! response.ok) {
+        return null;
+    }
+
+    return response.json();
 }
 
 function hasActiveKasirDraftWithItems() {
@@ -195,7 +216,6 @@ async function handleIncomingOrders(newIds, data, shell) {
     const autoLoadWanted = shell.dataset.kasirAutoLoad !== '0';
     const preserveKasirDraft = hasActiveKasirDraftWithItems();
     const autoLoad = autoLoadWanted && ! preserveKasirDraft;
-    const indexUrl = shell.dataset.kasirIndexUrl || '/kasir';
     const orderId = newIds.includes(Number(data.latest_order_id))
         ? Number(data.latest_order_id)
         : Math.max(...newIds);
@@ -204,33 +224,48 @@ async function handleIncomingOrders(newIds, data, shell) {
     showKasirToast(preserveKasirDraft
         ? 'Pesanan online baru masuk — cek banner atas, lanjutkan transaksi kasir dulu'
         : (autoLoad
-            ? 'Pesanan baru masuk — memuat ke kasir…'
+            ? 'Pesanan baru masuk ke kasir'
             : 'Pesanan baru menunggu — buka dari daftar online'));
+
+    updatePendingPanel(data.html ?? '');
+    flashPendingPanel();
 
     if (autoLoad && orderId) {
         try {
-            await loadOrderIntoKasir(orderId);
+            const payload = await loadOrderIntoKasir(orderId);
+            if (payload && refreshKasirOrderUi(payload)) {
+                window.setTimeout(() => {
+                    isHandlingNewOrder = false;
+                }, 300);
+
+                return;
+            }
         } catch {
             //
         }
 
-        window.setTimeout(() => {
-            const target = new URL(indexUrl, window.location.origin);
-            target.searchParams.set('tab', 'cart');
-            window.location.assign(target.toString());
-        }, 450);
+        const indexUrl = shell.dataset.kasirIndexUrl || '/kasir';
+        const target = new URL(indexUrl, window.location.origin);
+        target.searchParams.set('tab', 'cart');
+        window.location.assign(target.toString());
 
         return;
     }
 
-    // Hanya refresh daftar pending, jangan pindah order aktif kasir
-    updatePendingPanel(data.html ?? '');
     window.setTimeout(() => {
         isHandlingNewOrder = false;
     }, 300);
 }
 
+function isPinManagementPage() {
+    const path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+
+    return path === '/pin';
+}
+
 async function pollPendingOrders(pollUrl, shell) {
+    const pinPollOnly = isPinPollOnly(shell);
+
     const response = await fetch(pollUrl, {
         headers: {
             Accept: 'application/json',
@@ -241,7 +276,10 @@ async function pollPendingOrders(pollUrl, shell) {
     });
 
     if (shouldForcePinLock(response)) {
-        goToPinUnlock(shell);
+        if (! pinPollOnly) {
+            goToPinUnlock(shell);
+        }
+
         return;
     }
 
@@ -250,18 +288,25 @@ async function pollPendingOrders(pollUrl, shell) {
     }
 
     const data = await response.json();
-    syncPinExpiryFromPayload(shell, data);
 
-    if (data.unlocked === false) {
-        goToPinUnlock(shell, data.redirect);
-        return;
+    if (! pinPollOnly) {
+        syncPinExpiryFromPayload(shell, data);
+
+        if (data.unlocked === false) {
+            goToPinUnlock(shell, data.redirect);
+
+            return;
+        }
     }
 
     const currentIds = new Set((data.order_ids ?? []).map((id) => Number(id)));
 
     if (knownOrderIds === null) {
         knownOrderIds = currentIds;
-        updatePendingPanel(data.html ?? '');
+
+        if (! pinPollOnly) {
+            updatePendingPanel(data.html ?? '');
+        }
 
         return;
     }
@@ -269,12 +314,21 @@ async function pollPendingOrders(pollUrl, shell) {
     const newIds = [...currentIds].filter((id) => ! knownOrderIds.has(id));
 
     if (newIds.length > 0) {
-        await handleIncomingOrders(newIds, data, shell);
-    } else if (currentIds.size !== knownOrderIds.size) {
-        updatePendingPanel(data.html ?? '');
-    }
+        if (pinPollOnly) {
+            playNewOrderSound();
+            showKasirToast('Pesanan baru masuk — masukkan PIN untuk membuka kasir');
+            knownOrderIds = currentIds;
 
-    knownOrderIds = currentIds;
+            return;
+        }
+
+        await handleIncomingOrders(newIds, data, shell);
+    } else if (! pinPollOnly && currentIds.size !== knownOrderIds.size) {
+        updatePendingPanel(data.html ?? '');
+        knownOrderIds = currentIds;
+    } else {
+        knownOrderIds = currentIds;
+    }
 }
 
 function shouldForcePinLock(response) {
@@ -296,6 +350,10 @@ function shouldForcePinLock(response) {
 }
 
 function goToPinUnlock(shell, redirectUrl) {
+    if (isPinUnlockPage()) {
+        return;
+    }
+
     // Jangan paksa keluar dari halaman atur/ubah PIN.
     if (isPinManagementPage()) {
         return;
@@ -310,10 +368,14 @@ function goToPinUnlock(shell, redirectUrl) {
     window.location.assign(url);
 }
 
-function isPinManagementPage() {
+function isPinUnlockPage() {
     const path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
 
-    return path === '/pin';
+    return path.endsWith('/kasir/pin') || path === '/kasir/pin';
+}
+
+function isPinPollOnly(shell) {
+    return shell?.dataset?.kasirPinPollOnly === '1' || isPinUnlockPage();
 }
 
 let pinExpiryTimer = null;
@@ -421,18 +483,20 @@ function initKasirNotifications() {
     }
 
     const pollUrl = shell.dataset.kasirPollUrl;
-    const intervalSeconds = Math.max(5, parseInt(shell.dataset.kasirPollInterval || '12', 10));
+    const intervalSeconds = Math.max(5, parseInt(shell.dataset.kasirPollInterval || '5', 10));
+    const pinPollOnly = isPinPollOnly(shell);
 
     syncSoundToggleUi();
-    openCartTabFromQuery();
-    schedulePinExpiryRedirect(shell);
-    pollPinStatus(shell);
+    if (! pinPollOnly) {
+        openCartTabFromQuery();
+        schedulePinExpiryRedirect(shell);
+        pollPinStatus(shell);
 
-    if (pinStatusTimer) {
-        window.clearInterval(pinStatusTimer);
+        if (pinStatusTimer) {
+            window.clearInterval(pinStatusTimer);
+        }
+        pinStatusTimer = window.setInterval(() => pollPinStatus(shell), 20_000);
     }
-    // Cek status PIN tiap 20 detik (terpisah dari poll order)
-    pinStatusTimer = window.setInterval(() => pollPinStatus(shell), 20_000);
 
     document.querySelectorAll('[data-kasir-sound-toggle]').forEach((button) => {
         button.addEventListener('click', () => {

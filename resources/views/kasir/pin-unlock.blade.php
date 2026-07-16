@@ -9,7 +9,7 @@
     @include('layouts.partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="login-page">
+<body class="login-page" data-kasir-notifications data-kasir-poll-url="{{ route('kasir.pending.poll') }}" data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 5) }}" data-kasir-auto-load="0" data-kasir-pin-poll-only="1">
     <div class="login-glow" aria-hidden="true"></div>
 
     <div class="login-card max-w-sm">

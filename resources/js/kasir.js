@@ -348,6 +348,8 @@ export function initKasirPos() {
         }
     };
 
+    kasirSetPanel = setPanel;
+
     const scrollToPayDock = (scope) => {
         const pay = scope.querySelector('[data-pos-receipt-pay], [data-pos-receipt-confirm]');
         if (! pay) {
@@ -1226,3 +1228,158 @@ function initPosCashPayment(root) {
 }
 
 document.addEventListener('DOMContentLoaded', initKasirPos);
+
+let kasirSetPanel = null;
+
+function bindOrderActionButtons(root) {
+    if (! kasirSetPanel) {
+        return;
+    }
+
+    root.querySelectorAll('[data-kasir-go-cart]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const payModal = root.querySelector('[data-kasir-pay-modal]');
+            const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
+
+            if (payModal) {
+                openKasirOverlay(payModal);
+                return;
+            }
+
+            if (confirmModal) {
+                openKasirOverlay(confirmModal);
+                return;
+            }
+
+            const activeTab = root.querySelector('[data-kasir-tab].is-active')?.dataset.kasirTab;
+
+            if (activeTab !== 'cart') {
+                kasirSetPanel('cart');
+                return;
+            }
+
+            const pay = root.querySelector('[data-pos-receipt-pay], [data-pos-receipt-confirm]');
+            if (pay) {
+                window.requestAnimationFrame(() => {
+                    pay.scrollIntoView({ block: 'end', behavior: 'smooth', inline: 'nearest' });
+                });
+            }
+        });
+    });
+
+    root.querySelectorAll('[data-kasir-open-pay]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const payModal = root.querySelector('[data-kasir-pay-modal]');
+            if (payModal) {
+                openKasirOverlay(payModal);
+            }
+        });
+    });
+
+    root.querySelectorAll('[data-kasir-open-confirm]').forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
+            if (confirmModal) {
+                openKasirOverlay(confirmModal);
+            }
+        });
+    });
+}
+
+function reinitOrderDependentUi(root) {
+    initPosDiscount(root);
+    initPosPayModal(root);
+    initPosCashPayment(root);
+    bindOrderActionButtons(root);
+    initPosPendingPanel(root);
+}
+
+export function refreshKasirOrderUi(payload) {
+    const root = document.getElementById('kasir-pos');
+    if (! root || ! payload?.fragments) {
+        return false;
+    }
+
+    const cartPanel = root.querySelector('[data-kasir-panel="cart"]');
+    if (cartPanel && payload.fragments.cart) {
+        cartPanel.innerHTML = payload.fragments.cart;
+    }
+
+    const paySlot = root.querySelector('[data-kasir-order-pay-slot]');
+    if (paySlot && payload.fragments.pay_modal !== undefined) {
+        paySlot.innerHTML = payload.fragments.pay_modal;
+    }
+
+    root.querySelector('[data-pos-mobile-checkout]')?.remove();
+    if (payload.fragments.mobile_checkout) {
+        const anchor = root.querySelector('[data-kasir-order-pay-slot]');
+        anchor?.insertAdjacentHTML('beforebegin', payload.fragments.mobile_checkout);
+    }
+
+    if (payload.toolbar) {
+        const chip = root.querySelector('.pos-order-chip-value');
+        if (chip && payload.toolbar.order_number) {
+            chip.textContent = payload.toolbar.order_number;
+        }
+
+        const typeChip = root.querySelector('[data-pos-toolbar-type]');
+        if (typeChip) {
+            if (payload.toolbar.order_type) {
+                typeChip.textContent = payload.toolbar.order_type;
+                typeChip.classList.remove('hidden');
+            } else {
+                typeChip.classList.add('hidden');
+            }
+        }
+
+        const customerChip = root.querySelector('[data-pos-toolbar-customer]');
+        if (customerChip) {
+            if (payload.toolbar.customer_note) {
+                customerChip.textContent = payload.toolbar.customer_note;
+                customerChip.classList.remove('hidden');
+            } else {
+                customerChip.classList.add('hidden');
+            }
+        }
+
+        const statusBadge = root.querySelector('.pos-toolbar-left .badge');
+        if (statusBadge && payload.toolbar.status_label) {
+            statusBadge.textContent = payload.toolbar.status_label;
+            statusBadge.className = `badge max-lg:hidden ${payload.toolbar.status_badge}`;
+        }
+    }
+
+    if (typeof payload.total === 'number') {
+        root.dataset.posTotal = String(payload.total);
+    }
+
+    const itemCount = payload.item_count ?? 0;
+    const cartCount = root.querySelector('[data-kasir-cart-count]');
+    if (cartCount) {
+        cartCount.textContent = String(itemCount);
+        cartCount.classList.toggle('hidden', itemCount === 0);
+    }
+
+    const tabTotal = root.querySelector('.pos-view-tab-total');
+    if (tabTotal) {
+        if (itemCount > 0 && payload.toolbar?.formatted_total) {
+            tabTotal.textContent = payload.toolbar.formatted_total;
+            tabTotal.classList.remove('hidden');
+        } else {
+            tabTotal.classList.add('hidden');
+        }
+    }
+
+    reinitOrderDependentUi(root);
+
+    if (kasirSetPanel) {
+        kasirSetPanel('cart');
+    }
+
+    return true;
+}

@@ -103,10 +103,10 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::post('/pin', [KasirPinController::class, 'unlock'])->name('pin.unlock.submit');
     Route::post('/pin/lock', [KasirPinController::class, 'lock'])->name('pin.lock');
     Route::get('/pin/status', [KasirPinController::class, 'status'])->name('pin.status');
+    Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
 
     Route::middleware('kasir.pin')->group(function () {
         Route::get('/', [KasirController::class, 'index'])->name('index');
-        Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
         Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
         Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
         Route::get('/tables', [KasirController::class, 'tables'])->name('tables');

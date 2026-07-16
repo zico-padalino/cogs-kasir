@@ -24,7 +24,7 @@ return [
     ],
 
     'notifications' => [
-        'poll_interval_seconds' => (int) env('POS_POLL_INTERVAL', 12),
+        'poll_interval_seconds' => (int) env('POS_POLL_INTERVAL', 5),
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
     ],
 
