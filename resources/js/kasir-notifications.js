@@ -35,25 +35,30 @@ function ensureAudioContext() {
     return audioContext;
 }
 
-function playTone(frequency, startAt, duration, volume = 0.22) {
+/** Volume notifikasi kasir — selalu maksimal. */
+const NOTIFICATION_VOLUME = 1;
+
+function playTone(frequency, startAt, duration, volume = NOTIFICATION_VOLUME, type = 'square') {
     const ctx = ensureAudioContext();
     if (! ctx) {
         return;
     }
 
+    const peak = Math.min(1, Math.max(0.85, volume));
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    oscillator.type = 'sine';
+    oscillator.type = type;
     oscillator.frequency.value = frequency;
     gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(peak, startAt + 0.006);
+    gain.gain.setValueAtTime(peak, startAt + duration * 0.55);
     gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
 
     oscillator.connect(gain);
     gain.connect(ctx.destination);
     oscillator.start(startAt);
-    oscillator.stop(startAt + duration + 0.05);
+    oscillator.stop(startAt + duration + 0.04);
 }
 
 function playNewOrderSound() {
@@ -68,9 +73,22 @@ function playNewOrderSound() {
         }
 
         const t = ctx.currentTime;
-        playTone(880, t, 0.28);
-        playTone(1174.66, t + 0.14, 0.32);
-        playTone(880, t + 0.32, 0.24, 0.18);
+        const v = NOTIFICATION_VOLUME;
+
+        // Alert kasir: ding-ding-DING! (lebih keras & jelas dari chime halus sebelumnya)
+        const pattern = [
+            [880, 0, 0.2],
+            [1100, 0.14, 0.2],
+            [1400, 0.28, 0.32],
+            [880, 0.5, 0.16],
+            [1100, 0.64, 0.16],
+            [1760, 0.78, 0.55],
+        ];
+
+        pattern.forEach(([freq, offset, duration]) => {
+            playTone(freq, t + offset, duration, v, 'square');
+            playTone(freq * 2, t + offset, duration * 0.85, v * 0.45, 'triangle');
+        });
     } catch {
         // Browser memblokir audio tanpa interaksi pengguna.
     }
@@ -87,7 +105,9 @@ function playSuccessSound() {
             return;
         }
 
-        playTone(659.25, ctx.currentTime, 0.2, 0.16);
+        const t = ctx.currentTime;
+        playTone(988, t, 0.18, NOTIFICATION_VOLUME, 'square');
+        playTone(1318, t + 0.12, 0.22, NOTIFICATION_VOLUME, 'square');
     } catch {
         //
     }
