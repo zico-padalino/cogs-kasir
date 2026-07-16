@@ -2,6 +2,12 @@
 
 @section('title', 'Pesan')
 
+@php
+    use App\Enums\PosOrderType;
+    $orderTypes = PosOrderType::cases();
+    $activeType = $order->order_type?->value ?? PosOrderType::Takeaway->value;
+@endphp
+
 @section('content')
     <div class="order-table-shell" data-order-table>
         <header class="order-table-header">
@@ -15,6 +21,9 @@
                         <span aria-hidden="true"> · </span>
                     @endif
                     <span class="font-mono">{{ $order->order_number }}</span>
+                    @if ($order->order_type)
+                        · {{ $order->order_type->icon() }} {{ $order->order_type->label() }}
+                    @endif
                     @if ($order->customer_note)
                         · {{ $order->customer_note }}
                     @endif
@@ -65,31 +74,6 @@
                     <button type="submit" class="btn-secondary w-full">+ Pesan Baru</button>
                 </form>
             @else
-                @if ($order->isEditable())
-                    <div class="order-customer-card">
-                        <form action="{{ route('order.menu.customer') }}" method="POST" class="order-customer-form">
-                            @csrf
-                            @method('PATCH')
-                            <label class="order-customer-label" for="order-customer-note">Nama pemesan</label>
-                            <p class="order-customer-hint">Wajib — kasir membedakan pesanan lewat nama & nomor order.</p>
-                            <div class="order-customer-row">
-                                <input
-                                    id="order-customer-note"
-                                    type="text"
-                                    name="customer_note"
-                                    value="{{ old('customer_note', $order->customer_note) }}"
-                                    maxlength="255"
-                                    class="order-customer-input"
-                                    placeholder="Contoh: Budi"
-                                    required
-                                    autocomplete="name"
-                                >
-                                <button type="submit" class="btn-primary order-customer-save">Simpan</button>
-                            </div>
-                        </form>
-                    </div>
-                @endif
-
                 <div class="order-view-tabs lg:hidden" role="tablist">
                     <button type="button" class="order-view-tab is-active" data-order-tab="menu" role="tab" aria-selected="true">
                         Menu
@@ -122,17 +106,63 @@
                             ])
 
                             @if ($order->items->isNotEmpty())
-                                <div class="order-submit-note">
-                                    <p>Setelah dikirim, datang ke <strong>kasir</strong> untuk konfirmasi pesanan & pembayaran.</p>
-                                </div>
-                                <form action="{{ route('order.menu.submit') }}" method="POST" class="order-submit-wrap">
+                                <form action="{{ route('order.menu.submit') }}" method="POST" class="order-checkout-form">
                                     @csrf
-                                    <button type="submit" class="btn-primary order-submit-btn" onclick="return confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')">
-                                        Kirim ke Kasir
-                                    </button>
+
+                                    <div class="order-checkout-details">
+                                        <p class="order-checkout-title">Sebelum kirim</p>
+                                        <p class="order-checkout-hint">Pilih tipe pesanan dan isi nama — wajib sebelum dikirim ke kasir.</p>
+
+                                        <div class="order-type-grid" role="radiogroup" aria-label="Tipe pesanan">
+                                            @foreach ($orderTypes as $orderType)
+                                                <label class="order-type-card {{ $activeType === $orderType->value ? 'is-active' : '' }}">
+                                                    <input
+                                                        type="radio"
+                                                        name="order_type"
+                                                        value="{{ $orderType->value }}"
+                                                        class="sr-only"
+                                                        required
+                                                        @checked(old('order_type', $activeType) === $orderType->value)
+                                                    >
+                                                    <span class="order-type-icon" aria-hidden="true">{{ $orderType->icon() }}</span>
+                                                    <span class="order-type-text">
+                                                        <span class="order-type-name">{{ $orderType->label() }}</span>
+                                                        <span class="order-type-desc">{{ $orderType->hint() }}</span>
+                                                    </span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+
+                                        <label class="order-checkout-label" for="order-customer-note">Nama pemesan</label>
+                                        <input
+                                            id="order-customer-note"
+                                            type="text"
+                                            name="customer_note"
+                                            value="{{ old('customer_note', $order->customer_note) }}"
+                                            maxlength="255"
+                                            class="order-checkout-input"
+                                            placeholder="Contoh: Budi"
+                                            required
+                                            autocomplete="name"
+                                        >
+                                    </div>
+
+                                    <div class="order-submit-note">
+                                        <p>Setelah dikirim, datang ke <strong>kasir</strong> untuk konfirmasi pesanan & pembayaran.</p>
+                                    </div>
+
+                                    <div class="order-submit-wrap">
+                                        <button
+                                            type="submit"
+                                            class="btn-primary order-submit-btn"
+                                            onclick="return confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')"
+                                        >
+                                            Kirim ke Kasir
+                                        </button>
+                                    </div>
                                 </form>
                             @else
-                                <p class="order-cart-hint">Tambah menu dulu, lalu kirim pesanan ke kasir.</p>
+                                <p class="order-cart-hint">Tambah menu dulu, lalu isi tipe & nama sebelum kirim ke kasir.</p>
                             @endif
                         </div>
                     </aside>
@@ -141,7 +171,7 @@
         </main>
 
         <footer class="order-table-footer">
-            <p>Isi nama · Pilih menu · Kirim pesanan · Bayar di kasir</p>
+            <p>Pilih menu · Tipe & nama · Kirim · Bayar di kasir</p>
         </footer>
     </div>
 @endsection

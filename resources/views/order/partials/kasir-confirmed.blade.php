@@ -40,6 +40,12 @@
             <p class="order-kasir-ticket-label">Nomor Pesanan</p>
             <p class="order-kasir-ticket-value font-mono">{{ $order->order_number }}</p>
         </div>
+        @if ($order->order_type)
+            <div class="order-kasir-ticket-row">
+                <p class="order-kasir-ticket-label">Tipe Pesanan</p>
+                <p class="order-kasir-ticket-value">{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</p>
+            </div>
+        @endif
         @if ($order->customer_note)
             <div class="order-kasir-ticket-row">
                 <p class="order-kasir-ticket-label">Nama Pemesan</p>

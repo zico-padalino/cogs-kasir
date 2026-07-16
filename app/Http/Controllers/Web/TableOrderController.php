@@ -36,7 +36,7 @@ class TableOrderController extends Controller
 
         return redirect()
             ->route('order.menu')
-            ->with('success', 'Pesanan baru dibuat. Isi nama lalu pilih menu.');
+            ->with('success', 'Pesanan baru dibuat. Pilih menu, lalu isi tipe & nama sebelum kirim.');
     }
 
     public function updateCustomer(Request $request, PosOrderService $posService): RedirectResponse
@@ -45,15 +45,20 @@ class TableOrderController extends Controller
 
         $validated = $request->validate([
             'customer_note' => ['required', 'string', 'max:255'],
+            'order_type' => ['nullable', 'in:dine_in,takeaway'],
         ]);
 
         try {
-            $posService->updateOnlineCustomerNote($order, $validated['customer_note']);
+            $posService->updateOnlineCustomerDetails(
+                $order,
+                $validated['customer_note'],
+                $validated['order_type'] ?? null,
+            );
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Nama pemesan disimpan.');
+        return back()->with('success', 'Detail pemesan disimpan.');
     }
 
     public function addItem(Request $request, PosOrderService $posService): RedirectResponse
@@ -134,14 +139,27 @@ class TableOrderController extends Controller
         return back()->with('success', 'Catatan item diperbarui.');
     }
 
-    public function submit(PosOrderService $posService): RedirectResponse
+    public function submit(Request $request, PosOrderService $posService): RedirectResponse
     {
         $order = $this->currentOrder($posService);
 
+        $validated = $request->validate([
+            'customer_note' => ['required', 'string', 'max:255'],
+            'order_type' => ['required', 'in:dine_in,takeaway'],
+        ], [
+            'customer_note.required' => 'Isi nama pemesan dulu sebelum kirim ke kasir.',
+            'order_type.required' => 'Pilih Take Away atau Dine In dulu.',
+        ]);
+
         try {
-            $posService->submitOnlineOrder($order);
+            $posService->updateOnlineCustomerDetails(
+                $order,
+                $validated['customer_note'],
+                $validated['order_type'],
+            );
+            $posService->submitOnlineOrder($order->fresh());
         } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         return redirect()

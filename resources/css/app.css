@@ -4085,28 +4085,57 @@
         @apply mt-1 text-sm text-slate-500;
     }
 
-    .order-customer-card {
-        @apply rounded-2xl border border-brand-200 bg-brand-50/70 p-4;
+    .order-checkout-form {
+        @apply mt-3 space-y-3;
     }
 
-    .order-customer-label {
+    .order-checkout-details {
+        @apply rounded-2xl border border-brand-200 bg-brand-50/60 p-3.5;
+    }
+
+    .order-checkout-title {
         @apply text-sm font-semibold text-slate-900;
     }
 
-    .order-customer-hint {
+    .order-checkout-hint {
         @apply mt-1 text-xs leading-relaxed text-slate-600;
     }
 
-    .order-customer-row {
-        @apply mt-3 flex flex-col gap-2 sm:flex-row;
+    .order-type-grid {
+        @apply mt-3 grid grid-cols-2 gap-2;
     }
 
-    .order-customer-input {
-        @apply min-h-11 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+    .order-type-card {
+        @apply flex min-h-[4.5rem] cursor-pointer flex-col items-start gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition active:scale-[0.99];
     }
 
-    .order-customer-save {
-        @apply min-h-11 shrink-0 px-5 sm:w-auto;
+    .order-type-card.is-active,
+    .order-type-card:has(input:checked) {
+        @apply border-brand-500 bg-brand-50 ring-2 ring-brand-500/20;
+    }
+
+    .order-type-icon {
+        @apply text-lg leading-none;
+    }
+
+    .order-type-text {
+        @apply flex min-w-0 flex-col gap-0.5;
+    }
+
+    .order-type-name {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .order-type-desc {
+        @apply text-[11px] leading-snug text-slate-500;
+    }
+
+    .order-checkout-label {
+        @apply mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .order-checkout-input {
+        @apply mt-1.5 block w-full min-h-11 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
     }
 
     .order-new-order-wrap {

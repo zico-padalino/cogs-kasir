@@ -89,23 +89,22 @@ class KasirPageTest extends TestCase
     {
         $product = $this->sellableProduct();
 
-        $this->patch(route('order.menu.customer'), [
-            'customer_note' => 'Budi',
-        ])->assertRedirect();
-
         $this->post(route('order.menu.items'), [
             'product_id' => $product->id,
             'quantity' => 1,
         ])->assertRedirect();
 
-        $this->post(route('order.menu.submit'))
+        $this->post(route('order.menu.submit'), [
+            'customer_note' => 'Budi',
+            'order_type' => 'takeaway',
+        ])
             ->assertRedirect(route('order.menu').'#ke-kasir');
 
         $this->get(route('order.menu'))
             ->assertOk()
             ->assertSee('Silakan ke Kasir')
-            ->assertSee('Konfirmasi pesanan dan pembayaran')
             ->assertSee('Budi')
+            ->assertSee('Take Away')
             ->assertDontSee('Kirim ke Kasir');
     }
 
@@ -135,16 +134,20 @@ class KasirPageTest extends TestCase
         ])->assertRedirect();
 
         $this->post(route('order.menu.submit'))
-            ->assertRedirect()
-            ->assertSessionHas('error');
+            ->assertSessionHasErrors(['customer_note', 'order_type']);
 
-        $this->patch(route('order.menu.customer'), [
+        $this->post(route('order.menu.submit'), [
             'customer_note' => 'Ani',
-        ])->assertRedirect();
-
-        $this->post(route('order.menu.submit'))
+            'order_type' => 'dine_in',
+        ])
             ->assertRedirect()
             ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('pos_orders', [
+            'customer_note' => 'Ani',
+            'order_type' => 'dine_in',
+            'status' => 'submitted',
+        ]);
     }
 
     public function test_kasir_can_open_barcode_page(): void
@@ -205,9 +208,11 @@ class KasirPageTest extends TestCase
         $product = $this->sellableProduct();
         $kasir = $this->kasirUser();
 
-        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
         $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
-        $this->post(route('order.menu.submit'));
+        $this->post(route('order.menu.submit'), [
+            'customer_note' => 'Budi',
+            'order_type' => 'takeaway',
+        ]);
 
         $this->actingAs($kasir)
             ->getJson(route('kasir.pending.poll'))
@@ -391,9 +396,11 @@ class KasirPageTest extends TestCase
         $product = $this->sellableProduct();
         $kasir = $this->kasirUser();
 
-        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
         $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
-        $this->post(route('order.menu.submit'));
+        $this->post(route('order.menu.submit'), [
+            'customer_note' => 'Budi',
+            'order_type' => 'takeaway',
+        ]);
 
         $order = PosOrder::where('status', 'submitted')->first();
         $this->assertNotNull($order);
@@ -421,9 +428,11 @@ class KasirPageTest extends TestCase
         $product = $this->sellableProduct();
         $kasir = $this->kasirUser();
 
-        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
         $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
-        $this->post(route('order.menu.submit'));
+        $this->post(route('order.menu.submit'), [
+            'customer_note' => 'Budi',
+            'order_type' => 'takeaway',
+        ]);
 
         $order = PosOrder::where('status', 'submitted')->first();
         $this->assertNotNull($order);
@@ -457,9 +466,11 @@ class KasirPageTest extends TestCase
         $product = $this->sellableProduct();
         $kasir = $this->kasirUser();
 
-        $this->patch(route('order.menu.customer'), ['customer_note' => 'Budi']);
         $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
-        $this->post(route('order.menu.submit'));
+        $this->post(route('order.menu.submit'), [
+            'customer_note' => 'Budi',
+            'order_type' => 'takeaway',
+        ]);
 
         $order = PosOrder::where('status', 'submitted')->first();
 

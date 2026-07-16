@@ -1,3 +1,24 @@
+function initOrderCheckoutTypeCards() {
+    const form = document.querySelector('.order-checkout-form');
+    if (! form) {
+        return;
+    }
+
+    const cards = form.querySelectorAll('.order-type-card');
+    const sync = () => {
+        cards.forEach((card) => {
+            const input = card.querySelector('input[type="radio"]');
+            card.classList.toggle('is-active', Boolean(input?.checked));
+        });
+    };
+
+    cards.forEach((card) => {
+        card.addEventListener('change', sync);
+    });
+
+    sync();
+}
+
 function initOrderTableTabs() {
     const root = document.querySelector('[data-order-table]');
     if (! root) {
@@ -206,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderTableTabs();
     initOrderSearch();
     initOrderModal();
+    initOrderCheckoutTypeCards();
     initOrderKasirConfirmation();
 });
 

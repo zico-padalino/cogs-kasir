@@ -147,6 +147,11 @@ class PosOrderService
 
     public function updateOnlineCustomerNote(PosOrder $order, string $customerNote): PosOrder
     {
+        return $this->updateOnlineCustomerDetails($order, $customerNote);
+    }
+
+    public function updateOnlineCustomerDetails(PosOrder $order, string $customerNote, ?string $orderType = null): PosOrder
+    {
         if ($order->source !== PosOrderSource::Online) {
             throw new RuntimeException('Hanya pesanan online yang bisa diubah dari menu QR.');
         }
@@ -155,9 +160,15 @@ class PosOrderService
             throw new RuntimeException('Pesanan sudah dikirim. Silakan bayar di kasir.');
         }
 
-        $order->update([
+        $payload = [
             'customer_note' => trim($customerNote),
-        ]);
+        ];
+
+        if ($orderType !== null) {
+            $payload['order_type'] = PosOrderType::from($orderType);
+        }
+
+        $order->update($payload);
 
         return $order->fresh();
     }
@@ -243,6 +254,10 @@ class PosOrderService
 
         if (! filled($order->customer_note)) {
             throw new RuntimeException('Isi nama pemesan dulu sebelum kirim ke kasir.');
+        }
+
+        if ($order->order_type === null) {
+            throw new RuntimeException('Pilih Take Away atau Dine In dulu.');
         }
 
         $order->update(['status' => PosOrderStatus::Submitted]);
