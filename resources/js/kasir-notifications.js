@@ -4,10 +4,11 @@
 import { refreshKasirOrderUi } from './kasir';
 
 const SOUND_STORAGE_KEY = 'kasir_sound_enabled';
+const TTS_LANG = 'id-ID';
 
-let audioContext = null;
 let knownOrderIds = null;
 let isHandlingNewOrder = false;
+let cachedGoogleVoice = null;
 
 function isSoundEnabled() {
     return localStorage.getItem(SOUND_STORAGE_KEY) !== '0';
@@ -18,103 +19,97 @@ function setSoundEnabled(enabled) {
     syncSoundToggleUi();
 }
 
-function ensureAudioContext() {
-    if (! audioContext) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (! AudioCtx) {
-            return null;
-        }
-
-        audioContext = new AudioCtx();
+function pickGoogleVoice() {
+    const synth = window.speechSynthesis;
+    if (! synth) {
+        return null;
     }
 
-    if (audioContext.state === 'suspended') {
-        audioContext.resume();
+    const voices = synth.getVoices();
+    if (voices.length === 0) {
+        return cachedGoogleVoice;
     }
 
-    return audioContext;
+    const indonesianGoogle = voices.find((voice) => {
+        const lang = voice.lang.toLowerCase();
+        const name = voice.name.toLowerCase();
+
+        return lang.startsWith('id') && name.includes('google');
+    });
+
+    if (indonesianGoogle) {
+        cachedGoogleVoice = indonesianGoogle;
+
+        return indonesianGoogle;
+    }
+
+    const anyGoogle = voices.find((voice) => voice.name.toLowerCase().includes('google'));
+    if (anyGoogle) {
+        cachedGoogleVoice = anyGoogle;
+
+        return anyGoogle;
+    }
+
+    const indonesian = voices.find((voice) => voice.lang.toLowerCase().startsWith('id'));
+    if (indonesian) {
+        cachedGoogleVoice = indonesian;
+
+        return indonesian;
+    }
+
+    return cachedGoogleVoice;
 }
 
-/** Volume notifikasi kasir — selalu maksimal. */
-const NOTIFICATION_VOLUME = 1;
-
-function playTone(frequency, startAt, duration, volume = NOTIFICATION_VOLUME, type = 'square') {
-    const ctx = ensureAudioContext();
-    if (! ctx) {
+function initSpeechVoices() {
+    if (! window.speechSynthesis) {
         return;
     }
 
-    const peak = Math.min(1, Math.max(0.85, volume));
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
+    pickGoogleVoice();
+    window.speechSynthesis.addEventListener('voiceschanged', pickGoogleVoice);
+}
 
-    oscillator.type = type;
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(peak, startAt + 0.006);
-    gain.gain.setValueAtTime(peak, startAt + duration * 0.55);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+function speakNotification(text) {
+    if (! isSoundEnabled() || ! text) {
+        return;
+    }
 
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-    oscillator.start(startAt);
-    oscillator.stop(startAt + duration + 0.04);
+    const synth = window.speechSynthesis;
+    if (! synth) {
+        return;
+    }
+
+    try {
+        synth.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = TTS_LANG;
+        utterance.volume = 1;
+        utterance.rate = 1;
+        utterance.pitch = 1;
+
+        const voice = pickGoogleVoice();
+        if (voice) {
+            utterance.voice = voice;
+        }
+
+        synth.speak(utterance);
+    } catch {
+        // Browser memblokir TTS tanpa interaksi pengguna.
+    }
 }
 
 function playNewOrderSound() {
-    if (! isSoundEnabled()) {
-        return;
-    }
-
-    try {
-        const ctx = ensureAudioContext();
-        if (! ctx) {
-            return;
-        }
-
-        const t = ctx.currentTime;
-        const v = NOTIFICATION_VOLUME;
-
-        // Alert kasir: ding-ding-DING! (lebih keras & jelas dari chime halus sebelumnya)
-        const pattern = [
-            [880, 0, 0.2],
-            [1100, 0.14, 0.2],
-            [1400, 0.28, 0.32],
-            [880, 0.5, 0.16],
-            [1100, 0.64, 0.16],
-            [1760, 0.78, 0.55],
-        ];
-
-        pattern.forEach(([freq, offset, duration]) => {
-            playTone(freq, t + offset, duration, v, 'square');
-            playTone(freq * 2, t + offset, duration * 0.85, v * 0.45, 'triangle');
-        });
-    } catch {
-        // Browser memblokir audio tanpa interaksi pengguna.
-    }
+    speakNotification('Perhatian. Ada pesanan baru masuk. Silakan dibuka di kasir.');
 }
 
 function playSuccessSound() {
-    if (! isSoundEnabled()) {
-        return;
-    }
-
-    try {
-        const ctx = ensureAudioContext();
-        if (! ctx) {
-            return;
-        }
-
-        const t = ctx.currentTime;
-        playTone(988, t, 0.18, NOTIFICATION_VOLUME, 'square');
-        playTone(1318, t + 0.12, 0.22, NOTIFICATION_VOLUME, 'square');
-    } catch {
-        //
-    }
+    speakNotification('Suara notifikasi aktif.');
 }
 
 function unlockAudio() {
-    ensureAudioContext();
+    initSpeechVoices();
+    pickGoogleVoice();
 }
 
 function csrfToken() {
@@ -491,6 +486,8 @@ function openCartTabFromQuery() {
 }
 
 function initKasirNotifications() {
+    initSpeechVoices();
+
     const shell = document.querySelector('[data-kasir-notifications]');
     if (! shell) {
         return;
