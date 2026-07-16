@@ -79,11 +79,18 @@ class AttendanceController extends Controller
         $missingToday = collect();
         if ($from->isSameDay($to) && ! $employeeId) {
             $presentIds = $attendances->pluck('employee_id')->all();
-            $missingToday = Employee::query()
+            $requiredIds = $attendanceService->requiredEmployeeIds();
+
+            $missingQuery = Employee::query()
                 ->where('status', EmployeeStatus::Active)
                 ->whereNotIn('id', $presentIds)
-                ->orderBy('name')
-                ->get();
+                ->orderBy('name');
+
+            if ($requiredIds !== []) {
+                $missingQuery->whereIn('id', $requiredIds);
+            }
+
+            $missingToday = $missingQuery->get();
         }
 
         $view = $print ? 'admin.attendances.print' : 'admin.attendances.index';

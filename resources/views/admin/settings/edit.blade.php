@@ -90,24 +90,38 @@
 
             <div>
                 <p class="form-label">Siapa yang wajib absen</p>
-                <p class="mb-2 text-xs text-slate-500">Centang akun. Saat disimpan, akun masuk ke Data Karyawan otomatis. Login pertama wajib lengkapi nomor telepon.</p>
+                <p class="mb-2 text-xs text-slate-500">
+                    Centang dari Data Karyawan. Pegawai tanpa akun login tetap bisa dipilih dan muncul di scan QR.
+                    Buat nama baru di menu Data Karyawan jika belum ada.
+                </p>
                 <div class="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    @forelse ($users as $user)
+                    @forelse ($employees as $employee)
                         <label class="flex cursor-pointer items-start gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-100 hover:ring-brand-200">
                             <input
                                 type="checkbox"
-                                name="attendance_required_user_ids[]"
-                                value="{{ $user->id }}"
+                                name="attendance_required_employee_ids[]"
+                                value="{{ $employee->id }}"
                                 class="mt-0.5 rounded border-slate-300 text-brand-600"
-                                @checked(in_array((int) $user->id, old('attendance_required_user_ids', $requiredUserIds), true))
+                                @checked(in_array((int) $employee->id, old('attendance_required_employee_ids', $requiredEmployeeIds), true))
                             >
-                            <span>
-                                <span class="font-medium text-slate-900">{{ $user->name }}</span>
-                                <span class="block text-xs text-slate-500">{{ $user->email }}</span>
+                            <span class="min-w-0">
+                                <span class="font-medium text-slate-900">{{ $employee->name }}</span>
+                                <span class="block text-xs text-slate-500">
+                                    {{ $employee->employee_code }}
+                                    @if ($employee->user)
+                                        · {{ $employee->user->email }}
+                                    @else
+                                        · <span class="text-amber-700">Tanpa akun login</span>
+                                    @endif
+                                </span>
                             </span>
                         </label>
                     @empty
-                        <p class="text-xs text-slate-500">Belum ada akun. Buat di Akses Akun dulu.</p>
+                        <p class="text-xs text-slate-500">
+                            Belum ada Data Karyawan aktif.
+                            <a href="{{ route('admin.employees.create') }}" class="font-medium text-brand-700 underline">Tambah pegawai</a>
+                            dulu (boleh tanpa akun).
+                        </p>
                     @endforelse
                 </div>
             </div>

@@ -63,7 +63,7 @@
                 </div>
                 <div class="flex justify-between gap-4 sm:block">
                     <dt>Kasir</dt>
-                    <dd>{{ $order->cashier?->name ?? '-' }}</dd>
+                    <dd>{{ $order->cashierDisplayName() }}</dd>
                 </div>
                 <div class="flex justify-between gap-4 sm:block">
                     <dt>Dibayar</dt>

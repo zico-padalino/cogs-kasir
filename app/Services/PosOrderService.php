@@ -54,10 +54,11 @@ class PosOrderService
         return $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 
-    public function createKasirOrder(?User $cashier = null): PosOrder
+    public function createKasirOrder(?User $cashier = null, ?array $attribution = null): PosOrder
     {
-        return DB::transaction(function () use ($cashier) {
+        return DB::transaction(function () use ($cashier, $attribution) {
             $orderDay = now()->toDateString();
+            $attr = $this->resolveCashierAttribution($cashier, $attribution);
 
             return PosOrder::create([
                 'order_number' => $this->nextOrderNumberForDay($orderDay),
@@ -65,7 +66,9 @@ class PosOrderService
                 'source' => PosOrderSource::Kasir,
                 'order_type' => PosOrderType::Takeaway,
                 'status' => PosOrderStatus::Open,
-                'user_id' => $cashier?->id,
+                'user_id' => $attr['user_id'],
+                'cashier_employee_id' => $attr['cashier_employee_id'],
+                'cashier_name' => $attr['cashier_name'],
             ]);
         });
     }
@@ -265,7 +268,7 @@ class PosOrderService
         return $order->fresh(['items.product', 'table']);
     }
 
-    public function confirmOrder(PosOrder $order, ?User $cashier = null): PosOrder
+    public function confirmOrder(PosOrder $order, ?User $cashier = null, ?array $attribution = null): PosOrder
     {
         if ($order->source !== PosOrderSource::Online) {
             throw new RuntimeException('Hanya pesanan online yang masuk antrean kasir.');
@@ -283,10 +286,15 @@ class PosOrderService
             throw new RuntimeException('Pesanan masih kosong.');
         }
 
+        $attr = $this->resolveCashierAttribution($cashier, $attribution);
+
         $order->update([
             'status' => PosOrderStatus::Confirmed,
             'confirmed_at' => now(),
-            'confirmed_by' => $cashier?->id,
+            'confirmed_by' => $attr['user_id'],
+            'user_id' => $attr['user_id'] ?? $order->user_id,
+            'cashier_employee_id' => $attr['cashier_employee_id'] ?? $order->cashier_employee_id,
+            'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
         ]);
 
         return $order->fresh(['items.product', 'table']);
@@ -301,10 +309,13 @@ class PosOrderService
         ?User $cashier = null,
         ?float $amountReceived = null,
         ?UploadedFile $paymentProof = null,
+        ?array $attribution = null,
     ): array {
+        $attr = $this->resolveCashierAttribution($cashier, $attribution);
+
         if ($order->source === PosOrderSource::Online) {
             if ($order->status === PosOrderStatus::Submitted) {
-                $order = $this->confirmOrder($order, $cashier);
+                $order = $this->confirmOrder($order, $cashier, $attr);
             }
 
             if ($order->status !== PosOrderStatus::Confirmed) {
@@ -346,7 +357,7 @@ class PosOrderService
         }
 
         try {
-            return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath) {
+            return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath, $attr) {
                 $invoiceBase = 'POS-'.$order->order_number;
                 $soldAt = now();
                 $subtotal = (float) $order->subtotal;
@@ -387,7 +398,9 @@ class PosOrderService
                     'payment_method' => $paymentMethod,
                     'payment_proof_path' => $proofPath,
                     'paid_at' => $soldAt,
-                    'user_id' => $cashier?->id ?? $order->user_id,
+                    'user_id' => $attr['user_id'] ?? $order->user_id,
+                    'cashier_employee_id' => $attr['cashier_employee_id'] ?? $order->cashier_employee_id,
+                    'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
                     'amount_received' => $amountReceived,
                     'change_amount' => $changeAmount,
                 ]);
@@ -560,5 +573,26 @@ class PosOrderService
                     : 'Pesanan sudah dikirim. Silakan bayar di kasir.'
             );
         }
+    }
+
+    /**
+     * @param  array{user_id?: ?int, cashier_employee_id?: ?int, cashier_name?: ?string}|null  $attribution
+     * @return array{user_id: ?int, cashier_employee_id: ?int, cashier_name: ?string}
+     */
+    private function resolveCashierAttribution(?User $cashier, ?array $attribution): array
+    {
+        if (is_array($attribution)) {
+            return [
+                'user_id' => $attribution['user_id'] ?? $cashier?->id,
+                'cashier_employee_id' => $attribution['cashier_employee_id'] ?? null,
+                'cashier_name' => $attribution['cashier_name'] ?? $cashier?->name,
+            ];
+        }
+
+        return [
+            'user_id' => $cashier?->id,
+            'cashier_employee_id' => null,
+            'cashier_name' => $cashier?->name,
+        ];
     }
 }

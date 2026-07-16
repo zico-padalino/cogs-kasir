@@ -33,6 +33,8 @@ class PosOrder extends Model
         'confirmed_at',
         'confirmed_by',
         'user_id',
+        'cashier_employee_id',
+        'cashier_name',
     ];
 
     protected function casts(): array
@@ -67,6 +69,19 @@ class PosOrder extends Model
     public function cashier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function cashierEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'cashier_employee_id');
+    }
+
+    /** Nama petugas yang melayani (prioritas PIN pegawai). */
+    public function cashierDisplayName(): string
+    {
+        return $this->cashier_name
+            ?: ($this->cashierEmployee?->name
+            ?: ($this->cashier?->name ?? '-'));
     }
 
     public function confirmedBy(): BelongsTo

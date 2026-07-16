@@ -73,6 +73,10 @@
                 </div>
             @endif
 
+            @if ($order->cashierDisplayName() !== '-')
+                <p class="mt-2 text-sm text-slate-600">Kasir: <strong>{{ $order->cashierDisplayName() }}</strong></p>
+            @endif
+
             <p class="mt-4 text-xs text-slate-400">Biaya pokok tercatat otomatis</p>
         </div>
 

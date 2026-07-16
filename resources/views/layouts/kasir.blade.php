@@ -103,21 +103,29 @@
 
                 <div class="border-t border-slate-800 px-4 py-4">
                     <div class="mb-3 rounded-lg bg-slate-800/80 px-3 py-2">
-                        @php $kasirOperator = \App\Support\KasirPin::operatorEmployee(); @endphp
-                        <p class="truncate text-xs font-medium text-white">{{ $kasirOperator?->name ?? auth()->user()->name }}</p>
+                        @php
+                            $kasirOperator = \App\Support\KasirPin::operatorEmployee();
+                            $stationUser = auth()->user();
+                        @endphp
+                        <p class="truncate text-xs font-medium text-white">{{ $kasirOperator?->name ?? $stationUser->name }}</p>
                         <p class="truncate text-[11px] text-slate-400">
                             @if ($kasirOperator)
-                                Bertugas · PIN aktif
+                                Kasir bertugas · PIN aktif
                             @else
-                                {{ auth()->user()->role->label() }}
+                                {{ $stationUser->role->label() }}
                             @endif
                         </p>
+                        @if ($kasirOperator)
+                            <p class="mt-1 truncate text-[10px] text-slate-500">Stasiun: {{ $stationUser->name }}</p>
+                        @endif
                     </div>
                     <div class="space-y-2">
-                        <a href="{{ route('pin.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('pin.*') ? 'bg-slate-800 text-white' : '' }}">
-                            <span aria-hidden="true">🔢</span>
-                            <span>Atur PIN</span>
-                        </a>
+                        @if (auth()->user()->isAdmin())
+                            <a href="{{ route('admin.employees.index') }}" class="kasir-sidebar-logout">
+                                <span aria-hidden="true">👥</span>
+                                <span>Data Karyawan / PIN</span>
+                            </a>
+                        @endif
                         <a href="{{ route('password.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
                             <span aria-hidden="true">🔑</span>
                             <span>Ubah Password</span>
@@ -161,7 +169,7 @@
                     </button>
                     <div class="min-w-0 flex-1">
                         <p class="mobile-topbar-title truncate text-sm font-semibold">@yield('heading', 'Kasir POS')</p>
-                        <p class="mobile-topbar-subtitle truncate text-[11px]">{{ auth()->user()->name }}</p>
+                        <p class="mobile-topbar-subtitle truncate text-[11px]">{{ \App\Support\KasirPin::operatorName() }}</p>
                     </div>
                     @hasSection('mobile_topbar_actions')
                         <div class="mobile-topbar-actions">
@@ -185,7 +193,7 @@
                                 @endif
                             </div>
                         </div>
-                        <p class="shrink-0 text-sm text-slate-500">{{ auth()->user()->name }}</p>
+                        <p class="shrink-0 text-sm text-slate-500">{{ \App\Support\KasirPin::operatorName() }}</p>
                     </div>
                 </header>
 

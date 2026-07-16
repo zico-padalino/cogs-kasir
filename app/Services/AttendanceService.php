@@ -33,13 +33,48 @@ class AttendanceService
         )));
     }
 
+    /** @return list<int> */
+    public function requiredEmployeeIds(): array
+    {
+        $raw = trim((string) ShopSettings::get('attendance_required_employee_ids', ''));
+        if ($raw !== '') {
+            return array_values(array_unique(array_filter(
+                array_map('intval', preg_split('/[\s,]+/', $raw) ?: []),
+                fn (int $id) => $id > 0,
+            )));
+        }
+
+        // Kompatibilitas lama: user wajib absen → employee lewat user_id
+        $userIds = $this->requiredUserIds();
+        if ($userIds === []) {
+            return [];
+        }
+
+        return Employee::query()
+            ->whereIn('user_id', $userIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
     public function mustAttend(User $user): bool
     {
         if (! $this->isEnabled()) {
             return false;
         }
 
-        return in_array((int) $user->id, $this->requiredUserIds(), true);
+        $employeeIds = $this->requiredEmployeeIds();
+        if ($employeeIds === []) {
+            // Fallback lama berbasis user
+            return in_array((int) $user->id, $this->requiredUserIds(), true);
+        }
+
+        $employee = $this->employeeFor($user);
+        if (! $employee) {
+            return in_array((int) $user->id, $this->requiredUserIds(), true);
+        }
+
+        return in_array((int) $employee->id, $employeeIds, true);
     }
 
     public function employeeFor(User $user): ?Employee
@@ -92,8 +127,6 @@ class AttendanceService
     }
 
     /**
-     * Sinkron semua user yang dicentang wajib absen → Data Karyawan.
-     *
      * @param  list<int>  $userIds
      */
     public function syncRequiredEmployees(array $userIds): void
@@ -102,6 +135,26 @@ class AttendanceService
         foreach ($users as $user) {
             $this->ensureEmployeeForUser($user);
         }
+    }
+
+    /** @return list<Employee> */
+    public function requiredEmployees(): array
+    {
+        $ids = $this->requiredEmployeeIds();
+        if ($ids === []) {
+            return Employee::query()
+                ->where('status', EmployeeStatus::Active)
+                ->orderBy('name')
+                ->get()
+                ->all();
+        }
+
+        return Employee::query()
+            ->whereIn('id', $ids)
+            ->where('status', EmployeeStatus::Active)
+            ->orderBy('name')
+            ->get()
+            ->all();
     }
 
     public function needsProfileSetup(User $user): bool
@@ -130,6 +183,7 @@ class AttendanceService
                 && filled(ShopSettings::get('attendance_longitude')),
             'face_threshold' => (float) config('attendance.face_match_threshold', 0.55),
             'required_user_ids' => $this->requiredUserIds(),
+            'required_employee_ids' => $this->requiredEmployeeIds(),
         ];
     }
 
@@ -362,9 +416,17 @@ class AttendanceService
     /** @return list<array{id:int,name:string,code:string,action:string}> */
     public function activeEmployeesForScan(): array
     {
-        return Employee::query()
+        $requiredIds = $this->requiredEmployeeIds();
+
+        $query = Employee::query()
             ->where('status', EmployeeStatus::Active)
-            ->orderBy('name')
+            ->orderBy('name');
+
+        if ($requiredIds !== []) {
+            $query->whereIn('id', $requiredIds);
+        }
+
+        return $query
             ->get()
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,

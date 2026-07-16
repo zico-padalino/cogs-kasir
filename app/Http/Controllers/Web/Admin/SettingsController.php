@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
+use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Employee;
 use App\Services\AttendanceService;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
@@ -13,19 +14,19 @@ use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function edit(): View
+    public function edit(AttendanceService $attendanceService): View
     {
         $settings = ShopSettings::all();
-        $requiredIds = array_values(array_filter(array_map(
-            'intval',
-            preg_split('/[\s,]+/', (string) ($settings['attendance_required_user_ids'] ?? '')) ?: [],
-        )));
 
         return view('admin.settings.edit', [
             'settings' => $settings,
             'logoUrl' => ShopSettings::logoUrl(),
-            'users' => User::query()->orderBy('name')->get(['id', 'name', 'email']),
-            'requiredUserIds' => $requiredIds,
+            'employees' => Employee::query()
+                ->with('user:id,name,email')
+                ->where('status', EmployeeStatus::Active)
+                ->orderBy('name')
+                ->get(),
+            'requiredEmployeeIds' => $attendanceService->requiredEmployeeIds(),
         ]);
     }
 
@@ -52,8 +53,8 @@ class SettingsController extends Controller
             'attendance_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'attendance_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'attendance_radius_meters' => ['required', 'numeric', 'min:10', 'max:5000'],
-            'attendance_required_user_ids' => ['nullable', 'array'],
-            'attendance_required_user_ids.*' => ['integer', 'exists:users,id'],
+            'attendance_required_employee_ids' => ['nullable', 'array'],
+            'attendance_required_employee_ids.*' => ['integer', 'exists:employees,id'],
         ], [
             'shop_name.required' => 'Nama toko wajib diisi.',
             'logo.image' => 'Logo harus berupa gambar.',
@@ -62,9 +63,19 @@ class SettingsController extends Controller
             'attendance_clock_out.date_format' => 'Format jam pulang tidak valid.',
         ]);
 
-        $requiredIds = collect($validated['attendance_required_user_ids'] ?? [])
+        $requiredEmployeeIds = collect($validated['attendance_required_employee_ids'] ?? [])
             ->map(fn ($id) => (int) $id)
             ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        // Simpan juga user_id terkait (untuk kompatibilitas middleware lama)
+        $linkedUserIds = Employee::query()
+            ->whereIn('id', $requiredEmployeeIds)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
             ->unique()
             ->values()
             ->all();
@@ -83,7 +94,8 @@ class SettingsController extends Controller
                 ? (string) $validated['attendance_longitude']
                 : '',
             'attendance_radius_meters' => (string) $validated['attendance_radius_meters'],
-            'attendance_required_user_ids' => implode(',', $requiredIds),
+            'attendance_required_employee_ids' => implode(',', $requiredEmployeeIds),
+            'attendance_required_user_ids' => implode(',', $linkedUserIds),
         ];
 
         $currentLogo = ShopSettings::get('logo_path');
@@ -100,11 +112,8 @@ class SettingsController extends Controller
 
         ShopSettings::put($payload);
 
-        // Akun yang dicentang wajib absen → otomatis masuk Data Karyawan
-        $attendanceService->syncRequiredEmployees($requiredIds);
-
         return redirect()
             ->route('admin.settings.edit')
-            ->with('success', 'Pengaturan disimpan. Data karyawan untuk akun wajib absen sudah disiapkan.');
+            ->with('success', 'Pengaturan disimpan. Daftar pegawai wajib absen diperbarui.');
     }
 }

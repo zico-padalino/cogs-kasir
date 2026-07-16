@@ -55,7 +55,26 @@ class KasirPin
     }
 
     /**
-     * User untuk FK transaksi: akun karyawan jika ada, else akun login stasiun.
+     * Data petugas untuk dicatat di transaksi POS.
+     *
+     * @return array{user_id: ?int, cashier_employee_id: ?int, cashier_name: string}
+     */
+    public static function cashierAttribution(): array
+    {
+        $employee = self::operatorEmployee();
+        $user = $employee?->user ?? auth()->user();
+
+        return [
+            'user_id' => $user?->id,
+            'cashier_employee_id' => $employee?->id,
+            'cashier_name' => $employee?->name
+                ?? $user?->name
+                ?? 'Kasir',
+        ];
+    }
+
+    /**
+     * User untuk FK teknis: akun karyawan jika ada, else akun login stasiun.
      */
     public static function operatorOrAuth(): ?User
     {

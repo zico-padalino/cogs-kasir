@@ -82,8 +82,8 @@ class ReceiptPdfService
             $pdf->line('Kembalian: '.Format::rupiah($order->change_amount), 8.5, false, 'L');
         }
 
-        if ($order->cashier?->name) {
-            $pdf->line('Kasir: '.$order->cashier->name, 8.5, false, 'L');
+        if ($order->cashierDisplayName() !== '-') {
+            $pdf->line('Kasir: '.$order->cashierDisplayName(), 8.5, false, 'L');
         }
 
         $pdf->spacer(8);

@@ -10,7 +10,7 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v4';
+    public const CACHE_KEY = 'shop_settings.v5';
 
     public const KEYS = [
         'shop_name',
@@ -24,6 +24,7 @@ class ShopSettings
         'attendance_longitude',
         'attendance_radius_meters',
         'attendance_required_user_ids',
+        'attendance_required_employee_ids',
     ];
 
     public static function defaults(): array
@@ -40,6 +41,7 @@ class ShopSettings
             'attendance_longitude' => '',
             'attendance_radius_meters' => '100',
             'attendance_required_user_ids' => '',
+            'attendance_required_employee_ids' => '',
         ];
     }
 

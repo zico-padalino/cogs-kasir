@@ -21,7 +21,7 @@
             @endif
             <div class="login-brand-copy">
                 <h1 class="login-shop-name">{{ $shopName }}</h1>
-                <p class="login-shop-title">PIN menentukan siapa yang bertugas</p>
+                <p class="login-shop-title">PIN menentukan siapa yang melayani</p>
             </div>
         </div>
 
@@ -37,15 +37,15 @@
             <div class="auth-alert-error mb-4" role="alert">{{ $errors->first() }}</div>
         @endif
 
-        <p class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-            Login stasiun boleh tetap sama. Masukkan <strong>PIN karyawan yang sedang bertugas</strong>
-            — nama petugas diambil dari Data Karyawan (akun login tidak wajib).
-        </p>
+        <div class="mb-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+            <p><strong>Login stasiun</strong> boleh akun siapa saja (contoh: {{ $currentUser->name }}).</p>
+            <p><strong>PIN</strong> memakai PIN pegawai yang sedang bertugas — nama di kasir & struk mengikuti pegawai itu, bukan akun login.</p>
+        </div>
 
         <form action="{{ route('kasir.pin.unlock.submit') }}" method="POST" class="space-y-4" autocomplete="off" id="kasir-pin-form">
             @csrf
             <div>
-                <label class="form-label" for="pin">PIN kasir (4–6 digit)</label>
+                <label class="form-label" for="pin">PIN pegawai (4–6 digit)</label>
                 <input
                     type="password"
                     inputmode="numeric"
@@ -65,13 +65,9 @@
             <button type="submit" class="btn-primary w-full py-3" id="kasir-pin-submit">Buka Kasir</button>
         </form>
 
-        <div class="mt-5 space-y-3 text-center text-xs text-slate-500">
-            <p>Login stasiun: <span class="font-semibold text-slate-700">{{ $currentUser->name }}</span></p>
-            @if (! $hasOwnPin)
-                <p class="text-amber-700">Anda belum punya PIN. <a href="{{ route('pin.edit') }}" class="font-semibold text-brand-600 underline">Buat PIN dulu</a></p>
-            @else
-                <p><a href="{{ route('pin.edit') }}" class="font-medium text-brand-600 hover:underline">Kelola PIN saya</a></p>
-            @endif
+        <div class="mt-5 space-y-2 text-center text-xs text-slate-500">
+            <p>Stasiun aktif: <span class="font-semibold text-slate-700">{{ $currentUser->name }}</span></p>
+            <p class="text-slate-400">PIN dibuat di Admin → Data Karyawan</p>
         </div>
 
         <div class="mt-5 border-t border-slate-200 pt-4">
@@ -132,13 +128,11 @@
                     return;
                 }
 
-                // PIN 4–5 digit: tunggu sebentar jika user masih mengetik digit berikutnya
                 if (pin.length >= 4) {
                     timer = setTimeout(submitPin, 450);
                 }
             });
 
-            // Enter tetap bisa
             input.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
