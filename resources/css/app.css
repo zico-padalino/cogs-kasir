@@ -3678,15 +3678,15 @@
         .pos-product-grid {
             display: grid;
             flex: 1 1 0%;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             align-content: start;
-            gap: 0.75rem;
+            gap: 0.5rem;
             min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
             overscroll-behavior: contain;
-            padding: 0.75rem;
-            padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
+            padding: 0.5rem;
+            padding-bottom: max(1rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)));
             -webkit-overflow-scrolling: touch;
         }
 
@@ -3695,38 +3695,39 @@
             flex-direction: column;
             min-height: 0;
             height: auto;
-            border-radius: 1rem;
+            border-radius: 0.75rem;
         }
 
         .pos-product-card-media {
-            aspect-ratio: 3 / 2;
+            aspect-ratio: 1 / 1;
             width: 100%;
             height: auto;
         }
 
         .pos-product-card-body {
-            padding: 0.75rem;
+            padding: 0.4rem;
+            gap: 0.35rem;
         }
 
         .pos-product-card-foot {
-            padding-top: 0.75rem;
+            padding-top: 0.35rem;
         }
 
         .pos-product-add,
         .pos-product-setup {
-            @apply h-8 w-8 text-base;
+            @apply h-7 w-7 text-sm;
         }
 
         .pos-product-price {
-            @apply whitespace-nowrap text-xs;
+            @apply whitespace-nowrap text-[10px] leading-tight;
         }
 
         .pos-product-name {
-            @apply text-xs;
+            @apply text-[10px] leading-tight;
         }
 
         .pos-product-empty {
-            @apply col-span-2 w-full py-10;
+            @apply col-span-4 w-full py-10;
         }
 
         .pos-receipt-thumb {
@@ -3893,9 +3894,9 @@
         }
 
         .pos-product-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.85rem;
-            padding: 1rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.6rem;
+            padding: 0.75rem;
             padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
         }
 
