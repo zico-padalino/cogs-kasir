@@ -10,10 +10,24 @@
 
         <div class="card mt-4 overflow-hidden p-0">
             <div class="kasir-product-preview">
-                <x-product-image :product="$product" class="kasir-product-preview-image" />
+                <img
+                    src="{{ $product->imageUrl() }}"
+                    alt="{{ $product->name }}"
+                    class="kasir-product-preview-image"
+                    data-kasir-product-preview
+                    data-fallback-src="{{ asset('images/products/default-food.svg') }}"
+                    onerror="if(this.dataset.fallbackSrc&&this.src!==this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc}else{this.onerror=null}"
+                >
                 <div class="kasir-product-preview-body">
                     <h1 class="text-lg font-bold text-slate-900">{{ $product->name }}</h1>
                     <p class="text-sm text-slate-500">{{ $product->sku }}</p>
+                    @if ($product->hasCustomUpload())
+                        <p class="mt-1 text-xs font-medium text-emerald-700">Gambar upload aktif</p>
+                    @elseif ($product->image_path)
+                        <p class="mt-1 text-xs text-slate-500">Ilustrasi bawaan</p>
+                    @else
+                        <p class="mt-1 text-xs text-amber-700">Belum ada gambar khusus</p>
+                    @endif
                 </div>
             </div>
 
@@ -35,14 +49,30 @@
                 <p class="mt-2 text-xs text-slate-500">Ubah harga di modul Hitung Biaya → Produk.</p>
             </div>
 
-            <form action="{{ route('kasir.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-5 p-4 sm:p-5">
+            <form
+                action="{{ route('kasir.products.update', $product) }}"
+                method="POST"
+                enctype="multipart/form-data"
+                class="space-y-5 p-4 sm:p-5"
+                data-kasir-product-edit
+            >
                 @csrf
                 @method('PUT')
 
                 <div>
-                    <label class="form-label">Gambar Menu</label>
-                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="form-input file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700">
-                    <p class="form-hint">Upload JPG/PNG/WebP maks. 2 MB</p>
+                    <label class="form-label" for="product_image">Gambar Menu</label>
+                    <input
+                        id="product_image"
+                        type="file"
+                        name="image"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="form-input file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700"
+                        data-kasir-product-image
+                    >
+                    <p class="form-hint">Upload JPG/PNG/WebP maks. 2 MB, lalu tekan <strong>Simpan Menu</strong>.</p>
+                    @error('image')
+                        <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>

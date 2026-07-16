@@ -7,6 +7,7 @@ use App\Enums\ProductType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -107,13 +108,27 @@ class Product extends Model
                 return $this->image_path;
             }
 
-            if (str_starts_with($this->image_path, 'images/')) {
+            if (str_starts_with($this->image_path, 'images/')
+                || str_starts_with($this->image_path, 'uploads/')) {
                 return asset($this->image_path);
+            }
+
+            if (Storage::disk('public')->exists($this->image_path)) {
+                return Storage::disk('public')->url($this->image_path);
             }
 
             return asset('storage/'.$this->image_path);
         }
 
         return asset('images/products/default-food.svg');
+    }
+
+    public function hasCustomUpload(): bool
+    {
+        $path = (string) $this->image_path;
+
+        return $path !== ''
+            && ! str_starts_with($path, 'images/')
+            && ! str_starts_with($path, 'http');
     }
 }

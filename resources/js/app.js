@@ -3,6 +3,7 @@ import './mobile';
 import './pwa-install';
 import './kasir';
 import './kasir-menu-admin';
+import './kasir-product-edit';
 import './kasir-notifications';
 import './table-qr';
 import './barcode-download';

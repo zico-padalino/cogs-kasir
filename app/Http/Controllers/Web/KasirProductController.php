@@ -9,7 +9,10 @@ use App\Models\MenuCategory;
 use App\Models\Product;
 use App\Services\ProductHppService;
 use App\Support\Format;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class KasirProductController extends Controller
 {
@@ -57,7 +60,7 @@ class KasirProductController extends Controller
             $data['image_path'] = null;
         } elseif ($request->hasFile('image')) {
             $this->deleteStoredImage($product);
-            $data['image_path'] = $request->file('image')->store('products', 'public');
+            $data['image_path'] = $this->storeMenuImage($request->file('image'));
         } elseif ($request->filled('preset_image')) {
             $this->deleteStoredImage($product);
             $data['image_path'] = $request->input('preset_image');
@@ -66,7 +69,7 @@ class KasirProductController extends Controller
         $product->update($data);
 
         return redirect()
-            ->route('kasir.products.index')
+            ->route('kasir.products.edit', $product)
             ->with('success', 'Menu "'.$product->name.'" diperbarui.');
     }
 
@@ -77,11 +80,38 @@ class KasirProductController extends Controller
         }
     }
 
+    private function storeMenuImage(UploadedFile $file): string
+    {
+        $dir = public_path('uploads/menu');
+        if (! is_dir($dir)) {
+            File::ensureDirectoryExists($dir, 0755);
+        }
+
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $name = Str::uuid()->toString().'.'.$ext;
+        $file->move($dir, $name);
+
+        return 'uploads/menu/'.$name;
+    }
+
     private function deleteStoredImage(Product $product): void
     {
         $path = $product->image_path;
 
-        if (! $path || str_starts_with($path, 'images/') || str_starts_with($path, 'http')) {
+        if (! $path || str_starts_with($path, 'http')) {
+            return;
+        }
+
+        if (str_starts_with($path, 'images/')) {
+            return;
+        }
+
+        if (str_starts_with($path, 'uploads/')) {
+            $full = public_path($path);
+            if (is_file($full)) {
+                @unlink($full);
+            }
+
             return;
         }
 
