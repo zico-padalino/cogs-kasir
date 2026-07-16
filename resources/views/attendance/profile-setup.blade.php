@@ -93,9 +93,9 @@
                         <li data-pose="down">Bawah</li>
                     </ul>
 
-                    <button type="button" class="btn-outline w-full" data-face-capture-pose disabled>
-                        Ambil pose ini
-                    </button>
+                    <p class="profile-setup-auto-hint" data-face-auto-hint>
+                        Pindahkan wajah sesuai instruksi — foto diambil otomatis.
+                    </p>
 
                     <input type="hidden" name="photo" data-attendance-photo>
                     <input type="hidden" name="descriptor" data-attendance-descriptor>

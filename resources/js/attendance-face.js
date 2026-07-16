@@ -255,19 +255,26 @@ function bindGuidedEnroll(root) {
     const guideText = root.querySelector('[data-face-guide-text]');
     const poseCount = root.querySelector('[data-face-pose-count]');
     const poseList = root.querySelector('[data-face-pose-list]');
-    const captureBtn = root.querySelector('[data-face-capture-pose]');
+    const autoHint = root.querySelector('[data-face-auto-hint]');
     const submit = root.querySelector('[data-attendance-submit]');
     const photoInput = root.querySelector('[data-attendance-photo]');
     const descriptorInput = root.querySelector('[data-attendance-descriptor]');
 
-    if (! video || ! canvas || ! form || ! photoInput || ! descriptorInput || ! captureBtn) {
+    if (! video || ! canvas || ! form || ! photoInput || ! descriptorInput) {
         return;
     }
+
+    const HOLD_MS = 700;
+    const SCAN_MS = 280;
 
     let poseIndex = 0;
     const captured = [];
     let centerPhoto = null;
     let ready = false;
+    let scanning = false;
+    let holdStartedAt = 0;
+    let scanTimer = null;
+    let cooldownUntil = 0;
 
     const refreshPoseUi = () => {
         const pose = ENROLL_POSES[poseIndex];
@@ -286,11 +293,90 @@ function bindGuidedEnroll(root) {
             item.classList.toggle('is-done', done);
             item.classList.toggle('is-current', Boolean(current));
         });
-        captureBtn.disabled = ! ready || ! pose;
-        captureBtn.textContent = pose ? 'Ambil pose ini' : 'Selesai';
+        if (autoHint) {
+            autoHint.textContent = pose
+                ? 'Pindahkan wajah sesuai instruksi — foto diambil otomatis.'
+                : 'Selesai. Tekan Simpan & lanjut.';
+        }
         if (submit) {
             submit.disabled = captured.length < ENROLL_POSES.length;
         }
+    };
+
+    const stopScan = () => {
+        if (scanTimer) {
+            clearTimeout(scanTimer);
+            scanTimer = null;
+        }
+        scanning = false;
+    };
+
+    const captureCurrentPose = (detection, pose) => {
+        captured.push({
+            id: pose.id,
+            descriptor: Array.from(detection.descriptor),
+        });
+
+        if (pose.id === 'center' || ! centerPhoto) {
+            centerPhoto = capturePhoto(video, canvas);
+        }
+
+        poseIndex += 1;
+        holdStartedAt = 0;
+        cooldownUntil = Date.now() + 500;
+        setStatus(status, `✓ ${pose.label.replace(/^Hadap |^Putar |^Angkat |^Tundukkan /, '')} tersimpan`);
+        refreshPoseUi();
+
+        if (captured.length >= ENROLL_POSES.length) {
+            descriptorInput.value = JSON.stringify(averageDescriptors(captured.map((c) => c.descriptor)));
+            photoInput.value = centerPhoto || capturePhoto(video, canvas);
+            setStatus(status, 'Semua pose selesai. Tekan Simpan & lanjut.');
+            if (submit) submit.disabled = false;
+            stopScan();
+            return false;
+        }
+
+        return true;
+    };
+
+    const scanLoop = async () => {
+        if (! ready || poseIndex >= ENROLL_POSES.length) {
+            return;
+        }
+
+        scanning = true;
+        const pose = ENROLL_POSES[poseIndex];
+
+        try {
+            if (Date.now() < cooldownUntil) {
+                // pause singkat antar pose
+            } else {
+                const detection = await detectFace(video);
+                const { yaw, pitch } = estimatePose(detection.landmarks);
+                const okYaw = yaw >= pose.yawMin && yaw <= pose.yawMax;
+                const okPitch = pitch >= pose.pitchMin && pitch <= pose.pitchMax;
+
+                if (okYaw && okPitch) {
+                    if (! holdStartedAt) {
+                        holdStartedAt = Date.now();
+                        setStatus(status, 'Tahan sebentar…');
+                    } else if (Date.now() - holdStartedAt >= HOLD_MS) {
+                        const cont = captureCurrentPose(detection, pose);
+                        if (! cont) {
+                            return;
+                        }
+                    }
+                } else {
+                    holdStartedAt = 0;
+                    setStatus(status, pose.label);
+                }
+            }
+        } catch (_) {
+            holdStartedAt = 0;
+            setStatus(status, 'Cari wajah di dalam bingkai…');
+        }
+
+        scanTimer = window.setTimeout(scanLoop, SCAN_MS);
     };
 
     const boot = async () => {
@@ -300,11 +386,12 @@ function bindGuidedEnroll(root) {
             setStatus(status, 'Mengaktifkan kamera…');
             await startCamera(video);
             ready = true;
-            setStatus(status, 'Ikuti instruksi di atas bingkai.');
             refreshPoseUi();
+            setStatus(status, 'Hadap depan — foto otomatis.');
+            scanLoop();
         } catch (error) {
             setStatus(status, error.message || 'Gagal menyiapkan kamera.', true);
-            captureBtn.disabled = true;
+            stopScan();
         }
     };
 
@@ -317,54 +404,10 @@ function bindGuidedEnroll(root) {
     window.addEventListener('orientationchange', restartCam);
     window.addEventListener('resize', restartCam);
 
-    captureBtn.addEventListener('click', async () => {
-        if (! ready || poseIndex >= ENROLL_POSES.length) {
-            return;
-        }
-
-        const pose = ENROLL_POSES[poseIndex];
-        captureBtn.disabled = true;
-        setStatus(status, 'Memeriksa pose…');
-
-        try {
-            const detection = await detectFace(video);
-            const { yaw, pitch } = estimatePose(detection.landmarks);
-            const okYaw = yaw >= pose.yawMin && yaw <= pose.yawMax;
-            const okPitch = pitch >= pose.pitchMin && pitch <= pose.pitchMax;
-
-            if (! okYaw || ! okPitch) {
-                throw new Error(`Pose belum pas. ${pose.label}, lalu tekan Ambil lagi.`);
-            }
-
-            captured.push({
-                id: pose.id,
-                descriptor: Array.from(detection.descriptor),
-            });
-
-            if (pose.id === 'center' || ! centerPhoto) {
-                centerPhoto = capturePhoto(video, canvas);
-            }
-
-            poseIndex += 1;
-            setStatus(status, `Pose “${pose.id}” berhasil.`);
-            refreshPoseUi();
-
-            if (captured.length >= ENROLL_POSES.length) {
-                descriptorInput.value = JSON.stringify(averageDescriptors(captured.map((c) => c.descriptor)));
-                photoInput.value = centerPhoto || capturePhoto(video, canvas);
-                setStatus(status, 'Semua pose selesai. Tekan Simpan & lanjut.');
-                if (submit) submit.disabled = false;
-            }
-        } catch (error) {
-            setStatus(status, error.message || 'Gagal mengambil pose.', true);
-            captureBtn.disabled = false;
-        }
-    });
-
     form.addEventListener('submit', (event) => {
         if (captured.length < ENROLL_POSES.length) {
             event.preventDefault();
-            setStatus(status, 'Selesaikan semua pose wajah dulu.', true);
+            setStatus(status, 'Tunggu sampai semua pose otomatis tersimpan.', true);
             return;
         }
 
@@ -373,10 +416,14 @@ function bindGuidedEnroll(root) {
             photoInput.value = centerPhoto || capturePhoto(video, canvas);
         }
 
+        stopScan();
         stopCamera(video);
     });
 
-    window.addEventListener('beforeunload', () => stopCamera(video));
+    window.addEventListener('beforeunload', () => {
+        stopScan();
+        stopCamera(video);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
