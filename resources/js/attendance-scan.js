@@ -37,8 +37,8 @@ async function startCamera(video) {
         audio: false,
         video: {
             facingMode: { ideal: 'user' },
-            width: { ideal: 720 },
-            height: { ideal: 960 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
         },
     });
     video.srcObject = stream;

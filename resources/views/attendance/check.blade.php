@@ -3,33 +3,36 @@
 @section('title', $mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk')
 
 @section('content')
-    <div class="login-card max-w-md" data-attendance-check data-mode="{{ $mode }}">
-        <div class="login-brand">
-            <div class="login-logo-fallback">{{ \App\Support\ShopSettings::initial() }}</div>
-            <div class="login-brand-copy">
-                <h1 class="login-shop-name">{{ $mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk' }}</h1>
-                <p class="login-shop-title">{{ $employee?->name ?? $user->name }} · {{ now()->translatedFormat('d M Y') }}</p>
+    <div class="scan-card" data-attendance-check data-mode="{{ $mode }}">
+        <header class="scan-head">
+            <div class="scan-mark" aria-hidden="true">{{ \App\Support\ShopSettings::initial() }}</div>
+            <div class="min-w-0 flex-1">
+                <p class="scan-eyebrow">{{ $mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk' }}</p>
+                <h1 class="scan-title">{{ $employee?->name ?? $user->name }}</h1>
+                <p class="scan-date">{{ now()->translatedFormat('d M Y') }}</p>
             </div>
-        </div>
-
-        <div class="login-divider" aria-hidden="true"></div>
+        </header>
 
         @if (session('error'))
-            <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ session('error') }}</div>
+            <div class="scan-alert scan-alert-warn">{{ session('error') }}</div>
         @endif
         @if ($errors->any())
-            <div class="auth-alert-error mb-4" role="alert">{{ $errors->first() }}</div>
+            <div class="scan-alert scan-alert-error">{{ $errors->first() }}</div>
         @endif
 
-        <div class="mb-4 space-y-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            <p>Jam masuk: <strong>{{ $settings['clock_in'] }}</strong> · Jam pulang: <strong>{{ $settings['clock_out'] }}</strong></p>
-            <p>Radius lokasi: <strong>{{ number_format($settings['radius_meters'], 0) }} m</strong></p>
-            @unless ($settings['has_location'])
-                <p class="font-semibold text-amber-700">Lokasi toko belum diatur — hubungi admin.</p>
-            @endunless
-        </div>
+        <p class="scan-hours">
+            Masuk <strong>{{ $settings['clock_in'] }}</strong>
+            <span aria-hidden="true">·</span>
+            Pulang <strong>{{ $settings['clock_out'] }}</strong>
+            <span aria-hidden="true">·</span>
+            Radius <strong>{{ number_format($settings['radius_meters'], 0) }} m</strong>
+        </p>
 
-        <div class="attendance-gps-panel">
+        @unless ($settings['has_location'])
+            <div class="scan-alert scan-alert-warn">Lokasi toko belum diatur — hubungi admin.</div>
+        @endunless
+
+        <div class="attendance-gps-panel mt-4">
             <div class="attendance-gps-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-8 w-8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z" />
@@ -43,14 +46,14 @@
         <form
             action="{{ $mode === 'check_out' ? route('attendance.check-out.store') : route('attendance.check-in.store') }}"
             method="POST"
-            class="mt-4 space-y-3"
+            class="scan-form"
             data-attendance-form
         >
             @csrf
             <input type="hidden" name="latitude" data-attendance-lat>
             <input type="hidden" name="longitude" data-attendance-lng>
 
-            <button type="submit" class="btn-primary w-full py-3" data-attendance-submit disabled>
+            <button type="submit" class="btn-primary w-full py-3.5 text-base" data-attendance-submit disabled>
                 {{ $mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk' }}
             </button>
         </form>

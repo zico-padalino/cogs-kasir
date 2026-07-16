@@ -137,13 +137,8 @@
             <div class="attendance-camera-wrap face-cam">
                 <video data-attendance-video class="attendance-video" playsinline muted autoplay></video>
                 <canvas data-attendance-canvas class="hidden"></canvas>
-                <div class="attendance-camera-overlay" aria-hidden="true">
-                    <div class="attendance-face-frame" data-face-frame></div>
-                </div>
                 <div class="face-cam-flash" data-face-flash aria-hidden="true"></div>
-                <div class="face-cam-bottom">
-                    <p class="attendance-status" data-attendance-status>Menyiapkan kamera…</p>
-                </div>
+                <p class="attendance-status face-cam-status" data-attendance-status>Menyiapkan kamera…</p>
             </div>
 
             <form action="{{ route('admin.employees.face', $employee) }}" method="POST" data-attendance-form>

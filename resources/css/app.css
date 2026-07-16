@@ -4820,14 +4820,39 @@
         @apply my-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent;
     }
 
+    /* ── Attendance pages (scrollable; not locked like login) ── */
+    .attendance-page {
+        @apply relative min-h-screen overflow-x-hidden overflow-y-auto;
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        padding-top: max(1rem, env(safe-area-inset-top));
+        background:
+            radial-gradient(1000px 520px at 8% -8%, rgba(13, 148, 136, 0.14), transparent 55%),
+            radial-gradient(800px 420px at 100% 0%, rgba(15, 118, 110, 0.1), transparent 50%),
+            linear-gradient(180deg, #f8fafc 0%, #f0fdfa 45%, #f1f5f9 100%);
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+    }
+
+    .attendance-page-glow {
+        @apply pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-white/60 to-transparent;
+    }
+
+    .attendance-page-inner {
+        @apply relative z-10 mx-auto flex w-full max-w-lg flex-col items-stretch px-4 py-5 sm:px-6 sm:py-8;
+    }
+
+    .attendance-page .login-card {
+        @apply mx-auto;
+    }
+
     .attendance-camera-wrap {
         @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-900;
     }
 
     .attendance-video {
         @apply block h-full w-full object-cover;
-        aspect-ratio: 3 / 4;
-        max-height: min(52vh, 24rem);
+        aspect-ratio: 4 / 3;
+        max-height: min(42vh, 18rem);
         transform: scaleX(-1);
         background: #0f172a;
     }
@@ -4835,7 +4860,7 @@
     @media (orientation: landscape) {
         .attendance-video {
             aspect-ratio: 16 / 10;
-            max-height: min(48vh, 20rem);
+            max-height: min(40vh, 16rem);
         }
     }
 
@@ -4901,6 +4926,10 @@
 
     .face-cam-bottom {
         @apply absolute inset-x-0 bottom-0 space-y-1.5 border-t border-white/10 bg-slate-950/82 px-3 py-2.5;
+    }
+
+    .face-cam-status {
+        @apply absolute inset-x-0 bottom-0 bg-slate-950/70 px-3 py-2 text-center text-xs text-slate-100;
     }
 
     .face-hold-track {
@@ -5084,15 +5113,15 @@
     }
 
     .scan-card {
-        @apply relative z-10 mx-auto w-full max-w-md rounded-[1.5rem] border border-white/70 bg-white/95 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6;
+        @apply relative z-10 w-full rounded-[1.25rem] border border-slate-200/80 bg-white p-4 shadow-sm sm:rounded-[1.5rem] sm:p-5;
     }
 
     .scan-head {
-        @apply flex items-center gap-3;
+        @apply flex items-start gap-3;
     }
 
     .scan-mark {
-        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 text-lg font-bold text-white shadow-md;
+        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 text-base font-bold text-white shadow-md;
     }
 
     .scan-eyebrow {
@@ -5100,11 +5129,15 @@
     }
 
     .scan-title {
-        @apply truncate text-xl font-bold tracking-tight text-slate-900;
+        @apply truncate text-lg font-bold tracking-tight text-slate-900 sm:text-xl;
     }
 
     .scan-date {
         @apply text-xs text-slate-500;
+    }
+
+    .scan-clock-mini {
+        @apply shrink-0 rounded-xl bg-slate-900 px-2.5 py-2 text-center text-white;
     }
 
     .scan-clock {
@@ -5112,7 +5145,15 @@
     }
 
     .scan-clock-time {
-        @apply font-mono text-4xl font-semibold tracking-wider tabular-nums sm:text-5xl;
+        @apply font-mono text-lg font-semibold tracking-wider tabular-nums sm:text-xl;
+    }
+
+    .scan-clock .scan-clock-time {
+        @apply text-4xl sm:text-5xl;
+    }
+
+    .scan-hours {
+        @apply mt-3 text-center text-xs text-slate-500;
     }
 
     .scan-clock-meta {
@@ -5120,7 +5161,7 @@
     }
 
     .scan-alert {
-        @apply mt-4 rounded-xl px-3 py-2.5 text-sm;
+        @apply mt-3 rounded-xl px-3 py-2.5 text-sm;
     }
 
     .scan-alert-ok {
@@ -5159,25 +5200,33 @@
         @apply bg-amber-50 text-amber-800;
     }
 
+    .scan-camera {
+        @apply space-y-2;
+    }
+
+    .scan-camera-preview {
+        @apply overflow-hidden rounded-2xl border border-slate-200 bg-slate-900;
+    }
+
     .scan-camera-wrap {
         @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-900;
     }
 
     .scan-video {
         @apply block h-full w-full object-cover;
-        aspect-ratio: 3 / 4;
-        max-height: min(48vh, 22rem);
+        aspect-ratio: 4 / 3;
+        max-height: min(40vh, 17rem);
         transform: scaleX(-1);
         background: #0f172a;
     }
 
     .scan-camera-oval {
-        @apply pointer-events-none absolute inset-0 m-auto h-[52%] w-[58%] max-w-[14rem] rounded-[46%] border-2 border-white/55;
-        box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.4);
+        display: none;
     }
 
-    .scan-camera-caption {
-        @apply absolute inset-x-0 bottom-0 bg-slate-950/75 px-3 py-2 text-center text-xs text-slate-200;
+    .scan-camera-caption,
+    .scan-camera-hint {
+        @apply text-center text-xs text-slate-500;
     }
 
     .scan-gps {
@@ -5197,6 +5246,50 @@
             box-shadow: none;
             border: 1px solid #e2e8f0;
         }
+    }
+
+    .att-report-summary {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6;
+    }
+
+    .att-stat {
+        @apply rounded-xl border border-slate-200 bg-white px-3 py-3;
+    }
+
+    .att-stat-label {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+    }
+
+    .att-stat-value {
+        @apply mt-1 text-xl font-bold tabular-nums text-slate-900;
+    }
+
+    .att-report-table {
+        @apply w-full min-w-[56rem] text-left text-sm;
+    }
+
+    .att-report-table th {
+        @apply border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .att-report-table td {
+        @apply border-b border-slate-100 px-3 py-2.5 align-top;
+    }
+
+    .att-selfie {
+        @apply inline-block overflow-hidden rounded-lg ring-1 ring-slate-200;
+    }
+
+    .att-selfie img {
+        @apply h-12 w-12 object-cover;
+    }
+
+    .att-badge-late {
+        @apply ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800;
+    }
+
+    .att-status {
+        @apply inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700;
     }
 
     .login-form-head {

@@ -13,8 +13,10 @@
         @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/attendance-face.js'])
     @endif
 </head>
-<body class="login-page">
-    <div class="login-glow" aria-hidden="true"></div>
-    @yield('content')
+<body class="attendance-page">
+    <div class="attendance-page-glow" aria-hidden="true"></div>
+    <div class="attendance-page-inner">
+        @yield('content')
+    </div>
 </body>
 </html>
