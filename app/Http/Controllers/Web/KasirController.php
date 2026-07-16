@@ -437,6 +437,11 @@ class KasirController extends Controller
     public function removeItem(PosOrderItem $item, PosOrderService $posService)
     {
         try {
+            $order = $item->order;
+            if ($order->id !== ($this->activeKasirOrder()?->id)) {
+                throw new \RuntimeException('Item bukan bagian dari order aktif.');
+            }
+
             $posService->removeItem($item, fromKasir: true);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());

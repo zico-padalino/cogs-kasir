@@ -101,11 +101,15 @@ class PosOrder extends Model
 
     public function isKasirEditable(): bool
     {
-        if ($this->source === PosOrderSource::Online) {
-            return false;
-        }
-
-        return $this->status === PosOrderStatus::Open;
+        return match ($this->source) {
+            PosOrderSource::Kasir => $this->status === PosOrderStatus::Open,
+            // Pesanan QR/meja: kasir boleh koreksi item sebelum bayar.
+            PosOrderSource::Online => in_array($this->status, [
+                PosOrderStatus::Submitted,
+                PosOrderStatus::Confirmed,
+            ], true),
+            default => false,
+        };
     }
 
     public function needsKasirConfirmation(): bool
