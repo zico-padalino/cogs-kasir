@@ -58,21 +58,19 @@ class EnsureAttendanceChecked
             return $next($request);
         }
 
-        $route = $action === 'check_out' ? 'attendance.check-out' : 'attendance.check-in';
-
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'message' => $action === 'check_out'
-                    ? 'Silakan absen pulang terlebih dahulu.'
-                    : 'Silakan absen masuk terlebih dahulu.',
-                'redirect' => route($route),
+                    ? 'Silakan absen pulang melalui scan QR.'
+                    : 'Silakan absen masuk melalui scan QR.',
+                'redirect' => route('attendance.scan'),
             ], 403);
         }
 
         return redirect()
-            ->route($route)
+            ->route('attendance.scan')
             ->with('error', $action === 'check_out'
-                ? 'Waktunya absen pulang. Konfirmasi lokasi GPS dulu.'
-                : 'Silakan absen masuk dulu (lokasi GPS) sebelum lanjut.');
+                ? 'Waktunya absen pulang — scan QR absensi di toko.'
+                : 'Silakan absen masuk dulu lewat scan QR di toko.');
     }
 }

@@ -18,11 +18,13 @@ class KasirPinController extends Controller
             return redirect()->route('kasir.index');
         }
 
+        $ownEmployee = KasirPin::employeeForUser(auth()->user());
+
         return view('kasir.pin-unlock', [
             'shopName' => config('pos.shop_name'),
             'logoUrl' => ShopSettings::logoUrl(),
             'currentUser' => auth()->user(),
-            'hasOwnPin' => KasirPin::hasPin(auth()->user()),
+            'hasOwnPin' => $ownEmployee ? KasirPin::hasPin($ownEmployee) : false,
         ]);
     }
 
@@ -62,7 +64,7 @@ class KasirPinController extends Controller
 
     public function lock(Request $request): RedirectResponse
     {
-        $name = KasirPin::operator()?->name ?? 'Kasir';
+        $name = KasirPin::operatorName();
         KasirPin::lock();
 
         return redirect()

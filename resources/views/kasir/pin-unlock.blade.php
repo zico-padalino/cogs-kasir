@@ -38,8 +38,8 @@
         @endif
 
         <p class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-            Login stasiun boleh tetap sama. Masukkan <strong>PIN milik kasir yang sedang bertugas</strong>
-            — transaksi akan tercatat atas nama pemilik PIN itu (bukan akun login).
+            Login stasiun boleh tetap sama. Masukkan <strong>PIN karyawan yang sedang bertugas</strong>
+            — nama petugas diambil dari Data Karyawan (akun login tidak wajib).
         </p>
 
         <form action="{{ route('kasir.pin.unlock.submit') }}" method="POST" class="space-y-4" autocomplete="off" id="kasir-pin-form">

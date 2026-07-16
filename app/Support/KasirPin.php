@@ -2,7 +2,8 @@
 
 namespace App\Support;
 
-use App\Enums\UserRole;
+use App\Enums\EmployeeStatus;
+use App\Models\Employee;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -10,7 +11,10 @@ use Illuminate\Support\Facades\Session;
 
 class KasirPin
 {
-    public const SESSION_OPERATOR = 'kasir_operator_id';
+    public const SESSION_OPERATOR = 'kasir_operator_employee_id';
+
+    /** @deprecated Digunakan hanya untuk kompatibilitas sesi lama berbasis user id */
+    public const SESSION_OPERATOR_USER = 'kasir_operator_id';
 
     public const SESSION_VERIFIED_AT = 'kasir_pin_verified_at';
 
@@ -21,7 +25,7 @@ class KasirPin
         return max(1, (int) config('pos.kasir_pin_ttl_minutes', 10));
     }
 
-    public static function operator(): ?User
+    public static function operatorEmployee(): ?Employee
     {
         $id = Session::get(self::SESSION_OPERATOR);
 
@@ -29,9 +33,30 @@ class KasirPin
             return null;
         }
 
-        return User::query()->find($id);
+        return Employee::query()
+            ->where('status', EmployeeStatus::Active)
+            ->find($id);
     }
 
+    /**
+     * User terhubung ke karyawan yang sedang bertugas (bisa null).
+     */
+    public static function operator(): ?User
+    {
+        return self::operatorEmployee()?->user;
+    }
+
+    public static function operatorName(): string
+    {
+        return self::operatorEmployee()?->name
+            ?? self::operator()?->name
+            ?? auth()->user()?->name
+            ?? 'Kasir';
+    }
+
+    /**
+     * User untuk FK transaksi: akun karyawan jika ada, else akun login stasiun.
+     */
     public static function operatorOrAuth(): ?User
     {
         return self::operator() ?? auth()->user();
@@ -39,7 +64,12 @@ class KasirPin
 
     public static function isUnlocked(): bool
     {
+        // Sesi lama berbasis user id tidak valid lagi — minta PIN ulang.
         if (! Session::get(self::SESSION_OPERATOR)) {
+            if (Session::get(self::SESSION_OPERATOR_USER)) {
+                self::lock();
+            }
+
             return false;
         }
 
@@ -60,7 +90,6 @@ class KasirPin
             return $expiresAt;
         }
 
-        // Kompatibilitas sesi lama yang hanya punya verified_at
         $verifiedAt = self::toUnix(Session::get(self::SESSION_VERIFIED_AT));
 
         if ($verifiedAt === null) {
@@ -98,11 +127,12 @@ class KasirPin
         ];
     }
 
-    public static function unlock(User $operator): void
+    public static function unlock(Employee $operator): void
     {
         $now = now()->getTimestamp();
         $expiresAt = $now + (self::idleMinutes() * 60);
 
+        Session::forget(self::SESSION_OPERATOR_USER);
         Session::put(self::SESSION_OPERATOR, (int) $operator->id);
         Session::put(self::SESSION_VERIFIED_AT, $now);
         Session::put(self::SESSION_EXPIRES_AT, $expiresAt);
@@ -113,12 +143,13 @@ class KasirPin
     {
         Session::forget([
             self::SESSION_OPERATOR,
+            self::SESSION_OPERATOR_USER,
             self::SESSION_VERIFIED_AT,
             self::SESSION_EXPIRES_AT,
         ]);
     }
 
-    public static function findByPin(string $pin): ?User
+    public static function findByPin(string $pin): ?Employee
     {
         $pin = preg_replace('/\D+/', '', $pin) ?? '';
 
@@ -126,41 +157,49 @@ class KasirPin
             return null;
         }
 
-        $candidates = User::query()
+        $candidates = Employee::query()
+            ->where('status', EmployeeStatus::Active)
             ->whereNotNull('pin_hash')
-            ->get()
-            ->filter(fn (User $user) => $user->hasModule(UserRole::Kasir));
+            ->get();
 
-        foreach ($candidates as $user) {
-            if (Hash::check($pin, $user->pin_hash)) {
-                return $user;
+        foreach ($candidates as $employee) {
+            if (Hash::check($pin, (string) $employee->pin_hash)) {
+                return $employee;
             }
         }
 
         return null;
     }
 
-    public static function setPin(User $user, string $pin): void
+    public static function setPin(Employee $employee, string $pin): void
     {
         $pin = preg_replace('/\D+/', '', $pin) ?? '';
 
-        $user->forceFill([
+        $employee->forceFill([
             'pin_hash' => Hash::make($pin),
             'pin_set_at' => now(),
         ])->save();
     }
 
-    public static function clearPin(User $user): void
+    public static function clearPin(Employee $employee): void
     {
-        $user->forceFill([
+        $employee->forceFill([
             'pin_hash' => null,
             'pin_set_at' => null,
         ])->save();
     }
 
-    public static function hasPin(User $user): bool
+    public static function hasPin(Employee $employee): bool
     {
-        return filled($user->pin_hash);
+        return filled($employee->pin_hash);
+    }
+
+    public static function employeeForUser(User $user): ?Employee
+    {
+        return Employee::query()
+            ->where('user_id', $user->id)
+            ->where('status', EmployeeStatus::Active)
+            ->first();
     }
 
     private static function toUnix(mixed $value): ?int

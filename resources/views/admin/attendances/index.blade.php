@@ -4,6 +4,10 @@
 @section('heading', 'Absensi Karyawan')
 
 @section('content')
+    <div class="mb-4 flex flex-wrap gap-2">
+        <a href="{{ route('admin.attendances.qr') }}" class="btn-primary">QR Absensi (PNG / PDF)</a>
+    </div>
+
     <form method="GET" class="card mb-4 flex flex-wrap items-end gap-3 p-4">
         <div class="min-w-[12rem] flex-1">
             <label class="form-label" for="date">Tanggal</label>

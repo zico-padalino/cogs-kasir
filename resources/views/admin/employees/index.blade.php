@@ -19,11 +19,12 @@
                     </div>
                     <p class="mt-0.5 font-mono text-xs text-slate-600">{{ $employee->employee_code }}</p>
                     <p class="mt-0.5 text-xs text-slate-500">
-                        {{ $employee->position ?: '—' }}
-                        @if ($employee->department) · {{ $employee->department }} @endif
-                        · Gaji pokok {{ $format::rupiah($employee->base_salary) }}
+                        Gaji pokok {{ $format::rupiah($employee->base_salary) }}
+                        · PIN: {{ \App\Support\KasirPin::hasPin($employee) ? '✓' : 'belum' }}
                         @if ($employee->user)
                             · Akun: {{ $employee->user->email }}
+                        @else
+                            · Tanpa akun login
                         @endif
                         · {{ $employee->hasFaceEnrollment() ? 'Wajah ✓' : 'Wajah belum didaftar' }}
                     </p>

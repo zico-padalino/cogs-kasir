@@ -6,9 +6,10 @@ use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\SalaryController;
 use App\Http\Controllers\Web\Admin\SettingsController;
 use App\Http\Controllers\Web\Admin\UserAccessController;
-use App\Http\Controllers\Web\AttendanceCheckController;
+use App\Http\Controllers\Web\Admin\AttendanceQrController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\EmployeeProfileSetupController;
+use App\Http\Controllers\Web\PublicAttendanceController;
 use App\Http\Controllers\Web\Auth\ModuleHubController;
 use App\Http\Controllers\Web\Auth\PasswordController;
 use App\Http\Controllers\Web\Auth\PinSetupController;
@@ -53,16 +54,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/pin', [PinSetupController::class, 'edit'])->name('pin.edit');
     Route::put('/pin', [PinSetupController::class, 'update'])->name('pin.update');
 
-    Route::get('/attendance/check-in', [AttendanceCheckController::class, 'checkIn'])->name('attendance.check-in');
-    Route::post('/attendance/check-in', [AttendanceCheckController::class, 'storeCheckIn'])->name('attendance.check-in.store');
-    Route::get('/attendance/check-out', [AttendanceCheckController::class, 'checkOut'])->name('attendance.check-out');
-    Route::post('/attendance/check-out', [AttendanceCheckController::class, 'storeCheckOut'])->name('attendance.check-out.store');
+    Route::get('/attendance/check-in', fn () => redirect()->route('attendance.scan'))->name('attendance.check-in');
+    Route::post('/attendance/check-in', fn () => redirect()->route('attendance.scan'))->name('attendance.check-in.store');
+    Route::get('/attendance/check-out', fn () => redirect()->route('attendance.scan'))->name('attendance.check-out');
+    Route::post('/attendance/check-out', fn () => redirect()->route('attendance.scan'))->name('attendance.check-out.store');
 
     Route::get('/employee/profile-setup', [EmployeeProfileSetupController::class, 'edit'])->name('employee.profile.setup');
     Route::put('/employee/profile-setup', [EmployeeProfileSetupController::class, 'update'])->name('employee.profile.setup.update');
 });
 
 Route::redirect('meja/{token}', '/pesan');
+
+Route::get('absensi', [PublicAttendanceController::class, 'show'])->name('attendance.scan');
+Route::post('absensi', [PublicAttendanceController::class, 'store'])->name('attendance.scan.store');
 
 Route::get('pesan', [TableOrderController::class, 'show'])->name('order.menu');
 Route::post('pesan/new-order', [TableOrderController::class, 'newOrder'])->name('order.menu.new');
@@ -82,6 +86,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::post('employees/{employee}/face', [EmployeeController::class, 'enrollFace'])->name('employees.face');
     Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
+    Route::get('attendances/qr', [AttendanceQrController::class, 'show'])->name('attendances.qr');
     Route::post('attendances', [AttendanceController::class, 'store'])->name('attendances.store');
     Route::delete('attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
     Route::get('salaries', [SalaryController::class, 'index'])->name('salaries.index');

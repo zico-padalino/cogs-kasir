@@ -20,8 +20,15 @@ class Employee extends Model
         'base_salary',
         'status',
         'user_id',
+        'pin_hash',
+        'pin_set_at',
         'notes',
         'face_photo_path',
+        'face_descriptor',
+    ];
+
+    protected $hidden = [
+        'pin_hash',
         'face_descriptor',
     ];
 
@@ -32,6 +39,7 @@ class Employee extends Model
             'base_salary' => 'decimal:4',
             'status' => EmployeeStatus::class,
             'face_descriptor' => 'array',
+            'pin_set_at' => 'datetime',
         ];
     }
 
@@ -43,22 +51,17 @@ class Employee extends Model
     }
 
     /**
-     * Nomor telepon wajib sebelum absen/kerja.
+     * Profil karyawan siap dipakai (telepon/jabatan tidak lagi wajib).
      */
     public function isProfileComplete(): bool
     {
-        return filled(trim((string) $this->phone));
+        return true;
     }
 
     /** @return list<string> */
     public function missingProfileFields(): array
     {
-        $missing = [];
-        if (! filled(trim((string) $this->phone))) {
-            $missing[] = 'telepon';
-        }
-
-        return $missing;
+        return [];
     }
 
     public function user(): BelongsTo

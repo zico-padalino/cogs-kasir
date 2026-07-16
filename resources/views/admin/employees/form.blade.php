@@ -4,7 +4,7 @@
 @section('heading', $employee->exists ? 'Edit Karyawan' : 'Tambah Karyawan')
 
 @section('content')
-    <form method="POST" action="{{ $employee->exists ? route('admin.employees.update', $employee) : route('admin.employees.store') }}" class="card max-w-2xl space-y-4">
+    <form method="POST" action="{{ $employee->exists ? route('admin.employees.update', $employee) : route('admin.employees.store') }}" class="card max-w-2xl space-y-4" autocomplete="off">
         @csrf
         @if ($employee->exists)
             @method('PUT')
@@ -19,21 +19,9 @@
                 <label class="form-label" for="name">Nama</label>
                 <input id="name" name="name" class="form-input" value="{{ old('name', $employee->name) }}" required>
             </div>
-            <div>
-                <label class="form-label" for="phone">Telepon</label>
-                <input id="phone" name="phone" class="form-input" value="{{ old('phone', $employee->phone) }}">
-            </div>
-            <div>
-                <label class="form-label" for="email">Email</label>
+            <div class="sm:col-span-2">
+                <label class="form-label" for="email">Email (opsional)</label>
                 <input id="email" type="email" name="email" class="form-input" value="{{ old('email', $employee->email) }}">
-            </div>
-            <div>
-                <label class="form-label" for="position">Jabatan</label>
-                <input id="position" name="position" class="form-input" value="{{ old('position', $employee->position) }}">
-            </div>
-            <div>
-                <label class="form-label" for="department">Departemen</label>
-                <input id="department" name="department" class="form-input" value="{{ old('department', $employee->department) }}">
             </div>
             <div>
                 <label class="form-label" for="hire_date">Tanggal masuk</label>
@@ -53,11 +41,65 @@
             <div>
                 <label class="form-label" for="user_id">Akun login (opsional)</label>
                 <select id="user_id" name="user_id" class="form-input">
-                    <option value="">— Tidak terhubung —</option>
+                    <option value="">— Tidak perlu akun —</option>
                     @foreach ($users as $user)
                         <option value="{{ $user->id }}" @selected((string) old('user_id', $employee->user_id) === (string) $user->id)>{{ $user->name }} ({{ $user->email }})</option>
                     @endforeach
                 </select>
+                <p class="mt-1 text-xs text-slate-500">Hanya jika pegawai juga perlu login ke sistem. PIN kasir tetap wajib tanpa akun.</p>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-brand-100 bg-brand-50/50 p-4 space-y-4">
+            <div>
+                <h2 class="text-sm font-semibold text-brand-900">PIN Kasir <span class="text-red-600">*</span></h2>
+                <p class="mt-1 text-xs text-brand-800/80">
+                    @if ($hasPin ?? false)
+                        PIN sudah aktif. Kosongkan jika tidak ingin mengganti, atau isi PIN baru di bawah.
+                    @else
+                        Wajib. PIN 4–6 digit dipakai membuka kasir (tanpa harus punya akun login).
+                    @endif
+                </p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="form-label" for="pin">PIN (4–6 digit)</label>
+                    <input
+                        id="pin"
+                        type="password"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        name="pin"
+                        class="form-input text-center text-lg tracking-[0.35em] font-bold"
+                        maxlength="6"
+                        minlength="4"
+                        autocomplete="new-password"
+                        value="{{ old('pin') }}"
+                        @required(! ($hasPin ?? false))
+                    >
+                    @error('pin')
+                        <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label class="form-label" for="pin_confirmation">Ulangi PIN</label>
+                    <input
+                        id="pin_confirmation"
+                        type="password"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        name="pin_confirmation"
+                        class="form-input text-center text-lg tracking-[0.35em] font-bold"
+                        maxlength="6"
+                        minlength="4"
+                        autocomplete="new-password"
+                        value="{{ old('pin_confirmation') }}"
+                        @required(! ($hasPin ?? false))
+                    >
+                    @error('pin_confirmation')
+                        <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
         </div>
 

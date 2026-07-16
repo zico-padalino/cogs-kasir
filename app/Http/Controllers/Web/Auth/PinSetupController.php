@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Auth;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Services\AttendanceService;
 use App\Support\KasirPin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,18 +14,19 @@ use Illuminate\View\View;
 
 class PinSetupController extends Controller
 {
-    public function edit(): View
+    public function edit(AttendanceService $attendanceService): View
     {
         $user = auth()->user();
+        $employee = $attendanceService->ensureEmployeeForUser($user);
 
         return view('auth.pin-setup', [
             'layout' => $this->layoutName(),
-            'hasPin' => KasirPin::hasPin($user),
+            'hasPin' => KasirPin::hasPin($employee),
             'canUseKasir' => $user->hasModule(UserRole::Kasir),
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, AttendanceService $attendanceService): RedirectResponse
     {
         $user = $request->user();
 
@@ -51,16 +53,17 @@ class PinSetupController extends Controller
             ]);
         }
 
+        $employee = $attendanceService->ensureEmployeeForUser($user);
+
         $existing = KasirPin::findByPin($validated['pin']);
-        if ($existing && $existing->id !== $user->id) {
+        if ($existing && $existing->id !== $employee->id) {
             throw ValidationException::withMessages([
-                'pin' => 'PIN ini sudah dipakai user lain. Pilih PIN berbeda.',
+                'pin' => 'PIN ini sudah dipakai karyawan lain. Pilih PIN berbeda.',
             ]);
         }
 
-        KasirPin::setPin($user, $validated['pin']);
+        KasirPin::setPin($employee, $validated['pin']);
 
-        // Setelah buat/ubah PIN dari layar unlock, kembalikan ke form PIN agar langsung bisa buka kasir.
         if (! KasirPin::isUnlocked() && $user->hasModule(UserRole::Kasir)) {
             return redirect()
                 ->route('kasir.pin.unlock')

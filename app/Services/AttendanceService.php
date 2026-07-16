@@ -277,7 +277,7 @@ class AttendanceService
         return $distance;
     }
 
-    public function checkIn(Employee $employee, float $lat, float $lng): EmployeeAttendance
+    public function checkIn(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
         if (! $this->canCheckInNow($attendance)) {
@@ -285,6 +285,7 @@ class AttendanceService
         }
 
         $this->assertWithinRadius($lat, $lng);
+        $photoPath = $photoBase64 ? $this->storePhoto($employee, $photoBase64, 'in') : null;
 
         $settings = $this->settings();
         $clockIn = $this->todayAt($settings['clock_in']);
@@ -300,7 +301,7 @@ class AttendanceService
                 'check_in' => now()->format('H:i:s'),
                 'check_in_lat' => $lat,
                 'check_in_lng' => $lng,
-                'check_in_photo_path' => null,
+                'check_in_photo_path' => $photoPath,
                 'check_in_face_distance' => null,
                 'status' => AttendanceStatus::Hadir,
                 'is_late' => $isLate,
@@ -309,7 +310,7 @@ class AttendanceService
         );
     }
 
-    public function checkOut(Employee $employee, float $lat, float $lng): EmployeeAttendance
+    public function checkOut(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
         if (! $this->canCheckOutNow($attendance)) {
@@ -317,16 +318,66 @@ class AttendanceService
         }
 
         $this->assertWithinRadius($lat, $lng);
+        $photoPath = $photoBase64 ? $this->storePhoto($employee, $photoBase64, 'out') : null;
 
         $attendance->update([
             'check_out' => now()->format('H:i:s'),
             'check_out_lat' => $lat,
             'check_out_lng' => $lng,
-            'check_out_photo_path' => null,
+            'check_out_photo_path' => $photoPath,
             'check_out_face_distance' => null,
         ]);
 
         return $attendance->fresh();
+    }
+
+    /**
+     * Status absensi hari ini untuk halaman scan publik.
+     *
+     * @return 'check_in'|'check_out'|'done'|'closed'
+     */
+    public function actionForEmployee(Employee $employee): string
+    {
+        $attendance = $this->todayAttendance($employee);
+
+        if ($this->canCheckOutNow($attendance)) {
+            return 'check_out';
+        }
+
+        if ($this->canCheckInNow($attendance)) {
+            return 'check_in';
+        }
+
+        if ($attendance?->check_in && $attendance?->check_out) {
+            return 'done';
+        }
+
+        if ($attendance?->check_in) {
+            return 'closed';
+        }
+
+        return 'closed';
+    }
+
+    /** @return list<array{id:int,name:string,code:string,action:string}> */
+    public function activeEmployeesForScan(): array
+    {
+        return Employee::query()
+            ->where('status', EmployeeStatus::Active)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Employee $employee) => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'code' => $employee->employee_code,
+                'action' => $this->actionForEmployee($employee),
+            ])
+            ->all();
+    }
+
+    public function publicScanUrl(): string
+    {
+        return url('/absensi');
     }
 
     /**

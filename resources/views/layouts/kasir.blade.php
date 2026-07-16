@@ -103,7 +103,7 @@
 
                 <div class="border-t border-slate-800 px-4 py-4">
                     <div class="mb-3 rounded-lg bg-slate-800/80 px-3 py-2">
-                        @php $kasirOperator = \App\Support\KasirPin::operator(); @endphp
+                        @php $kasirOperator = \App\Support\KasirPin::operatorEmployee(); @endphp
                         <p class="truncate text-xs font-medium text-white">{{ $kasirOperator?->name ?? auth()->user()->name }}</p>
                         <p class="truncate text-[11px] text-slate-400">
                             @if ($kasirOperator)
