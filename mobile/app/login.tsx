@@ -55,7 +55,11 @@ export default function LoginScreen() {
       await login({ email, password, module });
       // Redirect ditangani oleh RootNavigator berdasarkan role.
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal masuk.');
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Gagal masuk. Pastikan API Laravel berjalan dan EXPO_PUBLIC_API_URL benar.';
+      setError(message);
     } finally {
       setSubmitting(false);
     }

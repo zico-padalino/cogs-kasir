@@ -1,196 +1,117 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Badge, EmptyState, ScreenHeader } from '@/components/cogs-ui';
-import { getLocalOrderItems, getOrder } from '@/local-db/repository';
-import type { LocalOrder, LocalOrderItem, OrderStatus } from '@/local-db/types';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { kasirApi } from '@/api/kasir';
+import type { PosOrder } from '@/api/types';
+import { asApiError } from '@/auth';
+import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
 
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  open: 'Draft',
-  submitted: 'Menunggu Konfirmasi',
-  confirmed: 'Siap Bayar',
-  paid: 'Lunas',
-  cancelled: 'Batal',
-};
-
-const STATUS_TONE: Record<OrderStatus, 'slate' | 'amber' | 'brand' | 'green'> = {
-  open: 'slate',
-  submitted: 'amber',
-  confirmed: 'brand',
-  paid: 'green',
-  cancelled: 'slate',
-};
-
-const PAYMENT_LABEL: Record<string, string> = {
-  cash: 'Tunai',
-  qris: 'QRIS',
-  transfer: 'Transfer',
-  unpaid: 'Belum dibayar',
-};
-
 export default function OrderDetailScreen() {
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const orderId = Number(id);
-  const [order, setOrder] = useState<LocalOrder | null>(null);
-  const [items, setItems] = useState<LocalOrderItem[]>([]);
+  const router = useRouter();
+  const [order, setOrder] = useState<PosOrder | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    const [nextOrder, nextItems] = await Promise.all([getOrder(orderId), getLocalOrderItems(orderId)]);
-    setOrder(nextOrder);
-    setItems(nextItems);
-  }, [orderId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
-
-  if (!order) {
-    return (
-      <View style={styles.root}>
-        <ScreenHeader title="Detail Pesanan" />
-        <View style={{ padding: spacing.lg }}>
-          <EmptyState icon="🔍" title="Pesanan tidak ditemukan" />
-        </View>
-      </View>
-    );
-  }
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await kasirApi.order(Number(id));
+        setOrder(res.data);
+      } catch (err) {
+        if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id, router]);
 
   return (
-    <View style={styles.root}>
-      <ScreenHeader title={`Pesanan #${order.order_number}`} subtitle="Struk & detail" />
-      <ScrollView
-        contentContainerStyle={{
-          padding: spacing.lg,
-          paddingBottom: insets.bottom + spacing.xxl,
-          gap: spacing.lg,
-        }}
-      >
-        <View style={styles.struk}>
-          <View style={styles.strukHead}>
-            <Text style={styles.shopName}>COGS Sederhana</Text>
-            <Text style={styles.shopMeta}>Kasir POS · offline</Text>
+    <AppScaffold moduleType="kasir" title="Detail Pesanan" subtitle={order ? `#${order.order_number}` : ''}>
+      {loading || !order ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.brand600} />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+          <View style={styles.card}>
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{order.status_label}</Text>
+            <Text style={styles.label}>Tipe</Text>
+            <Text style={styles.value}>
+              {order.order_type_icon} {order.order_type_label}
+            </Text>
+            <Text style={styles.label}>Pelanggan</Text>
+            <Text style={styles.value}>{order.customer_note || '-'}</Text>
+            <Text style={styles.label}>Kasir</Text>
+            <Text style={styles.value}>{order.cashier_name || '-'}</Text>
+            <Text style={styles.label}>Pembayaran</Text>
+            <Text style={styles.value}>{order.payment_method_label || '-'}</Text>
           </View>
 
-          <View style={styles.metaGrid}>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>No. Pesanan</Text>
-              <Text style={styles.metaValue}>#{order.order_number}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Waktu</Text>
-              <Text style={styles.metaValue}>{new Date(order.created_at).toLocaleString('id-ID')}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Pemesan</Text>
-              <Text style={styles.metaValue}>{order.customer_name || 'Tanpa nama'}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Tipe</Text>
-              <Text style={styles.metaValue}>
-                {order.order_type === 'dine_in' ? '🪑 Dine In' : '🥡 Take Away'}
-                {order.table_label ? ` · ${order.table_label}` : ''}
+          {(order.items || []).map((item) => (
+            <View key={item.id} style={styles.card}>
+              <Text style={styles.itemName}>{item.product_name}</Text>
+              <Text style={styles.meta}>
+                {item.quantity} × {formatRupiah(item.unit_price)}
               </Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Sumber</Text>
-              <Text style={styles.metaValue}>{order.source === 'online' ? 'Online' : 'Kasir'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.badgeRow}>
-            <Badge label={STATUS_LABEL[order.status]} tone={STATUS_TONE[order.status]} />
-          </View>
-
-          <View style={styles.divider} />
-
-          {items.map((item) => (
-            <View key={item.id} style={styles.itemRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemName}>{item.product_name}</Text>
-                <Text style={styles.itemMeta}>
-                  {item.quantity} × {formatRupiah(item.unit_price)}
-                </Text>
-              </View>
-              <Text style={styles.itemTotal}>{formatRupiah(item.line_total)}</Text>
+              {item.notes ? <Text style={styles.meta}>{item.notes}</Text> : null}
+              <Text style={styles.total}>{formatRupiah(item.line_total)}</Text>
             </View>
           ))}
 
-          <View style={styles.divider} />
-
-          <View style={styles.sumRow}>
-            <Text style={styles.sumLabel}>Subtotal</Text>
-            <Text style={styles.sumValue}>{formatRupiah(order.subtotal)}</Text>
-          </View>
-          <View style={styles.sumRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{formatRupiah(order.total)}</Text>
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <Text style={styles.meta}>Subtotal</Text>
+              <Text>{formatRupiah(order.subtotal)}</Text>
+            </View>
+            {order.discount_amount > 0 ? (
+              <View style={styles.row}>
+                <Text style={styles.meta}>Diskon</Text>
+                <Text>- {formatRupiah(order.discount_amount)}</Text>
+              </View>
+            ) : null}
+            <View style={styles.row}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.total}>{formatRupiah(order.total)}</Text>
+            </View>
           </View>
 
           {order.status === 'paid' ? (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.sumRow}>
-                <Text style={styles.sumLabel}>Metode Bayar</Text>
-                <Text style={styles.sumValue}>{PAYMENT_LABEL[order.payment_method] ?? order.payment_method}</Text>
-              </View>
-              {order.amount_received != null ? (
-                <>
-                  <View style={styles.sumRow}>
-                    <Text style={styles.sumLabel}>Uang Diterima</Text>
-                    <Text style={styles.sumValue}>{formatRupiah(order.amount_received)}</Text>
-                  </View>
-                  <View style={styles.sumRow}>
-                    <Text style={styles.sumLabel}>Kembalian</Text>
-                    <Text style={styles.sumValue}>{formatRupiah(order.change_amount ?? 0)}</Text>
-                  </View>
-                </>
-              ) : null}
-            </>
+            <Pressable onPress={() => router.push(`/kasir/receipt?id=${order.id}` as never)} style={styles.btn}>
+              <Text style={styles.btnText}>Lihat Struk</Text>
+            </Pressable>
           ) : null}
-
-          <View style={styles.footerNote}>
-            <Text style={styles.footerNoteText}>Terima kasih 🙏</Text>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      )}
+    </AppScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.slate100 },
-  struk: {
-    borderRadius: radius.xl,
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    gap: spacing.md,
+    padding: spacing.md,
+    gap: 4,
   },
-  strukHead: { alignItems: 'center', gap: 2 },
-  shopName: { fontSize: 18, color: colors.slate900, ...font('700') },
-  shopMeta: { fontSize: 12, color: colors.slate500 },
-  metaGrid: { gap: spacing.xs },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  metaLabel: { fontSize: 13, color: colors.slate500 },
-  metaValue: { fontSize: 13, color: colors.slate900, ...font('600') },
-  badgeRow: { flexDirection: 'row', gap: spacing.xs },
-  divider: { height: 1, backgroundColor: colors.slate200 },
-  itemRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  itemName: { fontSize: 14, color: colors.slate900, ...font('600') },
-  itemMeta: { fontSize: 12, color: colors.slate500, marginTop: 2 },
-  itemTotal: { fontSize: 14, color: colors.slate900, ...font('700') },
-  sumRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  sumLabel: { fontSize: 13, color: colors.slate600 },
-  sumValue: { fontSize: 13, color: colors.slate900, ...font('600') },
-  totalLabel: { fontSize: 15, color: colors.slate900, ...font('700') },
-  totalValue: { fontSize: 18, color: colors.brand600, ...font('700') },
-  footerNote: { alignItems: 'center', paddingTop: spacing.sm },
-  footerNoteText: { fontSize: 13, color: colors.slate500 },
+  label: { fontSize: 11, color: colors.slate500, marginTop: 6, textTransform: 'uppercase', ...font('600') },
+  value: { fontSize: 14, color: colors.slate900, ...font('500') },
+  itemName: { fontSize: 15, color: colors.slate900, ...font('700') },
+  meta: { fontSize: 12, color: colors.slate500 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  totalLabel: { fontSize: 15, ...font('700') },
+  total: { fontSize: 15, color: colors.brand700, ...font('700') },
+  btn: {
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnText: { color: colors.white, ...font('700') },
 });

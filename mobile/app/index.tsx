@@ -1,10 +1,10 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { ROLE_META, useAuth } from '@/auth';
+import { useAuth } from '@/auth';
 import { colors } from '@/theme';
 
 export default function IndexRedirect() {
-  const { user, loading } = useAuth();
+  const { user, activeModule, loading, pin } = useAuth();
 
   if (loading) {
     return (
@@ -14,7 +14,15 @@ export default function IndexRedirect() {
     );
   }
 
-  return <Redirect href={user ? ROLE_META[user.role].homeRoute : '/login'} />;
+  if (!user || !activeModule) {
+    return <Redirect href="/login" />;
+  }
+
+  if (activeModule === 'kasir') {
+    return <Redirect href={(pin?.unlocked ? '/kasir' : '/kasir/pin') as never} />;
+  }
+
+  return <Redirect href="/cogs" />;
 }
 
 const styles = StyleSheet.create({

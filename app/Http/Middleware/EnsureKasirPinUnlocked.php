@@ -19,14 +19,16 @@ class EnsureKasirPinUnlocked
 
         $wantsJson = $request->expectsJson()
             || $request->ajax()
+            || $request->is('api/*')
             || $request->routeIs('kasir.pending.poll', 'kasir.pin.status');
 
         if ($wantsJson) {
             return response()->json([
                 'message' => 'Sesi PIN habis. Masukkan PIN lagi.',
+                'code' => 'PIN_LOCKED',
                 'locked' => true,
                 'unlocked' => false,
-                'redirect' => route('kasir.pin.unlock'),
+                'redirect' => $request->is('api/*') ? null : route('kasir.pin.unlock'),
                 'remaining_seconds' => 0,
             ], 423);
         }

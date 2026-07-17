@@ -17,11 +17,10 @@ import { applyGlobalFont } from '@/theme/applyGlobalFont';
 applyGlobalFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// Rute yang boleh diakses tanpa login.
 const PUBLIC_SEGMENTS = new Set(['login', 'pesan-online']);
 
 function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, activeModule, loading, pin } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -31,28 +30,37 @@ function RootNavigator() {
     }
 
     const first = segments[0] as string | undefined;
+    const second = segments[1] as string | undefined;
     const isPublic = first !== undefined && PUBLIC_SEGMENTS.has(first);
 
-    if (!user) {
+    if (!user || !activeModule) {
       if (!isPublic) {
         router.replace('/login');
       }
       return;
     }
 
-    // Sudah login: arahkan dari login/root ke beranda modul sesuai role.
     if (first === undefined || first === 'login') {
-      router.replace(ROLE_META[user.role].homeRoute);
+      if (activeModule === 'kasir') {
+        router.replace((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
+      } else {
+        router.replace(ROLE_META.cogs.homeRoute);
+      }
       return;
     }
 
-    // Cegah lintas-modul (mirror middleware role Laravel).
-    if (first === 'cogs' && user.role !== 'cogs') {
-      router.replace('/kasir');
-    } else if (first === 'kasir' && user.role !== 'kasir') {
+    if (activeModule === 'kasir') {
+      if (first === 'cogs') {
+        router.replace((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
+        return;
+      }
+      if (first === 'kasir' && second !== 'pin' && second !== 'attendance' && !pin?.unlocked) {
+        router.replace('/kasir/pin' as never);
+      }
+    } else if (first === 'kasir') {
       router.replace('/cogs');
     }
-  }, [user, loading, segments, router]);
+  }, [user, activeModule, loading, segments, router, pin?.unlocked]);
 
   return (
     <Stack

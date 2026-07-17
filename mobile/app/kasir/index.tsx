@@ -1,216 +1,381 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppDrawer } from '@/components/AppScaffold';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  addProductToLocalCart,
-  checkoutLocalCart,
-  confirmOnlineOrder,
-  getIncomingOnlineOrders,
-  getLocalCart,
-  getLocalOrderItems,
-  getLocalProducts,
-  listTables,
-  payOnlineOrder,
-  removeLocalCartItem,
-  updateLocalCartQuantity,
-} from '@/local-db/repository';
-import type {
-  LocalCartItem,
-  LocalOrder,
-  LocalOrderItem,
-  LocalProduct,
-  LocalTable,
-  OrderType,
-  PaymentMethod,
-} from '@/local-db/types';
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { kasirApi, pinApi } from '@/api/kasir';
+import type { MenuProduct, PosOrder, PosOrder as Order } from '@/api/types';
+import { asApiError, useAuth } from '@/auth';
+import { AppDrawer } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
 
-type TabKey = 'menu' | 'cart' | 'online';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  minuman: 'Minuman',
-  makanan: 'Makanan',
-  pastry: 'Pastry',
-  snack: 'Snack',
-  lainnya: 'Lainnya',
-};
-
-const PAYMENT_LABEL: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  qris: 'QRIS',
-  transfer: 'Transfer',
-};
-
-const ORDER_TYPES: { value: OrderType; label: string; icon: string; hint: string }[] = [
-  { value: 'dine_in', label: 'Dine In', icon: '🪑', hint: 'Makan di tempat' },
-  { value: 'takeaway', label: 'Take Away', icon: '🥡', hint: 'Bawa pulang' },
-];
+type TabKey = 'menu' | 'cart';
+type PayMethod = 'cash' | 'qris' | 'transfer';
 
 export default function KasirPosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { setPin, pin } = useAuth();
+
   const [tab, setTab] = useState<TabKey>('menu');
-  const [products, setProducts] = useState<LocalProduct[]>([]);
-  const [cart, setCart] = useState<LocalCartItem[]>([]);
-  const [tables, setTables] = useState<LocalTable[]>([]);
-  const [onlineOrders, setOnlineOrders] = useState<LocalOrder[]>([]);
-  const [onlineItems, setOnlineItems] = useState<Record<number, LocalOrderItem[]>>({});
-  const [customerName, setCustomerName] = useState('');
-  const [orderType, setOrderType] = useState<OrderType>('takeaway');
-  const [tableLabel, setTableLabel] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [amountReceived, setAmountReceived] = useState('');
-  const [payingId, setPayingId] = useState<number | null>(null);
-  const [onlinePayMethod, setOnlinePayMethod] = useState<PaymentMethod>('cash');
-  const [onlineAmount, setOnlineAmount] = useState('');
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [products, setProducts] = useState<MenuProduct[]>([]);
+  const [categoryLabels, setCategoryLabels] = useState<Record<string, string>>({});
+  const [categories, setCategories] = useState<string[]>([]);
+  const [category, setCategory] = useState<string | 'all'>('all');
+  const [search, setSearch] = useState('');
+  const [order, setOrder] = useState<Order | null>(null);
+  const [pending, setPending] = useState<PosOrder[]>([]);
+  const [shopName, setShopName] = useState('Kasir');
+  const [pollMs, setPollMs] = useState(5000);
+  const [autoLoad, setAutoLoad] = useState(true);
+
+  const [addProduct, setAddProduct] = useState<MenuProduct | null>(null);
+  const [qty, setQty] = useState(1);
+  const [notes, setNotes] = useState('');
+  const [addonIds, setAddonIds] = useState<number[]>([]);
+  const [savingItem, setSavingItem] = useState(false);
+
+  const [payOpen, setPayOpen] = useState(false);
+  const [payMethod, setPayMethod] = useState<PayMethod>('cash');
+  const [amountReceived, setAmountReceived] = useState('');
+  const [proofUri, setProofUri] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+
+  const [discountType, setDiscountType] = useState<'amount' | 'percent' | null>(null);
+  const [discountValue, setDiscountValue] = useState('');
+  const [customerNote, setCustomerNote] = useState('');
+  const [orderType, setOrderType] = useState('takeaway');
+  const [orderBarOpen, setOrderBarOpen] = useState(false);
+
+  const knownPending = useRef<Set<number>>(new Set());
+  const payOpenRef = useRef(false);
+  payOpenRef.current = payOpen;
+
+  const applyOrder = useCallback((next: Order) => {
+    setOrder(next);
+    setCustomerNote(next.customer_note ?? '');
+    setOrderType(next.order_type || 'takeaway');
+    setDiscountType((next.discount_type as 'amount' | 'percent' | null) ?? null);
+    setDiscountValue(next.discount_value ? String(next.discount_value) : '');
+  }, []);
+
+  const handleApiError = useCallback(
+    (err: unknown) => {
+      const apiErr = asApiError(err);
+      if (apiErr.status === 423 || apiErr.code === 'PIN_LOCKED') {
+        setPin({ unlocked: false, expires_at: null, server_now: Date.now() / 1000, remaining_seconds: 0 });
+        router.replace('/kasir/pin' as never);
+        return;
+      }
+      if (apiErr.code === 'ATTENDANCE_REQUIRED') {
+        Alert.alert('Absensi diperlukan', apiErr.message);
+        return;
+      }
+      Alert.alert('Gagal', apiErr.message || 'Terjadi kesalahan.');
+    },
+    [router, setPin],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
-
     try {
-      const [nextProducts, nextCart, nextOnline, nextTables] = await Promise.all([
-        getLocalProducts(),
-        getLocalCart(),
-        getIncomingOnlineOrders(),
-        listTables(),
-      ]);
-      setProducts(nextProducts);
-      setCart(nextCart);
-      setOnlineOrders(nextOnline);
-      setTables(nextTables.filter((table) => table.is_active === 1));
-
-      const itemEntries = await Promise.all(
-        nextOnline.map(async (order) => [order.id, await getLocalOrderItems(order.id)] as const),
-      );
-      setOnlineItems(Object.fromEntries(itemEntries));
+      const res = await kasirApi.pos();
+      const data = res.data;
+      setProducts(data.products);
+      setCategories(data.menu_categories);
+      setCategoryLabels(data.menu_category_labels || {});
+      applyOrder(data.order);
+      setPending(data.pending_orders || []);
+      setShopName(data.shop_name);
+      setPollMs((data.poll_interval_seconds || 5) * 1000);
+      setAutoLoad(data.auto_load_new_order);
+      setPin(data.pin);
+      knownPending.current = new Set((data.pending_orders || []).map((o) => o.id));
+    } catch (err) {
+      handleApiError(err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyOrder, handleApiError, setPin]);
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
+      void refresh();
     }, [refresh]),
   );
 
-  const total = useMemo(() => cart.reduce((sum, item) => sum + item.line_total, 0), [cart]);
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const res = await kasirApi.poll();
+        const data = res.data;
+        setPin({
+          unlocked: data.unlocked,
+          expires_at: data.expires_at,
+          server_now: data.server_now,
+          remaining_seconds: data.remaining_seconds,
+          operator_name: data.operator_name,
+        });
+        if (!data.unlocked) {
+          router.replace('/kasir/pin' as never);
+          return;
+        }
+        setPending(data.orders || []);
+        const ids = data.order_ids || [];
+        const newest = ids.find((id) => !knownPending.current.has(id));
+        knownPending.current = new Set(ids);
+        if (newest && autoLoad && !payOpenRef.current) {
+          const activeHasItems = (order?.items?.length ?? 0) > 0 && order?.source === 'kasir';
+          if (!activeHasItems) {
+            const loaded = await kasirApi.loadOrder(newest);
+            applyOrder(loaded.data);
+            setTab('cart');
+          }
+        }
+      } catch (err) {
+        const apiErr = asApiError(err);
+        if (apiErr.status === 423) {
+          router.replace('/kasir/pin' as never);
+        }
+      }
+    }, pollMs);
 
-  const changeAmount = useMemo(() => {
-    if (paymentMethod !== 'cash') {
-      return 0;
-    }
+    return () => clearInterval(timer);
+  }, [pollMs, autoLoad, applyOrder, order?.items?.length, order?.source, router, setPin]);
 
-    return Math.max(0, parseRupiahInput(amountReceived) - total);
-  }, [amountReceived, paymentMethod, total]);
+  useEffect(() => {
+    const statusTimer = setInterval(async () => {
+      try {
+        const res = await pinApi.status();
+        setPin(res.data);
+        if (!res.data.unlocked) {
+          router.replace('/kasir/pin' as never);
+        }
+      } catch {
+        // ignore
+      }
+    }, 20000);
+    return () => clearInterval(statusTimer);
+  }, [router, setPin]);
 
-  const categories = useMemo(
-    () => [...new Set(products.map((product) => product.category))],
-    [products],
-  );
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (category !== 'all' && p.menu_category !== category) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+    });
+  }, [products, category, search]);
 
-  const onlineChange = useMemo(() => {
-    if (onlinePayMethod !== 'cash' || payingId === null) {
-      return 0;
-    }
+  const itemCount = order?.items?.length ?? 0;
+  const total = order?.total ?? 0;
 
-    const order = onlineOrders.find((entry) => entry.id === payingId);
-
-    return order ? Math.max(0, parseRupiahInput(onlineAmount) - order.total) : 0;
-  }, [onlineAmount, onlinePayMethod, onlineOrders, payingId]);
-
-  const startPaying = (order: LocalOrder) => {
-    setPayingId(order.id);
-    setOnlinePayMethod('cash');
-    setOnlineAmount('');
+  const openAdd = (product: MenuProduct) => {
+    setAddProduct(product);
+    setQty(1);
+    setNotes('');
+    setAddonIds([]);
   };
 
-  const handleConfirmOnline = async (order: LocalOrder) => {
+  const submitAdd = async () => {
+    if (!addProduct) return;
+    setSavingItem(true);
     try {
-      await confirmOnlineOrder(order.id);
-      await refresh();
-      startPaying(order);
-    } catch (error) {
-      Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
-    }
-  };
-
-  const handlePayOnline = async (order: LocalOrder) => {
-    try {
-      await payOnlineOrder(order.id, {
-        paymentMethod: onlinePayMethod,
-        amountReceived: onlinePayMethod === 'cash' ? parseRupiahInput(onlineAmount) : undefined,
+      const res = await kasirApi.addItem({
+        product_id: addProduct.id,
+        quantity: qty,
+        notes: notes.trim() || undefined,
+        addon_ids: addonIds,
       });
-
-      setPayingId(null);
-      setOnlineAmount('');
-      setOnlinePayMethod('cash');
-      await refresh();
-
-      Alert.alert('Pembayaran berhasil', `Pesanan online #${order.order_number} sudah dibayar.`, [
-        { text: 'Lihat Struk', onPress: () => router.push({ pathname: '/kasir/order-detail', params: { id: String(order.id) } }) },
-        { text: 'OK' },
-      ]);
-    } catch (error) {
-      Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
+      applyOrder(res.data);
+      setAddProduct(null);
+      setTab('cart');
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setSavingItem(false);
     }
   };
 
-  const handleAdd = async (productId: number) => {
-    await addProductToLocalCart(productId, 1);
-    await refresh();
-    setTab('cart');
+  const saveOrderContext = async (nextType?: string, nextNote?: string) => {
+    try {
+      const res = await kasirApi.updateOrder({
+        order_type: nextType ?? orderType,
+        customer_note: nextNote ?? customerNote,
+      });
+      applyOrder(res.data);
+    } catch (err) {
+      handleApiError(err);
+    }
   };
 
-  const handleCheckout = async () => {
+  const saveDiscount = async (type: 'amount' | 'percent' | null, value: string) => {
     try {
-      const order = await checkoutLocalCart({
-        customerName,
-        orderType,
-        tableLabel: orderType === 'dine_in' ? tableLabel : null,
-        paymentMethod,
-        amountReceived: paymentMethod === 'cash' ? parseRupiahInput(amountReceived) : undefined,
+      const res = await kasirApi.updateDiscount({
+        discount_type: type,
+        discount_value: value ? Number(value) : 0,
       });
+      applyOrder(res.data);
+    } catch (err) {
+      handleApiError(err);
+    }
+  };
 
-      setCustomerName('');
+  const changeQty = async (itemId: number, nextQty: number) => {
+    try {
+      if (nextQty <= 0) {
+        const res = await kasirApi.removeItem(itemId);
+        if (res.data) applyOrder(res.data);
+        return;
+      }
+      const res = await kasirApi.updateItem(itemId, { quantity: nextQty });
+      if (res.data) applyOrder(res.data);
+    } catch (err) {
+      handleApiError(err);
+    }
+  };
+
+  const pickProof = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setProofUri(result.assets[0].uri);
+    }
+  };
+
+  const submitPay = async () => {
+    if (!order) return;
+    if ((payMethod === 'qris' || payMethod === 'transfer') && !proofUri) {
+      Alert.alert('Bukti wajib', 'Upload foto bukti pembayaran untuk QRIS / Transfer.');
+      return;
+    }
+    if (payMethod === 'cash') {
+      const received = parseRupiahInput(amountReceived);
+      if (received < total) {
+        Alert.alert('Nominal kurang', 'Uang diterima harus minimal total belanja.');
+        return;
+      }
+    }
+
+    setPaying(true);
+    try {
+      const form = new FormData();
+      form.append('payment_method', payMethod);
+      if (payMethod === 'cash') {
+        form.append('amount_received', String(parseRupiahInput(amountReceived)));
+      }
+      if (proofUri) {
+        form.append('payment_proof', {
+          uri: proofUri,
+          name: 'proof.jpg',
+          type: 'image/jpeg',
+        } as unknown as Blob);
+      }
+      const res = await kasirApi.pay(form);
+      setPayOpen(false);
+      setProofUri(null);
       setAmountReceived('');
-      setPaymentMethod('cash');
-      setOrderType('takeaway');
-      setTableLabel(null);
-      await refresh();
-      setTab('menu');
-
-      Alert.alert('Pembayaran berhasil', `Pesanan #${order.order_number} tersimpan di perangkat.`, [
-        { text: 'Lihat Struk', onPress: () => router.push({ pathname: '/kasir/order-detail', params: { id: String(order.id) } }) },
-        { text: 'OK' },
-      ]);
-    } catch (error) {
-      Alert.alert('Gagal', error instanceof Error ? error.message : 'Terjadi kesalahan.');
+      router.push(`/kasir/receipt?id=${res.data.id}` as never);
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setPaying(false);
     }
   };
+
+  const cashChange = useMemo(() => {
+    if (payMethod !== 'cash') return 0;
+    const received = parseRupiahInput(amountReceived);
+    return Math.max(0, received - total);
+  }, [amountReceived, payMethod, total]);
+
+  if (loading && !order) {
+    return (
+      <View style={[styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator color={colors.brand600} size="large" />
+        <Text style={styles.muted}>Memuat POS…</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
-      <View style={[styles.toolbar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => setDrawerOpen(true)} style={styles.iconBtn} hitSlop={8}>
+      <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
+        <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn}>
           <View style={styles.menuLine} />
           <View style={styles.menuLine} />
           <View style={styles.menuLine} />
         </Pressable>
-        <View style={styles.toolbarCopy}>
-          <Text style={styles.toolbarTitle}>Point of Sale</Text>
-          <Text style={styles.toolbarMeta}>Modul Kasir · offline</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.topTitle}>{shopName}</Text>
+          <Text style={styles.topSub}>
+            #{order?.order_number ?? '-'} · {order?.order_type_icon} {order?.order_type_label || orderType}
+            {pin?.operator_name ? ` · ${pin.operator_name}` : ''}
+          </Text>
         </View>
-        <Pressable onPress={() => router.push('/kasir/orders')} style={styles.navChip}>
-          <Text style={styles.navChipText}>🧾</Text>
+        <Pressable onPress={() => setOrderBarOpen(true)} style={styles.chipBtn}>
+          <Text style={styles.chipText}>Info</Text>
         </Pressable>
       </View>
-      <AppDrawer moduleType="kasir" visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      {pending.length > 0 ? (
+        <View style={styles.pendingBanner}>
+          <Text style={styles.pendingTitle}>Pesanan online ({pending.length})</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {pending.map((p) => (
+              <View key={p.id} style={styles.pendingCard}>
+                <Text style={styles.pendingNo}>#{p.order_number}</Text>
+                <Text style={styles.pendingMeta}>{formatRupiah(p.total)}</Text>
+                <View style={styles.pendingActions}>
+                  <Pressable
+                    onPress={async () => {
+                      try {
+                        const res = await kasirApi.loadOrder(p.id);
+                        applyOrder(res.data);
+                        setTab('cart');
+                      } catch (err) {
+                        handleApiError(err);
+                      }
+                    }}
+                    style={styles.pendingLoad}
+                  >
+                    <Text style={styles.pendingLoadText}>Muat</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={async () => {
+                      try {
+                        await kasirApi.cancelPending(p.id);
+                        await refresh();
+                      } catch (err) {
+                        handleApiError(err);
+                      }
+                    }}
+                  >
+                    <Text style={styles.pendingCancel}>Hapus</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <View style={styles.tabs}>
         <Pressable onPress={() => setTab('menu')} style={[styles.tab, tab === 'menu' && styles.tabActive]}>
@@ -218,654 +383,479 @@ export default function KasirPosScreen() {
         </Pressable>
         <Pressable onPress={() => setTab('cart')} style={[styles.tab, tab === 'cart' && styles.tabActive]}>
           <Text style={[styles.tabText, tab === 'cart' && styles.tabTextActive]}>
-            🧾 Kasir{cart.length > 0 ? ` (${cart.length})` : ''}
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => setTab('online')} style={[styles.tab, tab === 'online' && styles.tabActive]}>
-          <Text style={[styles.tabText, tab === 'online' && styles.tabTextActive]}>
-            🛎️ Online{onlineOrders.length > 0 ? ` (${onlineOrders.length})` : ''}
+            🧾 Pesanan{itemCount ? ` (${itemCount})` : ''}
           </Text>
         </Pressable>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingWrap}>
-          <Text style={styles.loadingText}>Memuat data lokal…</Text>
+      {tab === 'menu' ? (
+        <View style={{ flex: 1 }}>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Cari menu…"
+            placeholderTextColor={colors.slate400}
+            style={styles.search}
+          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catRow} contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.lg }}>
+            <Pressable onPress={() => setCategory('all')} style={[styles.catChip, category === 'all' && styles.catChipOn]}>
+              <Text style={[styles.catChipText, category === 'all' && styles.catChipTextOn]}>Semua</Text>
+            </Pressable>
+            {categories.map((slug) => (
+              <Pressable key={slug} onPress={() => setCategory(slug)} style={[styles.catChip, category === slug && styles.catChipOn]}>
+                <Text style={[styles.catChipText, category === slug && styles.catChipTextOn]}>
+                  {categoryLabels[slug] || slug}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <FlatList
+            data={filteredProducts}
+            keyExtractor={(item) => String(item.id)}
+            numColumns={2}
+            contentContainerStyle={{ padding: spacing.md, paddingBottom: 120, gap: spacing.sm }}
+            columnWrapperStyle={{ gap: spacing.sm }}
+            renderItem={({ item }) => (
+              <Pressable onPress={() => openAdd(item)} style={styles.productCard}>
+                <Image source={{ uri: item.image_url }} style={styles.productImage} />
+                <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+                <Text style={styles.productPrice}>{formatRupiah(item.selling_price)}</Text>
+              </Pressable>
+            )}
+            ListEmptyComponent={<Text style={styles.muted}>Tidak ada menu.</Text>}
+          />
         </View>
-      ) : tab === 'menu' ? (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[
-            styles.menuContent,
-            { paddingBottom: cart.length > 0 ? 96 + insets.bottom : insets.bottom + spacing.lg },
-          ]}
-        >
-          {categories.map((category) => (
-            <View key={category} style={styles.categoryBlock}>
-              <Text style={styles.categoryTitle}>{CATEGORY_LABELS[category] ?? category}</Text>
-              {products
-                .filter((product) => product.category === category)
-                .map((product) => (
-                  <Pressable
-                    key={product.id}
-                    onPress={() => handleAdd(product.id)}
-                    style={({ pressed }) => [styles.productCard, pressed && styles.pressed]}
-                  >
-                    <View style={styles.productEmojiWrap}>
-                      <Text style={styles.productEmoji}>{product.emoji}</Text>
-                    </View>
-                    <View style={styles.productCopy}>
-                      <Text style={styles.productName}>{product.name}</Text>
-                      <Text style={styles.productPrice}>{formatRupiah(product.price)}</Text>
-                    </View>
-                    <Text style={styles.productAdd}>+</Text>
-                  </Pressable>
-                ))}
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 140, gap: spacing.md }}>
+          {(order?.items || []).map((item) => (
+            <View key={item.id} style={styles.cartItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cartName}>{item.product_name}</Text>
+                {item.notes ? <Text style={styles.cartNotes}>{item.notes}</Text> : null}
+                <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
+              </View>
+              <View style={styles.qtyRow}>
+                <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
+                  <Text style={styles.qtyBtnText}>−</Text>
+                </Pressable>
+                <Text style={styles.qtyVal}>{item.quantity}</Text>
+                <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+                  <Text style={styles.qtyBtnText}>+</Text>
+                </Pressable>
+              </View>
             </View>
           ))}
-        </ScrollView>
-      ) : tab === 'cart' ? (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.cartContent, { paddingBottom: insets.bottom + spacing.xxl }]}
-        >
-          <View style={styles.receiptCard}>
-            <View style={styles.receiptHead}>
-              <Text style={styles.receiptTitle}>Pesanan</Text>
-              <Text style={styles.receiptMeta}>{cart.length} item · mode lokal</Text>
+
+          <View style={styles.discountBox}>
+            <Text style={styles.sectionLabel}>Diskon</Text>
+            <View style={styles.discountTabs}>
+              {(['amount', 'percent'] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => {
+                    setDiscountType(t);
+                    void saveDiscount(t, discountValue);
+                  }}
+                  style={[styles.discountTab, discountType === t && styles.discountTabOn]}
+                >
+                  <Text style={styles.discountTabText}>{t === 'amount' ? 'Rp' : '%'}</Text>
+                </Pressable>
+              ))}
             </View>
-
-            {cart.length === 0 ? (
-              <View style={styles.emptyCart}>
-                <Text style={styles.emptyCartIcon}>☕</Text>
-                <Text style={styles.emptyCartTitle}>Belum ada item</Text>
-                <Text style={styles.emptyCartHint}>Tap menu di tab kiri untuk mulai pesanan</Text>
-              </View>
-            ) : (
-              <>
-                {cart.map((item) => (
-                  <View key={item.id} style={styles.cartLine}>
-                    <View style={styles.cartLineCopy}>
-                      <Text style={styles.cartLineName}>{item.name}</Text>
-                      <Text style={styles.cartLinePrice}>{formatRupiah(item.unit_price)}</Text>
-                    </View>
-                    <View style={styles.qtyRow}>
-                      <Pressable
-                        onPress={() => updateLocalCartQuantity(item.id, item.quantity - 1).then(refresh)}
-                        style={styles.qtyBtn}
-                      >
-                        <Text style={styles.qtyBtnText}>−</Text>
-                      </Pressable>
-                      <Text style={styles.qtyValue}>{item.quantity}</Text>
-                      <Pressable
-                        onPress={() => updateLocalCartQuantity(item.id, item.quantity + 1).then(refresh)}
-                        style={styles.qtyBtn}
-                      >
-                        <Text style={styles.qtyBtnText}>+</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => removeLocalCartItem(item.id).then(refresh)}
-                        style={styles.removeBtn}
-                      >
-                        <Text style={styles.removeBtnText}>Hapus</Text>
-                      </Pressable>
-                    </View>
-                    <Text style={styles.cartLineTotal}>{formatRupiah(item.line_total)}</Text>
-                  </View>
-                ))}
-
-                <View style={styles.section}>
-                  <Text style={styles.fieldLabel}>Tipe pesanan</Text>
-                  <View style={styles.payGrid}>
-                    {ORDER_TYPES.map((type) => (
-                      <Pressable
-                        key={type.value}
-                        onPress={() => setOrderType(type.value)}
-                        style={[styles.typeOption, orderType === type.value && styles.typeOptionActive]}
-                      >
-                        <Text style={styles.typeIcon}>{type.icon}</Text>
-                        <Text
-                          style={[styles.typeLabel, orderType === type.value && styles.typeLabelActive]}
-                        >
-                          {type.label}
-                        </Text>
-                        <Text style={styles.typeHint}>{type.hint}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-
-                  {orderType === 'dine_in' ? (
-                    <View style={styles.tablePickerWrap}>
-                      <Text style={styles.fieldLabel}>Meja</Text>
-                      {tables.length === 0 ? (
-                        <Text style={styles.mutedText}>Belum ada meja. Tambah di menu Meja QR.</Text>
-                      ) : (
-                        <View style={styles.chipWrap}>
-                          {tables.map((table) => (
-                            <Pressable
-                              key={table.id}
-                              onPress={() =>
-                                setTableLabel(tableLabel === table.label ? null : table.label)
-                              }
-                              style={[styles.chip, tableLabel === table.label && styles.chipActive]}
-                            >
-                              <Text
-                                style={[
-                                  styles.chipText,
-                                  tableLabel === table.label && styles.chipTextActive,
-                                ]}
-                              >
-                                {table.label}
-                              </Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.customerCard}>
-                  <Text style={styles.fieldLabel}>Nama pelanggan</Text>
-                  <TextInput
-                    value={customerName}
-                    onChangeText={setCustomerName}
-                    placeholder="Contoh: Budi"
-                    placeholderTextColor={colors.slate400}
-                    style={styles.input}
-                  />
-                </View>
-
-                <View style={styles.payCard}>
-                  <Text style={styles.fieldLabel}>Metode pembayaran</Text>
-                  <View style={styles.payGrid}>
-                    {(['cash', 'qris', 'transfer'] as const).map((method) => (
-                      <Pressable
-                        key={method}
-                        onPress={() => setPaymentMethod(method)}
-                        style={[styles.payOption, paymentMethod === method && styles.payOptionActive]}
-                      >
-                        <Text
-                          style={[
-                            styles.payOptionText,
-                            paymentMethod === method && styles.payOptionTextActive,
-                          ]}
-                        >
-                          {PAYMENT_LABEL[method]}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-
-                  {paymentMethod === 'cash' ? (
-                    <View style={styles.cashPanel}>
-                      <Text style={styles.fieldLabel}>Uang diterima</Text>
-                      <TextInput
-                        value={amountReceived}
-                        onChangeText={setAmountReceived}
-                        keyboardType="numeric"
-                        placeholder="0"
-                        placeholderTextColor={colors.slate400}
-                        style={styles.input}
-                      />
-                      <Text style={styles.changeText}>
-                        Kembalian: <Text style={styles.changeStrong}>{formatRupiah(changeAmount)}</Text>
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Total Bayar</Text>
-                    <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
-                  </View>
-
-                  <Pressable
-                    onPress={handleCheckout}
-                    style={({ pressed }) => [styles.payBtn, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.payBtnText}>Bayar {formatRupiah(total)}</Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
+            <TextInput
+              value={discountValue}
+              onChangeText={setDiscountValue}
+              onEndEditing={() => saveDiscount(discountType, discountValue)}
+              keyboardType="numeric"
+              placeholder="0"
+              style={styles.input}
+            />
           </View>
-        </ScrollView>
-      ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.cartContent, { paddingBottom: insets.bottom + spacing.xxl }]}
-        >
-          {onlineOrders.length === 0 ? (
-            <View style={styles.receiptCard}>
-              <View style={styles.emptyCart}>
-                <Text style={styles.emptyCartIcon}>🛎️</Text>
-                <Text style={styles.emptyCartTitle}>Belum ada pesanan online</Text>
-                <Text style={styles.emptyCartHint}>
-                  Pesanan dari layar "Pesan Online" akan muncul di sini untuk dikonfirmasi & dibayar.
-                </Text>
-              </View>
-            </View>
-          ) : (
-            onlineOrders.map((order) => {
-              const lines = onlineItems[order.id] ?? [];
-              const isPaying = payingId === order.id;
-              const isConfirmed = order.status === 'confirmed';
 
-              return (
-                <View key={order.id} style={styles.onlineCard}>
-                  <View style={styles.onlineHead}>
-                    <View style={styles.onlineHeadCopy}>
-                      <Text style={styles.onlineNumber}>#{order.order_number}</Text>
-                      <Text style={styles.onlineCustomer}>{order.customer_name ?? 'Tanpa nama'}</Text>
-                    </View>
-                    <View style={[styles.onlineTag, isConfirmed && styles.onlineTagConfirmed]}>
-                      <Text style={[styles.onlineTagText, isConfirmed && styles.onlineTagTextConfirmed]}>
-                        {isConfirmed ? 'SIAP BAYAR' : 'MENUNGGU'}
-                      </Text>
-                    </View>
-                  </View>
+          <View style={styles.totals}>
+            <View style={styles.totalRow}><Text style={styles.muted}>Subtotal</Text><Text>{formatRupiah(order?.subtotal ?? 0)}</Text></View>
+            {(order?.discount_amount ?? 0) > 0 ? (
+              <View style={styles.totalRow}><Text style={styles.muted}>Diskon</Text><Text>- {formatRupiah(order?.discount_amount ?? 0)}</Text></View>
+            ) : null}
+            <View style={styles.totalRow}><Text style={styles.totalLabel}>Total</Text><Text style={styles.totalValue}>{formatRupiah(total)}</Text></View>
+          </View>
 
-                  {lines.map((line) => (
-                    <View key={line.id} style={styles.onlineLine}>
-                      <Text style={styles.onlineLineName}>
-                        {line.quantity}× {line.product_name}
-                      </Text>
-                      <Text style={styles.onlineLineTotal}>{formatRupiah(line.line_total)}</Text>
-                    </View>
-                  ))}
-
-                  <View style={styles.onlineTotalRow}>
-                    <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalValue}>{formatRupiah(order.total)}</Text>
-                  </View>
-
-                  {!isConfirmed ? (
-                    <Pressable
-                      onPress={() => handleConfirmOnline(order)}
-                      style={({ pressed }) => [styles.confirmBtn, pressed && styles.pressed]}
-                    >
-                      <Text style={styles.payBtnText}>Konfirmasi Pesanan</Text>
-                    </Pressable>
-                  ) : isPaying ? (
-                    <View style={styles.payCardInline}>
-                      <Text style={styles.fieldLabel}>Metode pembayaran</Text>
-                      <View style={styles.payGrid}>
-                        {(['cash', 'qris', 'transfer'] as const).map((method) => (
-                          <Pressable
-                            key={method}
-                            onPress={() => setOnlinePayMethod(method)}
-                            style={[styles.payOption, onlinePayMethod === method && styles.payOptionActive]}
-                          >
-                            <Text
-                              style={[
-                                styles.payOptionText,
-                                onlinePayMethod === method && styles.payOptionTextActive,
-                              ]}
-                            >
-                              {PAYMENT_LABEL[method]}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-
-                      {onlinePayMethod === 'cash' ? (
-                        <View style={styles.cashPanel}>
-                          <Text style={styles.fieldLabel}>Uang diterima</Text>
-                          <TextInput
-                            value={onlineAmount}
-                            onChangeText={setOnlineAmount}
-                            keyboardType="numeric"
-                            placeholder="0"
-                            placeholderTextColor={colors.slate400}
-                            style={styles.input}
-                          />
-                          <Text style={styles.changeText}>
-                            Kembalian: <Text style={styles.changeStrong}>{formatRupiah(onlineChange)}</Text>
-                          </Text>
-                        </View>
-                      ) : null}
-
-                      <View style={styles.onlineActions}>
-                        <Pressable onPress={() => setPayingId(null)} style={styles.cancelBtn}>
-                          <Text style={styles.cancelBtnText}>Batal</Text>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => handlePayOnline(order)}
-                          style={({ pressed }) => [styles.payBtnFlex, pressed && styles.pressed]}
-                        >
-                          <Text style={styles.payBtnText}>Bayar {formatRupiah(order.total)}</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  ) : (
-                    <Pressable
-                      onPress={() => startPaying(order)}
-                      style={({ pressed }) => [styles.payBtn, pressed && styles.pressed]}
-                    >
-                      <Text style={styles.payBtnText}>Proses Pembayaran</Text>
-                    </Pressable>
-                  )}
-                </View>
-              );
-            })
-          )}
+          <View style={styles.rowActions}>
+            <Pressable
+              onPress={() => {
+                Alert.alert('Pesanan baru', 'Buat order baru?', [
+                  { text: 'Batal', style: 'cancel' },
+                  {
+                    text: 'Ya',
+                    onPress: async () => {
+                      try {
+                        const res = await kasirApi.newOrder();
+                        applyOrder(res.data);
+                      } catch (err) {
+                        handleApiError(err);
+                      }
+                    },
+                  },
+                ]);
+              }}
+              style={styles.outlineBtn}
+            >
+              <Text style={styles.outlineBtnText}>Order Baru</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                Alert.alert('Batalkan', 'Batalkan pesanan aktif?', [
+                  { text: 'Tidak', style: 'cancel' },
+                  {
+                    text: 'Batalkan',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        const res = await kasirApi.cancelOrder();
+                        applyOrder(res.data);
+                      } catch (err) {
+                        handleApiError(err);
+                      }
+                    },
+                  },
+                ]);
+              }}
+              style={styles.dangerBtn}
+            >
+              <Text style={styles.dangerBtnText}>Batal</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       )}
 
-      {tab === 'menu' && cart.length > 0 ? (
-        <View style={[styles.mobileCheckout, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+      {itemCount > 0 && order?.can_checkout !== false ? (
+        <View style={[styles.checkoutDock, { paddingBottom: insets.bottom + spacing.sm }]}>
           <View>
-            <Text style={styles.mobileCheckoutLabel}>{cart.length} item</Text>
-            <Text style={styles.mobileCheckoutTotal}>{formatRupiah(total)}</Text>
+            <Text style={styles.dockMeta}>{itemCount} item</Text>
+            <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
           </View>
-          <Pressable onPress={() => setTab('cart')} style={styles.mobileCheckoutBtn}>
-            <Text style={styles.mobileCheckoutBtnText}>Bayar</Text>
+          <Pressable
+            onPress={() => {
+              setPayMethod('cash');
+              setAmountReceived(String(Math.ceil(total)));
+              setProofUri(null);
+              setPayOpen(true);
+            }}
+            style={styles.payBtn}
+          >
+            <Text style={styles.payBtnText}>Bayar</Text>
           </Pressable>
         </View>
       ) : null}
+
+      {/* Add item modal */}
+      <Modal visible={!!addProduct} animationType="slide" transparent onRequestClose={() => setAddProduct(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+            <Text style={styles.modalTitle}>{addProduct?.name}</Text>
+            <Text style={styles.productPrice}>{formatRupiah(addProduct?.selling_price ?? 0)}</Text>
+            {(addProduct?.addons || []).length > 0 ? (
+              <View style={{ gap: 8, marginTop: spacing.md }}>
+                <Text style={styles.sectionLabel}>Add-on</Text>
+                {addProduct?.addons?.map((addon) => {
+                  const on = addonIds.includes(addon.id);
+                  return (
+                    <Pressable
+                      key={addon.id}
+                      onPress={() =>
+                        setAddonIds((prev) => (on ? prev.filter((id) => id !== addon.id) : [...prev, addon.id]))
+                      }
+                      style={[styles.addonRow, on && styles.addonRowOn]}
+                    >
+                      <Text style={styles.addonName}>{addon.name}</Text>
+                      <Text style={styles.addonPrice}>+{formatRupiah(addon.price)}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+            <Text style={[styles.sectionLabel, { marginTop: spacing.md }]}>Catatan</Text>
+            <TextInput value={notes} onChangeText={setNotes} placeholder="Opsional" style={styles.input} />
+            <View style={styles.qtyRowLarge}>
+              <Pressable onPress={() => setQty((q) => Math.max(1, q - 1))} style={styles.qtyBtn}>
+                <Text style={styles.qtyBtnText}>−</Text>
+              </Pressable>
+              <Text style={styles.qtyValLarge}>{qty}</Text>
+              <Pressable onPress={() => setQty((q) => q + 1)} style={styles.qtyBtn}>
+                <Text style={styles.qtyBtnText}>+</Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={submitAdd} disabled={savingItem} style={styles.payBtn}>
+              <Text style={styles.payBtnText}>{savingItem ? 'Menyimpan…' : 'Tambah ke Pesanan'}</Text>
+            </Pressable>
+            <Pressable onPress={() => setAddProduct(null)} style={{ alignItems: 'center', padding: spacing.md }}>
+              <Text style={styles.muted}>Tutup</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Order bar modal */}
+      <Modal visible={orderBarOpen} animationType="fade" transparent onRequestClose={() => setOrderBarOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setOrderBarOpen(false)}>
+          <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Tipe pesanan</Text>
+            <View style={styles.typeRow}>
+              {[
+                { value: 'dine_in', label: 'Dine In', icon: '🪑' },
+                { value: 'takeaway', label: 'Take Away', icon: '🥡' },
+              ].map((t) => (
+                <Pressable
+                  key={t.value}
+                  onPress={() => {
+                    setOrderType(t.value);
+                    void saveOrderContext(t.value, customerNote);
+                  }}
+                  style={[styles.typeCard, orderType === t.value && styles.typeCardOn]}
+                >
+                  <Text style={{ fontSize: 22 }}>{t.icon}</Text>
+                  <Text style={styles.typeLabel}>{t.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.sectionLabel}>Nama pelanggan</Text>
+            <TextInput
+              value={customerNote}
+              onChangeText={setCustomerNote}
+              onEndEditing={() => saveOrderContext(orderType, customerNote)}
+              placeholder="Opsional"
+              style={styles.input}
+            />
+            <Pressable onPress={() => setOrderBarOpen(false)} style={[styles.payBtn, { marginTop: spacing.md }]}>
+              <Text style={styles.payBtnText}>Simpan</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Pay modal */}
+      <Modal visible={payOpen} animationType="slide" transparent onRequestClose={() => setPayOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+            <Text style={styles.modalTitle}>Pembayaran</Text>
+            <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
+            <View style={styles.typeRow}>
+              {([
+                { value: 'cash', label: 'Tunai' },
+                { value: 'qris', label: 'QRIS' },
+                { value: 'transfer', label: 'Transfer' },
+              ] as const).map((m) => (
+                <Pressable
+                  key={m.value}
+                  onPress={() => setPayMethod(m.value)}
+                  style={[styles.typeCard, payMethod === m.value && styles.typeCardOn]}
+                >
+                  <Text style={styles.typeLabel}>{m.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {payMethod === 'cash' ? (
+              <>
+                <Text style={styles.sectionLabel}>Uang diterima</Text>
+                <TextInput
+                  value={amountReceived}
+                  onChangeText={setAmountReceived}
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+                <Text style={styles.muted}>Kembalian: {formatRupiah(cashChange)}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.sectionLabel}>Bukti pembayaran</Text>
+                <Pressable onPress={pickProof} style={styles.outlineBtn}>
+                  <Text style={styles.outlineBtnText}>{proofUri ? 'Ganti foto' : 'Ambil foto'}</Text>
+                </Pressable>
+                {proofUri ? <Text style={styles.muted}>Foto terpilih</Text> : null}
+              </>
+            )}
+            <Pressable onPress={submitPay} disabled={paying} style={[styles.payBtn, { marginTop: spacing.lg }]}>
+              <Text style={styles.payBtnText}>{paying ? 'Memproses…' : 'Konfirmasi Bayar'}</Text>
+            </Pressable>
+            <Pressable onPress={() => setPayOpen(false)} style={{ alignItems: 'center', padding: spacing.md }}>
+              <Text style={styles.muted}>Batal</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <AppDrawer moduleType="kasir" visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.slate100 },
-  toolbar: {
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  muted: { color: colors.slate500, fontSize: 13 },
+  topbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.slate800,
-    backgroundColor: colors.slate900,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.slate700,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.slate800,
-    gap: 4,
-  },
-  iconBtnText: { fontSize: 20, color: colors.white },
-  menuLine: { width: 16, height: 2, borderRadius: 2, backgroundColor: colors.white },
-  toolbarCopy: { flex: 1, minWidth: 0 },
-  toolbarTitle: { fontSize: 16, color: colors.white, ...font('700') },
-  toolbarMeta: { fontSize: 11, color: colors.slate400, marginTop: 2 },
-  navChip: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.slate800,
-    borderWidth: 1,
-    borderColor: colors.slate700,
-  },
-  navChipText: { fontSize: 18 },
-  tabs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    gap: spacing.md,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.slate200,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
-  tab: {
-    flex: 1,
+  menuBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  menuLine: { width: 18, height: 2, borderRadius: 2, backgroundColor: colors.slate700 },
+  topTitle: { fontSize: 16, color: colors.slate900, ...font('700') },
+  topSub: { fontSize: 12, color: colors.slate500, marginTop: 2 },
+  chipBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand50,
+  },
+  chipText: { color: colors.brand700, fontSize: 12, ...font('600') },
+  pendingBanner: {
+    backgroundColor: colors.amber50,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.amber200,
+    paddingVertical: spacing.sm,
+    paddingLeft: spacing.lg,
+    gap: 6,
+  },
+  pendingTitle: { fontSize: 12, color: colors.amber800, ...font('700') },
+  pendingCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.amber200,
+    padding: spacing.sm,
+    minWidth: 140,
+  },
+  pendingNo: { fontSize: 13, ...font('700'), color: colors.slate900 },
+  pendingMeta: { fontSize: 12, color: colors.slate600 },
+  pendingActions: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  pendingLoad: { backgroundColor: colors.brand600, borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 4 },
+  pendingLoadText: { color: colors.white, fontSize: 11, ...font('600') },
+  pendingCancel: { color: colors.red600, fontSize: 11, ...font('600'), paddingVertical: 4 },
+  tabs: { flexDirection: 'row', backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200 },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.brand600 },
+  tabText: { color: colors.slate500, fontSize: 14, ...font('500') },
+  tabTextActive: { color: colors.brand700, ...font('700') },
+  search: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
     minHeight: 44,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.slate200,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.slate50,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    color: colors.slate900,
   },
-  tabActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
-  tabText: { fontSize: 13, color: colors.slate600, ...font('600') },
-  tabTextActive: { color: colors.brand700 },
-  scroll: { flex: 1 },
-  menuContent: { padding: spacing.lg, gap: spacing.lg },
-  categoryBlock: { gap: spacing.sm },
-  categoryTitle: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: colors.slate500,
-    ...font('700'),
-  },
-  productCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderRadius: radius.xl,
+  catRow: { maxHeight: 48, marginTop: spacing.sm },
+  catChip: {
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.slate200,
     backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    height: 36,
+    justifyContent: 'center',
+  },
+  catChipOn: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
+  catChipText: { fontSize: 12, color: colors.slate600, ...font('500') },
+  catChipTextOn: { color: colors.white },
+  productCard: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    overflow: 'hidden',
+    paddingBottom: spacing.sm,
+  },
+  productImage: { width: '100%', height: 100, backgroundColor: colors.slate100 },
+  productName: { fontSize: 13, color: colors.slate900, ...font('600'), paddingHorizontal: spacing.sm, marginTop: spacing.sm },
+  productPrice: { fontSize: 13, color: colors.brand700, ...font('700'), paddingHorizontal: spacing.sm, marginTop: 4 },
+  cartItem: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.slate200,
     padding: spacing.md,
   },
-  productEmojiWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.md,
-    backgroundColor: colors.brand50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productEmoji: { fontSize: 26 },
-  productCopy: { flex: 1, minWidth: 0 },
-  productName: { fontSize: 15, color: colors.slate900, ...font('700') },
-  productPrice: { marginTop: 2, fontSize: 13, color: colors.brand600, ...font('600') },
-  productAdd: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-    backgroundColor: colors.brand600,
-    color: colors.white,
-    textAlign: 'center',
-    lineHeight: 34,
-    fontSize: 22,
-    overflow: 'hidden',
-    ...font('700'),
-  },
-  cartContent: { padding: spacing.lg },
-  receiptCard: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    overflow: 'hidden',
-  },
-  receiptHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.slate200,
-    padding: spacing.lg,
-  },
-  receiptTitle: { fontSize: 18, color: colors.slate900, ...font('700') },
-  receiptMeta: { fontSize: 12, color: colors.slate500 },
-  emptyCart: { alignItems: 'center', padding: spacing.xxl, gap: spacing.sm },
-  emptyCartIcon: { fontSize: 36 },
-  emptyCartTitle: { fontSize: 16, color: colors.slate900, ...font('700') },
-  emptyCartHint: { fontSize: 13, color: colors.slate500, textAlign: 'center' },
-  cartLine: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.slate100,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  cartLineCopy: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  cartLineName: { flex: 1, fontSize: 14, color: colors.slate900, ...font('700') },
-  cartLinePrice: { fontSize: 12, color: colors.slate500 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  cartName: { fontSize: 14, color: colors.slate900, ...font('600') },
+  cartNotes: { fontSize: 12, color: colors.slate500, marginTop: 2 },
+  cartPrice: { fontSize: 13, color: colors.brand700, ...font('700'), marginTop: 4 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  qtyRowLarge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginVertical: spacing.lg },
   qtyBtn: {
     width: 36,
     height: 36,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.slate200,
+    backgroundColor: colors.slate100,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
   },
-  qtyBtnText: { fontSize: 18, color: colors.slate900, ...font('700') },
-  qtyValue: { minWidth: 24, textAlign: 'center', color: colors.slate900, ...font('700') },
-  removeBtn: {
-    marginLeft: 'auto',
-    borderRadius: radius.md,
-    backgroundColor: colors.red50,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  removeBtnText: { fontSize: 12, color: colors.red700, ...font('700') },
-  cartLineTotal: { fontSize: 14, color: colors.brand600, ...font('700') },
-  section: { borderTopWidth: 1, borderTopColor: colors.slate200, padding: spacing.lg, gap: spacing.md },
-  customerCard: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm },
-  payCard: { borderTopWidth: 1, borderTopColor: colors.slate200, padding: spacing.lg, gap: spacing.md },
-  fieldLabel: { fontSize: 13, color: colors.slate600, ...font('600') },
-  mutedText: { fontSize: 13, color: colors.slate500 },
+  qtyBtnText: { fontSize: 18, color: colors.slate800, ...font('700') },
+  qtyVal: { minWidth: 24, textAlign: 'center', ...font('600') },
+  qtyValLarge: { fontSize: 22, minWidth: 40, textAlign: 'center', ...font('700') },
+  discountBox: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, padding: spacing.md, gap: spacing.sm },
+  discountTabs: { flexDirection: 'row', gap: 8 },
+  discountTab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.md, backgroundColor: colors.slate100 },
+  discountTabOn: { backgroundColor: colors.brand100 },
+  discountTabText: { ...font('600'), color: colors.slate700 },
+  sectionLabel: { fontSize: 13, color: colors.slate700, ...font('600') },
   input: {
-    minHeight: 46,
+    minHeight: 44,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.slate300,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
-    fontSize: 16,
     color: colors.slate900,
   },
-  payGrid: { flexDirection: 'row', gap: spacing.sm },
-  typeOption: {
-    flex: 1,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    gap: 2,
-  },
-  typeOptionActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
-  typeIcon: { fontSize: 20 },
-  typeLabel: { fontSize: 14, color: colors.slate700, ...font('700') },
-  typeLabelActive: { color: colors.brand700 },
-  typeHint: { fontSize: 11, color: colors.slate500 },
-  tablePickerWrap: { gap: spacing.sm },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: {
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  chipActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
-  chipText: { fontSize: 13, color: colors.slate600 },
-  chipTextActive: { color: colors.brand700, ...font('700') },
-  payOption: {
+  totals: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, padding: spacing.md, gap: 8 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  totalLabel: { fontSize: 15, ...font('700'), color: colors.slate900 },
+  totalValue: { fontSize: 18, ...font('700'), color: colors.brand700 },
+  rowActions: { flexDirection: 'row', gap: spacing.sm },
+  outlineBtn: {
     flex: 1,
     minHeight: 44,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.slate200,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-  },
-  payOptionActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
-  payOptionText: { fontSize: 13, color: colors.slate600, ...font('600') },
-  payOptionTextActive: { color: colors.brand700 },
-  cashPanel: { gap: spacing.sm },
-  changeText: { fontSize: 13, color: colors.slate600 },
-  changeStrong: { color: colors.slate900, ...font('700') },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.sm,
-  },
-  totalLabel: { fontSize: 14, color: colors.slate900, ...font('700') },
-  totalValue: { fontSize: 20, color: colors.brand600, ...font('700') },
-  payBtn: {
-    minHeight: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.green600,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmBtn: {
-    minHeight: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.brand600,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payBtnText: { color: colors.white, fontSize: 16, ...font('700') },
-  onlineCard: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  onlineHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  onlineHeadCopy: { flex: 1, minWidth: 0 },
-  onlineNumber: { fontSize: 16, color: colors.slate900, ...font('700') },
-  onlineCustomer: { fontSize: 13, color: colors.slate500, marginTop: 2 },
-  onlineTag: {
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.amber200,
-    backgroundColor: colors.amber50,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  onlineTagConfirmed: { borderColor: colors.brand200, backgroundColor: colors.brand50 },
-  onlineTagText: { fontSize: 10, color: colors.amber800, ...font('700') },
-  onlineTagTextConfirmed: { color: colors.brand700 },
-  onlineLine: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 2 },
-  onlineLineName: { flex: 1, fontSize: 14, color: colors.slate700 },
-  onlineLineTotal: { fontSize: 14, color: colors.slate900, ...font('600') },
-  onlineTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colors.slate100,
-    paddingTop: spacing.sm,
-  },
-  payCardInline: { borderTopWidth: 1, borderTopColor: colors.slate200, paddingTop: spacing.md, gap: spacing.md },
-  onlineActions: { flexDirection: 'row', gap: spacing.sm },
-  cancelBtn: {
-    minHeight: 48,
-    borderRadius: radius.md,
-    borderWidth: 1,
     borderColor: colors.slate300,
-    paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
   },
-  cancelBtnText: { fontSize: 14, color: colors.slate600, ...font('700') },
-  payBtnFlex: {
-    flex: 1,
-    minHeight: 48,
+  outlineBtnText: { color: colors.slate700, ...font('600') },
+  dangerBtn: {
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
-    backgroundColor: colors.green600,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.red50,
+    borderWidth: 1,
+    borderColor: colors.red200,
   },
-  mobileCheckout: {
+  dangerBtnText: { color: colors.red700, ...font('600') },
+  checkoutDock: {
     position: 'absolute',
     left: 0,
     right: 0,
@@ -873,25 +863,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.slate800,
     backgroundColor: colors.slate900,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    gap: spacing.md,
   },
-  mobileCheckoutLabel: { fontSize: 11, color: colors.slate400 },
-  mobileCheckoutTotal: { fontSize: 18, color: colors.white, ...font('700') },
-  mobileCheckoutBtn: {
-    minHeight: 44,
+  dockMeta: { color: colors.slate400, fontSize: 12 },
+  dockTotal: { color: colors.white, fontSize: 18, ...font('700') },
+  payBtn: {
+    minHeight: 48,
+    minWidth: 120,
     borderRadius: radius.md,
-    backgroundColor: colors.green600,
-    paddingHorizontal: spacing.xl,
+    backgroundColor: colors.brand600,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
   },
-  mobileCheckoutBtnText: { color: colors.white, fontSize: 14, ...font('700') },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: colors.slate600 },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  payBtnText: { color: colors.white, fontSize: 15, ...font('700') },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius['3xl'],
+    borderTopRightRadius: radius['3xl'],
+    padding: spacing.xl,
+    gap: spacing.sm,
+  },
+  modalTitle: { fontSize: 18, color: colors.slate900, ...font('700') },
+  addonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  addonRowOn: { borderColor: colors.brand500, backgroundColor: colors.brand50 },
+  addonName: { color: colors.slate800, ...font('500') },
+  addonPrice: { color: colors.brand700, ...font('600') },
+  typeRow: { flexDirection: 'row', gap: spacing.sm, marginVertical: spacing.sm },
+  typeCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.slate50,
+  },
+  typeCardOn: { borderColor: colors.brand500, backgroundColor: colors.brand50 },
+  typeLabel: { fontSize: 13, color: colors.slate800, ...font('600') },
 });

@@ -31,15 +31,6 @@ use App\Http\Controllers\Web\ResetDataController;
 use App\Http\Controllers\Web\TableOrderController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/api', '/');
-Route::redirect('/api/v1', '/');
-Route::redirect('/api/v1/products', '/');
-Route::redirect('/api/v1/inventory/receive', '/');
-Route::redirect('/api/v1/production-orders', '/');
-Route::redirect('/api/v1/cogs/calculate', '/');
-Route::redirect('/api/v1/cogs/history', '/');
-Route::redirect('/api/v1/overhead-rates', '/');
-
 Route::get('/', [LoginController::class, 'create'])->name('home');
 Route::get('/login', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->name('login.store');

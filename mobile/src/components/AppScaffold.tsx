@@ -2,6 +2,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { pinApi } from '@/api/kasir';
 import { ROLE_META, useAuth, type Role } from '@/auth';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -19,7 +20,10 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Point of Sale', icon: '🛒', route: '/kasir' },
     { label: 'Riwayat Pesanan', icon: '📋', route: '/kasir/orders', match: ['/kasir/orders', '/kasir/order-detail'] },
     { label: 'Meja QR', icon: '🪑', route: '/kasir/tables' },
-    { label: 'Kelola Menu', icon: '🍽️', route: '/kasir/menu' },
+    { label: 'Kelola Menu', icon: '🍽️', route: '/kasir/menu', match: ['/kasir/menu', '/kasir/menu-edit'] },
+    { label: 'Atur Kategori', icon: '🏷️', route: '/kasir/categories' },
+    { label: 'Pembukuan', icon: '📒', route: '/kasir/pembukuan' },
+    { label: 'Kas Tunai', icon: '💵', route: '/kasir/kas-tunai' },
   ],
 };
 
@@ -46,7 +50,7 @@ export function AppDrawer({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user, logout, pin, setPin } = useAuth();
   const header = BRAND_HEADER[moduleType];
 
   const go = (route: string) => {
@@ -54,6 +58,25 @@ export function AppDrawer({
     if (pathname !== route) {
       router.replace(route as never);
     }
+  };
+
+  const handleLock = () => {
+    onClose();
+    Alert.alert('Kunci Kasir', 'Kunci sesi PIN sekarang?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Kunci',
+        onPress: async () => {
+          try {
+            await pinApi.lock();
+          } catch {
+            // ignore
+          }
+          setPin({ unlocked: false, expires_at: null, server_now: 0, remaining_seconds: 0 });
+          router.replace('/kasir/pin' as never);
+        },
+      },
+    ]);
   };
 
   const handleLogout = () => {
@@ -96,23 +119,22 @@ export function AppDrawer({
               );
             })}
 
-            {moduleType === 'kasir' ? (
-              <Pressable onPress={() => go('/pesan-online')} style={styles.navItem}>
-                <View style={styles.navIconWrap}>
-                  <Text style={styles.navIcon}>☕</Text>
-                </View>
-                <Text style={styles.navLabel}>Pesan Online</Text>
-              </Pressable>
-            ) : null}
           </ScrollView>
 
           <View style={[styles.sidebarFoot, { paddingBottom: insets.bottom + spacing.md }]}>
             <View style={styles.userChip}>
               <Text style={styles.userName} numberOfLines={1}>
-                {user?.name ?? 'Pengguna'}
+                {pin?.operator_name || user?.name || 'Pengguna'}
               </Text>
-              <Text style={styles.userRole}>{user ? ROLE_META[user.role].label : ''}</Text>
+              <Text style={styles.userRole}>
+                {moduleType === 'kasir' ? 'Modul Kasir' : ROLE_META[moduleType].label}
+              </Text>
             </View>
+            {moduleType === 'kasir' ? (
+              <Pressable onPress={handleLock} style={styles.logoutBtn}>
+                <Text style={styles.logoutText}>🔒  Kunci Kasir</Text>
+              </Pressable>
+            ) : null}
             <Pressable onPress={handleLogout} style={styles.logoutBtn}>
               <Text style={styles.logoutText}>↩  Keluar</Text>
             </Pressable>

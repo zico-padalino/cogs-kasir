@@ -6,6 +6,7 @@ use App\Enums\EmployeeStatus;
 use App\Models\Employee;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 
@@ -25,8 +26,57 @@ class KasirPin
         return max(1, (int) config('pos.kasir_pin_ttl_minutes', 10));
     }
 
+    public static function usesCache(): bool
+    {
+        $request = request();
+
+        return $request && ($request->is('api/*') || $request->bearerToken());
+    }
+
+    public static function cacheKey(?User $user = null): ?string
+    {
+        $user ??= auth()->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        return 'kasir_pin:'.$user->id;
+    }
+
+    /** @return array{employee_id: int, verified_at: int, expires_at: int}|null */
+    private static function cachePayload(): ?array
+    {
+        $key = self::cacheKey();
+
+        if (! $key) {
+            return null;
+        }
+
+        $payload = Cache::get($key);
+
+        return is_array($payload) ? $payload : null;
+    }
+
     public static function operatorEmployee(): ?Employee
     {
+        if (self::usesCache()) {
+            if (! self::isUnlocked()) {
+                return null;
+            }
+
+            $payload = self::cachePayload();
+            $id = $payload['employee_id'] ?? null;
+
+            if (! $id) {
+                return null;
+            }
+
+            return Employee::query()
+                ->where('status', EmployeeStatus::Active)
+                ->find($id);
+        }
+
         $id = Session::get(self::SESSION_OPERATOR);
 
         if (! $id || ! self::isUnlocked()) {
@@ -83,6 +133,16 @@ class KasirPin
 
     public static function isUnlocked(): bool
     {
+        if (self::usesCache()) {
+            $payload = self::cachePayload();
+
+            if (! $payload || empty($payload['employee_id']) || empty($payload['expires_at'])) {
+                return false;
+            }
+
+            return now()->getTimestamp() < (int) $payload['expires_at'];
+        }
+
         // Sesi lama berbasis user id tidak valid lagi — minta PIN ulang.
         if (! Session::get(self::SESSION_OPERATOR)) {
             if (Session::get(self::SESSION_OPERATOR_USER)) {
@@ -103,6 +163,12 @@ class KasirPin
 
     public static function expiresAtTimestamp(): ?int
     {
+        if (self::usesCache()) {
+            $payload = self::cachePayload();
+
+            return isset($payload['expires_at']) ? (int) $payload['expires_at'] : null;
+        }
+
         $expiresAt = self::toUnix(Session::get(self::SESSION_EXPIRES_AT));
 
         if ($expiresAt !== null) {
@@ -129,7 +195,7 @@ class KasirPin
         return max(0, $expiresAt - now()->getTimestamp());
     }
 
-    /** @return array{unlocked: bool, expires_at: ?int, server_now: int, remaining_seconds: int} */
+    /** @return array{unlocked: bool, expires_at: ?int, server_now: int, remaining_seconds: int, operator_name: ?string} */
     public static function statusPayload(): array
     {
         $unlocked = self::isUnlocked();
@@ -143,6 +209,7 @@ class KasirPin
             'expires_at' => $unlocked ? self::expiresAtTimestamp() : null,
             'server_now' => now()->getTimestamp(),
             'remaining_seconds' => $unlocked ? self::remainingSeconds() : 0,
+            'operator_name' => $unlocked ? self::operatorName() : null,
         ];
     }
 
@@ -150,6 +217,20 @@ class KasirPin
     {
         $now = now()->getTimestamp();
         $expiresAt = $now + (self::idleMinutes() * 60);
+
+        if (self::usesCache()) {
+            $key = self::cacheKey();
+
+            if ($key) {
+                Cache::put($key, [
+                    'employee_id' => (int) $operator->id,
+                    'verified_at' => $now,
+                    'expires_at' => $expiresAt,
+                ], now()->addMinutes(self::idleMinutes() + 1));
+            }
+
+            return;
+        }
 
         Session::forget(self::SESSION_OPERATOR_USER);
         Session::put(self::SESSION_OPERATOR, (int) $operator->id);
@@ -160,6 +241,16 @@ class KasirPin
 
     public static function lock(): void
     {
+        if (self::usesCache()) {
+            $key = self::cacheKey();
+
+            if ($key) {
+                Cache::forget($key);
+            }
+
+            return;
+        }
+
         Session::forget([
             self::SESSION_OPERATOR,
             self::SESSION_OPERATOR_USER,

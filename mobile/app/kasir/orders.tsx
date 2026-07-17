@@ -1,112 +1,84 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { kasirApi } from '@/api/kasir';
+import type { PosOrder } from '@/api/types';
+import { asApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
-import { Badge, EmptyState } from '@/components/cogs-ui';
-import { getOrdersHistory } from '@/local-db/repository';
-import type { LocalOrder, OrderStatus } from '@/local-db/types';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
 
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  open: 'Draft',
-  submitted: 'Menunggu Konfirmasi',
-  confirmed: 'Siap Bayar',
-  paid: 'Lunas',
-  cancelled: 'Batal',
-};
-
-const STATUS_TONE: Record<OrderStatus, 'slate' | 'amber' | 'brand' | 'green'> = {
-  open: 'slate',
-  submitted: 'amber',
-  confirmed: 'brand',
-  paid: 'green',
-  cancelled: 'slate',
-};
-
-export default function KasirOrdersScreen() {
+export default function OrdersScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [orders, setOrders] = useState<LocalOrder[]>([]);
+  const [orders, setOrders] = useState<PosOrder[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setOrders(await getOrdersHistory());
-  }, []);
+    setLoading(true);
+    try {
+      const res = await kasirApi.orders();
+      setOrders(res.data || []);
+    } catch (err) {
+      if (asApiError(err).status === 423) {
+        router.replace('/kasir/pin' as never);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
+      void refresh();
     }, [refresh]),
   );
 
   return (
-    <AppScaffold moduleType="kasir" title="Riwayat Pesanan" subtitle="Kasir & online">
-      <ScrollView
-        contentContainerStyle={{
-          padding: spacing.lg,
-          paddingBottom: insets.bottom + spacing.xxl,
-          gap: spacing.md,
-        }}
-      >
-        {orders.length === 0 ? (
-          <EmptyState
-            icon="🧾"
-            title="Belum ada pesanan"
-            hint="Pesanan kasir & online akan muncul di sini."
-          />
-        ) : (
-          orders.map((order) => (
+    <AppScaffold moduleType="kasir" title="Riwayat Pesanan" subtitle="Pesanan masuk & selesai">
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.brand600} />
+        </View>
+      ) : (
+        <FlatList
+          data={orders}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxl }}
+          ListEmptyComponent={<Text style={styles.muted}>Belum ada pesanan.</Text>}
+          renderItem={({ item }) => (
             <Pressable
-              key={order.id}
-              onPress={() =>
-                router.push({ pathname: '/kasir/order-detail', params: { id: String(order.id) } })
-              }
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+              onPress={() => router.push(`/kasir/order-detail?id=${item.id}` as never)}
+              style={styles.card}
             >
-              <View style={styles.cardHead}>
-                <Text style={styles.orderNumber}>#{order.order_number}</Text>
-                <Text style={styles.orderTotal}>{formatRupiah(order.total)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.orderNo}>#{item.order_number}</Text>
+                <Text style={styles.meta}>
+                  {item.status_label} · {item.order_type_label || item.order_type} · {item.cashier_name || '-'}
+                </Text>
               </View>
-              <Text style={styles.orderMeta}>
-                {order.customer_name || 'Tanpa nama'}
-                {order.table_label ? ` · ${order.table_label}` : ''}
-              </Text>
-              <View style={styles.badgeRow}>
-                <Badge label={STATUS_LABEL[order.status]} tone={STATUS_TONE[order.status]} />
-                <Badge
-                  label={order.source === 'online' ? 'Online' : 'Kasir'}
-                  tone={order.source === 'online' ? 'blue' : 'slate'}
-                />
-                <Badge
-                  label={order.order_type === 'dine_in' ? '🪑 Dine In' : '🥡 Take Away'}
-                  tone="slate"
-                />
-                <Text style={styles.orderDate}>{new Date(order.created_at).toLocaleString('id-ID')}</Text>
-              </View>
+              <Text style={styles.total}>{formatRupiah(item.total)}</Text>
             </Pressable>
-          ))
-        )}
-      </ScrollView>
+          )}
+        />
+      )}
     </AppScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.slate100 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  muted: { color: colors.slate500, textAlign: 'center', marginTop: spacing.xl },
   card: {
-    borderRadius: radius.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    gap: spacing.xs,
+    padding: spacing.md,
   },
-  cardHead: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  orderNumber: { fontSize: 16, color: colors.slate900, ...font('700'), fontFamily: 'monospace' },
-  orderTotal: { fontSize: 16, color: colors.brand600, ...font('700') },
-  orderMeta: { fontSize: 13, color: colors.slate600 },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs, marginTop: 4 },
-  orderDate: { fontSize: 11, color: colors.slate500, marginLeft: 'auto' },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  orderNo: { fontSize: 15, color: colors.slate900, ...font('700') },
+  meta: { fontSize: 12, color: colors.slate500, marginTop: 2 },
+  total: { fontSize: 14, color: colors.brand700, ...font('700') },
 });
