@@ -115,12 +115,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Tujuan setelah autentikasi berhasil. Akun root selalu diarahkan ke
-     * pemilih modul (hub) supaya bisa memilih modul yang ingin dibuka.
+     * Pengguna dengan lebih dari satu akses memilih modul lebih dulu.
+     * Pengguna dengan satu akses langsung diarahkan ke modul tersebut.
      */
     public function postAuthUrl(): string
     {
-        if ($this->isRoot()) {
+        if (count($this->accessibleModules()) > 1) {
             return route('hub');
         }
 
