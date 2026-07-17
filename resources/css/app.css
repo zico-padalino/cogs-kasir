@@ -4361,7 +4361,8 @@
     }
 
     .order-modal {
-        @apply fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4;
+        @apply fixed inset-x-0 bottom-0 z-30 flex items-center justify-center p-3 sm:p-4;
+        top: calc(4.75rem + env(safe-area-inset-top));
     }
 
     .order-modal-backdrop {
@@ -4374,8 +4375,8 @@
     }
 
     .order-detail-modal-panel {
-        @apply max-w-[22rem] p-0 sm:max-w-[24rem];
-        max-height: min(92dvh, 40rem);
+        @apply max-w-[20rem] p-0 sm:max-w-[22rem];
+        max-height: min(78dvh, 32rem);
     }
 
     .order-detail-modal-close {
@@ -4383,7 +4384,7 @@
     }
 
     .order-detail-hero {
-        @apply relative aspect-[4/3] overflow-hidden bg-slate-100;
+        @apply relative aspect-video overflow-hidden bg-slate-100;
     }
 
     .order-detail-image {
