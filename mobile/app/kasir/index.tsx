@@ -74,22 +74,18 @@ export default function KasirPosScreen() {
     setDiscountValue(next.discount_value ? String(next.discount_value) : '');
   }, []);
 
-  const handleApiError = useCallback(
-    (err: unknown) => {
-      const apiErr = asApiError(err);
-      if (apiErr.status === 423 || apiErr.code === 'PIN_LOCKED') {
-        setPin({ unlocked: false, expires_at: null, server_now: Date.now() / 1000, remaining_seconds: 0 });
-        router.replace('/kasir/pin' as never);
-        return;
-      }
-      if (apiErr.code === 'ATTENDANCE_REQUIRED') {
-        Alert.alert('Absensi diperlukan', apiErr.message);
-        return;
-      }
-      Alert.alert('Gagal', apiErr.message || 'Terjadi kesalahan.');
-    },
-    [router, setPin],
-  );
+  const handleApiError = useCallback((err: unknown) => {
+    const apiErr = asApiError(err);
+    if (apiErr.status === 423 || apiErr.code === 'PIN_LOCKED') {
+      // redirect global via PinLockedListener + KasirPinSessionGuard
+      return;
+    }
+    if (apiErr.code === 'ATTENDANCE_REQUIRED') {
+      Alert.alert('Absensi diperlukan', apiErr.message);
+      return;
+    }
+    Alert.alert('Gagal', apiErr.message || 'Terjadi kesalahan.');
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);

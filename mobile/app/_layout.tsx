@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, ROLE_META, useAuth } from '@/auth';
+import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
 import { colors } from '@/theme';
 import { applyGlobalFont } from '@/theme/applyGlobalFont';
 
@@ -63,13 +64,16 @@ function RootNavigator() {
   }, [user, activeModule, loading, segments, router, pin?.unlocked]);
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.slate100 },
-        animation: 'slide_from_right',
-      }}
-    />
+    <>
+      <KasirPinSessionGuard />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.slate100 },
+          animation: 'slide_from_right',
+        }}
+      />
+    </>
   );
 }
 

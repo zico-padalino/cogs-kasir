@@ -50,7 +50,7 @@ export function AppDrawer({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { user, logout, pin, setPin } = useAuth();
+  const { user, logout, pin, lockPinSession } = useAuth();
   const header = BRAND_HEADER[moduleType];
 
   const go = (route: string) => {
@@ -72,7 +72,7 @@ export function AppDrawer({
           } catch {
             // ignore
           }
-          setPin({ unlocked: false, expires_at: null, server_now: 0, remaining_seconds: 0 });
+          lockPinSession();
           router.replace('/kasir/pin' as never);
         },
       },

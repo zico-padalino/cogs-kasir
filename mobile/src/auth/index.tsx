@@ -7,9 +7,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '@/api/kasir';
-import { getToken, setToken } from '@/api/client';
+import { getToken, isPinSessionError, setPinLockedListener, setToken } from '@/api/client';
 import type { ApiError, AuthUser, PinStatus } from '@/api/types';
 
 export type Role = 'cogs' | 'kasir';
@@ -23,12 +24,21 @@ export const ROLE_META: Record<Role, { label: string; description: string; homeR
 
 const USER_KEY = 'auth_user_v2';
 
+const LOCKED_PIN: PinStatus = {
+  unlocked: false,
+  expires_at: null,
+  server_now: 0,
+  remaining_seconds: 0,
+  operator_name: null,
+};
+
 type AuthContextValue = {
   user: AuthUser | null;
   activeModule: Role | null;
   loading: boolean;
   pin: PinStatus | null;
   setPin: (pin: PinStatus | null) => void;
+  lockPinSession: () => void;
   login: (input: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
@@ -62,6 +72,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeModule, setActiveModule] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
   const [pin, setPin] = useState<PinStatus | null>(null);
+
+  const lockPinSession = useCallback(() => {
+    setPin((prev) => ({
+      ...(prev || LOCKED_PIN),
+      unlocked: false,
+      expires_at: null,
+      remaining_seconds: 0,
+      operator_name: null,
+    }));
+  }, []);
+
+  useEffect(() => {
+    setPinLockedListener(() => {
+      lockPinSession();
+    });
+    return () => setPinLockedListener(null);
+  }, [lockPinSession]);
 
   const persist = useCallback(async (nextUser: AuthUser | null, module: Role | null) => {
     if (!nextUser || !module) {
@@ -116,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const active = preferredModule(nextUser);
       setUser(nextUser);
       setActiveModule(active);
-      setPin(null);
+      setPin(LOCKED_PIN);
       await persist(nextUser, active);
     },
     [persist],
@@ -136,8 +163,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   const value = useMemo(
-    () => ({ user, activeModule, loading, pin, setPin, login, logout, refreshMe }),
-    [user, activeModule, loading, pin, login, logout, refreshMe],
+    () => ({
+      user,
+      activeModule,
+      loading,
+      pin,
+      setPin,
+      lockPinSession,
+      login,
+      logout,
+      refreshMe,
+    }),
+    [user, activeModule, loading, pin, lockPinSession, login, logout, refreshMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -153,4 +190,14 @@ export function useAuth() {
 
 export function asApiError(err: unknown): ApiError {
   return err as ApiError;
+}
+
+export { isPinSessionError };
+
+/** Alert error biasa; sesi PIN habis diabaikan (redirect global ke /kasir/pin). */
+export function reportApiError(err: unknown, title = 'Gagal'): void {
+  if (isPinSessionError(err)) {
+    return;
+  }
+  Alert.alert(title, asApiError(err).message || 'Terjadi kesalahan.');
 }

@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,14 +11,13 @@ import {
   View,
 } from 'react-native';
 import { kasirApi } from '@/api/kasir';
-import { asApiError } from '@/auth';
+import { reportApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 
 type Category = { id: number; name: string; slug: string; product_count: number };
 
 export default function CategoriesScreen() {
-  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,11 +29,11 @@ export default function CategoriesScreen() {
       const res = await kasirApi.categories();
       setCategories(res.data || []);
     } catch (err) {
-      if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+      reportApiError(err);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -50,7 +49,7 @@ export default function CategoriesScreen() {
       setName('');
       await refresh();
     } catch (err) {
-      Alert.alert('Gagal', asApiError(err).message);
+      reportApiError(err);
     } finally {
       setSaving(false);
     }
@@ -67,7 +66,7 @@ export default function CategoriesScreen() {
             await kasirApi.deleteCategory(cat.id);
             await refresh();
           } catch (err) {
-            Alert.alert('Gagal', asApiError(err).message);
+            reportApiError(err);
           }
         },
       },

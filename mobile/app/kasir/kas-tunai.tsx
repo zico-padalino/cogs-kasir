@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,13 +11,12 @@ import {
   View,
 } from 'react-native';
 import { kasirApi } from '@/api/kasir';
-import { asApiError } from '@/auth';
+import { reportApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
 
 export default function KasTunaiScreen() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
   const [amount, setAmount] = useState('');
@@ -31,11 +30,11 @@ export default function KasTunaiScreen() {
       const res = await kasirApi.kasTunai();
       setReport(res.data);
     } catch (err) {
-      if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+      reportApiError(err);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,7 +59,7 @@ export default function KasTunaiScreen() {
       setNote('');
       await refresh();
     } catch (err) {
-      Alert.alert('Gagal', asApiError(err).message);
+      reportApiError(err);
     } finally {
       setSaving(false);
     }

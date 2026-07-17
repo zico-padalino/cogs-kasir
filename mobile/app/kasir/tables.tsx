@@ -12,14 +12,11 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { kasirApi } from '@/api/kasir';
-import { asApiError, useAuth } from '@/auth';
+import { reportApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
-import { useRouter } from 'expo-router';
 
 export default function TablesScreen() {
-  const router = useRouter();
-  const { setPin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tables, setTables] = useState<
     { id: number; table_number: string; label: string; open_orders_count: number }[]
@@ -38,15 +35,11 @@ export default function TablesScreen() {
       setOrderUrl(res.data.order_url);
       setShopName(res.data.shop_name);
     } catch (err) {
-      const apiErr = asApiError(err);
-      if (apiErr.status === 423) {
-        setPin({ unlocked: false, expires_at: null, server_now: 0, remaining_seconds: 0 });
-        router.replace('/kasir/pin' as never);
-      }
+      reportApiError(err);
     } finally {
       setLoading(false);
     }
-  }, [router, setPin]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,7 +59,7 @@ export default function TablesScreen() {
       setLabel('');
       await refresh();
     } catch (err) {
-      Alert.alert('Gagal', asApiError(err).message);
+      reportApiError(err);
     } finally {
       setSaving(false);
     }

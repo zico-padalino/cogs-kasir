@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import type { MenuProduct } from '@/api/types';
-import { asApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
@@ -39,12 +38,12 @@ export default function MenuAdminScreen() {
       } else {
         setLabels((cats as Record<string, string>) || {});
       }
-    } catch (err) {
-      if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+    } catch {
+      // PIN_LOCKED → redirect global
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {

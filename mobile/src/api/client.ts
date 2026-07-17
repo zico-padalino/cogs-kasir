@@ -3,6 +3,20 @@ import type { ApiError } from './types';
 
 const TOKEN_KEY = 'kasir_api_token';
 
+type PinLockedListener = () => void;
+
+let pinLockedListener: PinLockedListener | null = null;
+
+/** Dipanggil AuthProvider: saat API 423/PIN_LOCKED, set state PIN terkunci + redirect. */
+export function setPinLockedListener(listener: PinLockedListener | null): void {
+  pinLockedListener = listener;
+}
+
+export function isPinSessionError(err: unknown): boolean {
+  const e = err as ApiError | undefined;
+  return e?.status === 423 || e?.code === 'PIN_LOCKED';
+}
+
 function defaultBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
   if (fromEnv) {
@@ -79,18 +93,24 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (!response.ok) {
-    const payload = json as {
+    const bodyPayload = json as {
       message?: string;
       code?: string;
       errors?: Record<string, string[]>;
     };
-    const firstFieldError = payload?.errors
-      ? Object.values(payload.errors).flat()[0]
+    const firstFieldError = bodyPayload?.errors
+      ? Object.values(bodyPayload.errors).flat()[0]
       : undefined;
-    const err = new Error(firstFieldError || payload?.message || `HTTP ${response.status}`) as ApiError;
+    const err = new Error(firstFieldError || bodyPayload?.message || `HTTP ${response.status}`) as ApiError;
     err.status = response.status;
-    err.code = payload?.code;
+    err.code = bodyPayload?.code;
     err.payload = json;
+
+    // Mirror web: sesi PIN habis → langsung ke halaman PIN (bukan alert "Gagal")
+    if (response.status === 423 || bodyPayload?.code === 'PIN_LOCKED') {
+      pinLockedListener?.();
+    }
+
     throw err;
   }
 

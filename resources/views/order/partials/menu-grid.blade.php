@@ -58,7 +58,7 @@
                 <div class="order-product-foot">
                     <span class="order-product-price">{{ $format::rupiah($price) }}</span>
                     <span class="order-product-add {{ $price <= 0 ? 'is-disabled' : '' }}">
-                        {{ $price > 0 ? 'Lihat' : 'Detail' }}
+                        {{ $price > 0 ? 'Pesan' : 'Detail' }}
                     </span>
                 </div>
             </div>

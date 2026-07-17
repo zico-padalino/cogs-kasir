@@ -14,7 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { kasirApi } from '@/api/kasir';
 import type { MenuProduct } from '@/api/types';
-import { asApiError } from '@/auth';
+import { isPinSessionError, reportApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
@@ -41,7 +41,10 @@ export default function MenuEditScreen() {
           (catRes.data || []).map((c) => ({ slug: c.slug, name: c.name })),
         );
       } catch (err) {
-        if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+        reportApiError(err);
+        if (!isPinSessionError(err)) {
+          router.back();
+        }
       } finally {
         setLoading(false);
       }
@@ -75,7 +78,7 @@ export default function MenuEditScreen() {
       Alert.alert('Berhasil', 'Menu diperbarui.');
       router.back();
     } catch (err) {
-      Alert.alert('Gagal', asApiError(err).message);
+      reportApiError(err);
     } finally {
       setSaving(false);
     }

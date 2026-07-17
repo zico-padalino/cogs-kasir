@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import type { PosOrder } from '@/api/types';
-import { asApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
@@ -19,13 +18,13 @@ export default function OrderDetailScreen() {
       try {
         const res = await kasirApi.order(Number(id));
         setOrder(res.data);
-      } catch (err) {
-        if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+      } catch {
+        // PIN_LOCKED → redirect global
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, router]);
+  }, [id]);
 
   return (
     <AppScaffold moduleType="kasir" title="Detail Pesanan" subtitle={order ? `#${order.order_number}` : ''}>

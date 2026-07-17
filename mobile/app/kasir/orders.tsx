@@ -3,7 +3,6 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import type { PosOrder } from '@/api/types';
-import { asApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
@@ -18,14 +17,12 @@ export default function OrdersScreen() {
     try {
       const res = await kasirApi.orders();
       setOrders(res.data || []);
-    } catch (err) {
-      if (asApiError(err).status === 423) {
-        router.replace('/kasir/pin' as never);
-      }
+    } catch {
+      // PIN_LOCKED → redirect global
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {

@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import type { PosOrder } from '@/api/types';
-import { asApiError } from '@/auth';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,13 +34,13 @@ export default function ReceiptScreen() {
         setPdfUrl(res.data.pdf_url);
         setWaMessage(res.data.wa_message);
         setShopName(res.data.shop_name);
-      } catch (err) {
-        if (asApiError(err).status === 423) router.replace('/kasir/pin' as never);
+      } catch {
+        // PIN_LOCKED → redirect global
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, router]);
+  }, [id]);
 
   if (loading || !order) {
     return (
