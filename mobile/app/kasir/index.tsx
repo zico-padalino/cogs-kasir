@@ -23,7 +23,7 @@ import { AppDrawer } from '@/components/AppScaffold';
 import { OrderToast } from '@/components/OrderToast';
 import { announceNewOrders } from '@/kasir/orderAlert';
 import { colors, font, radius, spacing } from '@/theme';
-import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
+import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
 
 type TabKey = 'menu' | 'cart';
 type PayMethod = 'cash' | 'qris' | 'transfer';
@@ -610,7 +610,7 @@ export default function KasirPosScreen() {
           <Pressable
             onPress={() => {
               setPayMethod('cash');
-              setAmountReceived(String(Math.ceil(total)));
+              setAmountReceived(formatRupiahInput(Math.ceil(total)));
               setProofUri(null);
               setPayOpen(true);
             }}
@@ -732,8 +732,10 @@ export default function KasirPosScreen() {
                 <Text style={styles.sectionLabel}>Uang diterima</Text>
                 <TextInput
                   value={amountReceived}
-                  onChangeText={setAmountReceived}
-                  keyboardType="numeric"
+                  onChangeText={(text) => setAmountReceived(formatRupiahInput(text))}
+                  keyboardType="number-pad"
+                  placeholder="0"
+                  placeholderTextColor={colors.slate400}
                   style={styles.input}
                 />
                 <Text style={styles.muted}>Kembalian: {formatRupiah(cashChange)}</Text>

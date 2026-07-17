@@ -14,7 +14,7 @@ import { kasirApi } from '@/api/kasir';
 import { reportApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
-import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
+import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
 
 export default function KasTunaiScreen() {
   const [loading, setLoading] = useState(true);
@@ -107,9 +107,10 @@ export default function KasTunaiScreen() {
             </View>
             <TextInput
               value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              placeholder="Nominal"
+              onChangeText={(text) => setAmount(formatRupiahInput(text))}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={colors.slate400}
               style={styles.input}
             />
             <TextInput value={note} onChangeText={setNote} placeholder="Keterangan" style={styles.input} />
