@@ -1,5 +1,8 @@
 <?php
 
+// Stub Sanctum agar boot tidak fatal di shared hosting tanpa paket di vendor.
+require_once __DIR__.'/../app/Support/sanctum_fallback.php';
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'cogs.route' => \App\Http\Middleware\RememberCogsRoute::class,
             'kasir.pin' => \App\Http\Middleware\EnsureKasirPinUnlocked::class,
             'api.attendance' => \App\Http\Middleware\EnsureApiAttendanceChecked::class,
+            'auth.api' => \App\Http\Middleware\AuthenticateApiToken::class,
         ]);
 
         $middleware->web(append: [

@@ -1,16 +1,42 @@
 <?php
 
 /**
- * Fallback jika laravel/sanctum belum ada di vendor (sering terjadi setelah deploy tanpa composer install).
- * Mencegah fatal error yang membuat seluruh situs HTTP 500.
+ * Stub minimal agar boot Laravel tidak fatal jika cache discovery
+ * masih mereferensikan laravel/sanctum padahal paket belum ada di vendor
+ * (kasus umum deploy DomaiNesia tanpa composer install).
  */
 namespace Laravel\Sanctum;
 
-$sanctumTraitFile = dirname(__DIR__, 2).DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'laravel'
-    .DIRECTORY_SEPARATOR.'sanctum'.DIRECTORY_SEPARATOR.'src'.DIRECTORY_SEPARATOR.'HasApiTokens.php';
+if (! class_exists(SanctumServiceProvider::class, false)) {
+    class SanctumServiceProvider extends \Illuminate\Support\ServiceProvider
+    {
+        public function register(): void
+        {
+            // no-op
+        }
 
-if (is_file($sanctumTraitFile)) {
-    return;
+        public function boot(): void
+        {
+            // no-op
+        }
+    }
+}
+
+if (! class_exists(Sanctum::class, false)) {
+    class Sanctum
+    {
+        public static function currentApplicationUrlWithPort(): string
+        {
+            $appUrl = rtrim((string) config('app.url', 'http://localhost'), '/');
+
+            return ','.str_replace(['http://', 'https://'], '', $appUrl);
+        }
+
+        public static function actingAs($user, $abilities = [], $guard = 'sanctum')
+        {
+            return $user;
+        }
+    }
 }
 
 if (! trait_exists(HasApiTokens::class, false)) {
@@ -18,7 +44,7 @@ if (! trait_exists(HasApiTokens::class, false)) {
     {
         public function tokens()
         {
-            return $this->morphMany(PersonalAccessToken::class, 'tokenable');
+            return $this->morphMany(\App\Models\PersonalAccessToken::class, 'tokenable');
         }
 
         public function tokenCan(string $ability)
@@ -28,9 +54,7 @@ if (! trait_exists(HasApiTokens::class, false)) {
 
         public function createToken(string $name, array $abilities = ['*'], $expiresAt = null)
         {
-            throw new \RuntimeException(
-                'Paket laravel/sanctum belum terpasang di server. Jalankan: composer require laravel/sanctum && php artisan migrate'
-            );
+            throw new \RuntimeException('Gunakan App\\Models\\Concerns\\HasMobileApiTokens.');
         }
 
         public function currentAccessToken()
@@ -42,12 +66,5 @@ if (! trait_exists(HasApiTokens::class, false)) {
         {
             return $this;
         }
-    }
-}
-
-if (! class_exists(PersonalAccessToken::class, false)) {
-    class PersonalAccessToken extends \Illuminate\Database\Eloquent\Model
-    {
-        protected $table = 'personal_access_tokens';
     }
 }

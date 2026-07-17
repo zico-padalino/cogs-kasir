@@ -52,7 +52,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('status', [TableOrderController::class, 'status'])->name('status');
     });
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth.api')->group(function () {
         // ── Account / hub ────────────────────────────────────────
         Route::get('auth/me', [TokenAuthController::class, 'me'])->name('auth.me');
         Route::post('auth/logout', [TokenAuthController::class, 'logout'])->name('auth.logout');

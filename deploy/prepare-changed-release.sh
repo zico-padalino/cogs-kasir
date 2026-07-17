@@ -119,6 +119,18 @@ if [ "$INCLUDE_VENDOR" = "1" ] && [ -d "$ROOT/vendor" ]; then
   NEED_DEPLOY=1
 fi
 
+# Selalu kirim package discovery aman (hindari Sanctum / require-dev yang absen di vendor shared hosting)
+mkdir -p "$RELEASE_DIR/bootstrap/cache"
+cp -a "$ROOT/deploy/bootstrap-cache/packages.php" "$RELEASE_DIR/bootstrap/cache/packages.php"
+# Marker: upload script akan hapus services.php & config.php di server
+touch "$RELEASE_DIR/bootstrap/cache/.clear-optimize-cache"
+# Pastikan index public_html punya stub Sanctum
+cp -a "$ROOT/deploy/public_html-index.php" "$RELEASE_DIR/index.php"
+NEED_DEPLOY=1
+echo "  + deploy/bootstrap-cache/packages.php → bootstrap/cache/packages.php"
+echo "  + deploy/public_html-index.php → index.php"
+COPIED=$((COPIED + 2))
+
 # Frontend build di step workflow berikutnya; tetap perlu upload.
 if [ "$NEED_FRONTEND" = "1" ]; then
   NEED_DEPLOY=1

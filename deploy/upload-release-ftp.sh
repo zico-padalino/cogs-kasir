@@ -61,3 +61,25 @@ for rel in "${FILES[@]}"; do
 done
 
 echo "Upload selesai: $uploaded file"
+
+# Hapus cache optimize di server yang sering merujuk paket absen (Sanctum, dll.) → penyebab HTTP 500
+if [ -f "$RELEASE_DIR/bootstrap/cache/.clear-optimize-cache" ]; then
+  for rel in \
+    "bootstrap/cache/services.php" \
+    "bootstrap/cache/config.php" \
+    "bootstrap/cache/routes-v7.php" \
+    "bootstrap/cache/events.php"
+  do
+    echo "× DELE $rel"
+    if [ -n "$REMOTE_BASE" ]; then
+      curl --silent --show-error --user "$USER:$PASS" "ftp://$SERVER/" \
+        -Q "CWD $REMOTE_BASE" \
+        -Q "DELE $rel" || true
+    else
+      curl --silent --show-error --user "$USER:$PASS" "ftp://$SERVER/" \
+        -Q "DELE $rel" || true
+    fi
+  done
+fi
+
+echo "FTP selesai."

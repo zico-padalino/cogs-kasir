@@ -82,8 +82,15 @@ jobs:
           echo "Deploy range: $RANGE"
           git log --oneline "$RANGE" || git log -1 --oneline
 
-      - name: Setup PHP (vendor only)
-        if: env.INCLUDE_VENDOR == '1'
+          # Auto-upload vendor jika composer berubah (hindari HTTP 500 di shared hosting)
+          if git diff --name-only "$RANGE" | grep -Eq '^(composer\.json|composer\.lock)$'; then
+            echo "composer_changed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "composer_changed=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup PHP (vendor)
+        if: env.INCLUDE_VENDOR == '1' || steps.range.outputs.composer_changed == '1'
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
@@ -91,9 +98,11 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install Composer (vendor only)
-        if: env.INCLUDE_VENDOR == '1'
-        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+      - name: Install Composer (vendor)
+        if: env.INCLUDE_VENDOR == '1' || steps.range.outputs.composer_changed == '1'
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+          echo "INCLUDE_VENDOR=1" >> "$GITHUB_ENV"
 
       - name: Prepare changed files only
         id: prep

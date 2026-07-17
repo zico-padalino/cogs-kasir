@@ -13,6 +13,11 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 
+// Stub Sanctum sebelum boot (shared hosting sering tanpa paket di vendor).
+if (is_file(__DIR__.'/../app/Support/sanctum_fallback.php')) {
+    require_once __DIR__.'/../app/Support/sanctum_fallback.php';
+}
+
 // Bootstrap Laravel and handle the request...
 /** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';

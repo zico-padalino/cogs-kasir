@@ -45,16 +45,9 @@ class TokenAuthController extends Controller
             ]);
         }
 
-        if (! method_exists($user, 'createToken')) {
-            return response()->json([
-                'message' => 'Sanctum belum terpasang di server. Deploy ulang kode API + jalankan migrasi.',
-                'code' => 'SANCTUM_MISSING',
-            ], 500);
-        }
-
         if (! Schema::hasTable('personal_access_tokens')) {
             return response()->json([
-                'message' => 'Tabel personal_access_tokens belum ada. Jalankan: php artisan migrate',
+                'message' => 'Tabel personal_access_tokens belum ada. Jalankan migrasi di server (cPanel → Terminal / php artisan migrate).',
                 'code' => 'TOKEN_TABLE_MISSING',
             ], 500);
         }
@@ -66,7 +59,7 @@ class TokenAuthController extends Controller
             report($e);
 
             return response()->json([
-                'message' => 'Gagal membuat token login. Pastikan Sanctum dan migrasi sudah dijalankan di server.',
+                'message' => 'Gagal membuat token login: '.$e->getMessage(),
                 'code' => 'TOKEN_CREATE_FAILED',
             ], 500);
         }
