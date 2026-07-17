@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'role', 'modules', 'password', 'must_change_password'])]
+#[Fillable(['name', 'email', 'role', 'modules', 'is_root', 'password', 'must_change_password'])]
 #[Hidden(['password', 'remember_token', 'pin_hash'])]
 class User extends Authenticatable
 {
@@ -26,9 +26,18 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'modules' => 'array',
+            'is_root' => 'boolean',
             'pin_set_at' => 'datetime',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    /**
+     * Akun root punya akses ke seluruh modul dan wajib memilih modul saat login.
+     */
+    public function isRoot(): bool
+    {
+        return (bool) $this->is_root;
     }
 
     /** @return list<UserRole> */
@@ -54,6 +63,10 @@ class User extends Authenticatable
     /** @return list<string> */
     public function moduleValues(): array
     {
+        if ($this->isRoot()) {
+            return array_map(fn (UserRole $role) => $role->value, UserRole::cases());
+        }
+
         if (is_array($this->modules) && $this->modules !== []) {
             return array_values($this->modules);
         }
@@ -99,6 +112,19 @@ class User extends Authenticatable
         }
 
         return $this->homeUrl();
+    }
+
+    /**
+     * Tujuan setelah autentikasi berhasil. Akun root selalu diarahkan ke
+     * pemilih modul (hub) supaya bisa memilih modul yang ingin dibuka.
+     */
+    public function postAuthUrl(): string
+    {
+        if ($this->isRoot()) {
+            return route('hub');
+        }
+
+        return $this->preferredLoginUrl();
     }
 
     public function preferredLoginModule(): UserRole

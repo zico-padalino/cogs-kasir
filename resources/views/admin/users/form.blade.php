@@ -57,7 +57,26 @@
         @endif
 
         <div>
+            <label class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+                <input
+                    type="checkbox"
+                    name="is_root"
+                    value="1"
+                    class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    @checked(old('is_root', $user->is_root))
+                >
+                <span>
+                    <span class="block text-sm font-semibold text-slate-900">Jadikan akun root</span>
+                    <span class="block text-xs text-slate-600">
+                        Root punya akses semua modul. Setelah login, akun ini diarahkan ke halaman pilih modul.
+                    </span>
+                </span>
+            </label>
+        </div>
+
+        <div>
             <p class="form-label mb-2">Akses modul</p>
+            <p class="mb-2 text-xs text-slate-500">Jika akun root, semua modul otomatis aktif.</p>
             <div class="space-y-2">
                 @foreach ($allModules as $module)
                     <label class="flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50/40 px-4 py-3">

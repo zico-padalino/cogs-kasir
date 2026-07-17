@@ -14,7 +14,12 @@
         @foreach ($users as $user)
             <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
                 <div class="min-w-0">
-                    <p class="font-semibold text-slate-900">{{ $user->name }}</p>
+                    <p class="font-semibold text-slate-900">
+                        {{ $user->name }}
+                        @if ($user->isRoot())
+                            <span class="badge badge-amber ml-1">Root</span>
+                        @endif
+                    </p>
                     <p class="text-xs text-slate-500">{{ $user->email }}</p>
                     <div class="mt-2 flex flex-wrap gap-1">
                         @foreach ($user->accessibleModules() as $module)

@@ -35,13 +35,18 @@ class UserAccessController extends Controller
         $validated = $this->validated($request);
         $defaultPassword = (string) config('pos.default_user_password', 'password');
 
+        $modules = $validated['is_root']
+            ? array_map(fn (UserRole $role) => $role->value, UserRole::cases())
+            : $validated['modules'];
+
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $defaultPassword,
             'must_change_password' => true,
-            'role' => UserRole::from($validated['modules'][0]),
-            'modules' => $validated['modules'],
+            'is_root' => $validated['is_root'],
+            'role' => UserRole::from($modules[0]),
+            'modules' => $modules,
         ]);
 
         return redirect()
@@ -61,9 +66,14 @@ class UserAccessController extends Controller
     {
         $validated = $this->validated($request, $user);
 
+        $modules = $validated['is_root']
+            ? array_map(fn (UserRole $role) => $role->value, UserRole::cases())
+            : $validated['modules'];
+
         $user->name = $validated['name'];
         $user->email = $validated['email'];
-        $user->syncModules($validated['modules']);
+        $user->is_root = $validated['is_root'];
+        $user->syncModules($modules);
 
         if (! empty($validated['password'])) {
             $user->password = $validated['password'];
@@ -93,10 +103,12 @@ class UserAccessController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
             'password' => ['nullable', 'string', 'min:8'],
+            'is_root' => ['sometimes', 'boolean'],
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => [Rule::in(array_column(UserRole::cases(), 'value'))],
         ]);
 
+        $validated['is_root'] = $request->boolean('is_root');
         $validated['modules'] = array_values(array_unique($validated['modules']));
 
         return $validated;

@@ -18,7 +18,7 @@ class LoginController extends Controller
         $user = $request->user();
 
         if ($user) {
-            return redirect()->to($user->preferredLoginUrl());
+            return redirect()->to($user->postAuthUrl());
         }
 
         return view('auth.login');
@@ -59,9 +59,9 @@ class LoginController extends Controller
                 ->with('error', 'Akun baru wajib mengganti password sementara sebelum lanjut.');
         }
 
-        // Selalu arahkan ke kasir dulu (jika punya akses). Middleware absensi
-        // akan memaksa absen sebelum layar PIN jika belum absen.
-        return redirect()->to($user->preferredLoginUrl());
+        // Akun root diarahkan ke pemilih modul; selain itu ke kasir dulu (jika
+        // punya akses). Middleware absensi akan memaksa absen sebelum layar PIN.
+        return redirect()->to($user->postAuthUrl());
     }
 
     public function destroy(Request $request)

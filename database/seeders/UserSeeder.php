@@ -11,6 +11,17 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
+            ['email' => 'root@local.test'],
+            [
+                'name' => 'Root',
+                'role' => UserRole::Admin,
+                'modules' => [UserRole::Admin->value, UserRole::Cogs->value, UserRole::Kasir->value],
+                'is_root' => true,
+                'password' => 'password',
+            ]
+        );
+
+        User::updateOrCreate(
             ['email' => 'admin@local.test'],
             [
                 'name' => 'Admin Utama',
