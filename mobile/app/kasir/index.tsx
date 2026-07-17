@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Image,
   Modal,
@@ -24,6 +25,11 @@ import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
 
 type TabKey = 'menu' | 'cart';
 type PayMethod = 'cash' | 'qris' | 'transfer';
+
+const PRODUCT_GAP = spacing.sm;
+const PRODUCT_PAD = spacing.md;
+const PRODUCT_CARD_WIDTH =
+  (Dimensions.get('window').width - PRODUCT_PAD * 2 - PRODUCT_GAP) / 2;
 
 export default function KasirPosScreen() {
   const router = useRouter();
@@ -385,7 +391,7 @@ export default function KasirPosScreen() {
       </View>
 
       {tab === 'menu' ? (
-        <View style={{ flex: 1 }}>
+        <View style={styles.menuPane}>
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -393,32 +399,55 @@ export default function KasirPosScreen() {
             placeholderTextColor={colors.slate400}
             style={styles.search}
           />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catRow} contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.lg }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.catRow}
+            contentContainerStyle={styles.catRowContent}
+          >
             <Pressable onPress={() => setCategory('all')} style={[styles.catChip, category === 'all' && styles.catChipOn]}>
               <Text style={[styles.catChipText, category === 'all' && styles.catChipTextOn]}>Semua</Text>
             </Pressable>
             {categories.map((slug) => (
               <Pressable key={slug} onPress={() => setCategory(slug)} style={[styles.catChip, category === slug && styles.catChipOn]}>
-                <Text style={[styles.catChipText, category === slug && styles.catChipTextOn]}>
+                <Text style={[styles.catChipText, category === slug && styles.catChipTextOn]} numberOfLines={1}>
                   {categoryLabels[slug] || slug}
                 </Text>
               </Pressable>
             ))}
           </ScrollView>
           <FlatList
+            style={styles.productList}
             data={filteredProducts}
             keyExtractor={(item) => String(item.id)}
             numColumns={2}
-            contentContainerStyle={{ padding: spacing.md, paddingBottom: 120, gap: spacing.sm }}
-            columnWrapperStyle={{ gap: spacing.sm }}
+            contentContainerStyle={[
+              styles.productListContent,
+              { paddingBottom: itemCount > 0 ? 120 + insets.bottom : 24 + insets.bottom },
+            ]}
+            columnWrapperStyle={styles.productRow}
             renderItem={({ item }) => (
               <Pressable onPress={() => openAdd(item)} style={styles.productCard}>
-                <Image source={{ uri: item.image_url }} style={styles.productImage} />
-                <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.productPrice}>{formatRupiah(item.selling_price)}</Text>
+                <View style={styles.productMedia}>
+                  <Image source={{ uri: item.image_url }} style={styles.productImage} />
+                  <View style={styles.productFab}>
+                    <Text style={styles.productFabText}>+</Text>
+                  </View>
+                </View>
+                <View style={styles.productBody}>
+                  <Text style={styles.productCategory} numberOfLines={1}>
+                    {categoryLabels[item.menu_category || ''] || item.menu_category || 'Lainnya'}
+                  </Text>
+                  <Text style={styles.productName} numberOfLines={2}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.productPrice} numberOfLines={1}>
+                    {formatRupiah(item.selling_price)}
+                  </Text>
+                </View>
               </Pressable>
             )}
-            ListEmptyComponent={<Text style={styles.muted}>Tidak ada menu.</Text>}
+            ListEmptyComponent={<Text style={[styles.muted, { padding: spacing.lg }]}>Tidak ada menu.</Text>}
           />
         </View>
       ) : (
@@ -758,7 +787,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     color: colors.slate900,
   },
-  catRow: { maxHeight: 48, marginTop: spacing.sm },
+  menuPane: { flex: 1 },
+  catRow: { flexGrow: 0, marginTop: spacing.sm },
+  catRowContent: {
+    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
   catChip: {
     borderRadius: radius.full,
     borderWidth: 1,
@@ -766,24 +802,61 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    height: 36,
     justifyContent: 'center',
   },
   catChipOn: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
   catChipText: { fontSize: 12, color: colors.slate600, ...font('500') },
   catChipTextOn: { color: colors.white },
+  productList: { flex: 1 },
+  productListContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  productRow: {
+    gap: PRODUCT_GAP,
+    marginBottom: PRODUCT_GAP,
+  },
   productCard: {
-    flex: 1,
+    width: PRODUCT_CARD_WIDTH,
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.slate200,
     overflow: 'hidden',
-    paddingBottom: spacing.sm,
   },
-  productImage: { width: '100%', height: 100, backgroundColor: colors.slate100 },
-  productName: { fontSize: 13, color: colors.slate900, ...font('600'), paddingHorizontal: spacing.sm, marginTop: spacing.sm },
-  productPrice: { fontSize: 13, color: colors.brand700, ...font('700'), paddingHorizontal: spacing.sm, marginTop: 4 },
+  productMedia: {
+    width: '100%',
+    height: PRODUCT_CARD_WIDTH * 0.85,
+    backgroundColor: colors.slate100,
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  productFab: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.brand600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productFabText: { color: colors.white, fontSize: 18, lineHeight: 20, ...font('700') },
+  productBody: {
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    gap: 2,
+    minHeight: 78,
+  },
+  productCategory: { fontSize: 10, color: colors.slate500, ...font('500'), textTransform: 'uppercase' },
+  productName: { fontSize: 13, color: colors.slate900, ...font('600'), lineHeight: 17 },
+  productPrice: { fontSize: 13, color: colors.brand700, ...font('700'), marginTop: 4 },
   cartItem: {
     flexDirection: 'row',
     gap: spacing.md,
