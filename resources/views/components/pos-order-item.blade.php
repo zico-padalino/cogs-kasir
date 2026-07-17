@@ -62,18 +62,23 @@
                 </form>
             </div>
 
-            <form action="{{ $updateUrl }}" method="POST" class="pos-item-note-form pos-order-item-note-form">
-                @csrf
-                @method('PATCH')
-                <textarea
-                    name="notes"
-                    rows="2"
-                    maxlength="255"
-                    class="order-item-note-input pos-item-note-input"
-                    placeholder="Catatan: less sugar, hot, dll."
-                >{{ old('notes', $noteParts['customer']) }}</textarea>
-                <button type="submit" class="pos-item-note-save">Simpan catatan</button>
-            </form>
+            <details class="pos-order-item-note-details" @if ($noteParts['customer']) open @endif>
+                <summary class="pos-order-item-note-summary">
+                    {{ $noteParts['customer'] ? 'Catatan' : 'Tambah catatan' }}
+                </summary>
+                <form action="{{ $updateUrl }}" method="POST" class="pos-item-note-form pos-order-item-note-form">
+                    @csrf
+                    @method('PATCH')
+                    <textarea
+                        name="notes"
+                        rows="2"
+                        maxlength="255"
+                        class="order-item-note-input pos-item-note-input"
+                        placeholder="Contoh: less sugar, hot, bungkus terpisah"
+                    >{{ old('notes', $noteParts['customer']) }}</textarea>
+                    <button type="submit" class="pos-item-note-save">Simpan catatan</button>
+                </form>
+            </details>
         @else
             <p class="pos-receipt-line-qty-secondary">
                 {{ $format::number($item->quantity, 0) }} × {{ $format::rupiah($item->unit_price) }}

@@ -25,6 +25,7 @@ function initOrderTableTabs() {
         return;
     }
 
+    const main = root.querySelector('.order-table-main');
     const tabs = root.querySelectorAll('[data-order-tab]');
     const panels = root.querySelectorAll('[data-order-panel]');
 
@@ -45,6 +46,10 @@ function initOrderTableTabs() {
                     panel.classList.toggle('hidden', ! active);
                 }
             });
+
+            if (window.matchMedia('(max-width: 1023px)').matches) {
+                main?.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         });
     });
 }
@@ -55,13 +60,20 @@ function initOrderSearch() {
         return;
     }
 
+    const emptyState = document.querySelector('[data-order-search-empty]');
+
     input.addEventListener('input', () => {
         const query = input.value.trim().toLowerCase();
+        let visibleCount = 0;
 
         document.querySelectorAll('[data-order-product]').forEach((card) => {
             const key = card.dataset.orderProduct || '';
-            card.classList.toggle('hidden', query !== '' && ! key.includes(query));
+            const isVisible = query === '' || key.includes(query);
+            card.classList.toggle('hidden', ! isVisible);
+            visibleCount += isVisible ? 1 : 0;
         });
+
+        emptyState?.classList.toggle('hidden', query === '' || visibleCount > 0);
     });
 }
 

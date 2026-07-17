@@ -12,22 +12,18 @@
     <div class="order-table-shell" data-order-table>
         <header class="order-table-header">
             @include('layouts.partials.shop-brand-mark', ['sizeClass' => 'h-11 w-11', 'roundedClass' => 'rounded-2xl', 'textClass' => 'text-lg'])
-            <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold uppercase tracking-wider text-brand-600">Pesan Online</p>
-                <h1 class="truncate text-xl font-bold text-slate-900 sm:text-2xl">{{ config('pos.shop_name') }}</h1>
-                <p class="text-xs text-slate-500">
-                    @if (config('pos.shop_title'))
-                        <span>{{ config('pos.shop_title') }}</span>
-                        <span aria-hidden="true"> · </span>
-                    @endif
-                    <span class="font-mono">{{ $order->order_number }}</span>
+            <div class="order-header-copy">
+                <p class="order-header-eyebrow">Pesan Online</p>
+                <h1 class="order-header-shop">{{ config('pos.shop_name') }}</h1>
+                <div class="order-header-meta">
+                    <span class="order-header-number">{{ $order->order_number }}</span>
                     @if ($order->order_type)
-                        · {{ $order->order_type->icon() }} {{ $order->order_type->label() }}
+                        <span>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
                     @endif
                     @if ($order->customer_note)
-                        · {{ $order->customer_note }}
+                        <span class="truncate">{{ $order->customer_note }}</span>
                     @endif
-                </p>
+                </div>
             </div>
             @if ($order->status->value === 'open' && $order->items->isNotEmpty())
                 <div class="order-header-total lg:hidden">
@@ -76,10 +72,12 @@
             @else
                 <div class="order-view-tabs lg:hidden" role="tablist">
                     <button type="button" class="order-view-tab is-active" data-order-tab="menu" role="tab" aria-selected="true">
-                        Menu
+                        <span aria-hidden="true">🍽️</span>
+                        <span>Menu</span>
                     </button>
                     <button type="button" class="order-view-tab" data-order-tab="cart" role="tab" aria-selected="false">
-                        Pesanan
+                        <span aria-hidden="true">🛒</span>
+                        <span>Pesanan Saya</span>
                         <span data-order-cart-badge class="order-view-badge {{ $order->items->isEmpty() ? 'hidden' : '' }}">{{ $order->items->count() }}</span>
                     </button>
                 </div>

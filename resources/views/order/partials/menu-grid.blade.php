@@ -1,13 +1,20 @@
 @props(['products', 'format'])
 
 <div class="order-menu-toolbar">
-    <input
-        type="search"
-        data-order-search
-        class="order-search-input"
-        placeholder="Cari menu..."
-        autocomplete="off"
-    >
+    <div class="order-search-wrap">
+        <svg class="order-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <path stroke-linecap="round" d="m20 20-3.5-3.5"/>
+        </svg>
+        <input
+            type="search"
+            data-order-search
+            class="order-search-input"
+            placeholder="Cari makanan atau minuman..."
+            aria-label="Cari menu"
+            autocomplete="off"
+        >
+    </div>
 </div>
 
 <div class="order-menu-grid">
@@ -69,6 +76,12 @@
             <p class="order-empty-hint">Hubungi staf atau pesan langsung di kasir</p>
         </div>
     @endforelse
+</div>
+
+<div class="order-search-empty hidden" data-order-search-empty>
+    <span aria-hidden="true">🔎</span>
+    <p>Menu tidak ditemukan</p>
+    <p class="order-empty-hint">Coba gunakan kata pencarian yang berbeda.</p>
 </div>
 
 <div class="order-modal hidden" data-order-modal aria-hidden="true">

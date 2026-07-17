@@ -20,6 +20,8 @@ import { kasirApi, pinApi } from '@/api/kasir';
 import type { MenuProduct, PosOrder, PosOrder as Order } from '@/api/types';
 import { asApiError, useAuth } from '@/auth';
 import { AppDrawer } from '@/components/AppScaffold';
+import { OrderToast } from '@/components/OrderToast';
+import { announceNewOrders } from '@/kasir/orderAlert';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, parseRupiahInput } from '@/utils/rupiah';
 
@@ -48,7 +50,6 @@ export default function KasirPosScreen() {
   const [pending, setPending] = useState<PosOrder[]>([]);
   const [shopName, setShopName] = useState('Kasir');
   const [pollMs, setPollMs] = useState(5000);
-  const [autoLoad, setAutoLoad] = useState(true);
 
   const [addProduct, setAddProduct] = useState<MenuProduct | null>(null);
   const [qty, setQty] = useState(1);
@@ -68,9 +69,13 @@ export default function KasirPosScreen() {
   const [orderType, setOrderType] = useState('takeaway');
   const [orderBarOpen, setOrderBarOpen] = useState(false);
 
+  const [orderAlert, setOrderAlert] = useState<{
+    title: string;
+    message: string;
+    orderId: number | null;
+  } | null>(null);
   const knownPending = useRef<Set<number>>(new Set());
-  const payOpenRef = useRef(false);
-  payOpenRef.current = payOpen;
+  const announcingRef = useRef(false);
 
   const applyOrder = useCallback((next: Order) => {
     setOrder(next);
@@ -105,7 +110,6 @@ export default function KasirPosScreen() {
       setPending(data.pending_orders || []);
       setShopName(data.shop_name);
       setPollMs((data.poll_interval_seconds || 5) * 1000);
-      setAutoLoad(data.auto_load_new_order);
       setPin(data.pin);
       knownPending.current = new Set((data.pending_orders || []).map((o) => o.id));
     } catch (err) {
@@ -137,17 +141,35 @@ export default function KasirPosScreen() {
           router.replace('/kasir/pin' as never);
           return;
         }
-        setPending(data.orders || []);
-        const ids = data.order_ids || [];
-        const newest = ids.find((id) => !knownPending.current.has(id));
+
+        const orders = data.orders || [];
+        setPending(orders);
+
+        const ids = (data.order_ids || []).map(Number);
+        const newIds = ids.filter((id) => !knownPending.current.has(id));
         knownPending.current = new Set(ids);
-        if (newest && autoLoad && !payOpenRef.current) {
-          const activeHasItems = (order?.items?.length ?? 0) > 0 && order?.source === 'kasir';
-          if (!activeHasItems) {
-            const loaded = await kasirApi.loadOrder(newest);
-            applyOrder(loaded.data);
-            setTab('cart');
+
+        if (newIds.length > 0 && !announcingRef.current) {
+          const newOrders = orders.filter((o) => newIds.includes(o.id));
+          const newest =
+            newIds.includes(Number(data.latest_order_id)) && data.latest_order_id
+              ? Number(data.latest_order_id)
+              : Math.max(...newIds);
+
+          announcingRef.current = true;
+          try {
+            const alert = await announceNewOrders(newOrders.length > 0 ? newOrders : orders.slice(0, 1));
+            if (alert) {
+              setOrderAlert({
+                title: alert.title,
+                message: alert.message,
+                orderId: Number.isFinite(newest) ? newest : null,
+              });
+            }
+          } finally {
+            announcingRef.current = false;
           }
+          // Tidak auto-load: kasir pilih "Buka Pesanan" dulu dari toast
         }
       } catch (err) {
         const apiErr = asApiError(err);
@@ -158,7 +180,7 @@ export default function KasirPosScreen() {
     }, pollMs);
 
     return () => clearInterval(timer);
-  }, [pollMs, autoLoad, applyOrder, order?.items?.length, order?.source, router, setPin]);
+  }, [pollMs, applyOrder, handleApiError, router, setPin]);
 
   useEffect(() => {
     const statusTimer = setInterval(async () => {
@@ -319,6 +341,29 @@ export default function KasirPosScreen() {
 
   return (
     <View style={styles.root}>
+      <OrderToast
+        title={orderAlert?.title ?? null}
+        message={orderAlert?.message ?? null}
+        sticky
+        actionLabel="Buka Pesanan"
+        onAction={
+          orderAlert?.orderId
+            ? async () => {
+                try {
+                  const id = orderAlert.orderId!;
+                  const res = await kasirApi.loadOrder(id);
+                  applyOrder(res.data);
+                  setTab('cart');
+                } catch (err) {
+                  handleApiError(err);
+                  throw err;
+                }
+              }
+            : undefined
+        }
+        onDismiss={() => setOrderAlert(null)}
+      />
+
       <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
         <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn}>
           <View style={styles.menuLine} />
@@ -339,11 +384,14 @@ export default function KasirPosScreen() {
 
       {pending.length > 0 ? (
         <View style={styles.pendingBanner}>
-          <Text style={styles.pendingTitle}>Pesanan online ({pending.length})</Text>
+          <Text style={styles.pendingTitle}>🔔 Pesanan online ({pending.length})</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {pending.map((p) => (
               <View key={p.id} style={styles.pendingCard}>
                 <Text style={styles.pendingNo}>#{p.order_number}</Text>
+                <Text style={styles.pendingMeta} numberOfLines={1}>
+                  {p.customer_note || p.table?.label || 'Tanpa nama'}
+                </Text>
                 <Text style={styles.pendingMeta}>{formatRupiah(p.total)}</Text>
                 <View style={styles.pendingActions}>
                   <Pressable
@@ -358,7 +406,7 @@ export default function KasirPosScreen() {
                     }}
                     style={styles.pendingLoad}
                   >
-                    <Text style={styles.pendingLoadText}>Muat</Text>
+                    <Text style={styles.pendingLoadText}>Buka</Text>
                   </Pressable>
                   <Pressable
                     onPress={async () => {
