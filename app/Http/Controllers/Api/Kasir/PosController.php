@@ -428,4 +428,20 @@ class PosController extends Controller
             ],
         ]);
     }
+
+    public function receiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): \Symfony\Component\HttpFoundation\Response
+    {
+        if ($order->status !== PosOrderStatus::Paid) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->store($order);
+        $inline = request()->boolean('print');
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
 }

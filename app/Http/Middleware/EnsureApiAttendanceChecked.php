@@ -23,8 +23,10 @@ class EnsureApiAttendanceChecked
 
         if ($request->routeIs(
             'api.v1.auth.*',
+            'api.v1.attendance.*',
             'api.v1.kasir.pin.status',
             'api.v1.kasir.pending.poll',
+            'api.v1.pesan.*',
         )) {
             return $next($request);
         }

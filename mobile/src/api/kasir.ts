@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequest, getApiBaseUrl } from './client';
 import type {
   AuthUser,
   MenuProduct,
@@ -18,12 +18,102 @@ export const authApi = {
     });
   },
   me() {
-    return apiRequest<Envelope<{ user: AuthUser; shop: { name: string; title?: string; logo_url?: string }; pin: PinStatus }>>(
-      '/auth/me',
-    );
+    return apiRequest<
+      Envelope<{
+        user: AuthUser;
+        shop: { name: string; title?: string; logo_url?: string };
+        pin: PinStatus;
+        attendance?: {
+          enabled: boolean;
+          must_attend: boolean;
+          profile_required: boolean;
+          required_action: string | null;
+        };
+        modules?: { value: string; label: string }[];
+      }>
+    >('/auth/me');
   },
   logout() {
     return apiRequest<{ message: string }>('/auth/logout', { method: 'POST' });
+  },
+  changePassword(payload: { current_password: string; password: string; password_confirmation: string }) {
+    return apiRequest<Envelope<{ must_change_password: boolean }>>('/auth/password', {
+      method: 'PUT',
+      body: payload,
+    });
+  },
+  hub() {
+    return apiRequest<Envelope<{ modules: { value: string; label: string; home: string }[]; default: string }>>(
+      '/auth/hub',
+    );
+  },
+  switchModule(module: string) {
+    return apiRequest<Envelope<{ module: string; home: string }>>(`/auth/hub/${module}`, { method: 'POST' });
+  },
+  profileSetup() {
+    return apiRequest<Envelope<Record<string, unknown>>>('/auth/profile-setup');
+  },
+  updateProfile(phone: string) {
+    return apiRequest<Envelope<Record<string, unknown>>>('/auth/profile-setup', {
+      method: 'PUT',
+      body: { phone },
+    });
+  },
+  pinSetup() {
+    return apiRequest<Envelope<{ has_pin: boolean; can_use_kasir: boolean }>>('/auth/pin-setup');
+  },
+  updatePinSetup(payload: { current_password: string; pin: string; pin_confirmation: string }) {
+    return apiRequest<Envelope<{ has_pin: boolean }>>('/auth/pin-setup', { method: 'PUT', body: payload });
+  },
+};
+
+export const attendanceApi = {
+  status() {
+    return apiRequest<Envelope<Record<string, unknown>>>('/attendance/status');
+  },
+  scanShow() {
+    return apiRequest<Envelope<Record<string, unknown>>>('/attendance/scan', { auth: false });
+  },
+  scanStore(payload: {
+    employee_id: number;
+    latitude: number;
+    longitude: number;
+    photo: string;
+    mode: 'check_in' | 'check_out';
+  }) {
+    return apiRequest<Envelope<Record<string, unknown>>>('/attendance/scan', {
+      method: 'POST',
+      body: payload,
+      auth: false,
+    });
+  },
+};
+
+export const pesanApi = {
+  show(orderId?: number) {
+    const qs = orderId ? `?order_id=${orderId}` : '';
+    return apiRequest<Envelope<Record<string, unknown>>>(`/pesan${qs}`, { auth: false });
+  },
+  newOrder() {
+    return apiRequest<Envelope<PosOrder>>('/pesan/new-order', { method: 'POST', auth: false });
+  },
+  updateCustomer(payload: { order_id: number; customer_note: string; order_type?: string }) {
+    return apiRequest<Envelope<PosOrder>>('/pesan/customer', { method: 'PATCH', body: payload, auth: false });
+  },
+  addItem(payload: {
+    order_id: number;
+    product_id: number;
+    quantity: number;
+    notes?: string;
+    addon_ids?: number[];
+  }) {
+    return apiRequest<Envelope<PosOrder>>('/pesan/items', { method: 'POST', body: payload, auth: false });
+  },
+  submit(payload: { order_id: number; customer_note: string; order_type: string }) {
+    return apiRequest<Envelope<PosOrder>>('/pesan/submit', { method: 'POST', body: payload, auth: false });
+  },
+  status(orderId: number) {
+    return apiRequest<Envelope<Record<string, unknown>>>(`/pesan/status?order_id=${orderId}`, { auth: false });
   },
 };
 
@@ -158,6 +248,13 @@ export const kasirApi = {
   pembukuan(params: Record<string, string> = {}) {
     const qs = new URLSearchParams(params).toString();
     return apiRequest<Envelope<Record<string, unknown>>>(`/kasir/pembukuan${qs ? `?${qs}` : ''}`);
+  },
+  pembukuanPdf(params: Record<string, string> = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest<Envelope<Record<string, unknown>>>(`/kasir/pembukuan/pdf${qs ? `?${qs}` : ''}`);
+  },
+  receiptPdfUrl(orderId: number) {
+    return `${getApiBaseUrl()}/kasir/orders/${orderId}/receipt/pdf`;
   },
   kasTunai(date?: string) {
     const qs = date ? `?date=${encodeURIComponent(date)}` : '';

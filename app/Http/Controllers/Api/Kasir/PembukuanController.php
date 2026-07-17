@@ -33,4 +33,23 @@ class PembukuanController extends Controller
             ],
         ]);
     }
+
+    public function pdf(Request $request): JsonResponse
+    {
+        $data = $this->salesReport->reportData($request);
+
+        return response()->json([
+            'data' => [
+                'shop_name' => config('pos.shop_name', 'Coffee & Kitchen'),
+                'period' => $data['period'],
+                'period_label' => $data['periodLabel'],
+                'range_label' => $data['rangeLabel'],
+                'omzet' => $data['omzet'],
+                'count' => $data['count'],
+                'average' => $data['average'],
+                'by_payment' => $data['byPayment'],
+                'orders' => PosOrderResource::collection($data['orders']),
+            ],
+        ]);
+    }
 }

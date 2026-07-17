@@ -50,6 +50,7 @@ class TokenAuthController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $attendance = app(\App\Services\AttendanceService::class);
 
         return response()->json([
             'data' => [
@@ -60,6 +61,16 @@ class TokenAuthController extends Controller
                     'logo_url' => ShopSettings::logoUrl(),
                 ],
                 'pin' => KasirPin::statusPayload(),
+                'attendance' => [
+                    'enabled' => $attendance->isEnabled(),
+                    'must_attend' => $attendance->mustAttend($user),
+                    'profile_required' => $attendance->needsProfileSetup($user),
+                    'required_action' => $attendance->requiredAction($user),
+                ],
+                'modules' => collect($user->accessibleModules())->map(fn ($role) => [
+                    'value' => $role->value,
+                    'label' => $role->label(),
+                ])->values(),
             ],
         ]);
     }
