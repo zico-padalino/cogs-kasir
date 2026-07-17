@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     // ── Public auth ──────────────────────────────────────────────
+    Route::get('auth/shop', [TokenAuthController::class, 'shop'])->name('auth.shop');
     Route::post('auth/login', [TokenAuthController::class, 'login'])->name('auth.login');
 
     // ── Public absensi (scan QR toko) ─────────────────────────────

@@ -79,11 +79,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (!response.ok) {
-    const err = new Error(
-      (json as { message?: string })?.message || `HTTP ${response.status}`,
-    ) as ApiError;
+    const payload = json as {
+      message?: string;
+      code?: string;
+      errors?: Record<string, string[]>;
+    };
+    const firstFieldError = payload?.errors
+      ? Object.values(payload.errors).flat()[0]
+      : undefined;
+    const err = new Error(firstFieldError || payload?.message || `HTTP ${response.status}`) as ApiError;
     err.status = response.status;
-    err.code = (json as { code?: string })?.code;
+    err.code = payload?.code;
     err.payload = json;
     throw err;
   }

@@ -29,27 +29,32 @@ type AuthContextValue = {
   loading: boolean;
   pin: PinStatus | null;
   setPin: (pin: PinStatus | null) => void;
-  login: (input: { email: string; password: string; module: Role }) => Promise<void>;
+  login: (input: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function resolveActiveModule(user: AuthUser, preferred: Role): Role {
-  if (preferred === 'kasir' && user.has_kasir) {
-    return 'kasir';
-  }
-  if (preferred === 'cogs' && user.has_cogs) {
-    return 'cogs';
-  }
+/** Mirror web preferredLoginModule: kasir > cogs. */
+function preferredModule(user: AuthUser): Role {
   if (user.has_kasir) {
     return 'kasir';
   }
   if (user.has_cogs) {
     return 'cogs';
   }
-  throw new Error('Akun ini tidak memiliki akses modul yang dipilih.');
+  throw new Error('Akun ini belum memiliki akses modul.');
+}
+
+function resolveActiveModule(user: AuthUser, preferred?: Role | null): Role {
+  if (preferred === 'kasir' && user.has_kasir) {
+    return 'kasir';
+  }
+  if (preferred === 'cogs' && user.has_cogs) {
+    return 'cogs';
+  }
+  return preferredModule(user);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -80,9 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.data.user);
     setPin(res.data.pin);
     const storedModule = (await AsyncStorage.getItem('auth_module')) as Role | null;
-    const module = storedModule && (storedModule === 'kasir' || storedModule === 'cogs')
-      ? resolveActiveModule(res.data.user, storedModule)
-      : resolveActiveModule(res.data.user, res.data.user.has_kasir ? 'kasir' : 'cogs');
+    const module = resolveActiveModule(res.data.user, storedModule);
     setActiveModule(module);
     await persist(res.data.user, module);
   }, [persist]);
@@ -106,19 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshMe]);
 
   const login = useCallback(
-    async ({ email, password, module }: { email: string; password: string; module: Role }) => {
+    async ({ email, password }: { email: string; password: string }) => {
       const res = await authApi.login(email.trim(), password);
       const nextUser = res.data.user;
-
-      if (module === 'kasir' && !nextUser.has_kasir) {
-        throw new Error(`Akun ini tidak memiliki akses modul ${ROLE_META.kasir.label}.`);
-      }
-      if (module === 'cogs' && !nextUser.has_cogs) {
-        throw new Error(`Akun ini tidak memiliki akses modul ${ROLE_META.cogs.label}.`);
-      }
-
       await setToken(res.data.token);
-      const active = resolveActiveModule(nextUser, module);
+      const active = preferredModule(nextUser);
       setUser(nextUser);
       setActiveModule(active);
       setPin(null);
@@ -131,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } catch {
-      // ignore network errors on logout
+      // ignore
     }
     await setToken(null);
     await persist(null, null);

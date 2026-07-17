@@ -10,10 +10,24 @@ use App\Support\ShopSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class TokenAuthController extends Controller
 {
+    public function shop(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'name' => ShopSettings::get('shop_name', config('pos.shop_name')),
+                'title' => ShopSettings::get('shop_title', config('pos.shop_title')) ?: 'Masuk untuk mengelola toko Anda',
+                'logo_url' => ShopSettings::logoUrl(),
+                'initial' => ShopSettings::initial(),
+            ],
+        ]);
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         /** @var User|null $user */
@@ -31,10 +45,37 @@ class TokenAuthController extends Controller
             ]);
         }
 
-        $user->tokens()->where('name', 'mobile')->delete();
-        $token = $user->createToken('mobile')->plainTextToken;
+        if (! method_exists($user, 'createToken')) {
+            return response()->json([
+                'message' => 'Sanctum belum terpasang di server. Deploy ulang kode API + jalankan migrasi.',
+                'code' => 'SANCTUM_MISSING',
+            ], 500);
+        }
 
-        KasirPin::lock();
+        if (! Schema::hasTable('personal_access_tokens')) {
+            return response()->json([
+                'message' => 'Tabel personal_access_tokens belum ada. Jalankan: php artisan migrate',
+                'code' => 'TOKEN_TABLE_MISSING',
+            ], 500);
+        }
+
+        try {
+            $user->tokens()->where('name', 'mobile')->delete();
+            $token = $user->createToken('mobile')->plainTextToken;
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Gagal membuat token login. Pastikan Sanctum dan migrasi sudah dijalankan di server.',
+                'code' => 'TOKEN_CREATE_FAILED',
+            ], 500);
+        }
+
+        try {
+            KasirPin::lock();
+        } catch (Throwable) {
+            // abaikan — login tetap sukses
+        }
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -56,9 +97,10 @@ class TokenAuthController extends Controller
             'data' => [
                 'user' => $this->userPayload($user),
                 'shop' => [
-                    'name' => config('pos.shop_name'),
-                    'title' => config('pos.shop_title'),
+                    'name' => ShopSettings::get('shop_name', config('pos.shop_name')),
+                    'title' => ShopSettings::get('shop_title', config('pos.shop_title')),
                     'logo_url' => ShopSettings::logoUrl(),
+                    'initial' => ShopSettings::initial(),
                 ],
                 'pin' => KasirPin::statusPayload(),
                 'attendance' => [
@@ -77,7 +119,11 @@ class TokenAuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        KasirPin::lock();
+        try {
+            KasirPin::lock();
+        } catch (Throwable) {
+            // ignore
+        }
 
         /** @var User $user */
         $user = $request->user();

@@ -10,6 +10,11 @@ import type {
 type Envelope<T> = { message?: string; data: T };
 
 export const authApi = {
+  shop() {
+    return apiRequest<
+      Envelope<{ name: string; title: string; logo_url?: string | null; initial: string }>
+    >('/auth/shop', { auth: false });
+  },
   login(email: string, password: string) {
     return apiRequest<Envelope<{ token: string; token_type: string; user: AuthUser }>>('/auth/login', {
       method: 'POST',
