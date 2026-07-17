@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UserAccessController extends Controller
@@ -62,8 +63,19 @@ class UserAccessController extends Controller
         ]);
     }
 
+    public function show(User $user): RedirectResponse
+    {
+        return redirect()->route('admin.users.edit', $user);
+    }
+
     public function update(Request $request, User $user): RedirectResponse
     {
+        if ($user->isRoot() && ! $request->user()->isRoot()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'Hanya akun root yang dapat mengubah akun root.');
+        }
+
         $validated = $this->validated($request, $user);
 
         $modules = $validated['is_root']
@@ -91,6 +103,10 @@ class UserAccessController extends Controller
             return back()->with('error', 'Tidak bisa menghapus akun yang sedang dipakai.');
         }
 
+        if ($user->isRoot() && ! $request->user()->isRoot()) {
+            return back()->with('error', 'Hanya akun root yang dapat menghapus akun root.');
+        }
+
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('success', 'Akun dihapus.');
@@ -99,17 +115,32 @@ class UserAccessController extends Controller
     /** @return array<string, mixed> */
     private function validated(Request $request, ?User $user = null): array
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
-            'password' => ['nullable', 'string', 'min:8'],
-            'is_root' => ['sometimes', 'boolean'],
-            'modules' => ['required', 'array', 'min:1'],
-            'modules.*' => [Rule::in(array_column(UserRole::cases(), 'value'))],
-        ]);
+        $actorIsRoot = $request->user()->isRoot();
+        $willBeRoot = $actorIsRoot
+            ? $request->boolean('is_root')
+            : ($user?->isRoot() ?? false);
 
-        $validated['is_root'] = $request->boolean('is_root');
-        $validated['modules'] = array_values(array_unique($validated['modules']));
+        try {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
+                'password' => ['nullable', 'string', 'min:8'],
+                'is_root' => [$actorIsRoot ? 'sometimes' : 'prohibited', 'boolean'],
+                'modules' => [Rule::requiredIf(! $willBeRoot), 'array'],
+                'modules.*' => [Rule::in(array_column(UserRole::cases(), 'value'))],
+            ]);
+        } catch (ValidationException $exception) {
+            $exception->redirectTo(
+                $user
+                    ? route('admin.users.edit', $user)
+                    : route('admin.users.create')
+            );
+
+            throw $exception;
+        }
+
+        $validated['is_root'] = $willBeRoot;
+        $validated['modules'] = array_values(array_unique($validated['modules'] ?? []));
 
         return $validated;
     }

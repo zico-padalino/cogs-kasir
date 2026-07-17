@@ -56,23 +56,25 @@
             </div>
         @endif
 
-        <div>
-            <label class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3">
-                <input
-                    type="checkbox"
-                    name="is_root"
-                    value="1"
-                    class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                    @checked(old('is_root', $user->is_root))
-                >
-                <span>
-                    <span class="block text-sm font-semibold text-slate-900">Jadikan akun root</span>
-                    <span class="block text-xs text-slate-600">
-                        Root punya akses semua modul. Setelah login, akun ini diarahkan ke halaman pilih modul.
+        @if (auth()->user()->isRoot())
+            <div>
+                <label class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+                    <input
+                        type="checkbox"
+                        name="is_root"
+                        value="1"
+                        class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                        @checked(old('is_root', $user->is_root))
+                    >
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-900">Jadikan akun root</span>
+                        <span class="block text-xs text-slate-600">
+                            Root punya akses semua modul. Setelah login, akun ini diarahkan ke halaman pilih modul.
+                        </span>
                     </span>
-                </span>
-            </label>
-        </div>
+                </label>
+            </div>
+        @endif
 
         <div>
             <p class="form-label mb-2">Akses modul</p>

@@ -93,7 +93,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('salaries', [SalaryController::class, 'store'])->name('salaries.store');
     Route::post('salaries/{salary}/paid', [SalaryController::class, 'markPaid'])->name('salaries.paid');
     Route::delete('salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
-    Route::resource('users', UserAccessController::class)->except(['show']);
+    Route::resource('users', UserAccessController::class);
     Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
 });

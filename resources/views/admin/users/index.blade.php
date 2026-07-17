@@ -28,13 +28,15 @@
                     </div>
                 </div>
                 <div class="flex shrink-0 gap-1">
-                    <a href="{{ route('admin.users.edit', $user) }}" class="btn-sm btn-outline">Edit</a>
-                    @if (auth()->id() !== $user->id)
-                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Hapus akun ini?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn-sm btn-outline-danger">Hapus</button>
-                        </form>
+                    @if (! $user->isRoot() || auth()->user()->isRoot())
+                        <a href="{{ route('admin.users.edit', $user) }}" class="btn-sm btn-outline">Edit</a>
+                        @if (auth()->id() !== $user->id)
+                            <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Hapus akun ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-sm btn-outline-danger">Hapus</button>
+                            </form>
+                        @endif
                     @endif
                 </div>
             </div>
