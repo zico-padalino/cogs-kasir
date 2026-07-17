@@ -93,12 +93,15 @@ function initOrderModal() {
     const title = modal.querySelector('[data-order-modal-title]');
     const price = modal.querySelector('[data-order-modal-price]');
     const image = modal.querySelector('[data-order-modal-image]');
+    const desc = modal.querySelector('[data-order-modal-desc]');
     const productId = modal.querySelector('[data-order-modal-product-id]');
     const qtyInput = modal.querySelector('[data-order-modal-qty]');
     const notesInput = modal.querySelector('#order-modal-notes');
     const addonsWrap = modal.querySelector('[data-order-addons-wrap]');
     const addonsBox = modal.querySelector('[data-order-addons]');
-    const form = modal.querySelector('.order-modal-form');
+    const unavailable = modal.querySelector('[data-order-unavailable]');
+    const canAddFields = modal.querySelectorAll('[data-order-can-add-only]');
+    const form = modal.querySelector('[data-order-modal-form]');
 
     let maxQty = 99;
     let basePrice = 0;
@@ -118,6 +121,20 @@ function initOrderModal() {
         }
 
         price.textContent = formatIdr(basePrice + selectedAddonExtra());
+    };
+
+    const setCanAdd = (canAdd) => {
+        canAddFields.forEach((el) => {
+            el.classList.toggle('hidden', ! canAdd);
+            if (el.matches('button, input, textarea, select')) {
+                el.disabled = ! canAdd;
+            }
+            el.querySelectorAll('input, textarea, select, button').forEach((field) => {
+                field.disabled = ! canAdd;
+            });
+        });
+
+        unavailable?.classList.toggle('hidden', canAdd);
     };
 
     const renderAddons = (addons) => {
@@ -162,23 +179,28 @@ function initOrderModal() {
     };
 
     const openModal = (card) => {
+        const canAdd = card.dataset.productCanAdd !== '0';
         maxQty = parseInt(card.dataset.productMax || '99', 10);
         basePrice = parseFloat(card.dataset.productPriceValue || '0') || 0;
-        productId.value = card.dataset.productId;
-        title.textContent = card.dataset.productName;
-        image.src = card.dataset.productImage;
-        image.alt = card.dataset.productName;
+        productId.value = card.dataset.productId || '';
+        title.textContent = card.dataset.productName || '';
+        image.src = card.dataset.productImage || '';
+        image.alt = card.dataset.productName || '';
+        if (desc) {
+            desc.textContent = card.dataset.productDesc || 'Belum ada deskripsi menu.';
+        }
         qtyInput.value = '1';
         qtyInput.max = String(maxQty);
         notesInput.value = '';
-        renderAddons(parseCardAddons(card));
+        setCanAdd(canAdd);
+        renderAddons(canAdd ? parseCardAddons(card) : []);
         refreshPrice();
 
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('order-modal-open');
 
-        if (! window.matchMedia('(pointer: coarse)').matches) {
+        if (canAdd && ! window.matchMedia('(pointer: coarse)').matches) {
             qtyInput.focus({ preventScroll: true });
         }
     };
@@ -189,11 +211,19 @@ function initOrderModal() {
         document.body.classList.remove('order-modal-open');
     };
 
-    document.querySelectorAll('[data-order-open-modal]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const card = button.closest('[data-order-product]');
+    document.querySelectorAll('[data-order-open-modal]').forEach((trigger) => {
+        const openFromTrigger = () => {
+            const card = trigger.closest('[data-order-product]') || trigger;
             if (card) {
                 openModal(card);
+            }
+        };
+
+        trigger.addEventListener('click', openFromTrigger);
+        trigger.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openFromTrigger();
             }
         });
     });
@@ -212,7 +242,14 @@ function initOrderModal() {
         qtyInput.value = String(next);
     });
 
-    form?.addEventListener('submit', () => {
+    form?.addEventListener('submit', (event) => {
+        const submit = form.querySelector('.order-modal-submit');
+        if (submit?.classList.contains('hidden') || submit?.disabled) {
+            event.preventDefault();
+
+            return;
+        }
+
         closeModal();
     });
 

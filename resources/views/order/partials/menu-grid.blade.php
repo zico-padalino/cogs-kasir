@@ -26,13 +26,18 @@
         @endphp
         <article
             class="order-product-card"
+            role="button"
+            tabindex="0"
             data-order-product="{{ $searchKey }}"
+            data-order-open-modal
             data-product-id="{{ $product->id }}"
             data-product-name="{{ $product->name }}"
             data-product-price="{{ $format::rupiah($price) }}"
             data-product-price-value="{{ $price }}"
             data-product-image="{{ $product->imageUrl() }}"
+            data-product-desc="{{ $product->description ?: 'Belum ada deskripsi menu.' }}"
             data-product-addons="{{ json_encode($addonsPayload, JSON_UNESCAPED_UNICODE) }}"
+            data-product-can-add="{{ $price > 0 ? '1' : '0' }}"
         >
             <div class="order-product-media">
                 <x-product-image :product="$product" class="order-product-image" />
@@ -45,17 +50,16 @@
             </div>
             <div class="order-product-body">
                 <h3 class="order-product-name">{{ $product->name }}</h3>
-                <p class="order-product-meta">{{ $product->sku }}</p>
+                @if ($product->description)
+                    <p class="order-product-desc">{{ \Illuminate\Support\Str::limit($product->description, 48) }}</p>
+                @else
+                    <p class="order-product-meta">{{ $product->sku }}</p>
+                @endif
                 <div class="order-product-foot">
                     <span class="order-product-price">{{ $format::rupiah($price) }}</span>
-                    <button
-                        type="button"
-                        class="order-product-add"
-                        data-order-open-modal
-                        @disabled($price <= 0)
-                    >
-                        Tambah
-                    </button>
+                    <span class="order-product-add {{ $price <= 0 ? 'is-disabled' : '' }}">
+                        {{ $price > 0 ? 'Lihat' : 'Detail' }}
+                    </span>
                 </div>
             </div>
         </article>
@@ -69,21 +73,24 @@
 
 <div class="order-modal hidden" data-order-modal aria-hidden="true">
     <div class="order-modal-backdrop" data-order-close-modal></div>
-    <div class="order-modal-panel" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
-        <div class="order-modal-head">
-            <img src="" alt="" class="order-modal-image" data-order-modal-image>
-            <div class="min-w-0 flex-1">
-                <h2 id="order-modal-title" class="order-modal-title" data-order-modal-title></h2>
-                <p class="order-modal-price" data-order-modal-price></p>
-            </div>
-            <button type="button" class="order-modal-close" data-order-close-modal aria-label="Tutup">×</button>
+    <div class="order-modal-panel order-detail-modal-panel" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
+        <button type="button" class="order-modal-close order-detail-modal-close" data-order-close-modal aria-label="Tutup">×</button>
+
+        <div class="order-detail-hero">
+            <img src="" alt="" class="order-detail-image" data-order-modal-image>
         </div>
 
-        <form action="{{ route('order.menu.items') }}" method="POST" class="order-modal-form">
+        <div class="order-detail-info">
+            <h2 id="order-modal-title" class="order-modal-title" data-order-modal-title></h2>
+            <p class="order-modal-price" data-order-modal-price></p>
+            <p class="order-detail-desc" data-order-modal-desc></p>
+        </div>
+
+        <form action="{{ route('order.menu.items') }}" method="POST" class="order-modal-form" data-order-modal-form>
             @csrf
             <input type="hidden" name="product_id" value="" data-order-modal-product-id>
 
-            <div class="order-modal-field">
+            <div class="order-modal-field" data-order-can-add-only>
                 <label class="order-modal-label" for="order-modal-qty">Jumlah</label>
                 <div class="order-qty-stepper">
                     <button type="button" class="order-qty-btn" data-order-qty-minus aria-label="Kurangi">−</button>
@@ -101,12 +108,12 @@
                 </div>
             </div>
 
-            <div class="order-modal-field hidden" data-order-addons-wrap>
+            <div class="order-modal-field hidden" data-order-addons-wrap data-order-can-add-only>
                 <p class="order-modal-label">Add-on tambahan</p>
                 <div class="pos-addon-list" data-order-addons></div>
             </div>
 
-            <div class="order-modal-field">
+            <div class="order-modal-field" data-order-can-add-only>
                 <label class="order-modal-label" for="order-modal-notes">Catatan</label>
                 <textarea
                     id="order-modal-notes"
@@ -118,9 +125,13 @@
                 ></textarea>
             </div>
 
-            <button type="submit" class="btn-primary order-modal-submit">
+            <button type="submit" class="btn-primary order-modal-submit" data-order-can-add-only>
                 Tambah ke Pesanan
             </button>
+
+            <p class="order-detail-unavailable hidden" data-order-unavailable>
+                Menu ini belum bisa dipesan. Silakan hubungi kasir.
+            </p>
         </form>
     </div>
 </div>
