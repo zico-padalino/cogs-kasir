@@ -4783,6 +4783,41 @@
         @apply my-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent;
     }
 
+    /* ── Kasir PIN: compact and scrollable on short/landscape screens ── */
+    .kasir-pin-page {
+        min-height: 100vh;
+        min-height: 100dvh;
+        @apply items-start overflow-x-hidden overflow-y-auto px-3 py-3;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .kasir-pin-card {
+        @apply my-auto w-full max-w-xs rounded-2xl p-5;
+    }
+
+    .kasir-pin-card .login-logo-img,
+    .kasir-pin-card .login-logo-fallback {
+        @apply h-12 w-12 rounded-2xl text-xl ring-2;
+    }
+
+    .kasir-pin-card .login-brand-copy {
+        @apply mt-2;
+    }
+
+    .kasir-pin-card .login-shop-name {
+        @apply text-lg;
+    }
+
+    .kasir-pin-card .login-shop-title {
+        @apply text-xs;
+    }
+
+    .kasir-pin-card .login-divider {
+        @apply my-3;
+    }
+
     /* ── Attendance pages (scrollable; not locked like login) ── */
     .attendance-page {
         @apply relative min-h-screen overflow-x-hidden overflow-y-auto;
