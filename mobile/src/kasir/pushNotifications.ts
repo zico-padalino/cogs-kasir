@@ -106,25 +106,35 @@ async function ensureAndroidChannel(): Promise<void> {
     return;
   }
 
-  await Notifications.setNotificationChannelAsync(KASIR_PUSH_CHANNEL, {
-    name: 'Pesanan kasir',
-    description: 'Notifikasi pesanan online meski HP terkunci / app tertutup',
+  const channelConfig = {
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 250, 180, 250, 180, 250],
-    sound: 'default',
+    sound: 'default' as const,
     enableVibrate: true,
     enableLights: true,
     bypassDnd: true,
     showBadge: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     audioAttributes: {
-      usage: Notifications.AndroidAudioUsage.ALARM,
-      contentType: Notifications.AndroidAudioContentType.SPEECH,
+      usage: Notifications.AndroidAudioUsage.NOTIFICATION,
+      contentType: Notifications.AndroidAudioContentType.SONIFICATION,
       flags: {
         enforceAudibility: true,
         requestHardwareAudioVideoSynchronization: false,
       },
     },
+  };
+
+  await Notifications.setNotificationChannelAsync(KASIR_PUSH_CHANNEL, {
+    name: 'Pesanan kasir',
+    description: 'Notifikasi pesanan online meski HP terkunci / app tertutup',
+    ...channelConfig,
+  });
+
+  // Channel cadangan (beberapa perangkat / alat tes Expo memakai "default")
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'Umum',
+    ...channelConfig,
   });
 }
 
@@ -279,8 +289,16 @@ export function addKasirNotificationResponseListener(
 }
 
 /** Panggil dari app untuk menguji push lewat server production. */
-export async function testKasirPushFromServer(): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>('/kasir/push-token/test', {
+export async function testKasirPushFromServer(): Promise<{
+  message: string;
+  data?: {
+    token_count?: number;
+    token_previews?: string[];
+    hint?: string | null;
+    send?: { ok?: boolean; errors?: string[] };
+  };
+}> {
+  return apiRequest('/kasir/push-token/test', {
     method: 'POST',
     body: {},
   });

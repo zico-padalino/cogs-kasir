@@ -43,7 +43,10 @@ class KasirPushNotifier
                 Log::warning('Kasir push: tidak ada Expo token terdaftar. Buka app kasir sekali setelah login agar token tersimpan.');
             }
 
-            $this->expoPushService->send($expoTokens, $title, $body, $data);
+            $send = $this->expoPushService->send($expoTokens, $title, $body, $data);
+            if (! ($send['ok'] ?? false)) {
+                Log::warning('Kasir Expo push tidak sukses', $send);
+            }
 
             $webSubs = DevicePushToken::query()
                 ->where('platform', DevicePushToken::PLATFORM_WEB)

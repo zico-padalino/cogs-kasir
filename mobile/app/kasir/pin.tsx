@@ -42,6 +42,7 @@ export default function PinUnlockScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string>('Mendaftar push…');
   const inputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,7 +50,17 @@ export default function PinUnlockScreen() {
 
   useEffect(() => {
     // Pastikan push aktif meski masih di layar PIN (app bisa ditutup setelah ini).
-    void registerKasirPushToken();
+    void registerKasirPushToken()
+      .then((token) => {
+        if (token) {
+          setPushStatus(`Push siap · ${token.slice(0, 22)}…`);
+        } else {
+          setPushStatus('Push gagal — izinkan notifikasi di Setting HP');
+        }
+      })
+      .catch(() => {
+        setPushStatus('Push gagal daftar ke server');
+      });
 
     authApi
       .shop()
@@ -252,14 +263,34 @@ export default function PinUnlockScreen() {
                 if (testingPush) return;
                 setTestingPush(true);
                 try {
-                  await registerKasirPushToken();
+                  const token = await registerKasirPushToken();
+                  if (!token) {
+                    Alert.alert(
+                      'Token gagal',
+                      'Izin notifikasi belum diberikan, atau FCM belum aktif di APK. Izinkan notifikasi di Setting HP lalu coba lagi.',
+                    );
+                    return;
+                  }
                   const res = await testKasirPushFromServer();
+                  const hint = res.data?.hint ? `\n\n${res.data.hint}` : '';
+                  const preview = res.data?.token_previews?.[0]
+                    ? `\n\nToken: ${res.data.token_previews[0]}`
+                    : '';
                   Alert.alert(
-                    'Tes push dikirim',
-                    `${res.message}\n\nTutup app / kunci HP. Jika tidak muncul, APK belum punya FCM (Firebase).`,
+                    res.data?.send?.ok === false ? 'Push gagal' : 'Tes push dikirim',
+                    `${res.message}${preview}${hint}\n\nSekarang TUTUP app sepenuhnya / kunci HP, lalu tunggu 5 detik.`,
                   );
                 } catch (err) {
-                  Alert.alert('Gagal tes push', asApiError(err).message || 'Cek deploy server & izin notifikasi.');
+                  const apiErr = asApiError(err);
+                  const payload = apiErr.payload as {
+                    data?: { hint?: string; send?: { errors?: string[] } };
+                  } | undefined;
+                  const detail =
+                    payload?.data?.send?.errors?.[0] ||
+                    payload?.data?.hint ||
+                    apiErr.message ||
+                    'Cek deploy server & izin notifikasi.';
+                  Alert.alert('Gagal tes push', detail);
                 } finally {
                   setTestingPush(false);
                 }
@@ -278,8 +309,9 @@ export default function PinUnlockScreen() {
               )}
             </Pressable>
             <Text style={styles.logoutHint}>
-              Mode: {appOwnership === 'expo' ? 'Expo Go' : 'APK terpasang'} — token keduanya berbeda
+              Mode: {appOwnership === 'expo' ? 'Expo Go' : 'APK terpasang'}
             </Text>
+            <Text style={styles.pushStatus}>{pushStatus}</Text>
 
             <Pressable
               onPress={() => logout()}
@@ -485,5 +517,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.slate400,
     textAlign: 'center',
+  },
+  pushStatus: {
+    marginTop: 4,
+    marginBottom: 8,
+    fontSize: 10,
+    color: colors.brand700,
+    textAlign: 'center',
+    ...font('600'),
   },
 });

@@ -108,7 +108,7 @@ class PushTokenController extends Controller
             ], 503);
         }
 
-        $expoPushService->send(
+        $send = $expoPushService->send(
             $tokens,
             'Tes notifikasi kasir',
             'Push dari server kedaitjoan.online — app boleh tertutup.',
@@ -120,12 +120,26 @@ class PushTokenController extends Controller
             ],
         );
 
+        $firstError = $send['errors'][0] ?? null;
+        $hint = null;
+        if (is_string($firstError) && str_contains($firstError, 'InvalidCredentials')) {
+            $hint = 'FCM belum aktif di Expo/Firebase. Pastikan FCM V1 ter-upload di EAS dan Cloud Messaging API enabled di Google Cloud.';
+        }
+
         return response()->json([
-            'message' => 'Push uji dikirim ke '.count($tokens).' perangkat. Tutup app / kunci HP lalu cek notifikasi.',
+            'message' => $send['ok']
+                ? 'Push uji OK ke '.count($tokens).' perangkat. Tutup app / kunci HP lalu cek tray notifikasi.'
+                : ('Push gagal: '.($firstError ?: 'unknown')),
             'data' => [
                 'token_count' => count($tokens),
+                'token_previews' => array_map(
+                    fn (string $t) => substr($t, 0, 32).'…',
+                    $tokens,
+                ),
                 'expo_reachable' => $expoReachable,
+                'send' => $send,
+                'hint' => $hint,
             ],
-        ]);
+        ], $send['ok'] ? 200 : 502);
     }
 }

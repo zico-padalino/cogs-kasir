@@ -13,13 +13,22 @@ class ExpoPushService
     /**
      * @param  list<string>  $tokens
      * @param  array<string, mixed>  $data
+     * @return array{ok: bool, ticket_count: int, errors: list<string>, tickets: list<array<string, mixed>>}
      */
-    public function send(array $tokens, string $title, string $body, array $data = []): void
+    public function send(array $tokens, string $title, string $body, array $data = []): array
     {
         $tokens = array_values(array_unique(array_filter($tokens)));
+        $result = [
+            'ok' => false,
+            'ticket_count' => 0,
+            'errors' => [],
+            'tickets' => [],
+        ];
 
         if ($tokens === []) {
-            return;
+            $result['errors'][] = 'Tidak ada Expo token.';
+
+            return $result;
         }
 
         $messages = array_map(
@@ -31,22 +40,27 @@ class ExpoPushService
                 'data' => $data,
                 'channelId' => 'kasir-orders',
                 'priority' => 'high',
-                // Tampil di layar kunci / saat app tertutup
                 '_displayInForeground' => true,
                 'mutableContent' => true,
                 'interruptionLevel' => 'timeSensitive',
-                'ttl' => 300,
+                'ttl' => 3600,
             ],
             $tokens,
         );
 
+        $allOk = true;
+
         foreach (array_chunk($messages, 100) as $chunk) {
             try {
                 $response = Http::acceptJson()
-                    ->timeout(12)
+                    ->asJson()
+                    ->timeout(20)
                     ->post(self::ENDPOINT, $chunk);
 
                 if (! $response->successful()) {
+                    $allOk = false;
+                    $msg = 'HTTP '.$response->status().': '.mb_substr($response->body(), 0, 300);
+                    $result['errors'][] = $msg;
                     Log::warning('Expo push failed', [
                         'status' => $response->status(),
                         'body' => $response->body(),
@@ -56,34 +70,47 @@ class ExpoPushService
                 }
 
                 $tickets = $response->json('data') ?? [];
-                $this->logTicketErrors($tickets);
+                if (! is_array($tickets)) {
+                    $tickets = [$tickets];
+                }
+
+                // Normalisasi: satu ticket vs list
+                if (isset($tickets['status'])) {
+                    $tickets = [$tickets];
+                }
+
+                foreach ($tickets as $ticket) {
+                    if (! is_array($ticket)) {
+                        continue;
+                    }
+                    $result['tickets'][] = $ticket;
+                    $result['ticket_count']++;
+
+                    if (($ticket['status'] ?? null) === 'error') {
+                        $allOk = false;
+                        $error = is_array($ticket['details'] ?? null)
+                            ? (string) ($ticket['details']['error'] ?? 'error')
+                            : 'error';
+                        $message = (string) ($ticket['message'] ?? $error);
+                        $result['errors'][] = $error.': '.$message;
+                        Log::warning('Expo push ticket error', [
+                            'message' => $message,
+                            'error' => $error,
+                        ]);
+                    }
+                }
+
                 $this->pruneInvalidTokens($tickets);
             } catch (\Throwable $e) {
+                $allOk = false;
+                $result['errors'][] = $e->getMessage();
                 Log::warning('Expo push exception: '.$e->getMessage());
             }
         }
-    }
 
-    /**
-     * @param  list<array<string, mixed>>  $tickets
-     */
-    private function logTicketErrors(array $tickets): void
-    {
-        foreach ($tickets as $ticket) {
-            if (($ticket['status'] ?? null) !== 'error') {
-                continue;
-            }
+        $result['ok'] = $allOk && $result['ticket_count'] > 0 && $result['errors'] === [];
 
-            $message = (string) ($ticket['message'] ?? 'unknown');
-            $details = $ticket['details'] ?? [];
-            $error = is_array($details) ? ($details['error'] ?? null) : null;
-
-            Log::warning('Expo push ticket error', [
-                'message' => $message,
-                'error' => $error,
-                // InvalidCredentials = FCM belum di-setup di Expo/EAS untuk Android.
-            ]);
-        }
+        return $result;
     }
 
     /**
