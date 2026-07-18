@@ -219,18 +219,41 @@ export async function registerKasirPushToken(): Promise<string | null> {
     const token = tokenResponse.data;
     await persistLocalToken(token);
 
-    await apiRequest('/kasir/push-token', {
-      method: 'POST',
-      body: {
-        token,
-        platform: 'expo',
-        device_name: `${Device.brand ?? 'device'} ${Device.modelName ?? ''}`.trim(),
-      },
-    });
+    // Retry singkat: jaringan / server kadang gagal sekali.
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await apiRequest('/kasir/push-token', {
+          method: 'POST',
+          body: {
+            token,
+            platform: 'expo',
+            device_name: `${Device.brand ?? 'device'} ${Device.modelName ?? ''}`.trim(),
+          },
+        });
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+      }
+    }
+
+    if (lastError) {
+      if (__DEV__) {
+        console.warn('[kasir-push] gagal daftar token ke server', lastError);
+      }
+      throw lastError;
+    }
 
     return token;
   })()
-    .catch(() => null)
+    .catch((err) => {
+      if (__DEV__) {
+        console.warn('[kasir-push] registerKasirPushToken failed', err);
+      }
+      return null;
+    })
     .finally(() => {
       registerInFlight = null;
     });

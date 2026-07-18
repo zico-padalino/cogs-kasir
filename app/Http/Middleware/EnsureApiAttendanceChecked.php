@@ -27,6 +27,9 @@ class EnsureApiAttendanceChecked
             'api.v1.kasir.pin.status',
             'api.v1.kasir.pin.touch',
             'api.v1.kasir.pending.poll',
+            // Push harus terdaftar meski belum absen — supaya notifikasi jalan saat app tertutup.
+            'api.v1.kasir.push-token.store',
+            'api.v1.kasir.push-token.destroy',
             'api.v1.pesan.*',
         )) {
             return $next($request);
