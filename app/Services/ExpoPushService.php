@@ -31,6 +31,11 @@ class ExpoPushService
                 'data' => $data,
                 'channelId' => 'kasir-orders',
                 'priority' => 'high',
+                // Tampil di layar kunci / saat app tertutup
+                '_displayInForeground' => true,
+                'mutableContent' => true,
+                'interruptionLevel' => 'timeSensitive',
+                'ttl' => 300,
             ],
             $tokens,
         );

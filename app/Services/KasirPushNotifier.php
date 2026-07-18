@@ -23,12 +23,14 @@ class KasirPushNotifier
         $orderType = $order->order_type?->value ?? 'online';
         $title = 'Pesanan baru masuk';
         $body = "Atas nama {$customer}".($orderType ? " · {$orderType}" : '');
+        $speakText = "Pesanan baru masuk, atas nama {$customer}.";
 
         $data = [
             'type' => 'new_order',
             'order_id' => $order->id,
-            'customer_number' => $order->order_number,
+            'order_number' => $order->order_number,
             'customer_name' => $customer,
+            'speak_text' => $speakText,
         ];
 
         try {

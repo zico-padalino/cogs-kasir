@@ -62,27 +62,38 @@ export function buildOrderAlert(orders: PosOrder[]): OrderAlertPayload {
 }
 
 let speaking = false;
+let lastSpeakKey = '';
+let lastSpeakAt = 0;
 
-/** Bunyi AI (Text-to-Speech bahasa Indonesia) + getar. */
-export async function announceNewOrders(orders: PosOrder[]): Promise<OrderAlertPayload | null> {
-  if (orders.length === 0) {
-    return null;
+/** Hindari TTS dobel (poll + push) dalam beberapa detik. */
+function canSpeak(key: string): boolean {
+  const now = Date.now();
+  if (key && key === lastSpeakKey && now - lastSpeakAt < 12_000) {
+    return false;
+  }
+  lastSpeakKey = key;
+  lastSpeakAt = now;
+  return true;
+}
+
+/** TTS dari teks siap pakai (push saat HP terkunci / background). */
+export async function announceSpeakText(speakText: string, dedupeKey = ''): Promise<void> {
+  const text = speakText.trim();
+  if (!text || !canSpeak(dedupeKey || text)) {
+    return;
   }
 
-  const alert = buildOrderAlert(orders);
-
   try {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  } catch {
     Vibration.vibrate([0, 220, 120, 220]);
+  } catch {
+    // ignore
   }
 
   try {
     await prepareSpeechPlayback();
     speaking = true;
-    // Delay singkat agar stop() selesai sebelum speak (penting di layar PIN).
     await new Promise((resolve) => setTimeout(resolve, 80));
-    Speech.speak(alert.speakText, {
+    Speech.speak(text, {
       language: 'id-ID',
       pitch: 1.05,
       rate: 0.92,
@@ -100,6 +111,24 @@ export async function announceNewOrders(orders: PosOrder[]): Promise<OrderAlertP
   } catch {
     speaking = false;
   }
+}
+
+/** Bunyi AI (Text-to-Speech bahasa Indonesia) + getar. */
+export async function announceNewOrders(orders: PosOrder[]): Promise<OrderAlertPayload | null> {
+  if (orders.length === 0) {
+    return null;
+  }
+
+  const alert = buildOrderAlert(orders);
+  const dedupeKey = String(orders[0]?.id ?? alert.speakText);
+
+  try {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  } catch {
+    // fallback di announceSpeakText
+  }
+
+  await announceSpeakText(alert.speakText, dedupeKey);
 
   return alert;
 }

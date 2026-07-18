@@ -13,12 +13,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, ROLE_META, useAuth } from '@/auth';
 import { KasirOrderAlertGuard } from '@/components/KasirOrderAlertGuard';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
-import { addKasirNotificationResponseListener } from '@/kasir/pushNotifications';
+import {
+  addKasirNotificationResponseListener,
+  setupKasirPushRuntime,
+} from '@/kasir/pushNotifications';
 import { colors } from '@/theme';
 import { applyGlobalFont } from '@/theme/applyGlobalFont';
 
 applyGlobalFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
+// Daftarkan background task sedini mungkin (HP terkunci / app tertutup).
+void setupKasirPushRuntime();
 
 const PUBLIC_SEGMENTS = new Set(['login', 'pesan-online']);
 
@@ -28,6 +33,7 @@ function RootNavigator() {
   const router = useRouter();
 
   useEffect(() => {
+    void setupKasirPushRuntime();
     const sub = addKasirNotificationResponseListener(() => {
       if (!user?.has_kasir) {
         return;
