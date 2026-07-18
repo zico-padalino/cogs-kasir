@@ -42,7 +42,7 @@ class ExpoPushService
                 'priority' => 'high',
                 '_displayInForeground' => true,
                 'mutableContent' => true,
-                'interruptionLevel' => 'timeSensitive',
+                'interruptionLevel' => 'time-sensitive',
                 'ttl' => 3600,
             ],
             $tokens,
