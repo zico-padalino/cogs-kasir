@@ -144,7 +144,19 @@ class FcmPushService
         $path = env('FIREBASE_CREDENTIALS')
             ?: storage_path('app/firebase/service-account.json');
 
-        if (! is_string($path) || ! is_file($path)) {
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        // Relative path → dari root project (contoh: storage/app/firebase/service-account.json)
+        $isAbsolute = str_starts_with($path, '/')
+            || str_starts_with($path, '\\')
+            || (strlen($path) > 2 && ctype_alpha($path[0]) && $path[1] === ':');
+        if (! $isAbsolute) {
+            $path = base_path($path);
+        }
+
+        if (! is_file($path)) {
             return null;
         }
 
