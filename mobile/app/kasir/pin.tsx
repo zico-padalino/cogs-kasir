@@ -52,14 +52,14 @@ export default function PinUnlockScreen() {
     // Pastikan push aktif meski masih di layar PIN (app bisa ditutup setelah ini).
     void registerKasirPushToken()
       .then((token) => {
-        const mode = appOwnership === 'expo' ? 'Expo Go' : 'APK';
+        const mode = appOwnership === 'expo' ? 'Expo Go' : 'APK/FCM';
         if (token) {
           setPushStatus(`${mode} · push siap · ${token.slice(0, 18)}…`);
         } else {
           setPushStatus(
             appOwnership === 'expo'
               ? 'Expo Go · izinkan notifikasi di Setting HP'
-              : 'APK · push gagal — cek izin notifikasi / FCM (rebuild dengan google-services)',
+              : 'APK · push gagal — izinkan notifikasi / pastikan google-services.json ikut build',
           );
         }
       })
@@ -67,7 +67,7 @@ export default function PinUnlockScreen() {
         setPushStatus(
           appOwnership === 'expo'
             ? 'Expo Go · gagal daftar token ke server'
-            : 'APK · gagal daftar — sering karena FCM belum di EAS / perlu rebuild',
+            : 'APK · gagal daftar FCM — cek google-services.json & deploy service-account di server',
         );
       });
 

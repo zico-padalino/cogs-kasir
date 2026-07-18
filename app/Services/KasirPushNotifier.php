@@ -10,6 +10,7 @@ class KasirPushNotifier
 {
     public function __construct(
         private readonly ExpoPushService $expoPushService,
+        private readonly FcmPushService $fcmPushService,
         private readonly WebPushService $webPushService,
     ) {}
 
@@ -27,25 +28,39 @@ class KasirPushNotifier
 
         $data = [
             'type' => 'new_order',
-            'order_id' => $order->id,
-            'order_number' => $order->order_number,
+            'order_id' => (string) $order->id,
+            'order_number' => (string) $order->order_number,
             'customer_name' => $customer,
             'speak_text' => $speakText,
         ];
 
         try {
+            $fcmTokens = DevicePushToken::query()
+                ->where('platform', DevicePushToken::PLATFORM_FCM)
+                ->pluck('token')
+                ->all();
+
+            if ($fcmTokens !== []) {
+                $fcmSend = $this->fcmPushService->send($fcmTokens, $title, $body, $data);
+                if (! ($fcmSend['ok'] ?? false)) {
+                    Log::warning('Kasir FCM push tidak sukses', $fcmSend);
+                }
+            }
+
             $expoTokens = DevicePushToken::query()
                 ->where('platform', DevicePushToken::PLATFORM_EXPO)
                 ->pluck('token')
                 ->all();
 
-            if ($expoTokens === []) {
-                Log::warning('Kasir push: tidak ada Expo token terdaftar. Buka app kasir sekali setelah login agar token tersimpan.');
+            if ($expoTokens === [] && $fcmTokens === []) {
+                Log::warning('Kasir push: tidak ada token FCM/Expo. Buka APK kasir sekali setelah login.');
             }
 
-            $send = $this->expoPushService->send($expoTokens, $title, $body, $data);
-            if (! ($send['ok'] ?? false)) {
-                Log::warning('Kasir Expo push tidak sukses', $send);
+            if ($expoTokens !== []) {
+                $send = $this->expoPushService->send($expoTokens, $title, $body, $data);
+                if (! ($send['ok'] ?? false)) {
+                    Log::warning('Kasir Expo push tidak sukses', $send);
+                }
             }
 
             $webSubs = DevicePushToken::query()

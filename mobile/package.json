@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "build:apk": "eas build --platform android --profile preview",
     "build:aab": "eas build --platform android --profile production",
-    "build:apk:local": "expo prebuild --platform android --clean && cd android && gradlew.bat assembleRelease && cd .."
+    "build:apk:local": "expo prebuild --platform android --clean && cd android && .\\gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@expo-google-fonts/instrument-sans": "^0.4.2",

@@ -227,27 +227,35 @@ export async function registerKasirPushToken(): Promise<string | null> {
     await ensureAndroidChannel();
 
     const client = getKasirPushClient();
+    // APK: token FCM native (server kirim langsung ke Firebase).
+    // Expo Go: token Expo (server kirim lewat Expo Push API).
+    const useFcm = Platform.OS === 'android' && client === 'standalone';
 
-    // APK butuh FCM native token; Expo Go tidak. Gagal di sini = google-services / EAS FCM belum OK.
-    if (Platform.OS === 'android' && client === 'standalone') {
+    let token: string;
+    let platform: 'fcm' | 'expo';
+
+    if (useFcm) {
       try {
-        await Notifications.getDevicePushTokenAsync();
+        const deviceToken = await Notifications.getDevicePushTokenAsync();
+        token = deviceToken.data;
+        platform = 'fcm';
       } catch (err) {
         if (__DEV__) {
           console.warn('[kasir-push] getDevicePushTokenAsync failed', err);
         }
         throw new Error(
-          'FCM belum aktif di APK. Pastikan google-services.json ikut build + FCM V1 di EAS, lalu rebuild APK.',
+          'FCM belum aktif di APK. Pastikan google-services.json ikut saat build lokal/Gradle.',
         );
       }
+    } else {
+      const id = projectId();
+      const tokenResponse = id
+        ? await Notifications.getExpoPushTokenAsync({ projectId: id })
+        : await Notifications.getExpoPushTokenAsync();
+      token = tokenResponse.data;
+      platform = 'expo';
     }
 
-    const id = projectId();
-    const tokenResponse = id
-      ? await Notifications.getExpoPushTokenAsync({ projectId: id })
-      : await Notifications.getExpoPushTokenAsync();
-
-    const token = tokenResponse.data;
     await persistLocalToken(token);
 
     // Retry singkat: jaringan / server kadang gagal sekali.
@@ -258,7 +266,7 @@ export async function registerKasirPushToken(): Promise<string | null> {
           method: 'POST',
           body: {
             token,
-            platform: 'expo',
+            platform,
             client,
             device_name: `${Device.brand ?? 'device'} ${Device.modelName ?? ''}`.trim(),
           },
@@ -328,11 +336,15 @@ export async function testKasirPushFromServer(): Promise<{
     );
   }
 
+  const client = getKasirPushClient();
+  const platform = client === 'standalone' && Platform.OS === 'android' ? 'fcm' : 'expo';
+
   return apiRequest('/kasir/push-token/test', {
     method: 'POST',
     body: {
       token,
-      client: getKasirPushClient(),
+      platform,
+      client,
     },
   });
 }

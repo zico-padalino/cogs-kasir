@@ -30,13 +30,15 @@ return [
 
     /**
      * Push saat app/browser tertutup.
-     * Mobile: Expo Push (tanpa VAPID). Web: generate dengan `php artisan kasir:vapid-keys`.
+     * APK: FCM langsung (storage/app/firebase/service-account.json).
+     * Expo Go: Expo Push. Web: `php artisan kasir:vapid-keys`.
      */
     'push' => [
         'enabled' => filter_var(env('KASIR_PUSH_ENABLED', true), FILTER_VALIDATE_BOOL),
         'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
         'vapid_private_pem' => str_replace('\\n', "\n", (string) env('VAPID_PRIVATE_PEM', '')),
         'vapid_subject' => env('VAPID_SUBJECT', 'mailto:admin@kedaitjoan.online'),
+        'firebase_credentials' => env('FIREBASE_CREDENTIALS'),
     ],
 
     'pwa' => [

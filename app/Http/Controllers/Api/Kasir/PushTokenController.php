@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Kasir;
 use App\Http\Controllers\Controller;
 use App\Models\DevicePushToken;
 use App\Services\ExpoPushService;
+use App\Services\FcmPushService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -15,27 +16,27 @@ class PushTokenController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'token' => ['required', 'string', 'max:768'],
-            'platform' => ['nullable', 'in:expo'],
+            'token' => ['required', 'string', 'max:4096'],
+            'platform' => ['nullable', 'in:expo,fcm'],
             'device_name' => ['nullable', 'string', 'max:120'],
             'client' => ['nullable', 'in:expo_go,standalone'],
         ]);
 
         $userId = $request->user()?->id;
         $client = $validated['client'] ?? null;
-        $deviceName = $validated['device_name'] ?? null;
+        $platform = $validated['platform']
+            ?? (($client === 'standalone') ? DevicePushToken::PLATFORM_FCM : DevicePushToken::PLATFORM_EXPO);
 
+        $deviceName = $validated['device_name'] ?? null;
         if ($client === 'standalone' && is_string($deviceName) && ! str_starts_with($deviceName, '[APK]')) {
             $deviceName = '[APK] '.$deviceName;
         } elseif ($client === 'expo_go' && is_string($deviceName) && ! str_starts_with($deviceName, '[ExpoGo]')) {
             $deviceName = '[ExpoGo] '.$deviceName;
         }
 
-        // Jangan hapus token perangkat lain: Expo Go & APK punya token berbeda.
-        // Kalau Expo Go menimpa APK, notifikasi hanya muncul di Expo Go.
         $token = DevicePushToken::query()->updateOrCreate(
             [
-                'platform' => DevicePushToken::PLATFORM_EXPO,
+                'platform' => $platform,
                 'token_hash' => DevicePushToken::hashToken($validated['token']),
             ],
             [
@@ -60,69 +61,120 @@ class PushTokenController extends Controller
     public function destroy(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'token' => ['required', 'string', 'max:768'],
+            'token' => ['required', 'string', 'max:4096'],
+            'platform' => ['nullable', 'in:expo,fcm'],
         ]);
 
-        DevicePushToken::query()
-            ->where('platform', DevicePushToken::PLATFORM_EXPO)
-            ->where('token_hash', DevicePushToken::hashToken($validated['token']))
-            ->delete();
+        $query = DevicePushToken::query()
+            ->where('token_hash', DevicePushToken::hashToken($validated['token']));
+
+        if (! empty($validated['platform'])) {
+            $query->where('platform', $validated['platform']);
+        } else {
+            $query->whereIn('platform', [
+                DevicePushToken::PLATFORM_EXPO,
+                DevicePushToken::PLATFORM_FCM,
+            ]);
+        }
+
+        $query->delete();
 
         return response()->json([
             'message' => 'Push token dihapus.',
         ]);
     }
 
-    /** Uji: server → Expo → HP (app boleh tertutup). */
-    public function test(Request $request, ExpoPushService $expoPushService): JsonResponse
+    /** Uji: server → FCM/Expo → HP (app boleh tertutup). */
+    public function test(Request $request, ExpoPushService $expoPushService, FcmPushService $fcmPushService): JsonResponse
     {
         $validated = $request->validate([
-            'token' => ['nullable', 'string', 'max:768'],
+            'token' => ['nullable', 'string', 'max:4096'],
+            'platform' => ['nullable', 'in:expo,fcm'],
             'client' => ['nullable', 'in:expo_go,standalone'],
         ]);
 
+        $client = $validated['client'] ?? null;
+        $platform = $validated['platform']
+            ?? (($client === 'standalone') ? DevicePushToken::PLATFORM_FCM : DevicePushToken::PLATFORM_EXPO);
+
         $tokens = [];
         if (! empty($validated['token'])) {
-            // Prioritas: token perangkat yang sedang menekan tombol tes.
             $tokens = [$validated['token']];
 
             DevicePushToken::query()->updateOrCreate(
                 [
-                    'platform' => DevicePushToken::PLATFORM_EXPO,
+                    'platform' => $platform,
                     'token_hash' => DevicePushToken::hashToken($validated['token']),
                 ],
                 [
                     'token' => $validated['token'],
                     'user_id' => $request->user()?->id,
-                    'device_name' => ($validated['client'] ?? null) === 'standalone'
-                        ? '[APK] tes'
-                        : (($validated['client'] ?? null) === 'expo_go' ? '[ExpoGo] tes' : null),
+                    'device_name' => $client === 'standalone' ? '[APK] tes' : ($client === 'expo_go' ? '[ExpoGo] tes' : null),
                     'last_used_at' => now(),
                 ],
             );
         } else {
             $tokens = DevicePushToken::query()
-                ->where('platform', DevicePushToken::PLATFORM_EXPO)
+                ->where('platform', $platform)
                 ->when($request->user()?->id, fn ($q, $userId) => $q->where('user_id', $userId))
                 ->pluck('token')
                 ->all();
-
-            if ($tokens === []) {
-                $tokens = DevicePushToken::query()
-                    ->where('platform', DevicePushToken::PLATFORM_EXPO)
-                    ->pluck('token')
-                    ->all();
-            }
         }
 
         if ($tokens === []) {
             return response()->json([
-                'message' => 'Belum ada Expo token di database.',
+                'message' => $platform === DevicePushToken::PLATFORM_FCM
+                    ? 'Belum ada FCM token APK. Buka APK sekali setelah login/izin notifikasi.'
+                    : 'Belum ada Expo token di database.',
                 'code' => 'NO_PUSH_TOKEN',
             ], 422);
         }
 
-        // Cek dulu apakah hosting bisa akses Expo (sering diblok di shared hosting).
+        $payload = [
+            'type' => 'new_order',
+            'order_id' => '0',
+            'customer_name' => 'Tes Server',
+            'speak_text' => 'Pesanan baru masuk, atas nama Tes Server.',
+            'client' => (string) ($client ?? ''),
+        ];
+
+        if ($platform === DevicePushToken::PLATFORM_FCM) {
+            if (! $fcmPushService->isConfigured()) {
+                return response()->json([
+                    'message' => 'Server belum punya Firebase service account. Upload JSON ke storage/app/firebase/service-account.json lalu coba lagi.',
+                    'code' => 'FCM_NOT_CONFIGURED',
+                    'data' => [
+                        'hint' => 'Firebase Console → Project settings → Service accounts → Generate new private key. Simpan sebagai storage/app/firebase/service-account.json di hosting.',
+                    ],
+                ], 503);
+            }
+
+            $send = $fcmPushService->send(
+                $tokens,
+                'Tes notifikasi kasir (APK/FCM)',
+                'Push FCM langsung — app boleh tertutup.',
+                $payload,
+            );
+
+            $firstError = $send['errors'][0] ?? null;
+
+            return response()->json([
+                'message' => $send['ok']
+                    ? 'Push FCM OK ke '.$send['sent'].' perangkat. Tutup app / kunci HP lalu cek tray.'
+                    : ('Push FCM gagal: '.($firstError ?: 'unknown')),
+                'data' => [
+                    'platform' => 'fcm',
+                    'token_count' => count($tokens),
+                    'token_previews' => array_map(fn (string $t) => substr($t, 0, 24).'…', $tokens),
+                    'client' => $client,
+                    'send' => $send,
+                    'hint' => $send['ok']
+                        ? 'Ini jalur FCM langsung (bukan Expo Push). Tutup APK dari Recent Apps.'
+                        : null,
+                ],
+            ], $send['ok'] ? 200 : 502);
+        }
+
         try {
             $ping = Http::timeout(8)->get('https://exp.host');
             $expoReachable = $ping->successful() || $ping->status() < 500;
@@ -130,56 +182,33 @@ class PushTokenController extends Controller
             Log::warning('Expo unreachable from server: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Server hosting tidak bisa menghubungi Expo (exp.host). Minta DomaiNesia buka akses HTTPS keluar ke exp.host.',
+                'message' => 'Server hosting tidak bisa menghubungi Expo (exp.host).',
                 'code' => 'EXPO_UNREACHABLE',
                 'error' => $e->getMessage(),
             ], 503);
         }
 
-        $clientLabel = match ($validated['client'] ?? null) {
-            'standalone' => 'APK',
-            'expo_go' => 'Expo Go',
-            default => 'perangkat',
-        };
-
         $send = $expoPushService->send(
             $tokens,
-            'Tes notifikasi kasir ('.$clientLabel.')',
-            'Push dari server kedaitjoan.online — app boleh tertutup.',
-            [
-                'type' => 'new_order',
-                'order_id' => 0,
-                'customer_name' => 'Tes Server',
-                'speak_text' => 'Pesanan baru masuk, atas nama Tes Server.',
-                'client' => $validated['client'] ?? null,
-            ],
+            'Tes notifikasi kasir (Expo Go)',
+            'Push Expo — cocok untuk Expo Go saja.',
+            $payload,
         );
 
         $firstError = $send['errors'][0] ?? null;
-        $hint = null;
-        $joinedErrors = implode(' ', $send['errors'] ?? []);
-        if (str_contains($joinedErrors, 'InvalidCredentials') || str_contains((string) $firstError, 'InvalidCredentials')) {
-            $hint = 'FCM belum aktif untuk APK. Di EAS: Android → FCM V1 service account. Lalu rebuild APK + install ulang. Expo Go tidak butuh ini.';
-        } elseif (($validated['client'] ?? null) === 'expo_go') {
-            $hint = 'Ini tes dari Expo Go. Notifikasi di Expo Go tidak membuktikan APK. Install APK hasil EAS, lalu tes lagi dari APK.';
-        } elseif (($validated['client'] ?? null) === 'standalone' && ($send['ok'] ?? false)) {
-            $hint = 'Tes dikirim ke token APK ini. Tutup app sepenuhnya (bukan hanya minimize), kunci HP, tunggu beberapa detik.';
-        }
 
         return response()->json([
             'message' => $send['ok']
-                ? 'Push uji OK ke '.count($tokens).' token ('.$clientLabel.'). Tutup app / kunci HP lalu cek tray notifikasi.'
+                ? 'Push Expo OK ke '.count($tokens).' token. Tutup app / kunci HP lalu cek tray.'
                 : ('Push gagal: '.($firstError ?: 'unknown')),
             'data' => [
+                'platform' => 'expo',
                 'token_count' => count($tokens),
-                'token_previews' => array_map(
-                    fn (string $t) => substr($t, 0, 32).'…',
-                    $tokens,
-                ),
-                'client' => $validated['client'] ?? null,
+                'token_previews' => array_map(fn (string $t) => substr($t, 0, 32).'…', $tokens),
+                'client' => $client,
                 'expo_reachable' => $expoReachable,
                 'send' => $send,
-                'hint' => $hint,
+                'hint' => 'Sukses di Expo Go tidak membuktikan APK. Untuk APK pakai jalur FCM + service account di server.',
             ],
         ], $send['ok'] ? 200 : 502);
     }

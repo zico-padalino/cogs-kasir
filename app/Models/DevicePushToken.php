@@ -9,6 +9,8 @@ class DevicePushToken extends Model
 {
     public const PLATFORM_EXPO = 'expo';
 
+    public const PLATFORM_FCM = 'fcm';
+
     public const PLATFORM_WEB = 'web';
 
     protected $fillable = [
