@@ -239,6 +239,46 @@ class KasirPin
         Session::save();
     }
 
+    /**
+     * Perpanjang sesi PIN karena ada aktivitas (sentuhan / request kasir).
+     * Timer idle dihitung ulang dari sekarang.
+     */
+    public static function touch(): bool
+    {
+        if (! self::isUnlocked()) {
+            return false;
+        }
+
+        $now = now()->getTimestamp();
+        $expiresAt = $now + (self::idleMinutes() * 60);
+
+        if (self::usesCache()) {
+            $key = self::cacheKey();
+            $payload = self::cachePayload();
+
+            if (! $key || ! $payload || empty($payload['employee_id'])) {
+                return false;
+            }
+
+            Cache::put($key, [
+                'employee_id' => (int) $payload['employee_id'],
+                'verified_at' => (int) ($payload['verified_at'] ?? $now),
+                'expires_at' => $expiresAt,
+            ], now()->addMinutes(self::idleMinutes() + 1));
+
+            return true;
+        }
+
+        if (! Session::get(self::SESSION_OPERATOR)) {
+            return false;
+        }
+
+        Session::put(self::SESSION_EXPIRES_AT, $expiresAt);
+        Session::save();
+
+        return true;
+    }
+
     public static function lock(): void
     {
         if (self::usesCache()) {

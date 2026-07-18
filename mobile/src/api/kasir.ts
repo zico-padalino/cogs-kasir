@@ -129,6 +129,9 @@ export const pinApi = {
   status() {
     return apiRequest<Envelope<PinStatus & { ttl_minutes: number }>>('/kasir/pin/status');
   },
+  touch() {
+    return apiRequest<Envelope<PinStatus & { ttl_minutes: number }>>('/kasir/pin/touch', { method: 'POST' });
+  },
   unlock(pin: string) {
     return apiRequest<Envelope<PinStatus & { ttl_minutes: number; operator?: { id: number; name: string } }>>(
       '/kasir/pin',

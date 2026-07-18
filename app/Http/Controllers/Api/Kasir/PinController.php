@@ -29,6 +29,18 @@ class PinController extends Controller
         ]);
     }
 
+    /** Perpanjang sesi PIN karena ada aktivitas di app (idle timer). */
+    public function touch(): JsonResponse
+    {
+        KasirPin::touch();
+
+        return response()->json([
+            'data' => array_merge(KasirPin::statusPayload(), [
+                'ttl_minutes' => KasirPin::idleMinutes(),
+            ]),
+        ]);
+    }
+
     public function unlock(Request $request): JsonResponse
     {
         $validated = $request->validate([

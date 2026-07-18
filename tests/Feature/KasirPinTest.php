@@ -129,4 +129,64 @@ class KasirPinTest extends TestCase
             ])
             ->assertRedirect(route('pin.edit'));
     }
+
+    public function test_pin_session_expires_after_idle_without_activity(): void
+    {
+        $user = User::factory()->kasir()->create();
+        $employee = $this->employeeWithPin('Kasir', '1234', $user);
+
+        $this->actingAs($user)
+            ->post(route('kasir.pin.unlock.submit'), ['pin' => '1234'])
+            ->assertRedirect(route('kasir.index'));
+
+        $this->assertTrue(KasirPin::isUnlocked());
+
+        $this->travel(KasirPin::idleMinutes() + 1)->minutes();
+
+        $this->assertFalse(KasirPin::isUnlocked());
+
+        $this->get(route('kasir.index'))
+            ->assertRedirect(route('kasir.pin.unlock'));
+    }
+
+    public function test_pin_touch_extends_idle_timer(): void
+    {
+        $user = User::factory()->kasir()->create();
+        $employee = $this->employeeWithPin('Kasir', '1234', $user);
+
+        $this->actingAs($user)
+            ->post(route('kasir.pin.unlock.submit'), ['pin' => '1234'])
+            ->assertRedirect(route('kasir.index'));
+
+        $this->travel(KasirPin::idleMinutes() - 1)->minutes();
+
+        $this->postJson(route('kasir.pin.touch'))
+            ->assertOk()
+            ->assertJsonPath('unlocked', true);
+
+        $this->assertTrue(KasirPin::isUnlocked());
+
+        $this->travel(KasirPin::idleMinutes() - 1)->minutes();
+
+        $this->assertTrue(KasirPin::isUnlocked());
+        $this->get(route('kasir.index'))->assertOk();
+    }
+
+    public function test_browsing_kasir_without_touch_does_not_extend_pin_session(): void
+    {
+        $user = User::factory()->kasir()->create();
+        $employee = $this->employeeWithPin('Kasir', '1234', $user);
+
+        $this->actingAs($user)
+            ->post(route('kasir.pin.unlock.submit'), ['pin' => '1234'])
+            ->assertRedirect(route('kasir.index'));
+
+        $expiresBefore = KasirPin::expiresAtTimestamp();
+
+        $this->get(route('kasir.index'))->assertOk();
+        $this->get(route('kasir.pin.status'))->assertOk();
+        $this->get(route('kasir.pending.poll'))->assertOk();
+
+        $this->assertSame($expiresBefore, KasirPin::expiresAtTimestamp());
+    }
 }

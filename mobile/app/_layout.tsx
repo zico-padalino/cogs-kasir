@@ -64,8 +64,7 @@ function RootNavigator() {
   }, [user, activeModule, loading, segments, router, pin?.unlocked]);
 
   return (
-    <>
-      <KasirPinSessionGuard />
+    <KasirPinSessionGuard>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -73,7 +72,7 @@ function RootNavigator() {
           animation: 'slide_from_right',
         }}
       />
-    </>
+    </KasirPinSessionGuard>
   );
 }
 

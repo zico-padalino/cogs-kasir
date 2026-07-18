@@ -337,6 +337,9 @@ function isPinPollOnly(shell) {
 
 let pinExpiryTimer = null;
 let pinStatusTimer = null;
+let pinTouchInFlight = false;
+let lastPinTouchAt = 0;
+const PIN_TOUCH_THROTTLE_MS = 15_000;
 
 function syncPinExpiryFromPayload(shell, data) {
     if (! data || typeof data.remaining_seconds !== 'number') {
@@ -378,6 +381,93 @@ function schedulePinExpiryRedirect(shell, remainingSeconds, serverNow, expiresAt
     pinExpiryTimer = window.setTimeout(() => {
         goToPinUnlock(shell, unlockUrl);
     }, delayMs + 300);
+}
+
+function resetLocalIdleTimer(shell) {
+    const ttlMinutes = Math.max(1, parseInt(shell.dataset.kasirPinTtlMinutes || '10', 10));
+    schedulePinExpiryRedirect(shell, ttlMinutes * 60);
+}
+
+async function touchPinSession(shell, { force = false } = {}) {
+    const touchUrl = shell.dataset.kasirPinTouchUrl;
+    if (! touchUrl || isPinUnlockPage() || isPinManagementPage()) {
+        return;
+    }
+
+    const now = Date.now();
+    if (! force && (pinTouchInFlight || now - lastPinTouchAt < PIN_TOUCH_THROTTLE_MS)) {
+        return;
+    }
+
+    pinTouchInFlight = true;
+    lastPinTouchAt = now;
+
+    try {
+        const response = await fetch(touchUrl, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+            body: '{}',
+        });
+
+        if (shouldForcePinLock(response)) {
+            goToPinUnlock(shell);
+            return;
+        }
+
+        if (! response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        syncPinExpiryFromPayload(shell, data);
+    } catch {
+        //
+    } finally {
+        pinTouchInFlight = false;
+    }
+}
+
+function initKasirIdlePinGuard(shell) {
+    if (isPinUnlockPage() || isPinManagementPage() || isPinPollOnly(shell)) {
+        return;
+    }
+
+    let activityQueued = false;
+
+    const onUserActivity = () => {
+        if (document.visibilityState === 'hidden') {
+            return;
+        }
+
+        // Reset timer lokal segera agar sentuhan terasa langsung.
+        resetLocalIdleTimer(shell);
+
+        if (activityQueued) {
+            return;
+        }
+
+        activityQueued = true;
+        window.setTimeout(() => {
+            activityQueued = false;
+            touchPinSession(shell);
+        }, 400);
+    };
+
+    ['pointerdown', 'touchstart', 'keydown', 'click'].forEach((eventName) => {
+        document.addEventListener(eventName, onUserActivity, { passive: true, capture: true });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            pollPinStatus(shell);
+        }
+    });
 }
 
 async function pollPinStatus(shell) {
@@ -444,6 +534,7 @@ function initKasirNotifications() {
         openCartTabFromQuery();
         schedulePinExpiryRedirect(shell);
         pollPinStatus(shell);
+        initKasirIdlePinGuard(shell);
         observeKasirTransactionState();
 
         if (pinStatusTimer) {

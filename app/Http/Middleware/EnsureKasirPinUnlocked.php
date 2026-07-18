@@ -12,6 +12,8 @@ class EnsureKasirPinUnlocked
     public function handle(Request $request, Closure $next): Response
     {
         if (KasirPin::isUnlocked()) {
+            // Idle timer hanya diperpanjang oleh aktivitas nyata (sentuhan / aksi user),
+            // bukan oleh setiap request HTTP (polling/status).
             return $next($request);
         }
 

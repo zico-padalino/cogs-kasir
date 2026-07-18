@@ -34,6 +34,7 @@
     data-kasir-auto-load="{{ config('pos.notifications.auto_load_new_order', true) ? '1' : '0' }}"
     data-kasir-pin-unlock-url="{{ route('kasir.pin.unlock') }}"
     data-kasir-pin-status-url="{{ route('kasir.pin.status') }}"
+    data-kasir-pin-touch-url="{{ route('kasir.pin.touch') }}"
     data-kasir-pin-expires-at="{{ \App\Support\KasirPin::expiresAtTimestamp() ?? '' }}"
     data-kasir-server-now="{{ now()->getTimestamp() }}"
     data-kasir-pin-ttl-minutes="{{ \App\Support\KasirPin::idleMinutes() }}"

@@ -33,6 +33,24 @@ class KasirPinController extends Controller
         ]));
     }
 
+    /** Perpanjang sesi PIN karena ada aktivitas (sentuhan layar / input). */
+    public function touch(): \Illuminate\Http\JsonResponse
+    {
+        if (! KasirPin::isUnlocked()) {
+            return response()->json(array_merge(KasirPin::statusPayload(), [
+                'redirect' => route('kasir.pin.unlock'),
+                'ttl_minutes' => KasirPin::idleMinutes(),
+            ]), 423);
+        }
+
+        KasirPin::touch();
+
+        return response()->json(array_merge(KasirPin::statusPayload(), [
+            'redirect' => route('kasir.pin.unlock'),
+            'ttl_minutes' => KasirPin::idleMinutes(),
+        ]));
+    }
+
     public function unlock(Request $request): RedirectResponse
     {
         $validated = $request->validate([

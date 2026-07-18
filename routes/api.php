@@ -71,6 +71,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('pin', [PinController::class, 'unlock'])->name('pin.unlock');
             Route::post('pin/lock', [PinController::class, 'lock'])->name('pin.lock');
             Route::get('pin/status', [PinController::class, 'status'])->name('pin.status');
+            Route::post('pin/touch', [PinController::class, 'touch'])->name('pin.touch');
             Route::get('pending-orders/poll', [PosController::class, 'pendingPoll'])->name('pending.poll');
 
             Route::middleware('kasir.pin')->group(function () {

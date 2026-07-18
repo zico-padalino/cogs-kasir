@@ -94,6 +94,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::post('/pin', [KasirPinController::class, 'unlock'])->name('pin.unlock.submit');
     Route::post('/pin/lock', [KasirPinController::class, 'lock'])->name('pin.lock');
     Route::get('/pin/status', [KasirPinController::class, 'status'])->name('pin.status');
+    Route::post('/pin/touch', [KasirPinController::class, 'touch'])->name('pin.touch');
     Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
 
     Route::middleware('kasir.pin')->group(function () {
