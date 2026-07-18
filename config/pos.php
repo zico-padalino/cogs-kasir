@@ -28,6 +28,17 @@ return [
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
     ],
 
+    /**
+     * Push saat app/browser tertutup.
+     * Mobile: Expo Push (tanpa VAPID). Web: generate dengan `php artisan kasir:vapid-keys`.
+     */
+    'push' => [
+        'enabled' => filter_var(env('KASIR_PUSH_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
+        'vapid_private_pem' => str_replace('\\n', "\n", (string) env('VAPID_PRIVATE_PEM', '')),
+        'vapid_subject' => env('VAPID_SUBJECT', 'mailto:admin@kedaitjoan.online'),
+    ],
+
     'pwa' => [
         'theme_color' => '#4f46e5',
         'background_color' => '#f1f5f9',

@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Kasir\PembukuanController;
 use App\Http\Controllers\Api\Kasir\PinController;
 use App\Http\Controllers\Api\Kasir\PosController;
 use App\Http\Controllers\Api\Kasir\ProductController as KasirProductController;
+use App\Http\Controllers\Api\Kasir\PushTokenController;
 use App\Http\Controllers\Api\Kasir\TableController;
 use App\Http\Controllers\Api\Order\TableOrderController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('pin/status', [PinController::class, 'status'])->name('pin.status');
             Route::post('pin/touch', [PinController::class, 'touch'])->name('pin.touch');
             Route::get('pending-orders/poll', [PosController::class, 'pendingPoll'])->name('pending.poll');
+            Route::post('push-token', [PushTokenController::class, 'store'])->name('push-token.store');
+            Route::delete('push-token', [PushTokenController::class, 'destroy'])->name('push-token.destroy');
 
             Route::middleware('kasir.pin')->group(function () {
                 Route::get('pos', [PosController::class, 'index'])->name('pos');

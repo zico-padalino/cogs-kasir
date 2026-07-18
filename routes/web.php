@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\Kasir\KasirPinController;
 use App\Http\Controllers\Web\KasirController;
+use App\Http\Controllers\Web\KasirPushController;
 use App\Http\Controllers\Web\KasirProductController;
 use App\Http\Controllers\Web\MenuCategoryController;
 use App\Http\Controllers\Web\OverheadRateController;
@@ -96,6 +97,9 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::get('/pin/status', [KasirPinController::class, 'status'])->name('pin.status');
     Route::post('/pin/touch', [KasirPinController::class, 'touch'])->name('pin.touch');
     Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
+    Route::get('/push/vapid-key', [KasirPushController::class, 'vapidPublicKey'])->name('push.vapid');
+    Route::post('/push/subscribe', [KasirPushController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('/push/unsubscribe', [KasirPushController::class, 'unsubscribe'])->name('push.unsubscribe');
 
     Route::middleware('kasir.pin')->group(function () {
         Route::get('/', [KasirController::class, 'index'])->name('index');

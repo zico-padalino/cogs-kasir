@@ -5,6 +5,7 @@ import './kasir';
 import './kasir-menu-admin';
 import './kasir-product-edit';
 import './kasir-notifications';
+import './kasir-push';
 import './table-qr';
 import './barcode-download';
 import './attendance-qr-download';

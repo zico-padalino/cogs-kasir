@@ -25,6 +25,7 @@ class PosOrderService
     public function __construct(
         private readonly CogsCalculationService $cogsCalculationService,
         private readonly CashLedgerService $cashLedgerService,
+        private readonly KasirPushNotifier $kasirPushNotifier,
     ) {}
 
     public function generateOrderNumber(?string $orderDay = null): string
@@ -265,7 +266,10 @@ class PosOrderService
 
         $order->update(['status' => PosOrderStatus::Submitted]);
 
-        return $order->fresh(['items.product', 'table']);
+        $fresh = $order->fresh(['items.product', 'table']);
+        $this->kasirPushNotifier->notifyNewOnlineOrder($fresh);
+
+        return $fresh;
     }
 
     public function confirmOrder(PosOrder $order, ?User $cashier = null, ?array $attribution = null): PosOrder

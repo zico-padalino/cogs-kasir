@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cogs-pos-shell-v1';
+const CACHE_NAME = 'cogs-pos-shell-v2';
 const PRECACHE_URLS = [
     '/icons/icon-192.png',
     '/icons/icon-512.png',
@@ -69,3 +69,58 @@ async function networkFirst(request) {
         throw new Error('Offline');
     }
 }
+
+self.addEventListener('push', (event) => {
+    event.waitUntil((async () => {
+        let title = 'Pesanan baru masuk';
+        let body = 'Ada pesanan online baru. Buka kasir untuk memproses.';
+        let data = { url: '/kasir' };
+
+        try {
+            if (event.data) {
+                const payload = event.data.json();
+                title = payload.title || title;
+                body = payload.body || body;
+                data = { ...data, ...(payload.data || {}) };
+            }
+        } catch {
+            // Empty wake-up push — show default kasir alert.
+        }
+
+        await self.registration.showNotification(title, {
+            body,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: 'kasir-new-order',
+            renotify: true,
+            data,
+            vibrate: [200, 100, 200],
+        });
+    })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const targetUrl = event.notification?.data?.url || '/kasir';
+
+    event.waitUntil((async () => {
+        const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+        for (const client of clientsList) {
+            if ('focus' in client) {
+                await client.focus();
+
+                if ('navigate' in client) {
+                    await client.navigate(targetUrl);
+                }
+
+                return;
+            }
+        }
+
+        if (self.clients.openWindow) {
+            await self.clients.openWindow(targetUrl);
+        }
+    })());
+});

@@ -10,10 +10,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 import { AuthProvider, ROLE_META, useAuth } from '@/auth';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
 import { colors } from '@/theme';
 import { applyGlobalFont } from '@/theme/applyGlobalFont';
+import '@/kasir/pushNotifications';
 
 applyGlobalFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -24,6 +26,17 @@ function RootNavigator() {
   const { user, activeModule, loading, pin } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { type?: string } | undefined;
+      if (data?.type === 'new_order' && user?.has_kasir) {
+        router.push((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
+      }
+    });
+
+    return () => sub.remove();
+  }, [user?.has_kasir, pin?.unlocked, router]);
 
   useEffect(() => {
     if (loading) {

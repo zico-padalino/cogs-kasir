@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '@/api/kasir';
 import { getToken, isPinSessionError, setPinLockedListener, setToken } from '@/api/client';
 import type { ApiError, AuthUser, PinStatus } from '@/api/types';
+import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNotifications';
 
 export type Role = 'cogs' | 'kasir';
 
@@ -115,6 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const module = resolveActiveModule(res.data.user, storedModule);
     setActiveModule(module);
     await persist(res.data.user, module);
+
+    if (res.data.user.has_kasir) {
+      registerKasirPushToken().catch(() => {});
+    }
   }, [persist]);
 
   useEffect(() => {
@@ -145,12 +150,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setActiveModule(active);
       setPin(LOCKED_PIN);
       await persist(nextUser, active);
+
+      if (nextUser.has_kasir) {
+        registerKasirPushToken().catch(() => {});
+      }
     },
     [persist],
   );
 
   const logout = useCallback(async () => {
     try {
+      await unregisterKasirPushToken();
       await authApi.logout();
     } catch {
       // ignore
