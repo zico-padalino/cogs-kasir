@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, ROLE_META, useAuth } from '@/auth';
 import { KasirOrderAlertGuard } from '@/components/KasirOrderAlertGuard';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
+import { KasirPushKeepAlive } from '@/components/KasirPushKeepAlive';
 import {
   addKasirNotificationResponseListener,
   setupKasirPushRuntime,
@@ -22,7 +23,7 @@ import { applyGlobalFont } from '@/theme/applyGlobalFont';
 
 applyGlobalFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
-// Daftarkan background task sedini mungkin (HP terkunci / app tertutup).
+// Background task sedini mungkin (HP terkunci / app di-swipe tutup).
 void setupKasirPushRuntime();
 
 const PUBLIC_SEGMENTS = new Set(['login', 'pesan-online']);
@@ -119,6 +120,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
+        <KasirPushKeepAlive />
         <RootNavigator />
       </AuthProvider>
     </SafeAreaProvider>

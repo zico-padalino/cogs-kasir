@@ -1,13 +1,16 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
-import { apiRequest } from '@/api/client';
+import { apiRequest, getToken } from '@/api/client';
 import { announceSpeakText } from '@/kasir/orderAlert';
 
 export const KASIR_PUSH_CHANNEL = 'kasir-orders';
 const BACKGROUND_NOTIFICATION_TASK = 'KASIR_BACKGROUND_NOTIFICATION';
+const STORED_PUSH_TOKEN_KEY = 'kasir_expo_push_token_v1';
+const PERMISSION_DENIED_KEY = 'kasir_push_permission_denied_v1';
 
 type PushData = {
   type?: string;
@@ -57,7 +60,7 @@ async function speakFromNotification(notification: Notifications.Notification): 
   await announceSpeakText(payload.speakText, payload.dedupeKey);
 }
 
-/** Harus di top-level (sebelum React mount) agar jalan saat HP terkunci. */
+/** Harus di top-level agar jalan saat HP terkunci / app di-kill. */
 if (!TaskManager.isTaskDefined(BACKGROUND_NOTIFICATION_TASK)) {
   TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error }) => {
     if (error) {
@@ -72,7 +75,6 @@ if (!TaskManager.isTaskDefined(BACKGROUND_NOTIFICATION_TASK)) {
         return;
       }
 
-      // Bentuk alternatif payload background task
       const raw = (data as { data?: PushData } | undefined)?.data;
       if (raw?.speak_text || raw?.customer_name || raw?.type === 'new_order') {
         const speakText =
@@ -83,12 +85,13 @@ if (!TaskManager.isTaskDefined(BACKGROUND_NOTIFICATION_TASK)) {
         await announceSpeakText(speakText, String(raw.order_id ?? speakText));
       }
     } catch {
-      // Background TTS opsional — notifikasi sistem tetap tampil + bunyi
+      // Notifikasi sistem tetap tampil meski TTS background gagal
     }
   });
 }
 
 let listenersReady = false;
+let registerInFlight: Promise<string | null> | null = null;
 let cachedToken: string | null = null;
 
 function projectId(): string | undefined {
@@ -105,13 +108,14 @@ async function ensureAndroidChannel(): Promise<void> {
 
   await Notifications.setNotificationChannelAsync(KASIR_PUSH_CHANNEL, {
     name: 'Pesanan kasir',
-    description: 'Notifikasi pesanan online meski HP terkunci',
+    description: 'Notifikasi pesanan online meski HP terkunci / app tertutup',
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 250, 180, 250, 180, 250],
     sound: 'default',
     enableVibrate: true,
     enableLights: true,
     bypassDnd: true,
+    showBadge: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     audioAttributes: {
       usage: Notifications.AndroidAudioUsage.ALARM,
@@ -124,14 +128,31 @@ async function ensureAndroidChannel(): Promise<void> {
   });
 }
 
-/** Panggil sekali saat app start — listener + background task. */
+async function persistLocalToken(token: string | null): Promise<void> {
+  cachedToken = token;
+  if (!token) {
+    await AsyncStorage.removeItem(STORED_PUSH_TOKEN_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(STORED_PUSH_TOKEN_KEY, token);
+}
+
+async function readLocalToken(): Promise<string | null> {
+  if (cachedToken) {
+    return cachedToken;
+  }
+  cachedToken = await AsyncStorage.getItem(STORED_PUSH_TOKEN_KEY);
+  return cachedToken;
+}
+
+/** Panggil sekali saat app start — channel, background task, listener. */
 export async function setupKasirPushRuntime(): Promise<void> {
   await ensureAndroidChannel();
 
   try {
     await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
   } catch {
-    // Expo Go / platform tertentu mungkin tidak support background task
+    // Expo Go / perangkat tertentu mungkin tidak support
   }
 
   if (listenersReady) {
@@ -139,65 +160,90 @@ export async function setupKasirPushRuntime(): Promise<void> {
   }
   listenersReady = true;
 
-  // App masih hidup (termasuk layar kunci / background) → TTS
   Notifications.addNotificationReceivedListener((notification) => {
     void speakFromNotification(notification);
   });
 }
 
+/**
+ * Daftarkan / perbarui Expo push token ke server.
+ * Dipanggil setelah login dan setiap kali app kembali aktif.
+ */
 export async function registerKasirPushToken(): Promise<string | null> {
   if (!Device.isDevice) {
     return null;
   }
 
-  await setupKasirPushRuntime();
+  if (registerInFlight) {
+    return registerInFlight;
+  }
 
-  const current = await Notifications.getPermissionsAsync();
-  let status = current.status;
+  registerInFlight = (async () => {
+    await setupKasirPushRuntime();
 
-  if (status !== 'granted') {
-    const asked = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-        allowCriticalAlerts: false,
-        provideAppNotificationSettings: true,
+    const apiToken = await getToken();
+    if (!apiToken) {
+      return null;
+    }
+
+    const current = await Notifications.getPermissionsAsync();
+    let status = current.status;
+
+    if (status !== 'granted') {
+      const asked = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowCriticalAlerts: false,
+          provideAppNotificationSettings: true,
+        },
+        android: {},
+      });
+      status = asked.status;
+    }
+
+    if (status !== 'granted') {
+      await AsyncStorage.setItem(PERMISSION_DENIED_KEY, '1');
+      return null;
+    }
+
+    await AsyncStorage.removeItem(PERMISSION_DENIED_KEY);
+    await ensureAndroidChannel();
+
+    const id = projectId();
+    const tokenResponse = id
+      ? await Notifications.getExpoPushTokenAsync({ projectId: id })
+      : await Notifications.getExpoPushTokenAsync();
+
+    const token = tokenResponse.data;
+    await persistLocalToken(token);
+
+    await apiRequest('/kasir/push-token', {
+      method: 'POST',
+      body: {
+        token,
+        platform: 'expo',
+        device_name: `${Device.brand ?? 'device'} ${Device.modelName ?? ''}`.trim(),
       },
     });
-    status = asked.status;
-  }
 
-  if (status !== 'granted') {
-    return null;
-  }
+    return token;
+  })()
+    .catch(() => null)
+    .finally(() => {
+      registerInFlight = null;
+    });
 
-  if (Platform.OS === 'android') {
-    // Beberapa OEM butuh channel siap sebelum token dipakai
-    await ensureAndroidChannel();
-  }
-
-  const id = projectId();
-  const tokenResponse = id
-    ? await Notifications.getExpoPushTokenAsync({ projectId: id })
-    : await Notifications.getExpoPushTokenAsync();
-
-  const token = tokenResponse.data;
-  cachedToken = token;
-
-  await apiRequest('/kasir/push-token', {
-    method: 'POST',
-    body: {
-      token,
-      platform: 'expo',
-      device_name: `${Device.brand ?? 'device'} ${Device.modelName ?? ''}`.trim(),
-    },
-  });
-
-  return token;
+  return registerInFlight;
 }
 
-/** Listener: tap notifikasi di layar kunci → buka kasir. */
+/** True jika izin notifikasi belum diberikan. */
+export async function isKasirPushPermissionDenied(): Promise<boolean> {
+  const current = await Notifications.getPermissionsAsync();
+  return current.status !== 'granted';
+}
+
 export function addKasirNotificationResponseListener(
   onNewOrder: () => void,
 ): { remove: () => void } {
@@ -210,7 +256,7 @@ export function addKasirNotificationResponseListener(
 }
 
 export async function unregisterKasirPushToken(): Promise<void> {
-  const token = cachedToken;
+  const token = (await readLocalToken()) || cachedToken;
 
   if (!token) {
     return;
@@ -224,6 +270,6 @@ export async function unregisterKasirPushToken(): Promise<void> {
   } catch {
     // ignore
   } finally {
-    cachedToken = null;
+    await persistLocalToken(null);
   }
 }

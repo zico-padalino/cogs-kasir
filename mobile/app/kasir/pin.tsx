@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi, pinApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
+import { registerKasirPushToken } from '@/kasir/pushNotifications';
 import { colors, font, radius, spacing } from '@/theme';
 
 type ShopInfo = {
@@ -40,6 +41,9 @@ export default function PinUnlockScreen() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Pastikan push aktif meski masih di layar PIN (app bisa ditutup setelah ini).
+    void registerKasirPushToken();
+
     authApi
       .shop()
       .then((res) => {
