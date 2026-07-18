@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, ROLE_META, useAuth } from '@/auth';
+import { KasirOrderAlertGuard } from '@/components/KasirOrderAlertGuard';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
 import { addKasirNotificationResponseListener } from '@/kasir/pushNotifications';
 import { colors } from '@/theme';
@@ -77,13 +78,15 @@ function RootNavigator() {
 
   return (
     <KasirPinSessionGuard>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.slate100 },
-          animation: 'slide_from_right',
-        }}
-      />
+      <KasirOrderAlertGuard>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.slate100 },
+            animation: 'slide_from_right',
+          }}
+        />
+      </KasirOrderAlertGuard>
     </KasirPinSessionGuard>
   );
 }

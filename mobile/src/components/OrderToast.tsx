@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, font, radius, shadow, spacing } from '@/theme';
 
@@ -87,51 +95,60 @@ export function OrderToast({
   };
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { top: insets.top + 8 }]}>
-      <Animated.View style={[styles.toast, { opacity, transform: [{ translateY }] }]}>
-        <Text style={styles.icon}>🔔</Text>
-        <View style={styles.copy}>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.message} numberOfLines={2}>
-            {message}
-          </Text>
-          {onAction ? (
-            <View style={styles.actions}>
-              <Pressable onPress={dismiss} style={styles.secondaryBtn} disabled={busy}>
-                <Text style={styles.secondaryText}>Nanti</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => void handleAction()}
-                style={[styles.primaryBtn, busy && { opacity: 0.7 }]}
-                disabled={busy}
-              >
-                {busy ? (
-                  <ActivityIndicator color={colors.white} size="small" />
-                ) : (
-                  <Text style={styles.primaryText}>{actionLabel}</Text>
-                )}
-              </Pressable>
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={dismiss}>
+      {/* box-none: input PIN di bawah tetap bisa diketik */}
+      <View style={styles.modalRoot} pointerEvents="box-none">
+        <View pointerEvents="box-none" style={[styles.wrap, { top: insets.top + 8 }]}>
+          <Animated.View style={[styles.toast, { opacity, transform: [{ translateY }] }]}>
+            <Text style={styles.icon}>🔔</Text>
+            <View style={styles.copy}>
+              <Text style={styles.title} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text style={styles.message} numberOfLines={2}>
+                {message}
+              </Text>
+              {onAction ? (
+                <View style={styles.actions}>
+                  <Pressable onPress={dismiss} style={styles.secondaryBtn} disabled={busy}>
+                    <Text style={styles.secondaryText}>Nanti</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => void handleAction()}
+                    style={[styles.primaryBtn, busy && { opacity: 0.7 }]}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <Text style={styles.primaryText}>{actionLabel}</Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
-          ) : null}
+            {!onAction ? (
+              <Pressable onPress={dismiss} hitSlop={10} style={styles.close}>
+                <Text style={styles.closeText}>✕</Text>
+              </Pressable>
+            ) : null}
+          </Animated.View>
         </View>
-        {!onAction ? (
-          <Pressable onPress={dismiss} hitSlop={10} style={styles.close}>
-            <Text style={styles.closeText}>✕</Text>
-          </Pressable>
-        ) : null}
-      </Animated.View>
-    </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  modalRoot: {
+    flex: 1,
+  },
   wrap: {
     position: 'absolute',
     left: spacing.md,
     right: spacing.md,
-    zIndex: 100,
+    zIndex: 9999,
+    elevation: 9999,
   },
   toast: {
     flexDirection: 'row',
@@ -143,6 +160,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderWidth: 1,
     borderColor: colors.slate800,
+    elevation: 24,
     ...shadow.md,
   },
   icon: { fontSize: 20, marginTop: 2 },

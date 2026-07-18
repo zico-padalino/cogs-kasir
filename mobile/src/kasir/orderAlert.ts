@@ -4,6 +4,15 @@ import * as Speech from 'expo-speech';
 import type { PosOrder } from '@/api/types';
 import { formatRupiah } from '@/utils/rupiah';
 
+/** Pastikan TTS bisa bunyi meski layar fokus (halaman PIN). */
+async function prepareSpeechPlayback(): Promise<void> {
+  try {
+    await Speech.stop();
+  } catch {
+    // ignore
+  }
+}
+
 export type OrderAlertPayload = {
   title: string;
   message: string;
@@ -69,10 +78,10 @@ export async function announceNewOrders(orders: PosOrder[]): Promise<OrderAlertP
   }
 
   try {
-    if (speaking) {
-      Speech.stop();
-    }
+    await prepareSpeechPlayback();
     speaking = true;
+    // Delay singkat agar stop() selesai sebelum speak (penting di layar PIN).
+    await new Promise((resolve) => setTimeout(resolve, 80));
     Speech.speak(alert.speakText, {
       language: 'id-ID',
       pitch: 1.05,
