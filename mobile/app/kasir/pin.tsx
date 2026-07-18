@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -13,9 +14,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { authApi, pinApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
-import { registerKasirPushToken } from '@/kasir/pushNotifications';
+import {
+  registerKasirPushToken,
+  testKasirPushFromServer,
+} from '@/kasir/pushNotifications';
 import { colors, font, radius, spacing } from '@/theme';
 
 type ShopInfo = {
@@ -36,9 +41,11 @@ export default function PinUnlockScreen() {
   const [pin, setPinValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appOwnership = Constants.appOwnership; // 'expo' = Expo Go, null = APK build
 
   useEffect(() => {
     // Pastikan push aktif meski masih di layar PIN (app bisa ditutup setelah ini).
@@ -241,6 +248,40 @@ export default function PinUnlockScreen() {
 
           <View style={styles.logoutWrap}>
             <Pressable
+              onPress={async () => {
+                if (testingPush) return;
+                setTestingPush(true);
+                try {
+                  await registerKasirPushToken();
+                  const res = await testKasirPushFromServer();
+                  Alert.alert(
+                    'Tes push dikirim',
+                    `${res.message}\n\nTutup app / kunci HP. Jika tidak muncul, APK belum punya FCM (Firebase).`,
+                  );
+                } catch (err) {
+                  Alert.alert('Gagal tes push', asApiError(err).message || 'Cek deploy server & izin notifikasi.');
+                } finally {
+                  setTestingPush(false);
+                }
+              }}
+              disabled={testingPush}
+              style={({ pressed }) => [
+                styles.testPushBtn,
+                pressed && { opacity: 0.9 },
+                testingPush && { opacity: 0.6 },
+              ]}
+            >
+              {testingPush ? (
+                <ActivityIndicator color={colors.brand700} />
+              ) : (
+                <Text style={styles.testPushText}>Tes notifikasi (app tertutup)</Text>
+              )}
+            </Pressable>
+            <Text style={styles.logoutHint}>
+              Mode: {appOwnership === 'expo' ? 'Expo Go' : 'APK terpasang'} — token keduanya berbeda
+            </Text>
+
+            <Pressable
               onPress={() => logout()}
               style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.9 }]}
             >
@@ -416,7 +457,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.slate200,
     paddingTop: spacing.md,
+    gap: 8,
   },
+  testPushBtn: {
+    minHeight: 40,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.brand300,
+                backgroundColor: colors.brand50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  testPushText: { color: colors.brand700, fontSize: 13, ...font('600') },
   logoutBtn: {
     minHeight: 40,
     borderRadius: radius.md,
@@ -428,7 +481,7 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: colors.slate700, fontSize: 14, ...font('500') },
   logoutHint: {
-    marginTop: 6,
+    marginTop: 2,
     fontSize: 10,
     color: colors.slate400,
     textAlign: 'center',

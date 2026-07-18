@@ -20,14 +20,26 @@ class PushTokenController extends Controller
             'device_name' => ['nullable', 'string', 'max:120'],
         ]);
 
+        $userId = $request->user()?->id;
+        $tokenHash = DevicePushToken::hashToken($validated['token']);
+
+        // Satu user = satu token Expo aktif (hindari token Expo Go menimpa APK).
+        if ($userId) {
+            DevicePushToken::query()
+                ->where('platform', DevicePushToken::PLATFORM_EXPO)
+                ->where('user_id', $userId)
+                ->where('token_hash', '!=', $tokenHash)
+                ->delete();
+        }
+
         $token = DevicePushToken::query()->updateOrCreate(
             [
                 'platform' => DevicePushToken::PLATFORM_EXPO,
-                'token_hash' => DevicePushToken::hashToken($validated['token']),
+                'token_hash' => $tokenHash,
             ],
             [
                 'token' => $validated['token'],
-                'user_id' => $request->user()?->id,
+                'user_id' => $userId,
                 'device_name' => $validated['device_name'] ?? null,
                 'last_used_at' => now(),
             ],
@@ -38,6 +50,7 @@ class PushTokenController extends Controller
             'data' => [
                 'id' => $token->id,
                 'platform' => $token->platform,
+                'token_preview' => substr($validated['token'], 0, 28).'…',
             ],
         ]);
     }
