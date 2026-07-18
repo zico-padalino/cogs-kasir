@@ -101,6 +101,11 @@ function projectId(): string | undefined {
   );
 }
 
+/** Expo Go vs APK — token & FCM-nya beda. */
+export function getKasirPushClient(): 'expo_go' | 'standalone' {
+  return Constants.appOwnership === 'expo' ? 'expo_go' : 'standalone';
+}
+
 async function ensureAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') {
     return;
@@ -221,6 +226,22 @@ export async function registerKasirPushToken(): Promise<string | null> {
     await AsyncStorage.removeItem(PERMISSION_DENIED_KEY);
     await ensureAndroidChannel();
 
+    const client = getKasirPushClient();
+
+    // APK butuh FCM native token; Expo Go tidak. Gagal di sini = google-services / EAS FCM belum OK.
+    if (Platform.OS === 'android' && client === 'standalone') {
+      try {
+        await Notifications.getDevicePushTokenAsync();
+      } catch (err) {
+        if (__DEV__) {
+          console.warn('[kasir-push] getDevicePushTokenAsync failed', err);
+        }
+        throw new Error(
+          'FCM belum aktif di APK. Pastikan google-services.json ikut build + FCM V1 di EAS, lalu rebuild APK.',
+        );
+      }
+    }
+
     const id = projectId();
     const tokenResponse = id
       ? await Notifications.getExpoPushTokenAsync({ projectId: id })
@@ -238,6 +259,7 @@ export async function registerKasirPushToken(): Promise<string | null> {
           body: {
             token,
             platform: 'expo',
+            client,
             device_name: `${Device.brand ?? 'device'} ${Device.modelName ?? ''}`.trim(),
           },
         });
@@ -295,12 +317,23 @@ export async function testKasirPushFromServer(): Promise<{
     token_count?: number;
     token_previews?: string[];
     hint?: string | null;
+    client?: string | null;
     send?: { ok?: boolean; errors?: string[] };
   };
 }> {
+  const token = (await registerKasirPushToken()) || (await readLocalToken());
+  if (!token) {
+    throw new Error(
+      'Token push belum siap. Izinkan notifikasi, atau rebuild APK dengan FCM (google-services.json).',
+    );
+  }
+
   return apiRequest('/kasir/push-token/test', {
     method: 'POST',
-    body: {},
+    body: {
+      token,
+      client: getKasirPushClient(),
+    },
   });
 }
 

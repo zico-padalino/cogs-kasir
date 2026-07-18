@@ -52,14 +52,23 @@ export default function PinUnlockScreen() {
     // Pastikan push aktif meski masih di layar PIN (app bisa ditutup setelah ini).
     void registerKasirPushToken()
       .then((token) => {
+        const mode = appOwnership === 'expo' ? 'Expo Go' : 'APK';
         if (token) {
-          setPushStatus(`Push siap · ${token.slice(0, 22)}…`);
+          setPushStatus(`${mode} · push siap · ${token.slice(0, 18)}…`);
         } else {
-          setPushStatus('Push gagal — izinkan notifikasi di Setting HP');
+          setPushStatus(
+            appOwnership === 'expo'
+              ? 'Expo Go · izinkan notifikasi di Setting HP'
+              : 'APK · push gagal — cek izin notifikasi / FCM (rebuild dengan google-services)',
+          );
         }
       })
       .catch(() => {
-        setPushStatus('Push gagal daftar ke server');
+        setPushStatus(
+          appOwnership === 'expo'
+            ? 'Expo Go · gagal daftar token ke server'
+            : 'APK · gagal daftar — sering karena FCM belum di EAS / perlu rebuild',
+        );
       });
 
     authApi
@@ -276,9 +285,13 @@ export default function PinUnlockScreen() {
                   const preview = res.data?.token_previews?.[0]
                     ? `\n\nToken: ${res.data.token_previews[0]}`
                     : '';
+                  const modeNote =
+                    appOwnership === 'expo'
+                      ? '\n\nAnda di Expo Go — sukses di sini TIDAK berarti APK akan dapat notifikasi. Tes ulang dari APK hasil build.'
+                      : '\n\nTes ini ke token APK. Tutup app dari Recent Apps (bukan hanya Home), kunci HP, tunggu ~5 detik.';
                   Alert.alert(
                     res.data?.send?.ok === false ? 'Push gagal' : 'Tes push dikirim',
-                    `${res.message}${preview}${hint}\n\nSekarang TUTUP app sepenuhnya / kunci HP, lalu tunggu 5 detik.`,
+                    `${res.message}${preview}${hint}${modeNote}`,
                   );
                 } catch (err) {
                   const apiErr = asApiError(err);
@@ -309,8 +322,13 @@ export default function PinUnlockScreen() {
               )}
             </Pressable>
             <Text style={styles.logoutHint}>
-              Mode: {appOwnership === 'expo' ? 'Expo Go' : 'APK terpasang'}
+              Mode: {appOwnership === 'expo' ? 'Expo Go (bukan APK toko)' : 'APK terpasang'}
             </Text>
+            {appOwnership === 'expo' ? (
+              <Text style={styles.pushWarn}>
+                Expo Go selalu bisa dapat push. Untuk kasir toko, wajib tes di APK hasil EAS.
+              </Text>
+            ) : null}
             <Text style={styles.pushStatus}>{pushStatus}</Text>
 
             <Pressable
@@ -517,6 +535,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.slate400,
     textAlign: 'center',
+  },
+  pushWarn: {
+    marginTop: 4,
+    fontSize: 10,
+    color: '#b45309',
+    textAlign: 'center',
+    ...font('500'),
   },
   pushStatus: {
     marginTop: 4,
