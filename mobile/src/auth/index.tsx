@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '@/api/kasir';
 import { getToken, isPinSessionError, setPinLockedListener, setToken } from '@/api/client';
 import type { ApiError, AuthUser, PinStatus } from '@/api/types';
+import { resetPendingTracker } from '@/kasir/pendingOrderTracker';
 import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNotifications';
 
 export type Role = 'cogs' | 'kasir';
@@ -167,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     await setToken(null);
     await persist(null, null);
+    resetPendingTracker();
     setUser(null);
     setActiveModule(null);
     setPin(null);

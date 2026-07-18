@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,8 +20,7 @@ import { kasirApi, pinApi } from '@/api/kasir';
 import type { MenuProduct, PosOrder, PosOrder as Order } from '@/api/types';
 import { asApiError, useAuth } from '@/auth';
 import { AppDrawer } from '@/components/AppScaffold';
-import { OrderToast } from '@/components/OrderToast';
-import { announceNewOrders } from '@/kasir/orderAlert';
+import { consumePendingOpenOrderId, seedPendingIds } from '@/kasir/pendingOrderTracker';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
 
@@ -69,14 +68,6 @@ export default function KasirPosScreen() {
   const [orderType, setOrderType] = useState('takeaway');
   const [orderBarOpen, setOrderBarOpen] = useState(false);
 
-  const [orderAlert, setOrderAlert] = useState<{
-    title: string;
-    message: string;
-    orderId: number | null;
-  } | null>(null);
-  const knownPending = useRef<Set<number>>(new Set());
-  const announcingRef = useRef(false);
-
   const applyOrder = useCallback((next: Order) => {
     setOrder(next);
     setCustomerNote(next.customer_note ?? '');
@@ -111,7 +102,8 @@ export default function KasirPosScreen() {
       setShopName(data.shop_name);
       setPollMs((data.poll_interval_seconds || 5) * 1000);
       setPin(data.pin);
-      knownPending.current = new Set((data.pending_orders || []).map((o) => o.id));
+      // Seed agar pesanan lama tidak dibunyikan saat buka POS.
+      seedPendingIds((data.pending_orders || []).map((o) => o.id));
     } catch (err) {
       handleApiError(err);
     } finally {
@@ -121,8 +113,21 @@ export default function KasirPosScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void refresh();
-    }, [refresh]),
+      void (async () => {
+        await refresh();
+        const pendingId = consumePendingOpenOrderId();
+        if (!pendingId) {
+          return;
+        }
+        try {
+          const res = await kasirApi.loadOrder(pendingId);
+          applyOrder(res.data);
+          setTab('cart');
+        } catch (err) {
+          handleApiError(err);
+        }
+      })();
+    }, [refresh, applyOrder, handleApiError]),
   );
 
   useEffect(() => {
@@ -142,35 +147,8 @@ export default function KasirPosScreen() {
           return;
         }
 
-        const orders = data.orders || [];
-        setPending(orders);
-
-        const ids = (data.order_ids || []).map(Number);
-        const newIds = ids.filter((id) => !knownPending.current.has(id));
-        knownPending.current = new Set(ids);
-
-        if (newIds.length > 0 && !announcingRef.current) {
-          const newOrders = orders.filter((o) => newIds.includes(o.id));
-          const newest =
-            newIds.includes(Number(data.latest_order_id)) && data.latest_order_id
-              ? Number(data.latest_order_id)
-              : Math.max(...newIds);
-
-          announcingRef.current = true;
-          try {
-            const alert = await announceNewOrders(newOrders.length > 0 ? newOrders : orders.slice(0, 1));
-            if (alert) {
-              setOrderAlert({
-                title: alert.title,
-                message: alert.message,
-                orderId: Number.isFinite(newest) ? newest : null,
-              });
-            }
-          } finally {
-            announcingRef.current = false;
-          }
-          // Tidak auto-load: kasir pilih "Buka Pesanan" dulu dari toast
-        }
+        // TTS/toast di KasirOrderAlertGuard (termasuk saat layar PIN).
+        setPending(data.orders || []);
       } catch (err) {
         const apiErr = asApiError(err);
         if (apiErr.status === 423) {
@@ -180,7 +158,7 @@ export default function KasirPosScreen() {
     }, pollMs);
 
     return () => clearInterval(timer);
-  }, [pollMs, applyOrder, handleApiError, router, setPin]);
+  }, [pollMs, router, setPin]);
 
   useEffect(() => {
     const statusTimer = setInterval(async () => {
@@ -341,29 +319,6 @@ export default function KasirPosScreen() {
 
   return (
     <View style={styles.root}>
-      <OrderToast
-        title={orderAlert?.title ?? null}
-        message={orderAlert?.message ?? null}
-        sticky
-        actionLabel="Buka Pesanan"
-        onAction={
-          orderAlert?.orderId
-            ? async () => {
-                try {
-                  const id = orderAlert.orderId!;
-                  const res = await kasirApi.loadOrder(id);
-                  applyOrder(res.data);
-                  setTab('cart');
-                } catch (err) {
-                  handleApiError(err);
-                  throw err;
-                }
-              }
-            : undefined
-        }
-        onDismiss={() => setOrderAlert(null)}
-      />
-
       <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
         <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn}>
           <View style={styles.menuLine} />

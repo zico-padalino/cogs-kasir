@@ -77,6 +77,18 @@ export async function registerKasirPushToken(): Promise<string | null> {
   return token;
 }
 
+/** Listener: tap notifikasi → buka kasir. */
+export function addKasirNotificationResponseListener(
+  onNewOrder: () => void,
+): { remove: () => void } {
+  return Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data as { type?: string } | undefined;
+    if (data?.type === 'new_order') {
+      onNewOrder();
+    }
+  });
+}
+
 export async function unregisterKasirPushToken(): Promise<void> {
   const token = cachedToken;
 
