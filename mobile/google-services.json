@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443135595930",
+    "project_id": "kedaitjoan",
+    "storage_bucket": "kedaitjoan.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443135595930:android:bf7a5af82e61a322729623",
+        "android_client_info": {
+          "package_name": "com.cogsperhitungan.kasir"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYQcn9LHRtq7QCRh5J_xFo_vsYX_PhNTg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
