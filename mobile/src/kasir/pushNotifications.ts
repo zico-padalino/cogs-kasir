@@ -278,6 +278,14 @@ export function addKasirNotificationResponseListener(
   });
 }
 
+/** Panggil dari app untuk menguji push lewat server production. */
+export async function testKasirPushFromServer(): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/kasir/push-token/test', {
+    method: 'POST',
+    body: {},
+  });
+}
+
 export async function unregisterKasirPushToken(): Promise<void> {
   const token = (await readLocalToken()) || cachedToken;
 

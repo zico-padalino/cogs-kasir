@@ -76,6 +76,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('pending-orders/poll', [PosController::class, 'pendingPoll'])->name('pending.poll');
             Route::post('push-token', [PushTokenController::class, 'store'])->name('push-token.store');
             Route::delete('push-token', [PushTokenController::class, 'destroy'])->name('push-token.destroy');
+            Route::post('push-token/test', [PushTokenController::class, 'test'])->name('push-token.test');
 
             Route::middleware('kasir.pin')->group(function () {
                 Route::get('pos', [PosController::class, 'index'])->name('pos');

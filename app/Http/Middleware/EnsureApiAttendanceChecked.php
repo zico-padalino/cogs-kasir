@@ -30,6 +30,7 @@ class EnsureApiAttendanceChecked
             // Push harus terdaftar meski belum absen — supaya notifikasi jalan saat app tertutup.
             'api.v1.kasir.push-token.store',
             'api.v1.kasir.push-token.destroy',
+            'api.v1.kasir.push-token.test',
             'api.v1.pesan.*',
         )) {
             return $next($request);

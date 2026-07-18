@@ -55,10 +55,34 @@ class ExpoPushService
                     continue;
                 }
 
-                $this->pruneInvalidTokens($response->json('data') ?? []);
+                $tickets = $response->json('data') ?? [];
+                $this->logTicketErrors($tickets);
+                $this->pruneInvalidTokens($tickets);
             } catch (\Throwable $e) {
                 Log::warning('Expo push exception: '.$e->getMessage());
             }
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tickets
+     */
+    private function logTicketErrors(array $tickets): void
+    {
+        foreach ($tickets as $ticket) {
+            if (($ticket['status'] ?? null) !== 'error') {
+                continue;
+            }
+
+            $message = (string) ($ticket['message'] ?? 'unknown');
+            $details = $ticket['details'] ?? [];
+            $error = is_array($details) ? ($details['error'] ?? null) : null;
+
+            Log::warning('Expo push ticket error', [
+                'message' => $message,
+                'error' => $error,
+                // InvalidCredentials = FCM belum di-setup di Expo/EAS untuk Android.
+            ]);
         }
     }
 
@@ -70,11 +94,12 @@ class ExpoPushService
         foreach ($tickets as $ticket) {
             $details = $ticket['details'] ?? null;
             $error = is_array($details) ? ($details['error'] ?? null) : null;
+            $expoToken = is_array($details) ? ($details['expoPushToken'] ?? null) : null;
 
-            if ($error === 'DeviceNotRegistered' && isset($details['expoPushToken'])) {
+            if ($error === 'DeviceNotRegistered' && is_string($expoToken) && $expoToken !== '') {
                 DevicePushToken::query()
                     ->where('platform', DevicePushToken::PLATFORM_EXPO)
-                    ->where('token', $details['expoPushToken'])
+                    ->where('token_hash', DevicePushToken::hashToken($expoToken))
                     ->delete();
             }
         }
