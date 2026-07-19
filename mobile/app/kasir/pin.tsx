@@ -18,6 +18,10 @@ import Constants from 'expo-constants';
 import { authApi, pinApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
 import {
+  isKasirListenModeRunning,
+  startKasirListenMode,
+} from '@/kasir/kasirListenMode';
+import {
   registerKasirPushToken,
   testKasirPushFromServer,
 } from '@/kasir/pushNotifications';
@@ -43,6 +47,7 @@ export default function PinUnlockScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
   const [pushStatus, setPushStatus] = useState<string>('Mendaftar push…');
+  const [listenStatus, setListenStatus] = useState<string>('Menyalakan mode suara…');
   const inputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +75,20 @@ export default function PinUnlockScreen() {
             : 'APK · gagal daftar FCM — cek google-services.json & deploy service-account di server',
         );
       });
+
+    void (async () => {
+      if (Platform.OS !== 'android') {
+        setListenStatus('Suara AI di luar app: Android saja');
+        return;
+      }
+      const ok = await startKasirListenMode();
+      const running = ok || (await isKasirListenModeRunning());
+      setListenStatus(
+        running
+          ? 'Mode suara aktif · notifikasi tetap “Kasir siap terima pesanan”'
+          : 'Mode suara gagal — izinkan notifikasi / jangan batasi baterai app',
+      );
+    })();
 
     authApi
       .shop()
@@ -330,6 +349,7 @@ export default function PinUnlockScreen() {
               </Text>
             ) : null}
             <Text style={styles.pushStatus}>{pushStatus}</Text>
+            <Text style={styles.listenStatus}>{listenStatus}</Text>
 
             <Pressable
               onPress={() => logout()}
@@ -545,10 +565,17 @@ const styles = StyleSheet.create({
   },
   pushStatus: {
     marginTop: 4,
-    marginBottom: 8,
+    marginBottom: 4,
     fontSize: 10,
     color: colors.brand700,
     textAlign: 'center',
     ...font('600'),
+  },
+  listenStatus: {
+    marginBottom: 8,
+    fontSize: 10,
+    color: colors.slate600,
+    textAlign: 'center',
+    ...font('500'),
   },
 });

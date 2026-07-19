@@ -27,3 +27,11 @@ Homestead.yaml
 Thumbs.db
 /scripts/cloudflare/*.json
 /scripts/cloudflare/config.yml
+
+# Firebase / Google service account keys (jangan di-commit)
+*-firebase-adminsdk-*.json
+/kedaitjoan-firebase-adminsdk-*.json
+/storage/app/firebase/service-account.json
+/storage/app/firebase/*.json
+!/storage/app/firebase/service-account.json.example
+!/storage/app/firebase/.gitignore

@@ -1,15 +1,21 @@
-import { useEffect } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { useAuth } from '@/auth';
+import {
+  startKasirListenMode,
+  stopKasirListenMode,
+} from '@/kasir/kasirListenMode';
 import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNotifications';
 
 /**
- * Setelah login akun kasir: pastikan push token selalu terdaftar di server
- * supaya notifikasi tetap jalan meski HP terkunci / app tidak dibuka.
+ * Setelah login kasir:
+ * - daftar FCM/Expo push token
+ * - jalankan Mode Kasir (foreground) agar notifikasi + suara AI hidup di luar app
  */
 export function KasirPushKeepAlive() {
   const { user, loading } = useAuth();
   const hasKasir = !!user?.has_kasir;
+  const startedRef = useRef(false);
 
   useEffect(() => {
     if (loading) {
@@ -17,23 +23,42 @@ export function KasirPushKeepAlive() {
     }
 
     if (!hasKasir) {
+      startedRef.current = false;
       void unregisterKasirPushToken();
+      void stopKasirListenMode();
       return;
     }
 
-    void registerKasirPushToken();
+    const boot = async () => {
+      await registerKasirPushToken();
+      if (Platform.OS === 'android') {
+        const ok = await startKasirListenMode();
+        startedRef.current = ok;
+      }
+    };
+
+    void boot();
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
         void registerKasirPushToken();
+        if (Platform.OS === 'android' && !startedRef.current) {
+          void startKasirListenMode().then((ok) => {
+            startedRef.current = ok;
+          });
+        }
       }
     };
     const sub = AppState.addEventListener('change', onAppState);
 
-    // Perbarui token ke server berkala selagi sesi login hidup.
     const timer = setInterval(
       () => {
         void registerKasirPushToken();
+        if (Platform.OS === 'android') {
+          void startKasirListenMode().then((ok) => {
+            startedRef.current = ok;
+          });
+        }
       },
       6 * 60 * 60 * 1000,
     );
