@@ -54,6 +54,7 @@ class MaterialStockLog extends Model
             'sale' => 'Penjualan kasir',
             'production' => 'Produksi',
             'consume' => 'Pemakaian stok',
+            'waste' => 'Rusak / gagal',
             default => ucfirst($this->action),
         };
     }
@@ -70,6 +71,7 @@ class MaterialStockLog extends Model
             'sale' => 'badge-amber',
             'production' => 'badge-blue',
             'consume' => 'badge-amber',
+            'waste' => 'badge-amber',
             default => 'badge-slate',
         };
     }

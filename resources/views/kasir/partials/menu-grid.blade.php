@@ -7,7 +7,9 @@
             $category = $product->menu_category ?: 'lainnya';
             $categoryLabel = $menuCategoryLabels[$category] ?? ucfirst($category);
             $searchKey = strtolower($product->name.' '.$product->sku.' '.$categoryLabel.' '.($product->description ?? ''));
-            $canAdd = $price > 0;
+            $inStock = $product->isMenuInStock();
+            $canAdd = $price > 0 && $inStock;
+            $soldOut = $price > 0 && ! $inStock;
             $addonsPayload = $product->addons
                 ->where('is_active', true)
                 ->values()
@@ -41,7 +43,9 @@
                 @disabled(! $canAdd)
             >
                 <x-product-image :product="$product" :eager="$loop->index < 6" decorative class="pos-product-card-image" />
-                @if (! $canAdd)
+                @if ($soldOut)
+                    <span class="pos-product-card-badge !bg-rose-600">Habis</span>
+                @elseif (! $canAdd)
                     <span class="pos-product-card-badge">Atur harga</span>
                 @elseif (count($addonsPayload) > 0)
                     <span class="pos-product-card-badge !bg-brand-600">Add-on</span>
@@ -58,7 +62,15 @@
                 </button>
 
                 <div class="pos-product-card-foot">
-                    <span class="pos-product-price">{{ $canAdd ? $format::rupiah($price) : 'Atur harga' }}</span>
+                    <span class="pos-product-price">
+                        @if ($soldOut)
+                            Habis
+                        @elseif ($canAdd)
+                            {{ $format::rupiah($price) }}
+                        @else
+                            Atur harga
+                        @endif
+                    </span>
                     @if ($canAdd)
                         <button
                             type="button"
@@ -68,6 +80,8 @@
                         >
                             <span aria-hidden="true">+</span>
                         </button>
+                    @elseif ($soldOut)
+                        <span class="pos-product-setup text-rose-600" title="Stok habis">∅</span>
                     @else
                         <a
                             href="{{ route('kasir.products.edit', $product) }}"

@@ -155,6 +155,8 @@ class CogsNavigation
             'menu-pos.',
             'menu-categories.',
             'cogs.',
+            'stock-wastes.',
+            'ops-assets.',
         ];
     }
 
@@ -171,6 +173,8 @@ class CogsNavigation
             '/menu-pos',
             '/menu-kategori',
             '/cogs',
+            '/stok-rusak',
+            '/inventaris-operasional',
         ];
     }
 }

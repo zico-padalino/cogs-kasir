@@ -39,6 +39,11 @@ export type MenuProduct = {
   image_url: string;
   image_path?: string | null;
   is_active?: boolean;
+  stock_qty?: number;
+  stock_tracked?: boolean;
+  in_stock?: boolean;
+  can_add?: boolean;
+  is_sold_out?: boolean;
   addons?: ProductAddon[];
   gross_margin?: number;
   margin_percent?: number;

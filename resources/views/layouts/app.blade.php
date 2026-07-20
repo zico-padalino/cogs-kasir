@@ -54,6 +54,17 @@
                             <span class="truncate">{{ $step['short'] }}</span>
                         </a>
                     @endforeach
+
+                    <a href="{{ route('stock-wastes.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('stock-wastes.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🗑️</span>
+                        Stok Rusak
+                    </a>
+                    <a href="{{ route('ops-assets.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('ops-assets.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🍽️</span>
+                        Inventaris Ops
+                    </a>
                 @else
                     <a href="{{ route('dashboard') }}"
                        class="app-sidebar-link mb-1 {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
@@ -71,6 +82,17 @@
                             <span class="truncate">{{ $step['short'] }}</span>
                         </a>
                     @endforeach
+
+                    <a href="{{ route('stock-wastes.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('stock-wastes.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🗑️</span>
+                        Stok Rusak
+                    </a>
+                    <a href="{{ route('ops-assets.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('ops-assets.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🍽️</span>
+                        Inventaris Ops
+                    </a>
                 @endif
 
                 @auth

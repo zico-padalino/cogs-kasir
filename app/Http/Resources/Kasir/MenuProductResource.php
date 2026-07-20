@@ -22,10 +22,15 @@ class MenuProductResource extends JsonResource
             'image_url' => $this->imageUrl(),
             'image_path' => $this->image_path,
             'is_active' => (bool) $this->is_active,
+            'stock_qty' => round($this->availableQuantity(), 4),
+            'stock_tracked' => $this->isMenuStockTracked(),
+            'in_stock' => $this->isMenuInStock(),
+            'can_add' => (float) $this->selling_price > 0 && $this->isMenuInStock(),
+            'is_sold_out' => (float) $this->selling_price > 0 && ! $this->isMenuInStock(),
             'addons' => $this->whenLoaded('addons', fn () => $this->addons->map(fn ($addon) => [
                 'id' => $addon->id,
                 'name' => $addon->name,
-                'price' => (float) $addon->price,
+                'price' => (float) $addon->selling_price,
             ])->values()),
         ];
     }

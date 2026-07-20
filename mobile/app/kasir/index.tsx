@@ -429,13 +429,32 @@ export default function KasirPosScreen() {
               { paddingBottom: itemCount > 0 ? 120 + insets.bottom : 24 + insets.bottom },
             ]}
             columnWrapperStyle={styles.productRow}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => openAdd(item)} style={styles.productCard}>
+            renderItem={({ item }) => {
+              const soldOut = item.is_sold_out === true || (item.stock_tracked === true && item.in_stock === false);
+              const noPrice = !(item.selling_price > 0);
+
+              return (
+              <Pressable
+                onPress={() => {
+                  if (soldOut || noPrice) {
+                    Alert.alert(soldOut ? 'Habis' : 'Atur harga', soldOut ? 'Stok menu ini habis.' : 'Harga jual belum diatur.');
+                    return;
+                  }
+                  openAdd(item);
+                }}
+                style={[styles.productCard, (soldOut || noPrice) && { opacity: 0.55 }]}
+              >
                 <View style={styles.productMedia}>
                   <Image source={{ uri: item.image_url }} style={styles.productImage} />
-                  <View style={styles.productFab}>
-                    <Text style={styles.productFabText}>+</Text>
-            </View>
+                  {soldOut ? (
+                    <View style={[styles.productFab, { backgroundColor: colors.rose600 }]}>
+                      <Text style={styles.productFabText}>∅</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.productFab}>
+                      <Text style={styles.productFabText}>+</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.productBody}>
                   <Text style={styles.productCategory} numberOfLines={1}>
@@ -445,11 +464,12 @@ export default function KasirPosScreen() {
                     {item.name}
                   </Text>
                   <Text style={styles.productPrice} numberOfLines={1}>
-                    {formatRupiah(item.selling_price)}
+                    {soldOut ? 'Habis' : formatRupiah(item.selling_price)}
                   </Text>
                 </View>
               </Pressable>
-            )}
+              );
+            }}
             ListEmptyComponent={<Text style={[styles.muted, { padding: spacing.lg }]}>Tidak ada menu.</Text>}
           />
               </View>

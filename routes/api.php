@@ -19,7 +19,9 @@ use App\Http\Controllers\Api\Cogs\MenuPricingApiController;
 use App\Http\Controllers\Api\Cogs\OverheadApiController;
 use App\Http\Controllers\Api\Cogs\ProductApiController;
 use App\Http\Controllers\Api\Cogs\ProductionApiController;
-use App\Http\Controllers\Api\Cogs\ResetDataApiController;
+use App\Http\Controllers\Api\Cogs\OpsAssetApiController;
+use App\Http\Controllers\Api\Cogs\StockWasteApiController;
+use App\Http\Controllers\Api\Kasir\WasteController as KasirWasteController;
 use App\Http\Controllers\Api\Kasir\KasTunaiController;
 use App\Http\Controllers\Api\Kasir\MenuCategoryController as KasirMenuCategoryController;
 use App\Http\Controllers\Api\Kasir\OrderHistoryController;
@@ -116,6 +118,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('kas-tunai', [KasTunaiController::class, 'index'])->name('kas-tunai.index');
                 Route::post('kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
                 Route::post('kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
+
+                Route::post('waste', [KasirWasteController::class, 'store'])->name('waste.store');
             });
         });
 
@@ -173,6 +177,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('overhead-rates', [OverheadApiController::class, 'store'])->name('overhead-rates.store');
             Route::put('overhead-rates/{overheadRate}', [OverheadApiController::class, 'update'])->name('overhead-rates.update');
             Route::delete('overhead-rates/{overheadRate}', [OverheadApiController::class, 'destroy'])->name('overhead-rates.destroy');
+
+            Route::get('stock-wastes', [StockWasteApiController::class, 'index'])->name('stock-wastes.index');
+            Route::post('stock-wastes', [StockWasteApiController::class, 'store'])->name('stock-wastes.store');
+
+            Route::get('ops-assets', [OpsAssetApiController::class, 'index'])->name('ops-assets.index');
+            Route::post('ops-assets', [OpsAssetApiController::class, 'store'])->name('ops-assets.store');
+            Route::post('ops-assets/{opsAsset}/receive', [OpsAssetApiController::class, 'receive'])->name('ops-assets.receive');
+            Route::post('ops-assets/{opsAsset}/damage', [OpsAssetApiController::class, 'damage'])->name('ops-assets.damage');
         });
 
         // ── Admin ────────────────────────────────────────────────

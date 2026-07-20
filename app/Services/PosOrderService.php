@@ -564,6 +564,18 @@ class PosOrderService
         if (! $product->is_active) {
             throw new RuntimeException('Produk tidak aktif.');
         }
+
+        if (! $product->is_menu_item) {
+            throw new RuntimeException('Produk tidak tampil di menu kasir.');
+        }
+
+        if ((float) $product->selling_price <= 0) {
+            throw new RuntimeException('Harga jual belum diatur.');
+        }
+
+        if ($product->isMenuStockTracked() && $product->availableQuantity() < $quantity) {
+            throw new RuntimeException($product->name.' stok habis / tidak cukup.');
+        }
     }
 
     private function assertOrderMutable(PosOrder $order, bool $fromKasir = false): void

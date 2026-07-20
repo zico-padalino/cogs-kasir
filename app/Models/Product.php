@@ -84,6 +84,25 @@ class Product extends Model
             ->sum('quantity_remaining');
     }
 
+    /** Menu dengan lot FG/SF yang pernah ada — stok 0 = Habis di kasir. */
+    public function isMenuStockTracked(): bool
+    {
+        return $this->inventoryLots()->exists();
+    }
+
+    public function isMenuInStock(): bool
+    {
+        if (! $this->is_menu_item) {
+            return true;
+        }
+
+        if (! $this->isMenuStockTracked()) {
+            return true;
+        }
+
+        return $this->availableQuantity() > 0;
+    }
+
     public function scopeSellable(Builder $query): Builder
     {
         return $query

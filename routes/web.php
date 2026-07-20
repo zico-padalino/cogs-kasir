@@ -15,8 +15,9 @@ use App\Http\Controllers\Web\Auth\PasswordController;
 use App\Http\Controllers\Web\Auth\PinSetupController;
 use App\Http\Controllers\Web\CogsController;
 use App\Http\Controllers\Web\DashboardController;
-use App\Http\Controllers\Web\InventoryController;
-use App\Http\Controllers\Web\Kasir\KasirPinController;
+use App\Http\Controllers\Web\StockWasteController;
+use App\Http\Controllers\Web\OpsAssetController;
+use App\Http\Controllers\Web\Kasir\WasteController as KasirWebWasteController;
 use App\Http\Controllers\Web\KasirController;
 use App\Http\Controllers\Web\KasirPushController;
 use App\Http\Controllers\Web\KasirProductController;
@@ -132,6 +133,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
         Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
         Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
+        Route::post('/waste', [KasirWebWasteController::class, 'store'])->name('waste.store');
     });
 });
 
@@ -175,6 +177,14 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::get('cogs/history', [CogsController::class, 'history'])->name('cogs.history');
     Route::get('cogs/history/{calculation}', [CogsController::class, 'show'])->name('cogs.history.show');
     Route::delete('cogs/history/{calculation}', [CogsController::class, 'destroy'])->name('cogs.history.destroy');
+
+    Route::get('stok-rusak', [StockWasteController::class, 'index'])->name('stock-wastes.index');
+    Route::post('stok-rusak', [StockWasteController::class, 'store'])->name('stock-wastes.store');
+
+    Route::get('inventaris-operasional', [OpsAssetController::class, 'index'])->name('ops-assets.index');
+    Route::post('inventaris-operasional', [OpsAssetController::class, 'store'])->name('ops-assets.store');
+    Route::post('inventaris-operasional/{opsAsset}/terima', [OpsAssetController::class, 'receive'])->name('ops-assets.receive');
+    Route::post('inventaris-operasional/{opsAsset}/rusak', [OpsAssetController::class, 'damage'])->name('ops-assets.damage');
 
     Route::resource('overhead-rates', OverheadRateController::class)->except(['show']);
 });
