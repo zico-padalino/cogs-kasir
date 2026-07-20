@@ -2,7 +2,6 @@
 
 @section('title', 'Stok Rusak / Gagal')
 @section('heading', 'Stok Rusak / Gagal')
-@section('subheading', 'Catat produk rusak atau gagal — stok inventori & menu kasir ikut tersinkron')
 
 @section('content')
     <div class="module-page">
