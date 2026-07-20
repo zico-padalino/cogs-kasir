@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -23,7 +22,6 @@ import {
 } from '@/kasir/kasirListenMode';
 import {
   registerKasirPushToken,
-  testKasirPushFromServer,
 } from '@/kasir/pushNotifications';
 import { colors, font, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
@@ -46,7 +44,6 @@ export default function PinUnlockScreen() {
   const [pin, setPinValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [testingPush, setTestingPush] = useState(false);
   const [pushStatus, setPushStatus] = useState<string>('Mendaftar push…');
   const [listenStatus, setListenStatus] = useState<string>('Menyalakan mode suara…');
   const inputRef = useRef<TextInput>(null);
@@ -287,66 +284,12 @@ export default function PinUnlockScreen() {
           </View>
 
           <View style={styles.logoutWrap}>
-            <Pressable
-              onPress={async () => {
-                if (testingPush) return;
-                setTestingPush(true);
-                try {
-                  const token = await registerKasirPushToken();
-                  if (!token) {
-                    Alert.alert(
-                      'Token gagal',
-                      'Izin notifikasi belum diberikan, atau FCM belum aktif di APK. Izinkan notifikasi di Setting HP lalu coba lagi.',
-                    );
-                    return;
-                  }
-                  const res = await testKasirPushFromServer();
-                  const hint = res.data?.hint ? `\n\n${res.data.hint}` : '';
-                  const preview = res.data?.token_previews?.[0]
-                    ? `\n\nToken: ${res.data.token_previews[0]}`
-                    : '';
-                  const modeNote =
-                    appOwnership === 'expo'
-                      ? '\n\nAnda di Expo Go — sukses di sini TIDAK berarti APK akan dapat notifikasi. Tes ulang dari APK hasil build.'
-                      : '\n\nTes ini ke token APK. Tutup app dari Recent Apps (bukan hanya Home), kunci HP, tunggu ~5 detik.';
-                  Alert.alert(
-                    res.data?.send?.ok === false ? 'Push gagal' : 'Tes push dikirim',
-                    `${res.message}${preview}${hint}${modeNote}`,
-                  );
-                } catch (err) {
-                  const apiErr = asApiError(err);
-                  const payload = apiErr.payload as {
-                    data?: { hint?: string; send?: { errors?: string[] } };
-                  } | undefined;
-                  const detail =
-                    payload?.data?.send?.errors?.[0] ||
-                    payload?.data?.hint ||
-                    apiErr.message ||
-                    'Cek deploy server & izin notifikasi.';
-                  Alert.alert('Gagal tes push', detail);
-                } finally {
-                  setTestingPush(false);
-                }
-              }}
-              disabled={testingPush}
-              style={({ pressed }) => [
-                styles.testPushBtn,
-                pressed && { opacity: 0.9 },
-                testingPush && { opacity: 0.6 },
-              ]}
-            >
-              {testingPush ? (
-                <ActivityIndicator color={colors.brand700} />
-              ) : (
-                <Text style={styles.testPushText}>Tes notifikasi (app tertutup)</Text>
-              )}
-            </Pressable>
             <Text style={styles.logoutHint}>
               Mode: {appOwnership === 'expo' ? 'Expo Go (bukan APK toko)' : 'APK terpasang'}
             </Text>
             {appOwnership === 'expo' ? (
               <Text style={styles.pushWarn}>
-                Expo Go selalu bisa dapat push. Untuk kasir toko, wajib tes di APK hasil EAS.
+                Expo Go selalu bisa dapat push. Untuk kasir toko, wajib pakai APK hasil build.
               </Text>
             ) : null}
             <Text style={styles.pushStatus}>{pushStatus}</Text>
@@ -530,17 +473,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: 8,
   },
-  testPushBtn: {
-    minHeight: 40,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.brand300,
-                backgroundColor: colors.brand50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  testPushText: { color: colors.brand700, fontSize: 13, ...font('600') },
   logoutBtn: {
     minHeight: 40,
     borderRadius: radius.md,
