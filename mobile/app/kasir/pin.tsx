@@ -26,6 +26,7 @@ import {
   testKasirPushFromServer,
 } from '@/kasir/pushNotifications';
 import { colors, font, radius, spacing } from '@/theme';
+import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type ShopInfo = {
   name: string;
@@ -95,7 +96,7 @@ export default function PinUnlockScreen() {
       .then((res) => {
         setShop({
           name: res.data.name || 'Coffee & Kitchen',
-          logo_url: res.data.logo_url,
+          logo_url: resolveMediaUrl(res.data.logo_url),
           initial: res.data.initial || (res.data.name?.[0] || 'C').toUpperCase(),
         });
       })

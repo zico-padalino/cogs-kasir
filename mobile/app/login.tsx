@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
 import { colors, font, radius, spacing } from '@/theme';
+import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type ShopInfo = {
   name: string;
@@ -46,7 +47,7 @@ export default function LoginScreen() {
         setShop({
           name: res.data.name || 'Coffee & Kitchen',
           title: res.data.title || 'Masuk untuk mengelola toko Anda',
-          logo_url: res.data.logo_url,
+          logo_url: resolveMediaUrl(res.data.logo_url),
           initial: res.data.initial || (res.data.name?.[0] || 'C').toUpperCase(),
         });
       })

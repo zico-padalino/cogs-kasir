@@ -1,10 +1,11 @@
 import { useRouter, usePathname } from 'expo-router';
-import { useState, type ReactNode } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { pinApi } from '@/api/kasir';
+import { authApi, pinApi } from '@/api/kasir';
 import { ROLE_META, useAuth, type Role } from '@/auth';
 import { colors, font, radius, spacing } from '@/theme';
+import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type NavItem = { label: string; icon: string; route: string; match?: string[] };
 
@@ -52,6 +53,25 @@ export function AppDrawer({
   const insets = useSafeAreaInsets();
   const { user, logout, pin, lockPinSession } = useAuth();
   const header = BRAND_HEADER[moduleType];
+  const [shopName, setShopName] = useState(header.title);
+  const [shopLogo, setShopLogo] = useState<string | null>(null);
+  const [shopInitial, setShopInitial] = useState(header.badge);
+
+  useEffect(() => {
+    if (moduleType !== 'kasir') {
+      return;
+    }
+    authApi
+      .shop()
+      .then((res) => {
+        setShopName(res.data.name || header.title);
+        setShopLogo(resolveMediaUrl(res.data.logo_url));
+        setShopInitial(res.data.initial || (res.data.name?.[0] || 'K').toUpperCase());
+      })
+      .catch(() => {
+        // pakai default
+      });
+  }, [moduleType, header.title]);
 
   const go = (route: string) => {
     onClose();
@@ -92,11 +112,17 @@ export function AppDrawer({
       <View style={styles.overlayRoot}>
         <View style={[styles.sidebar, { paddingTop: insets.top + spacing.md }]}>
           <View style={styles.sidebarHead}>
-            <View style={styles.brandBadge}>
-              <Text style={styles.brandBadgeText}>{header.badge}</Text>
-            </View>
+            {shopLogo ? (
+              <Image source={{ uri: shopLogo }} style={styles.brandLogo} />
+            ) : (
+              <View style={styles.brandBadge}>
+                <Text style={styles.brandBadgeText}>
+                  {moduleType === 'kasir' ? shopInitial : header.badge}
+                </Text>
+              </View>
+            )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.brandTitle}>{header.title}</Text>
+              <Text style={styles.brandTitle}>{moduleType === 'kasir' ? shopName : header.title}</Text>
               <Text style={styles.brandSubtitle}>{header.subtitle}</Text>
             </View>
           </View>
@@ -238,6 +264,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand600,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  brandLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
   },
   brandBadgeText: { color: colors.white, fontSize: 18, ...font('700') },
   brandTitle: { color: colors.white, fontSize: 15, ...font('600') },

@@ -131,13 +131,13 @@ class ShopSettings
 
         $normalized = ltrim(str_replace('\\', '/', $path), '/');
 
-        // Logo baru disimpan di public/uploads (aman di shared hosting DomaiNesia).
-        if (str_starts_with($normalized, 'uploads/')) {
-            return '/'.$normalized;
-        }
+        // Logo baru: public/uploads (aman di DomaiNesia). Legacy: /storage/...
+        $relative = str_starts_with($normalized, 'uploads/')
+            ? '/'.$normalized
+            : '/storage/'.$normalized;
 
-        // Legacy: storage/app/public/branding → /storage/... (sering 403 di hosting tanpa symlink).
-        return '/storage/'.$normalized;
+        // Absolute URL wajib untuk mobile (React Native Image tidak bisa pakai path relatif).
+        return url($relative);
     }
 
     /** Simpan logo ke public/uploads/branding (bukan storage symlink). */
