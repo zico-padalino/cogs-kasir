@@ -3,14 +3,17 @@
 namespace App\Support;
 
 use App\Models\AppSetting;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v5';
+    public const CACHE_KEY = 'shop_settings.v6';
 
     public const KEYS = [
         'shop_name',
@@ -126,7 +129,54 @@ class ShopSettings
             return $path;
         }
 
-        return Storage::disk('public')->url($path);
+        $normalized = ltrim(str_replace('\\', '/', $path), '/');
+
+        // Logo baru disimpan di public/uploads (aman di shared hosting DomaiNesia).
+        if (str_starts_with($normalized, 'uploads/')) {
+            return '/'.$normalized;
+        }
+
+        // Legacy: storage/app/public/branding → /storage/... (sering 403 di hosting tanpa symlink).
+        return '/storage/'.$normalized;
+    }
+
+    /** Simpan logo ke public/uploads/branding (bukan storage symlink). */
+    public static function storeLogo(UploadedFile $file): string
+    {
+        $dir = public_path('uploads/branding');
+        if (! is_dir($dir)) {
+            File::ensureDirectoryExists($dir, 0755);
+        }
+
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            $ext = 'jpg';
+        }
+
+        $name = Str::uuid()->toString().'.'.$ext;
+        $file->move($dir, $name);
+
+        return 'uploads/branding/'.$name;
+    }
+
+    public static function deleteLogoFile(?string $path): void
+    {
+        if (! $path || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return;
+        }
+
+        $normalized = ltrim(str_replace('\\', '/', $path), '/');
+
+        if (str_starts_with($normalized, 'uploads/')) {
+            $full = public_path($normalized);
+            if (is_file($full)) {
+                @unlink($full);
+            }
+
+            return;
+        }
+
+        Storage::disk('public')->delete($normalized);
     }
 
     /**

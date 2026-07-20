@@ -9,7 +9,6 @@ use App\Services\AttendanceService;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -101,13 +100,13 @@ class SettingsController extends Controller
         $currentLogo = ShopSettings::get('logo_path');
 
         if ($request->boolean('remove_logo') && $currentLogo) {
-            Storage::disk('public')->delete($currentLogo);
+            ShopSettings::deleteLogoFile($currentLogo);
             $payload['logo_path'] = null;
         } elseif ($request->hasFile('logo')) {
             if ($currentLogo) {
-                Storage::disk('public')->delete($currentLogo);
+                ShopSettings::deleteLogoFile($currentLogo);
             }
-            $payload['logo_path'] = $request->file('logo')->store('branding', 'public');
+            $payload['logo_path'] = ShopSettings::storeLogo($request->file('logo'));
         }
 
         ShopSettings::put($payload);
