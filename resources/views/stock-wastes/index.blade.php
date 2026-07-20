@@ -28,18 +28,50 @@
             </div>
         </div>
 
+        @php
+            $oldProductId = old('product_id');
+            $oldItemType = old('item_type');
+            if (! in_array($oldItemType, ['product', 'material'], true) && $oldProductId) {
+                $oldItemType = $materials->contains('id', (int) $oldProductId) ? 'material' : 'product';
+            }
+            $oldItemType = in_array($oldItemType, ['product', 'material'], true) ? $oldItemType : 'product';
+        @endphp
+
         <div class="card mb-4">
             <h2 class="mb-3 font-display text-base font-semibold text-espresso">Catat rusak / gagal</h2>
-            <form action="{{ route('stock-wastes.store') }}" method="POST" class="grid gap-3 sm:grid-cols-2">
+            <form action="{{ route('stock-wastes.store') }}" method="POST" class="grid gap-3 sm:grid-cols-2" data-waste-form>
                 @csrf
                 <div class="sm:col-span-2">
-                    <label class="form-label">Produk / bahan</label>
-                    <select name="product_id" class="form-input" required>
-                        <option value="">— Pilih —</option>
-                        @foreach ($products as $product)
-                            <option value="{{ $product->id }}" @selected(old('product_id') == $product->id)>
+                    <label class="form-label">Jenis</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm text-espresso has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+                            <input type="radio" name="item_type" value="product" class="text-brand-600" @checked($oldItemType === 'product') data-waste-type>
+                            Produk (menu)
+                        </label>
+                        <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm text-espresso has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+                            <input type="radio" name="item_type" value="material" class="text-brand-600" @checked($oldItemType === 'material') data-waste-type>
+                            Bahan baku
+                        </label>
+                    </div>
+                </div>
+                <div class="sm:col-span-2" data-waste-field="product" @class(['hidden' => $oldItemType !== 'product'])>
+                    <label class="form-label">Produk</label>
+                    <select name="product_id" class="form-input" data-waste-select="product" @disabled($oldItemType !== 'product') @required($oldItemType === 'product')>
+                        <option value="">— Pilih produk —</option>
+                        @foreach ($menuProducts as $product)
+                            <option value="{{ $product->id }}" @selected($oldItemType === 'product' && (string) $oldProductId === (string) $product->id)>
                                 {{ $product->name }} ({{ $product->unit }})
-                                @if ($product->is_menu_item) · menu @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sm:col-span-2" data-waste-field="material" @class(['hidden' => $oldItemType !== 'material'])>
+                    <label class="form-label">Bahan</label>
+                    <select name="product_id" class="form-input" data-waste-select="material" @disabled($oldItemType !== 'material') @required($oldItemType === 'material')>
+                        <option value="">— Pilih bahan —</option>
+                        @foreach ($materials as $product)
+                            <option value="{{ $product->id }}" @selected($oldItemType === 'material' && (string) $oldProductId === (string) $product->id)>
+                                {{ $product->name }} ({{ $product->unit }})
                             </option>
                         @endforeach
                     </select>
@@ -119,7 +151,14 @@
                         @forelse ($wastes as $waste)
                             <tr>
                                 <td class="whitespace-nowrap text-xs text-slate-500">{{ $waste->created_at?->format('d/m/Y H:i') }}</td>
-                                <td class="font-medium text-slate-900">{{ $waste->product?->name ?? '—' }}</td>
+                                <td class="font-medium text-slate-900">
+                                    {{ $waste->product?->name ?? '—' }}
+                                    @if ($waste->product?->type === \App\Enums\ProductType::RawMaterial)
+                                        <span class="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">bahan</span>
+                                    @elseif ($waste->product)
+                                        <span class="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">produk</span>
+                                    @endif
+                                </td>
                                 <td>{{ number_format((float) $waste->quantity, 2) }} {{ $waste->product?->unit }}</td>
                                 <td><span class="badge-amber">{{ $waste->reasonLabel() }}</span></td>
                                 <td>{{ $format::rupiah($waste->total_cost) }}</td>
@@ -136,3 +175,30 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    const form = document.querySelector('[data-waste-form]');
+    if (!form) return;
+
+    const sync = () => {
+        const type = form.querySelector('[data-waste-type]:checked')?.value || 'product';
+        form.querySelectorAll('[data-waste-field]').forEach((field) => {
+            const match = field.getAttribute('data-waste-field') === type;
+            field.classList.toggle('hidden', !match);
+            const select = field.querySelector('[data-waste-select]');
+            if (!select) return;
+            select.disabled = !match;
+            select.required = match;
+            if (!match) select.value = '';
+        });
+    };
+
+    form.querySelectorAll('[data-waste-type]').forEach((input) => {
+        input.addEventListener('change', sync);
+    });
+    sync();
+})();
+</script>
+@endpush

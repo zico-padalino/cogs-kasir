@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
 use App\Models\PosOrder;
 use App\Models\Product;
@@ -40,14 +41,22 @@ class StockWasteController extends Controller
         $totalQty = (float) $wastes->sum('quantity');
         $totalCost = (float) $wastes->sum('total_cost');
 
-        $products = Product::query()
+        $activeProducts = Product::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'unit', 'type', 'is_menu_item']);
 
+        $menuProducts = $activeProducts
+            ->filter(fn (Product $p) => in_array($p->type, [ProductType::FinishedGood, ProductType::SemiFinished], true))
+            ->values();
+        $materials = $activeProducts
+            ->filter(fn (Product $p) => $p->type === ProductType::RawMaterial)
+            ->values();
+
         return view('stock-wastes.index', [
             'wastes' => $wastes,
-            'products' => $products,
+            'menuProducts' => $menuProducts,
+            'materials' => $materials,
             'reasons' => StockWaste::REASONS,
             'period' => $period,
             'date' => $date,
