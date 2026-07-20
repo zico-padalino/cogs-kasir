@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
-import { colors, font, radius, spacing } from '@/theme';
+import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type ShopInfo = {
@@ -182,10 +182,10 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f1f5f9' },
+  root: { flex: 1, backgroundColor: '#f6f1ea' },
   bgBase: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f7f1ea',
   },
   glowA: {
     position: 'absolute',
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 200,
-    backgroundColor: 'rgba(79,70,229,0.14)',
+    backgroundColor: 'rgba(92,64,51,0.14)',
   },
   glowB: {
     position: 'absolute',
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 200,
-    backgroundColor: 'rgba(99,102,241,0.12)',
+    backgroundColor: 'rgba(184,149,108,0.16)',
   },
   glowTop: {
     position: 'absolute',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     ...Platform.select({
       ios: {
-        shadowColor: '#0f172a',
+        shadowColor: '#1c1410',
         shadowOpacity: 0.08,
         shadowRadius: 30,
         shadowOffset: { width: 0, height: 12 },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: colors.slate900,
     textAlign: 'center',
-    ...font('700'),
+    ...fontDisplay('700'),
   },
   shopTitle: {
     marginTop: 4,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.slate200,
     marginVertical: spacing.xl,
   },
-  formTitle: { fontSize: 20, color: colors.slate900, ...font('700') },
+  formTitle: { fontSize: 20, color: colors.slate900, ...fontDisplay('700') },
   formSub: { fontSize: 13, color: colors.slate500, marginTop: 4, marginBottom: spacing.md },
   errorBox: {
     borderRadius: radius.md,

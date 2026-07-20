@@ -72,7 +72,7 @@
         </div>
         <div class="att-stat">
             <p class="att-stat-label">Belum pulang</p>
-            <p class="att-stat-value text-indigo-700">{{ $summary['no_checkout'] }}</p>
+            <p class="att-stat-value text-brand-700">{{ $summary['no_checkout'] }}</p>
         </div>
         <div class="att-stat">
             <p class="att-stat-label">Ada selfie</p>

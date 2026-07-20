@@ -169,8 +169,8 @@
         cursor: pointer;
     }
     .material-history-tab.is-active {
-        border-color: #4f46e5;
-        background: #4f46e5;
+        border-color: #5c4033;
+        background: #5c4033;
         color: #fff;
     }
     .material-history-date-row {

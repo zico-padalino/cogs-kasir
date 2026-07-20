@@ -4,7 +4,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi, pinApi } from '@/api/kasir';
 import { ROLE_META, useAuth, type Role } from '@/auth';
-import { colors, font, radius, spacing } from '@/theme';
+import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type NavItem = { label: string; icon: string; route: string; match?: string[] };
@@ -137,7 +137,7 @@ export function AppDrawer({
                   onPress={() => go(item.route)}
                   style={[styles.navItem, active && styles.navItemActive]}
                 >
-                  <View style={styles.navIconWrap}>
+                  <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
                     <Text style={styles.navIcon}>{item.icon}</Text>
                   </View>
                   <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
@@ -241,19 +241,25 @@ const styles = StyleSheet.create({
   topbarTitle: { fontSize: 18, color: colors.slate900, ...font('600') },
   topbarSubtitle: { fontSize: 13, color: colors.slate500, marginTop: 2 },
   overlayRoot: { flex: 1, flexDirection: 'row' },
-  overlayBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)' },
+  overlayBackdrop: { flex: 1, backgroundColor: 'rgba(28,20,16,0.42)' },
   sidebar: {
     width: '82%',
     maxWidth: 300,
-    backgroundColor: colors.slate900,
+    backgroundColor: '#ebe3d6',
     paddingHorizontal: spacing.md,
+    borderRightWidth: 1,
+    borderRightColor: colors.brand200,
+    shadowColor: '#1c1410',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
   },
   sidebarHead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.slate800,
+    borderBottomColor: colors.brand200,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.sm,
   },
@@ -272,45 +278,59 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   brandBadgeText: { color: colors.white, fontSize: 18, ...font('700') },
-  brandTitle: { color: colors.white, fontSize: 15, ...font('600') },
-  brandSubtitle: { color: colors.slate400, fontSize: 12, marginTop: 1 },
+  brandTitle: { color: colors.espresso, fontSize: 15, ...fontDisplay('600') },
+  brandSubtitle: { color: colors.copper, fontSize: 12, marginTop: 1, ...font('500') },
   navScroll: { flex: 1 },
-  navList: { paddingVertical: spacing.md, gap: 2 },
+  navList: { paddingVertical: spacing.md, gap: 4 },
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     minHeight: 44,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
-  navItemActive: { backgroundColor: colors.brand600 },
+  navItemActive: {
+    backgroundColor: colors.brand600,
+    shadowColor: colors.brand600,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   navIconWrap: {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.brand100,
+    borderWidth: 1,
+    borderColor: colors.brand200,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  navIconWrapActive: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
   navIcon: { fontSize: 14 },
-  navLabel: { flex: 1, color: colors.slate300, fontSize: 14, ...font('500') },
+  navLabel: { flex: 1, color: colors.slate600, fontSize: 14, ...font('500') },
   navLabelActive: { color: colors.white, ...font('600') },
   sidebarFoot: {
     borderTopWidth: 1,
-    borderTopColor: colors.slate800,
+    borderTopColor: colors.brand200,
     paddingTop: spacing.md,
     gap: spacing.sm,
   },
   userChip: {
     borderRadius: radius.md,
-    backgroundColor: 'rgba(30,41,59,0.8)',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.brand100,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  userName: { color: colors.white, fontSize: 13, ...font('600') },
-  userRole: { color: colors.slate400, fontSize: 11, marginTop: 1 },
+  userName: { color: colors.espresso, fontSize: 13, ...font('600') },
+  userRole: { color: colors.slate500, fontSize: 11, marginTop: 1 },
   logoutBtn: {
     minHeight: 44,
     borderRadius: radius.md,
@@ -318,5 +338,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
   },
-  logoutText: { color: colors.slate300, fontSize: 13, ...font('500') },
+  logoutText: { color: colors.slate600, fontSize: 13, ...font('500') },
 });

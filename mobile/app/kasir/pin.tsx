@@ -23,7 +23,7 @@ import {
 import {
   registerKasirPushToken,
 } from '@/kasir/pushNotifications';
-import { colors, font, radius, spacing } from '@/theme';
+import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type ShopInfo = {
@@ -310,10 +310,10 @@ export default function PinUnlockScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f1f5f9' },
+  root: { flex: 1, backgroundColor: '#f6f1ea' },
   bgBase: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f7f1ea',
   },
   glowA: {
     position: 'absolute',
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 200,
-    backgroundColor: 'rgba(79,70,229,0.14)',
+    backgroundColor: 'rgba(92,64,51,0.14)',
   },
   glowB: {
     position: 'absolute',
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 200,
-    backgroundColor: 'rgba(99,102,241,0.12)',
+    backgroundColor: 'rgba(184,149,108,0.16)',
   },
   glowTop: {
     position: 'absolute',
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     ...Platform.select({
       ios: {
-        shadowColor: '#0f172a',
+        shadowColor: '#1c1410',
         shadowOpacity: 0.08,
         shadowRadius: 24,
         shadowOffset: { width: 0, height: 10 },
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.slate900,
     textAlign: 'center',
-    ...font('700'),
+    ...fontDisplay('700'),
   },
   shopTitle: {
     marginTop: 2,

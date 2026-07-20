@@ -1,10 +1,14 @@
 import {
-  InstrumentSans_400Regular,
-  InstrumentSans_500Medium,
-  InstrumentSans_600SemiBold,
-  InstrumentSans_700Bold,
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+} from '@expo-google-fonts/fraunces';
+import {
+  SourceSans3_400Regular,
+  SourceSans3_500Medium,
+  SourceSans3_600SemiBold,
+  SourceSans3_700Bold,
   useFonts,
-} from '@expo-google-fonts/instrument-sans';
+} from '@expo-google-fonts/source-sans-3';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -100,10 +104,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    InstrumentSans_400Regular,
-    InstrumentSans_500Medium,
-    InstrumentSans_600SemiBold,
-    InstrumentSans_700Bold,
+    SourceSans3_400Regular,
+    SourceSans3_500Medium,
+    SourceSans3_600SemiBold,
+    SourceSans3_700Bold,
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
   });
 
   useEffect(() => {

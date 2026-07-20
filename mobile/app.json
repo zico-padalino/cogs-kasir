@@ -7,8 +7,8 @@
     "icon": "./assets/icon.png",
     "scheme": "cogssederhana",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#ffffff",
-    "primaryColor": "#4f46e5",
+    "backgroundColor": "#f6f1ea",
+    "primaryColor": "#5c4033",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -19,7 +19,7 @@
       "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#4f46e5"
+        "backgroundColor": "#5c4033"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -47,7 +47,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#4f46e5"
+          "backgroundColor": "#5c4033"
         }
       ],
       [
@@ -65,7 +65,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#4f46e5",
+          "color": "#5c4033",
           "defaultChannel": "kasir-orders",
           "sounds": []
         }

@@ -3,70 +3,69 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#5c4033">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>@yield('title', 'Panduan') — {{ config('pos.shop_name', 'Hitung Modal Menu') }}</title>
     @include('layouts.partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
+<body class="app-body min-h-screen bg-[#f6f1ea] font-sans text-slate-900 antialiased">
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
 
     <div class="app-shell">
         <div class="app-frame flex min-h-0 flex-1 flex-col md:min-h-screen">
-        <aside id="mobile-sidebar"
-               class="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] -translate-x-full flex-col bg-slate-900 text-white transition-transform duration-300 ease-out md:z-30 md:w-64 md:translate-x-0">
-            <div class="border-b border-slate-800 px-5 py-4">
-                <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-600 font-bold">C</div>
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-semibold">Hitung Modal Menu</p>
-                        <p class="truncate text-xs text-slate-400">Dari bahan sampai harga jual</p>
+        <aside id="mobile-sidebar" class="app-sidebar -translate-x-full md:translate-x-0">
+            <div class="app-sidebar-brand">
+                <div class="app-sidebar-brand-row">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 font-display text-sm font-bold text-white shadow-sm">C</div>
+                    <div class="app-sidebar-brand-copy">
+                        <p class="app-sidebar-shop-name">Hitung Modal Menu</p>
+                        <p class="app-sidebar-shop-meta">Dari bahan sampai harga jual</p>
                     </div>
                     @include('layouts.partials.sidebar-collapse-btn')
                 </div>
             </div>
 
             @if (! ($setupFullyComplete ?? false))
-                <div class="border-b border-slate-800 px-4 py-3">
-                    <div class="flex justify-between text-xs text-slate-400">
+                <div class="app-sidebar-progress">
+                    <div class="app-sidebar-progress-meta">
                         <span>Progress</span>
                         <span>{{ $setupPercent ?? 0 }}%</span>
                     </div>
-                    <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-700">
-                        <div class="h-full rounded-full bg-brand-500" style="width: {{ $setupPercent ?? 0 }}%"></div>
+                    <div class="app-sidebar-progress-track">
+                        <div class="app-sidebar-progress-fill" style="width: {{ $setupPercent ?? 0 }}%"></div>
                     </div>
                 </div>
             @endif
 
-            <nav class="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-3 py-4">
+            <nav class="app-sidebar-nav">
                 @if ($setupFullyComplete ?? false)
                     <a href="{{ route('dashboard') }}"
-                       class="mb-2 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🏠</span>
+                       class="app-sidebar-link mb-1 {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🏠</span>
                         Beranda
                     </a>
 
                     @foreach ($setupSteps ?? [] as $step)
                         @php $active = request()->routeIs($step['route'].'*') || request()->routeIs($step['route']); @endphp
                         <a href="{{ route($step['route']) }}"
-                           class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm transition {{ $active ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
+                           class="app-sidebar-link {{ $active ? 'is-active' : '' }}">
                             <span class="truncate">{{ $step['short'] }}</span>
                         </a>
                     @endforeach
                 @else
                     <a href="{{ route('dashboard') }}"
-                       class="mb-2 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">📋</span>
+                       class="app-sidebar-link mb-1 {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">📋</span>
                         Panduan
                     </a>
 
                     @foreach ($setupSteps ?? [] as $step)
                         @php $active = request()->routeIs($step['route'].'*') || request()->routeIs($step['route']); @endphp
                         <a href="{{ route($step['route']) }}"
-                           class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm transition {{ $active ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ $step['done'] ? 'bg-green-500 text-white' : ($active ? 'bg-white/20' : 'bg-slate-700') }}">
+                           class="app-sidebar-link {{ $active ? 'is-active' : '' }}">
+                            <span class="app-sidebar-link-step {{ $step['done'] ? 'is-done' : '' }}">
                                 {{ $step['done'] ? '✓' : $step['number'] }}
                             </span>
                             <span class="truncate">{{ $step['short'] }}</span>
@@ -76,46 +75,44 @@
 
                 @auth
                     @if (count(auth()->user()->accessibleModules()) > 1)
-                        <a href="{{ route('hub') }}"
-                           class="mt-2 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition text-slate-300 hover:bg-slate-800">
-                            <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">↔</span>
+                        <a href="{{ route('hub') }}" class="app-sidebar-link mt-1">
+                            <span class="app-sidebar-link-icon">↔</span>
                             Ganti Modul
                         </a>
                     @endif
                 @endauth
             </nav>
 
-            <div class="border-t border-slate-800 px-4 py-4">
+            <div class="app-sidebar-foot">
                 @auth
-                    <div class="mb-3 rounded-lg bg-slate-800/80 px-3 py-2">
-                        <p class="truncate text-xs font-medium text-white">{{ auth()->user()->name }}</p>
-                        <p class="truncate text-[11px] text-slate-400">{{ auth()->user()->role->label() }}</p>
+                    <div class="app-sidebar-user">
+                        <p class="app-sidebar-user-name">{{ auth()->user()->name }}</p>
+                        <p class="app-sidebar-user-meta">{{ auth()->user()->role->label() }}</p>
                     </div>
                     <a href="{{ route('password.edit') }}"
-                       class="mb-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
+                       class="app-sidebar-action {{ request()->routeIs('password.*') ? 'is-active' : '' }}">
                         <span>🔑</span> Ubah Password
                     </a>
                     @if (auth()->user()->hasModule(\App\Enums\UserRole::Kasir))
                         <a href="{{ route('pin.edit') }}"
-                           class="mb-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white {{ request()->routeIs('pin.*') ? 'bg-slate-800 text-white' : '' }}">
+                           class="app-sidebar-action {{ request()->routeIs('pin.*') ? 'is-active' : '' }}">
                             <span>🔢</span> Atur PIN Kasir
                         </a>
                     @endif
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
-                        <button type="submit" class="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white">
+                        <button type="submit" class="app-sidebar-action">
                             <span>↩</span> Keluar
                         </button>
                     </form>
                 @else
-                    <a href="{{ route('login') }}"
-                       class="mb-3 flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-xs text-brand-300 transition hover:bg-slate-800 hover:text-white">
+                    <a href="{{ route('login') }}" class="app-sidebar-action text-brand-700">
                         <span>🔐</span> Masuk
                     </a>
                 @endauth
 
                 <a href="{{ route('reset-data.show') }}"
-                   class="mt-2 flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400 transition hover:bg-red-950 hover:text-red-300">
+                   class="app-sidebar-action mt-1 text-red-600 hover:bg-red-50 hover:text-red-700">
                     <span>🗑️</span> Hapus Semua Data
                 </a>
             </div>

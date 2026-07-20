@@ -50,8 +50,8 @@
         }
 
         .btn-primary {
-            background: #4f46e5;
-            border-color: #4f46e5;
+            background: #5c4033;
+            border-color: #5c4033;
             color: #fff;
         }
 

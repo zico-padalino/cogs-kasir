@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#5c4033">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -26,7 +26,7 @@
     </script>
 </head>
 <body
-    class="app-body min-h-screen bg-slate-100 font-sans text-slate-900 antialiased @yield('body_class')"
+    class="app-body min-h-screen bg-[#f6f1ea] font-sans text-slate-900 antialiased @yield('body_class')"
     data-kasir-notifications
     data-kasir-poll-url="{{ route('kasir.pending.poll') }}"
     data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 12) }}"
@@ -47,72 +47,70 @@
 
     <div class="app-shell">
         <div class="app-frame flex min-h-0 flex-1 flex-col md:min-h-screen">
-            <aside id="mobile-sidebar"
-                   class="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] -translate-x-full flex-col bg-slate-900 text-white transition-transform duration-300 ease-out md:z-30 md:w-64 md:translate-x-0">
-                <div class="border-b border-slate-800 px-5 py-4">
-                    <div class="flex items-start gap-3">
+            <aside id="mobile-sidebar" class="app-sidebar -translate-x-full md:translate-x-0">
+                <div class="app-sidebar-brand">
+                    <div class="app-sidebar-brand-row">
                         @include('layouts.partials.shop-brand-mark')
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-semibold">{{ config('pos.shop_name', 'Point of Sale') }}</p>
-                            <p class="truncate text-xs text-slate-400">Modul Kasir</p>
+                        <div class="app-sidebar-brand-copy">
+                            <p class="app-sidebar-shop-name">{{ config('pos.shop_name', 'Point of Sale') }}</p>
+                            <p class="app-sidebar-shop-meta">Modul Kasir</p>
                         </div>
                         @include('layouts.partials.sidebar-collapse-btn')
                     </div>
                 </div>
 
-                <nav class="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-3 py-4">
+                <nav class="app-sidebar-nav">
                     <a href="{{ route('kasir.index') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.index') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🛒</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.index') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🛒</span>
                         Point of Sale
                     </a>
                     <a href="{{ route('kasir.orders') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.orders*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">📋</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.orders*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">📋</span>
                         Riwayat Pesanan
                     </a>
                     <a href="{{ route('kasir.tables') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.tables', 'kasir.barcode') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🪑</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.tables', 'kasir.barcode') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🪑</span>
                         Meja QR
                     </a>
                     <a href="{{ route('kasir.products.index') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.products*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🍽️</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.products*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🍽️</span>
                         Kelola Menu
                     </a>
                     <a href="{{ route('kasir.menu-categories.index') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.menu-categories*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">🏷️</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.menu-categories*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🏷️</span>
                         Atur Kategori
                     </a>
                     <a href="{{ route('kasir.pembukuan.index') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.pembukuan*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">📒</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.pembukuan*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">📒</span>
                         Pembukuan
                     </a>
                     <a href="{{ route('kasir.kas-tunai.index') }}"
-                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition {{ request()->routeIs('kasir.kas-tunai*') ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800' }}">
-                        <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">💵</span>
+                       class="app-sidebar-link {{ request()->routeIs('kasir.kas-tunai*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">💵</span>
                         Kas Tunai
                     </a>
                     @if (auth()->user()->accessibleModules() !== [] && count(auth()->user()->accessibleModules()) > 1)
-                        <a href="{{ route('hub') }}"
-                           class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition text-slate-300 hover:bg-slate-800">
-                            <span class="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-xs">↔</span>
+                        <a href="{{ route('hub') }}" class="app-sidebar-link">
+                            <span class="app-sidebar-link-icon">↔</span>
                             Ganti Modul
                         </a>
                     @endif
                 </nav>
 
-                <div class="border-t border-slate-800 px-4 py-4">
-                    <div class="mb-3 rounded-lg bg-slate-800/80 px-3 py-2">
+                <div class="app-sidebar-foot">
+                    <div class="app-sidebar-user">
                         @php
                             $kasirOperator = \App\Support\KasirPin::operatorEmployee();
                             $stationUser = auth()->user();
                         @endphp
-                        <p class="truncate text-xs font-medium text-white">{{ $kasirOperator?->name ?? $stationUser->name }}</p>
-                        <p class="truncate text-[11px] text-slate-400">
+                        <p class="app-sidebar-user-name">{{ $kasirOperator?->name ?? $stationUser->name }}</p>
+                        <p class="app-sidebar-user-meta">
                             @if ($kasirOperator)
                                 Kasir bertugas · PIN aktif
                             @else
@@ -120,17 +118,17 @@
                             @endif
                         </p>
                         @if ($kasirOperator)
-                            <p class="mt-1 truncate text-[10px] text-slate-500">Stasiun: {{ $stationUser->name }}</p>
+                            <p class="app-sidebar-user-hint">Stasiun: {{ $stationUser->name }}</p>
                         @endif
                     </div>
-                    <div class="space-y-2">
+                    <div class="space-y-1">
                         @if (auth()->user()->isAdmin())
                             <a href="{{ route('admin.employees.index') }}" class="kasir-sidebar-logout">
                                 <span aria-hidden="true">👥</span>
                                 <span>Data Karyawan / PIN</span>
                             </a>
                         @endif
-                        <a href="{{ route('password.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('password.*') ? 'bg-slate-800 text-white' : '' }}">
+                        <a href="{{ route('password.edit') }}" class="kasir-sidebar-logout {{ request()->routeIs('password.*') ? 'bg-brand-100 text-espresso' : '' }}">
                             <span aria-hidden="true">🔑</span>
                             <span>Ubah Password</span>
                         </a>

@@ -1,32 +1,34 @@
-// Design tokens diselaraskan dengan web Laravel (Tailwind v4 + palet "brand" indigo).
-// Sumber acuan: resources/css/app.css @theme dan komponen @layer.
+// Design tokens — Espresso Cafe (selaras dengan resources/css/app.css @theme).
 
 export const colors = {
-  // Brand (indigo) — sama dengan --color-brand-* di Laravel
-  brand50: '#eef2ff',
-  brand100: '#e0e7ff',
-  brand200: '#c7d2fe',
-  brand300: '#a5b4fc',
-  brand400: '#818cf8',
-  brand500: '#6366f1',
-  brand600: '#4f46e5',
-  brand700: '#4338ca',
-  brand800: '#3730a3',
-  brand900: '#312e81',
+  // Brand (espresso / tembaga)
+  brand50: '#f7f1ea',
+  brand100: '#ede4d8',
+  brand200: '#dccbb8',
+  brand300: '#c4a484',
+  brand400: '#b8956c',
+  brand500: '#8b6914',
+  brand600: '#5c4033',
+  brand700: '#3f2a22',
+  brand800: '#2c2118',
+  brand900: '#1c1410',
 
-  // Slate
-  slate50: '#f8fafc',
-  slate100: '#f1f5f9',
-  slate200: '#e2e8f0',
-  slate300: '#cbd5e1',
-  slate400: '#94a3b8',
-  slate500: '#64748b',
-  slate600: '#475569',
-  slate700: '#334155',
-  slate800: '#1e293b',
-  slate900: '#0f172a',
+  // Warm stone (mengganti slate dingin)
+  slate50: '#f6f1ea',
+  slate100: '#efe8de',
+  slate200: '#e0d5c8',
+  slate300: '#cbbba8',
+  slate400: '#a8927c',
+  slate500: '#8a7360',
+  slate600: '#6b584a',
+  slate700: '#4a3c32',
+  slate800: '#2c2118',
+  slate900: '#1c1410',
 
   white: '#ffffff',
+  cream: '#f6f1ea',
+  espresso: '#1c1410',
+  copper: '#b8956c',
 
   // Semantik (badge/status/stat card)
   green50: '#f0fdf4',
@@ -62,8 +64,6 @@ export const spacing = {
   xxl: 24,
 } as const;
 
-// Radius mengikuti skala Tailwind yang dipakai Laravel:
-// rounded-md=6, rounded-lg=8, rounded-xl=12, rounded-2xl=16, rounded-3xl=24, rounded-full.
 export const radius = {
   sm: 6,
   md: 8,
@@ -74,18 +74,18 @@ export const radius = {
   full: 999,
 } as const;
 
-// Keluarga font Instrument Sans (dimuat lewat @expo-google-fonts/instrument-sans).
+// Body: Source Sans 3 · Display: Fraunces
 export const fontFamily = {
-  regular: 'InstrumentSans_400Regular',
-  medium: 'InstrumentSans_500Medium',
-  semibold: 'InstrumentSans_600SemiBold',
-  bold: 'InstrumentSans_700Bold',
+  regular: 'SourceSans3_400Regular',
+  medium: 'SourceSans3_500Medium',
+  semibold: 'SourceSans3_600SemiBold',
+  bold: 'SourceSans3_700Bold',
+  display: 'Fraunces_600SemiBold',
+  displayBold: 'Fraunces_700Bold',
 } as const;
 
 type Weight = '400' | '500' | '600' | '700' | '800' | '900';
 
-// Pasangan {fontFamily, fontWeight} agar teks memakai file font yang benar
-// di semua platform (native butuh nama family spesifik, web butuh weight).
 export function font(weight: Weight = '400') {
   switch (weight) {
     case '500':
@@ -101,17 +101,24 @@ export function font(weight: Weight = '400') {
   }
 }
 
+export function fontDisplay(weight: '600' | '700' = '600') {
+  return {
+    fontFamily: weight === '700' ? fontFamily.displayBold : fontFamily.display,
+    fontWeight: weight,
+  } as const;
+}
+
 export const shadow = {
   sm: {
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.05,
+    shadowColor: '#1c1410',
+    shadowOpacity: 0.06,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   md: {
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
+    shadowColor: '#1c1410',
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,

@@ -52,7 +52,7 @@ const serviceOptions = {
     name: 'ic_launcher',
     type: 'mipmap' as const,
   },
-  color: '#4f46e5',
+  color: '#5c4033',
   linkingURI: 'cogssederhana://kasir/pin',
   parameters: {
     delay: POLL_MS,

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#5c4033">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>PIN Kasir — {{ $shopName }}</title>
     @include('layouts.partials.favicon')
@@ -37,7 +37,7 @@
             <div class="auth-alert-error mb-3" role="alert">{{ $errors->first() }}</div>
         @endif
 
-        <div class="mb-3 space-y-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+        <div class="mb-3 space-y-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
             <p><strong>Login stasiun</strong> boleh akun siapa saja (contoh: {{ $currentUser->name }}).</p>
             <p><strong>PIN</strong> memakai PIN pegawai yang sedang bertugas — nama di kasir & struk mengikuti pegawai itu, bukan akun login.</p>
         </div>

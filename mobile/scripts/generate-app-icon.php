@@ -63,7 +63,7 @@ $tile = imagecreatetruecolor($size, $size);
 imagesavealpha($tile, true);
 imagealphablending($tile, true);
 
-$brand = allocate($tile, '#4f46e5');
+$brand = allocate($tile, '#5c4033');
 imagefilledrectangle($tile, 0, 0, $size, $size, $brand);
 
 $inner = allocate($tile, '#4338ca');

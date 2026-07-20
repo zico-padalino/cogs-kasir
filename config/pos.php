@@ -42,8 +42,8 @@ return [
     ],
 
     'pwa' => [
-        'theme_color' => '#4f46e5',
-        'background_color' => '#f1f5f9',
+        'theme_color' => '#5c4033',
+        'background_color' => '#f6f1ea',
     ],
 
     /** Password awal saat admin membuat akun baru (user bisa ubah sendiri lewat Ubah Password). */

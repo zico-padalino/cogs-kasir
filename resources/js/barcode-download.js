@@ -54,20 +54,20 @@ async function buildBarcodePoster({ shopName, shopTitle, orderUrl }) {
 
     const ribbon = ctx.createLinearGradient(0, 0, width, 0);
     ribbon.addColorStop(0, '#312e81');
-    ribbon.addColorStop(0.45, '#4f46e5');
-    ribbon.addColorStop(1, '#6366f1');
+    ribbon.addColorStop(0.45, '#5c4033');
+    ribbon.addColorStop(1, '#b8956c');
     ctx.fillStyle = ribbon;
     roundRect(ctx, 24, 24, width - 48, 120, 48);
     ctx.fill();
     ctx.fillRect(24, 84, width - 48, 60);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 26px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '700 26px "Source Sans 3", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('SCAN  ·  PESAN', width / 2, 98);
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = '800 54px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '800 54px "Source Sans 3", Arial, sans-serif';
     const shopLines = wrapText(ctx, shopName || 'Coffee & Kitchen', width - 140);
     let shopY = 220;
     shopLines.slice(0, 2).forEach((line) => {
@@ -77,7 +77,7 @@ async function buildBarcodePoster({ shopName, shopTitle, orderUrl }) {
 
     if (shopTitle) {
         ctx.fillStyle = '#64748b';
-        ctx.font = '500 26px "Instrument Sans", Arial, sans-serif';
+        ctx.font = '500 26px "Source Sans 3", Arial, sans-serif';
         const titleLines = wrapText(ctx, shopTitle, width - 160);
         titleLines.slice(0, 2).forEach((line) => {
             ctx.fillText(line, width / 2, shopY + 8);
@@ -122,7 +122,7 @@ async function buildBarcodePoster({ shopName, shopTitle, orderUrl }) {
 
     const ctaY = frameY + frameSize + 70;
     ctx.fillStyle = '#334155';
-    ctx.font = '600 30px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '600 30px "Source Sans 3", Arial, sans-serif';
     ctx.fillText('Arahkan kamera ke kode ini', width / 2, ctaY);
 
     const chips = ['Scan', 'Pesan', 'Bayar'];
@@ -136,11 +136,11 @@ async function buildBarcodePoster({ shopName, shopTitle, orderUrl }) {
 
     chips.forEach((label, index) => {
         roundRect(ctx, chipX, chipY, chipW, chipH, 28);
-        ctx.fillStyle = index === 0 ? '#4f46e5' : '#eef2ff';
+        ctx.fillStyle = index === 0 ? '#5c4033' : '#f7f1ea';
         ctx.fill();
 
-        ctx.fillStyle = index === 0 ? '#ffffff' : '#4338ca';
-        ctx.font = '700 24px "Instrument Sans", Arial, sans-serif';
+        ctx.fillStyle = index === 0 ? '#ffffff' : '#5c4033';
+        ctx.font = '700 24px "Source Sans 3", Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(label, chipX + chipW / 2, chipY + 36);
 
@@ -154,7 +154,7 @@ async function buildBarcodePoster({ shopName, shopTitle, orderUrl }) {
     });
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '600 22px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '600 22px "Source Sans 3", Arial, sans-serif';
     ctx.fillText('Tempel di meja · Bayar di kasir', width / 2, height - 70);
 
     return canvas;

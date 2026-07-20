@@ -2,12 +2,12 @@ import { createElement } from 'react';
 import { StyleSheet, Text, TextInput } from 'react-native';
 import { font } from '@/theme';
 
-// Terapkan Instrument Sans ke SELURUH <Text>/<TextInput> secara global dengan
+// Terapkan Source Sans 3 ke SELURUH <Text>/<TextInput> secara global dengan
 // memetakan fontWeight ke file font yang tepat (native butuh nama family spesifik).
-// fontFamily eksplisit di style (mis. 'monospace') tetap dipertahankan karena
-// style milik pemanggil ditaruh setelah default kita.
+// fontFamily eksplisit di style (mis. Fraunces display / monospace) tetap dipertahankan
+// karena style milik pemanggil ditaruh setelah default kita.
 function patchComponent(Component: any) {
-  if (!Component || Component.__instrumentSansPatched) {
+  if (!Component || Component.__espressoFontPatched) {
     return;
   }
 
@@ -16,7 +16,7 @@ function patchComponent(Component: any) {
     return;
   }
 
-  Component.__instrumentSansPatched = true;
+  Component.__espressoFontPatched = true;
   Component.render = function patchedRender(props: any, ref: any) {
     const element = originalRender.call(this, props, ref);
 
@@ -25,6 +25,10 @@ function patchComponent(Component: any) {
     }
 
     const flat = StyleSheet.flatten(element.props.style) || {};
+    if (typeof flat.fontFamily === 'string' && flat.fontFamily.length > 0) {
+      return element;
+    }
+
     const family = font(String(flat.fontWeight ?? '400') as any).fontFamily;
 
     return createElement(element.type, {

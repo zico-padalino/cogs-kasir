@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   payBtnText: { color: colors.white, fontSize: 15, ...font('700') },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(28,20,16,0.5)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: colors.white,
     borderTopLeftRadius: radius['3xl'],

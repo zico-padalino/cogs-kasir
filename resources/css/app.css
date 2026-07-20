@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -6,28 +7,58 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-brand-50: #eef2ff;
-    --color-brand-100: #e0e7ff;
-    --color-brand-200: #c7d2fe;
-    --color-brand-300: #a5b4fc;
-    --color-brand-400: #818cf8;
-    --color-brand-500: #6366f1;
-    --color-brand-600: #4f46e5;
-    --color-brand-700: #4338ca;
-    --color-brand-800: #3730a3;
-    --color-brand-900: #312e81;
+    --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+
+    /* Espresso Cafe — cream + cokelat + tembaga (mengganti indigo) */
+    --color-brand-50: #f7f1ea;
+    --color-brand-100: #ede4d8;
+    --color-brand-200: #dccbb8;
+    --color-brand-300: #c4a484;
+    --color-brand-400: #b8956c;
+    --color-brand-500: #8b6914;
+    --color-brand-600: #5c4033;
+    --color-brand-700: #3f2a22;
+    --color-brand-800: #2c2118;
+    --color-brand-900: #1c1410;
+
+    --color-cream: #f6f1ea;
+    --color-espresso: #1c1410;
+    --color-copper: #b8956c;
+
+    /* Warm stone (mengganti slate dingin Tailwind) — selaras mobile theme */
+    --color-slate-50: #f6f1ea;
+    --color-slate-100: #efe8de;
+    --color-slate-200: #e0d5c8;
+    --color-slate-300: #cbbba8;
+    --color-slate-400: #a8927c;
+    --color-slate-500: #8a7360;
+    --color-slate-600: #6b584a;
+    --color-slate-700: #4a3c32;
+    --color-slate-800: #2c2118;
+    --color-slate-900: #1c1410;
+    --color-slate-950: #140e0b;
 }
 
 @layer components {
+    .font-display {
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+    }
+
+    .app-body {
+        background-color: #f6f1ea;
+        color: #1c1410;
+    }
+
     /* ── Buttons ── */
     .btn-primary {
         @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-brand-600 transition hover:bg-brand-700 hover:ring-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:scale-[0.98];
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-400/40 focus:ring-offset-2 focus:ring-offset-cream active:scale-[0.98];
     }
 
     .btn-danger {
@@ -78,15 +109,15 @@
 
     /* ── Cards ── */
     .card {
-        @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
+        @apply rounded-xl border border-brand-100 bg-white p-6 shadow-[0_8px_24px_rgba(28,20,16,0.05)];
     }
 
     .table-card {
-        @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm;
+        @apply overflow-hidden rounded-xl border border-brand-100 bg-white shadow-[0_8px_24px_rgba(28,20,16,0.05)];
     }
 
     .table-card-header {
-        @apply flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4;
+        @apply flex flex-wrap items-start justify-between gap-3 border-b border-brand-100 bg-brand-50/80 px-5 py-4;
     }
 
     .table-card-footer {
@@ -784,11 +815,11 @@
     }
 
     .module-step-4 .module-step-badge {
-        @apply bg-gradient-to-br from-brand-500 to-indigo-600;
+        @apply bg-gradient-to-br from-brand-500 to-brand-700;
     }
 
     .module-step-5 .module-step-badge {
-        @apply bg-gradient-to-br from-brand-500 to-indigo-600;
+        @apply bg-gradient-to-br from-brand-500 to-brand-700;
     }
 
     .module-form-card {
@@ -1184,7 +1215,7 @@
     }
 
     .auth-brand {
-        @apply relative hidden overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-indigo-800 px-8 py-12 text-white lg:flex lg:items-center lg:justify-center;
+        @apply relative hidden overflow-hidden bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 px-8 py-12 text-white lg:flex lg:items-center lg:justify-center;
     }
 
     .auth-brand-inner {
@@ -1200,7 +1231,7 @@
     }
 
     .auth-brand-text {
-        @apply mt-3 text-sm leading-relaxed text-indigo-100;
+        @apply mt-3 text-sm leading-relaxed text-brand-100;
     }
 
     .auth-module-preview {
@@ -1226,7 +1257,7 @@
     }
 
     .auth-panel-inner {
-        @apply w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8;
+        @apply w-full max-w-md rounded-2xl border border-brand-100 bg-white p-5 shadow-[0_16px_40px_rgba(28,20,16,0.07)] sm:p-8;
     }
 
     .auth-module-tabs {
@@ -1234,7 +1265,7 @@
     }
 
     .auth-module-tab {
-        @apply min-h-[4.5rem] rounded-2xl border border-violet-100 bg-violet-50/40 px-3 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+        @apply min-h-[4.5rem] rounded-2xl border border-brand-100 bg-brand-50/50 px-3 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
     }
 
     .auth-module-tab.is-active {
@@ -1274,8 +1305,114 @@
         @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition active:scale-95;
     }
 
+    /* Espresso Cafe sidebar — cream panel, copper active (struktur menu tetap) */
+    .app-sidebar {
+        @apply fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] flex-col border-r border-brand-200/80 bg-[#ebe3d6] text-slate-900 shadow-[8px_0_32px_rgba(28,20,16,0.06)] transition-transform duration-300 ease-out md:z-30 md:w-64;
+    }
+
+    .app-sidebar::before {
+        content: '';
+        @apply pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-brand-100/70 to-transparent;
+    }
+
+    .app-sidebar-brand {
+        @apply relative z-[1] border-b border-brand-200/70 px-4 py-4;
+    }
+
+    .app-sidebar-brand-row {
+        @apply flex items-start gap-3;
+    }
+
+    .app-sidebar-brand-copy {
+        @apply min-w-0 flex-1;
+    }
+
+    .app-sidebar-shop-name {
+        @apply font-display truncate text-[0.95rem] font-semibold tracking-tight text-espresso;
+    }
+
+    .app-sidebar-shop-meta {
+        @apply mt-0.5 truncate text-[11px] font-medium text-copper;
+    }
+
+    .app-sidebar-progress {
+        @apply relative z-[1] border-b border-brand-200/70 px-4 py-3;
+    }
+
+    .app-sidebar-progress-meta {
+        @apply flex justify-between text-[11px] font-medium text-slate-500;
+    }
+
+    .app-sidebar-progress-track {
+        @apply mt-1.5 h-1.5 overflow-hidden rounded-full bg-brand-100;
+    }
+
+    .app-sidebar-progress-fill {
+        @apply h-full rounded-full bg-gradient-to-r from-brand-600 to-copper;
+    }
+
+    .app-sidebar-nav {
+        @apply relative z-[1] flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 py-4;
+    }
+
+    .app-sidebar-link {
+        @apply flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-brand-100/80 hover:text-espresso focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40;
+    }
+
+    .app-sidebar-link.is-active {
+        @apply bg-brand-600 text-white shadow-[0_8px_18px_rgba(92,64,51,0.22)] hover:bg-brand-700 hover:text-white;
+    }
+
+    .app-sidebar-link-icon {
+        @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-xs text-espresso ring-1 ring-brand-200/80;
+    }
+
+    .app-sidebar-link.is-active .app-sidebar-link-icon {
+        @apply bg-white/15 text-white ring-white/20;
+    }
+
+    .app-sidebar-link-step {
+        @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold bg-brand-100 text-slate-600;
+    }
+
+    .app-sidebar-link-step.is-done {
+        @apply bg-green-500 text-white;
+    }
+
+    .app-sidebar-link.is-active .app-sidebar-link-step:not(.is-done) {
+        @apply bg-white/20 text-white;
+    }
+
+    .app-sidebar-foot {
+        @apply relative z-[1] border-t border-brand-200/70 bg-white/40 px-3 py-4 backdrop-blur-sm;
+    }
+
+    .app-sidebar-user {
+        @apply mb-3 rounded-xl border border-brand-100 bg-white/90 px-3 py-2.5 shadow-sm;
+    }
+
+    .app-sidebar-user-name {
+        @apply truncate text-xs font-semibold text-espresso;
+    }
+
+    .app-sidebar-user-meta {
+        @apply mt-0.5 truncate text-[11px] text-slate-500;
+    }
+
+    .app-sidebar-user-hint {
+        @apply mt-1 truncate text-[10px] text-slate-400;
+    }
+
+    .app-sidebar-action {
+        @apply mb-1.5 flex min-h-10 w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-brand-100 hover:text-espresso;
+    }
+
+    .app-sidebar-action.is-active {
+        @apply bg-brand-100 text-espresso;
+    }
+
     .sidebar-collapse-btn {
-        @apply hidden shrink-0 items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white md:inline-flex;
+        @apply hidden shrink-0 items-center gap-1 rounded-lg border border-brand-200 bg-white/80 px-2 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-espresso md:inline-flex;
     }
 
     .sidebar-collapse-btn__text {
@@ -1283,15 +1420,15 @@
     }
 
     .sidebar-expand-btn {
-        @apply fixed left-3 top-3 z-[60] hidden h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-lg transition hover:bg-slate-50 active:scale-95;
+        @apply fixed left-3 top-3 z-[60] hidden h-11 w-11 items-center justify-center rounded-xl border border-brand-200 bg-white text-slate-700 shadow-lg transition hover:bg-brand-50 active:scale-95;
     }
 
     .sidebar-header-toggle {
-        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95;
+        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white text-slate-700 shadow-sm transition hover:bg-brand-50 active:scale-95;
     }
 
     .mobile-overlay {
-        @apply fixed inset-0 z-40 bg-slate-900/50 opacity-0 backdrop-blur-sm transition-opacity duration-200;
+        @apply fixed inset-0 z-40 bg-espresso/45 opacity-0 backdrop-blur-sm transition-opacity duration-200;
     }
 
     .app-shell {
@@ -1826,7 +1963,7 @@
     }
 
     .pos-shell {
-        @apply flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-200/80;
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-100/70;
     }
 
     .pos-safe-top,
@@ -1866,7 +2003,7 @@
     }
 
     .pos-btn-new {
-        @apply border border-white/25 bg-white text-slate-900 shadow-sm hover:bg-slate-100;
+        @apply border border-white/25 bg-white text-slate-900 shadow-sm hover:bg-brand-50;
     }
 
     .pos-btn-danger span {
@@ -2278,7 +2415,7 @@
     }
 
     .kasir-sidebar-logout {
-        @apply inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white;
+        @apply inline-flex min-h-10 w-full items-center justify-start gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-brand-100 hover:text-espresso;
     }
 
     .kasir-toast {
@@ -2920,7 +3057,7 @@
     }
 
     .sales-report-pay-bar > span {
-        @apply block h-full rounded-full bg-gradient-to-r from-brand-500 to-violet-500 transition-all;
+        @apply block h-full rounded-full bg-gradient-to-r from-brand-500 to-copper transition-all;
     }
 
     .sales-report-empty {
@@ -3321,7 +3458,7 @@
         }
 
         .pos-order-bar.is-expanded {
-            @apply fixed inset-x-0 bottom-0 z-50 max-h-[min(85dvh,28rem)] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-slate-200 bg-white px-3 py-3 shadow-[0_-16px_48px_rgba(15,23,42,0.2)];
+            @apply fixed inset-x-0 bottom-0 z-50 max-h-[min(85dvh,28rem)] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-slate-200 bg-white px-3 py-3 shadow-[0_-16px_48px_rgba(28,20,16,0.18)];
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
             -webkit-overflow-scrolling: touch;
         }
@@ -3545,7 +3682,7 @@
         }
 
         .pos-receipt-pay {
-            @apply shrink-0 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
+            @apply shrink-0 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_24px_rgba(28,20,16,0.08)];
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
@@ -3642,7 +3779,7 @@
         }
 
         .pos-receipt-confirm {
-            @apply shrink-0 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_24px_rgba(15,23,42,0.08)];
+            @apply shrink-0 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_24px_rgba(28,20,16,0.08)];
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
@@ -3975,7 +4112,7 @@
         }
 
         .pos-order-panel {
-            @apply shadow-[-6px_0_18px_rgba(15,23,42,0.05)];
+            @apply shadow-[-6px_0_18px_rgba(28,20,16,0.05)];
         }
 
         .pos-receipt-context {
@@ -4027,12 +4164,12 @@
     }
 
     .order-table-body {
-        @apply overflow-hidden bg-slate-100;
+        @apply overflow-hidden bg-[#f6f1ea];
         height: 100dvh;
         max-height: 100dvh;
         background:
-            radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 24rem),
-            #f1f5f9;
+            radial-gradient(circle at top left, rgba(92, 64, 51, 0.08), transparent 24rem),
+            #f6f1ea;
     }
 
     .order-table-shell {
@@ -4748,7 +4885,7 @@
     }
 
     .barcode-print-card {
-        @apply relative w-full max-w-[17rem] overflow-hidden rounded-2xl border border-amber-100/80 bg-[#fffdf9] px-5 pb-5 pt-6 text-center shadow-[0_12px_40px_rgba(79,70,229,0.08)];
+        @apply relative w-full max-w-[17rem] overflow-hidden rounded-2xl border border-amber-100/80 bg-[#fffdf9] px-5 pb-5 pt-6 text-center shadow-[0_12px_40px_rgba(92,64,51,0.08)];
     }
 
     .barcode-print-mark {
@@ -4768,7 +4905,7 @@
     }
 
     .barcode-print-qr-frame {
-        @apply mx-auto mt-4 inline-flex items-center justify-center rounded-2xl border border-violet-100 bg-white p-2.5 shadow-sm;
+        @apply mx-auto mt-4 inline-flex items-center justify-center rounded-2xl border border-brand-100 bg-white p-2.5 shadow-sm;
     }
 
     .barcode-print-qr-canvas {
@@ -4927,7 +5064,7 @@
     }
 
     .auth-shell-fintech .auth-panel-fintech {
-        @apply rounded-3xl border-0 bg-white/90 shadow-[0_20px_50px_rgba(124,58,237,0.12)];
+        @apply rounded-3xl border-0 bg-white/90 shadow-[0_20px_50px_rgba(92,64,51,0.12)];
     }
 
     /* ── Login page (logo + form) ── */
@@ -4936,9 +5073,9 @@
         padding-bottom: max(2rem, env(safe-area-inset-bottom));
         padding-top: max(1.5rem, env(safe-area-inset-top));
         background:
-            radial-gradient(1200px 600px at 10% -10%, rgba(79, 70, 229, 0.16), transparent 55%),
-            radial-gradient(900px 500px at 100% 0%, rgba(99, 102, 241, 0.12), transparent 50%),
-            linear-gradient(180deg, #f8fafc 0%, #eef2ff 48%, #f1f5f9 100%);
+            radial-gradient(1200px 600px at 10% -10%, rgba(92, 64, 51, 0.14), transparent 55%),
+            radial-gradient(900px 500px at 100% 0%, rgba(184, 149, 108, 0.16), transparent 50%),
+            linear-gradient(180deg, #f7f1ea 0%, #f6f1ea 48%, #ede4d8 100%);
     }
 
     .login-glow {
@@ -4946,7 +5083,7 @@
     }
 
     .login-card {
-        @apply relative z-10 w-full max-w-md rounded-[1.75rem] border border-white/70 bg-white/95 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-8;
+        @apply relative z-10 w-full max-w-md rounded-[1.75rem] border border-brand-100/80 bg-white/95 p-6 shadow-[0_24px_60px_rgba(28,20,16,0.1)] backdrop-blur-sm sm:p-8;
     }
 
     .login-brand {
@@ -4966,7 +5103,7 @@
     }
 
     .login-shop-name {
-        @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem];
+        @apply font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem];
     }
 
     .login-shop-title {
@@ -5046,7 +5183,7 @@
         aspect-ratio: 4 / 3;
         max-height: min(42vh, 18rem);
         transform: scaleX(-1);
-        background: #0f172a;
+        background: #1c1410;
     }
 
     @media (orientation: landscape) {
@@ -5181,7 +5318,7 @@
     }
 
     .profile-setup-card {
-        @apply relative z-10 mx-auto w-full max-w-md rounded-[1.5rem] border border-white/70 bg-white/95 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6;
+        @apply relative z-10 mx-auto w-full max-w-md rounded-[1.5rem] border border-brand-100/80 bg-white/95 p-5 shadow-[0_24px_60px_rgba(28,20,16,0.1)] backdrop-blur-sm sm:p-6;
     }
 
     .profile-setup-head {
@@ -5385,7 +5522,7 @@
     }
 
     .scan-mode-pill.is-out {
-        @apply bg-indigo-50 text-indigo-800;
+        @apply bg-brand-50 text-brand-800;
     }
 
     .scan-mode-pill.is-blocked {
@@ -5409,7 +5546,7 @@
         aspect-ratio: 4 / 3;
         max-height: min(40vh, 17rem);
         transform: scaleX(-1);
-        background: #0f172a;
+        background: #1c1410;
     }
 
     .scan-camera-oval {
@@ -5489,7 +5626,7 @@
     }
 
     .login-form-title {
-        @apply text-lg font-bold text-slate-900;
+        @apply font-display text-lg font-bold text-slate-900;
     }
 
     .login-form-sub {
@@ -5596,11 +5733,11 @@
     }
 
     .auth-module-pick {
-        @apply flex w-full flex-col items-start rounded-2xl border border-violet-100 bg-violet-50/30 px-4 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/50;
+        @apply flex w-full flex-col items-start rounded-2xl border border-brand-100 bg-brand-50/40 px-4 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/50;
     }
 
     .auth-module-pick.is-active {
-        @apply border-brand-500 bg-gradient-to-br from-brand-50 to-violet-50 ring-2 ring-brand-400/25;
+        @apply border-brand-500 bg-gradient-to-br from-brand-50 to-brand-100 ring-2 ring-brand-400/25;
     }
 
     .auth-module-pick-icon {

@@ -59,12 +59,12 @@ async function buildAttendancePoster({ shopName, shopTitle, scanUrl }) {
     ctx.fillRect(24, 84, width - 48, 60);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 26px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '700 26px "Source Sans 3", Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('SCAN  ·  ABSENSI', width / 2, 98);
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = '800 54px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '800 54px "Source Sans 3", Arial, sans-serif';
     const shopLines = wrapText(ctx, shopName || 'Coffee & Kitchen', width - 140);
     let shopY = 220;
     shopLines.slice(0, 2).forEach((line) => {
@@ -74,7 +74,7 @@ async function buildAttendancePoster({ shopName, shopTitle, scanUrl }) {
 
     if (shopTitle) {
         ctx.fillStyle = '#64748b';
-        ctx.font = '500 26px "Instrument Sans", Arial, sans-serif';
+        ctx.font = '500 26px "Source Sans 3", Arial, sans-serif';
         const titleLines = wrapText(ctx, shopTitle, width - 160);
         titleLines.slice(0, 2).forEach((line) => {
             ctx.fillText(line, width / 2, shopY + 8);
@@ -119,7 +119,7 @@ async function buildAttendancePoster({ shopName, shopTitle, scanUrl }) {
 
     const ctaY = frameY + frameSize + 70;
     ctx.fillStyle = '#334155';
-    ctx.font = '600 30px "Instrument Sans", Arial, sans-serif';
+    ctx.font = '600 30px "Source Sans 3", Arial, sans-serif';
     ctx.fillText('Arahkan kamera HP ke kode ini', width / 2, ctaY);
 
     const chips = ['Scan', 'Nama', 'Selfie'];
@@ -134,7 +134,7 @@ async function buildAttendancePoster({ shopName, shopTitle, scanUrl }) {
         roundRect(ctx, chipX, chipY, chipW, 52, 26);
         ctx.fill();
         ctx.fillStyle = '#0f766e';
-        ctx.font = '700 22px "Instrument Sans", Arial, sans-serif';
+        ctx.font = '700 22px "Source Sans 3", Arial, sans-serif';
         ctx.fillText(label, chipX + chipW / 2, chipY + 34);
         chipX += chipW + gap;
     });
