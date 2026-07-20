@@ -402,7 +402,7 @@ export default function KasirPosScreen() {
             placeholderTextColor={colors.slate400}
             style={styles.search}
           />
-          <ScrollView
+        <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.catRow}
@@ -416,9 +416,9 @@ export default function KasirPosScreen() {
                 <Text style={[styles.catChipText, category === slug && styles.catChipTextOn]} numberOfLines={1}>
                   {categoryLabels[slug] || slug}
                 </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+                  </Pressable>
+          ))}
+        </ScrollView>
           <FlatList
             style={styles.productList}
             data={filteredProducts}
@@ -435,7 +435,7 @@ export default function KasirPosScreen() {
                   <Image source={{ uri: item.image_url }} style={styles.productImage} />
                   <View style={styles.productFab}>
                     <Text style={styles.productFabText}>+</Text>
-                  </View>
+            </View>
                 </View>
                 <View style={styles.productBody}>
                   <Text style={styles.productCategory} numberOfLines={1}>
@@ -452,8 +452,8 @@ export default function KasirPosScreen() {
             )}
             ListEmptyComponent={<Text style={[styles.muted, { padding: spacing.lg }]}>Tidak ada menu.</Text>}
           />
-        </View>
-      ) : (
+              </View>
+            ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 140, gap: spacing.md }}>
           {(order?.items || []).map((item) => (
             <View key={item.id} style={styles.cartItem}>
@@ -461,24 +461,24 @@ export default function KasirPosScreen() {
                 <Text style={styles.cartName}>{item.product_name}</Text>
                 {item.notes ? <Text style={styles.cartNotes}>{item.notes}</Text> : null}
                 <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
-              </View>
-              <View style={styles.qtyRow}>
+                    </View>
+                    <View style={styles.qtyRow}>
                 <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
-                  <Text style={styles.qtyBtnText}>−</Text>
-                </Pressable>
+                        <Text style={styles.qtyBtnText}>−</Text>
+                      </Pressable>
                 <Text style={styles.qtyVal}>{item.quantity}</Text>
                 <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
-                  <Text style={styles.qtyBtnText}>+</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))}
+                        <Text style={styles.qtyBtnText}>+</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
 
           <View style={styles.discountBox}>
             <Text style={styles.sectionLabel}>Diskon</Text>
             <View style={styles.discountTabs}>
               {(['amount', 'percent'] as const).map((t) => (
-                <Pressable
+                      <Pressable
                   key={t}
                   onPress={() => {
                     setDiscountType(t);
@@ -487,8 +487,8 @@ export default function KasirPosScreen() {
                   style={[styles.discountTab, discountType === t && styles.discountTabOn]}
                 >
                   <Text style={styles.discountTabText}>{t === 'amount' ? 'Rp' : '%'}</Text>
-                </Pressable>
-              ))}
+                      </Pressable>
+                    ))}
             </View>
             <TextInput
               value={discountValue}
@@ -498,7 +498,7 @@ export default function KasirPosScreen() {
               placeholder="0"
               style={styles.input}
             />
-          </View>
+                  </View>
 
           <View style={styles.totals}>
             <View style={styles.totalRow}><Text style={styles.muted}>Subtotal</Text><Text>{formatRupiah(order?.subtotal ?? 0)}</Text></View>
@@ -509,7 +509,7 @@ export default function KasirPosScreen() {
           </View>
 
           <View style={styles.rowActions}>
-            <Pressable
+                            <Pressable
               onPress={() => {
                 Alert.alert('Pesanan baru', 'Buat order baru?', [
                   { text: 'Batal', style: 'cancel' },
@@ -551,8 +551,8 @@ export default function KasirPosScreen() {
               style={styles.dangerBtn}
             >
               <Text style={styles.dangerBtnText}>Batal</Text>
-            </Pressable>
-          </View>
+                            </Pressable>
+                        </View>
         </ScrollView>
       )}
 
@@ -561,8 +561,8 @@ export default function KasirPosScreen() {
           <View>
             <Text style={styles.dockMeta}>{itemCount} item</Text>
             <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
-          </View>
-          <Pressable
+                </View>
+                      <Pressable
             onPress={() => {
               setPayMethod('cash');
               setAmountReceived(formatRupiahInput(Math.ceil(total)));
@@ -572,9 +572,9 @@ export default function KasirPosScreen() {
             style={styles.payBtn}
           >
             <Text style={styles.payBtnText}>Bayar</Text>
-          </Pressable>
-        </View>
-      ) : null}
+                      </Pressable>
+                    </View>
+                  ) : null}
 
       {/* Add item modal */}
       <Modal visible={!!addProduct} animationType="slide" transparent onRequestClose={() => setAddProduct(null)}>
@@ -588,7 +588,7 @@ export default function KasirPosScreen() {
                 {addProduct?.addons?.map((addon) => {
                   const on = addonIds.includes(addon.id);
                   return (
-                    <Pressable
+                  <Pressable
                       key={addon.id}
                       onPress={() =>
                         setAddonIds((prev) => (on ? prev.filter((id) => id !== addon.id) : [...prev, addon.id]))
@@ -597,10 +597,10 @@ export default function KasirPosScreen() {
                     >
                       <Text style={styles.addonName}>{addon.name}</Text>
                       <Text style={styles.addonPrice}>+{formatRupiah(addon.price)}</Text>
-                    </Pressable>
+                  </Pressable>
                   );
                 })}
-              </View>
+                </View>
             ) : null}
             <Text style={[styles.sectionLabel, { marginTop: spacing.md }]}>Catatan</Text>
             <TextInput value={notes} onChangeText={setNotes} placeholder="Opsional" style={styles.input} />
@@ -612,15 +612,15 @@ export default function KasirPosScreen() {
               <Pressable onPress={() => setQty((q) => q + 1)} style={styles.qtyBtn}>
                 <Text style={styles.qtyBtnText}>+</Text>
               </Pressable>
-            </View>
+          </View>
             <Pressable onPress={submitAdd} disabled={savingItem} style={styles.payBtn}>
               <Text style={styles.payBtnText}>{savingItem ? 'Menyimpan…' : 'Tambah ke Pesanan'}</Text>
             </Pressable>
             <Pressable onPress={() => setAddProduct(null)} style={{ alignItems: 'center', padding: spacing.md }}>
               <Text style={styles.muted}>Tutup</Text>
             </Pressable>
-          </View>
-        </View>
+              </View>
+            </View>
       </Modal>
 
       {/* Order bar modal */}
@@ -633,7 +633,7 @@ export default function KasirPosScreen() {
                 { value: 'dine_in', label: 'Dine In', icon: '🪑' },
                 { value: 'takeaway', label: 'Take Away', icon: '🥡' },
               ].map((t) => (
-                <Pressable
+                    <Pressable
                   key={t.value}
                   onPress={() => {
                     setOrderType(t.value);
@@ -643,20 +643,20 @@ export default function KasirPosScreen() {
                 >
                   <Text style={{ fontSize: 22 }}>{t.icon}</Text>
                   <Text style={styles.typeLabel}>{t.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+                          </Pressable>
+                        ))}
+                      </View>
             <Text style={styles.sectionLabel}>Nama pelanggan</Text>
-            <TextInput
+                          <TextInput
               value={customerNote}
               onChangeText={setCustomerNote}
               onEndEditing={() => saveOrderContext(orderType, customerNote)}
               placeholder="Opsional"
-              style={styles.input}
-            />
+                            style={styles.input}
+                          />
             <Pressable onPress={() => setOrderBarOpen(false)} style={[styles.payBtn, { marginTop: spacing.md }]}>
               <Text style={styles.payBtnText}>Simpan</Text>
-            </Pressable>
+                        </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
@@ -673,15 +673,15 @@ export default function KasirPosScreen() {
                 { value: 'qris', label: 'QRIS' },
                 { value: 'transfer', label: 'Transfer' },
               ] as const).map((m) => (
-                <Pressable
+                        <Pressable
                   key={m.value}
                   onPress={() => setPayMethod(m.value)}
                   style={[styles.typeCard, payMethod === m.value && styles.typeCardOn]}
-                >
+                        >
                   <Text style={styles.typeLabel}>{m.label}</Text>
-                </Pressable>
+                        </Pressable>
               ))}
-            </View>
+                      </View>
             {payMethod === 'cash' ? (
               <>
                 <Text style={styles.sectionLabel}>Uang diterima</Text>
@@ -700,7 +700,7 @@ export default function KasirPosScreen() {
                 <Text style={styles.sectionLabel}>Bukti pembayaran</Text>
                 <Pressable onPress={pickProof} style={styles.outlineBtn}>
                   <Text style={styles.outlineBtnText}>{proofUri ? 'Ganti foto' : 'Ambil foto'}</Text>
-                </Pressable>
+                    </Pressable>
                 {proofUri ? <Text style={styles.muted}>Foto terpilih</Text> : null}
               </>
             )}
@@ -709,8 +709,8 @@ export default function KasirPosScreen() {
             </Pressable>
             <Pressable onPress={() => setPayOpen(false)} style={{ alignItems: 'center', padding: spacing.md }}>
               <Text style={styles.muted}>Batal</Text>
-            </Pressable>
-          </View>
+          </Pressable>
+        </View>
         </View>
       </Modal>
 
