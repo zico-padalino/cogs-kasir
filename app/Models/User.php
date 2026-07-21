@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Models\Concerns\HasMobileApiTokens;
 use App\Support\CogsNavigation;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Concerns\HasMobileApiTokens;
 
 #[Fillable(['name', 'email', 'role', 'modules', 'is_root', 'password', 'must_change_password'])]
 #[Hidden(['password', 'remember_token', 'pin_hash'])]
@@ -31,6 +32,15 @@ class User extends Authenticatable
             'pin_set_at' => 'datetime',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value === null || $value === ''
+                ? $value
+                : mb_strtoupper(trim($value), 'UTF-8'),
+        );
     }
 
     /**

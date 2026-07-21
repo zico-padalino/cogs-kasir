@@ -12,7 +12,15 @@
 
         <div>
             <label class="form-label" for="name">Nama</label>
-            <input id="name" name="name" class="form-input" value="{{ old('name', $user->name) }}" required>
+            <input
+                id="name"
+                name="name"
+                class="form-input uppercase"
+                value="{{ old('name', $user->name) }}"
+                required
+                style="text-transform: uppercase"
+                oninput="this.value = this.value.toLocaleUpperCase('id-ID')"
+            >
         </div>
         <div>
             <label class="form-label" for="email">Email</label>
