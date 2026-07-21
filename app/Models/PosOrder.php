@@ -110,6 +110,7 @@ class PosOrder extends Model
             PosOrderSource::Online => in_array($this->status, [
                 PosOrderStatus::Submitted,
                 PosOrderStatus::Confirmed,
+                PosOrderStatus::Unpaid,
             ], true),
             default => false,
         };
@@ -125,7 +126,11 @@ class PosOrder extends Model
     public function isAwaitingKasirService(): bool
     {
         return $this->source === PosOrderSource::Online
-            && in_array($this->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true);
+            && in_array($this->status, [
+                PosOrderStatus::Submitted,
+                PosOrderStatus::Confirmed,
+                PosOrderStatus::Unpaid,
+            ], true);
     }
 
     public function canCheckoutAtKasir(): bool
@@ -135,16 +140,17 @@ class PosOrder extends Model
                 PosOrderStatus::Open,
                 PosOrderStatus::Unpaid,
             ], true),
-            // Online: bayar setelah masuk kasir (submitted/confirmed), bukan konfirmasi dulu.
+            // Online: bayar setelah masuk kasir (submitted/confirmed/unpaid).
             PosOrderSource::Online => in_array($this->status, [
                 PosOrderStatus::Submitted,
                 PosOrderStatus::Confirmed,
+                PosOrderStatus::Unpaid,
             ], true),
             default => false,
         };
     }
 
-    /** Tagihan dine-in yang disimpan dulu, dibayar saat pelanggan pulang. */
+    /** Tagihan yang disimpan dulu, dibayar saat pelanggan pulang. */
     public function isPayOnLeave(): bool
     {
         return $this->status === PosOrderStatus::Unpaid;

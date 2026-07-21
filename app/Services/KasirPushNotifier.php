@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\PosOrderStatus;
 use App\Models\DevicePushToken;
 use App\Models\PosOrder;
 use Illuminate\Support\Facades\Log;
@@ -22,9 +23,12 @@ class KasirPushNotifier
 
         $customer = trim((string) ($order->customer_note ?: 'Pelanggan'));
         $orderType = $order->order_type?->value ?? 'online';
-        $title = 'Pesanan baru masuk';
+        $payOnLeave = $order->status === PosOrderStatus::Unpaid;
+        $title = $payOnLeave ? 'Tagihan: bayar saat pulang' : 'Pesanan baru masuk';
         $body = "Atas nama {$customer}".($orderType ? " · {$orderType}" : '');
-        $speakText = "Pesanan baru masuk, atas nama {$customer}.";
+        $speakText = $payOnLeave
+            ? "Tagihan baru, bayar saat pulang, atas nama {$customer}."
+            : "Pesanan baru masuk, atas nama {$customer}.";
 
         $data = [
             'type' => 'new_order',

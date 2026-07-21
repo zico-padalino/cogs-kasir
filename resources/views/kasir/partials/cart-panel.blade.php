@@ -94,18 +94,16 @@
                 <button type="button" class="pos-pay-submit" data-kasir-open-pay data-kasir-pay-button>
                     Bayar <span data-kasir-pay-button-total>{{ $format::rupiah($order->total) }}</span>
                 </button>
-                @if ($order->source === PosOrderSource::Kasir)
-                    <form action="{{ route('kasir.hold') }}" method="POST" class="pos-hold-form">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="pos-hold-submit"
-                            onclick="return confirm('Simpan tagihan untuk dibayar saat pelanggan pulang? Stok belum dipotong.')"
-                        >
-                            Bayar saat pulang
-                        </button>
-                    </form>
-                @endif
+                <form action="{{ route('kasir.hold') }}" method="POST" class="pos-hold-form">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="pos-hold-submit"
+                        onclick="return confirm('Simpan tagihan untuk dibayar saat pelanggan pulang? Stok belum dipotong.')"
+                    >
+                        Bayar saat pulang
+                    </button>
+                </form>
             </div>
         </div>
     @elseif ($order->items->isNotEmpty())

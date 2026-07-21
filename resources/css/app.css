@@ -5005,6 +5005,42 @@
         @apply min-h-12 w-full py-3.5 text-base font-bold shadow-lg shadow-brand-900/15 lg:shadow-sm;
     }
 
+    .order-pay-mode {
+        @apply mt-4 space-y-2;
+    }
+
+    .order-pay-mode-grid {
+        @apply grid gap-2;
+    }
+
+    .order-pay-mode-btn {
+        @apply flex w-full flex-col items-start gap-0.5 rounded-xl border px-3.5 py-3 text-left touch-manipulation transition active:scale-[0.99];
+    }
+
+    .order-pay-mode-now {
+        @apply border-brand-600 bg-brand-600 text-white shadow-md shadow-brand-900/15;
+    }
+
+    .order-pay-mode-leave {
+        @apply border-amber-300 bg-amber-50 text-amber-950;
+    }
+
+    .order-pay-mode-name {
+        @apply text-sm font-bold;
+    }
+
+    .order-pay-mode-desc {
+        @apply text-xs opacity-90;
+    }
+
+    .order-pay-mode-now .order-pay-mode-desc {
+        @apply text-brand-100;
+    }
+
+    .order-pay-mode-leave .order-pay-mode-desc {
+        @apply text-amber-800;
+    }
+
     .order-empty {
         @apply rounded-xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500;
     }

@@ -177,10 +177,13 @@ class TableOrderController extends Controller
         $validated = $request->validate([
             'customer_note' => ['required', 'string', 'max:255'],
             'order_type' => ['required', 'in:dine_in,takeaway'],
+            'pay_mode' => ['nullable', 'in:now,on_leave'],
         ], [
             'customer_note.required' => 'Isi nama pemesan dulu sebelum kirim ke kasir.',
             'order_type.required' => 'Pilih Take Away atau Dine In dulu.',
         ]);
+
+        $payOnLeave = ($validated['pay_mode'] ?? 'now') === 'on_leave';
 
         try {
             $posService->updateOnlineCustomerDetails(
@@ -188,7 +191,7 @@ class TableOrderController extends Controller
                 $validated['customer_note'],
                 $validated['order_type'],
             );
-            $posService->submitOnlineOrder($order->fresh());
+            $posService->submitOnlineOrder($order->fresh(), $payOnLeave);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -196,7 +199,9 @@ class TableOrderController extends Controller
         $order->refresh()->load(['items.product', 'table']);
 
         return response()->json([
-            'message' => 'Pesanan terkirim. Silakan ke kasir untuk konfirmasi dan pembayaran.',
+            'message' => $payOnLeave
+                ? 'Pesanan terkirim. Silakan nikmati dulu — bayar di kasir saat pulang.'
+                : 'Pesanan terkirim. Silakan ke kasir untuk konfirmasi dan pembayaran.',
             'data' => new PosOrderResource($order),
         ]);
     }
@@ -213,7 +218,9 @@ class TableOrderController extends Controller
                 'total' => (float) $order->total,
                 'is_submitted' => $order->status->value === 'submitted',
                 'is_confirmed' => $order->status->value === 'confirmed',
+                'is_unpaid' => $order->status->value === 'unpaid',
                 'is_paid' => $order->status->value === 'paid',
+                'is_pay_on_leave' => $order->isPayOnLeave(),
                 'order' => new PosOrderResource($order->load(['items.product', 'table'])),
             ],
         ]);

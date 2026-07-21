@@ -1,7 +1,6 @@
 @props(['pendingOrders', 'format', 'currentOrder' => null])
 
 @php
-    use App\Enums\PosOrderSource;
     use App\Enums\PosOrderStatus;
     $pendingTotal = $pendingOrders->sum('total');
     $onlineWaiting = $pendingOrders->where('status', PosOrderStatus::Submitted)->count();
@@ -39,8 +38,7 @@
             @foreach ($pendingOrders as $pending)
                 @php
                     $isCurrent = $currentOrderId && (int) $pending->id === (int) $currentOrderId;
-                    $isPayOnLeave = $pending->source === PosOrderSource::Kasir
-                        && $pending->status === PosOrderStatus::Unpaid;
+                    $isPayOnLeave = $pending->status === PosOrderStatus::Unpaid;
                     $actionCols = $isCurrent ? 1 : 2;
                     $openLabel = match (true) {
                         $isPayOnLeave => 'Bayar',

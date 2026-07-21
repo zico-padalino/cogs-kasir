@@ -309,7 +309,7 @@ export default function KasirPosScreen() {
   };
 
   const submitHoldPayOnLeave = () => {
-    if (!order || order.source !== 'kasir') return;
+    if (!order || (order.source !== 'kasir' && order.source !== 'online')) return;
     Alert.alert(
       'Bayar saat pulang',
       'Simpan tagihan sekarang? Pelanggan bayar nanti saat pulang. Stok belum dipotong.',
@@ -716,7 +716,7 @@ export default function KasirPosScreen() {
                 <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
               </View>
               <View style={styles.payActions}>
-                {order?.source === 'kasir' ? (
+                {order?.source === 'kasir' || order?.source === 'online' ? (
                   <Pressable
                     onPress={submitHoldPayOnLeave}
                     disabled={holding}
