@@ -554,19 +554,26 @@ export default function KasirPosScreen() {
               ) : (
                 (order?.items || []).map((item) => (
                   <View key={item.id} style={styles.cartItem}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.cartName}>{item.product_name}</Text>
-                      {item.notes ? <Text style={styles.cartNotes}>{item.notes}</Text> : null}
+                    <View style={styles.cartRow1}>
+                      <Text style={styles.cartName} numberOfLines={1}>
+                        {item.product_name}
+                      </Text>
                       <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
                     </View>
-                    <View style={styles.qtyRow}>
-                      <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
-                        <Text style={styles.qtyBtnText}>−</Text>
-                      </Pressable>
-                      <Text style={styles.qtyVal}>{item.quantity}</Text>
-                      <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
-                        <Text style={styles.qtyBtnText}>+</Text>
-                      </Pressable>
+                    <View style={styles.cartRow2}>
+                      <Text style={styles.cartUnit}>
+                        {formatRupiah(item.unit_price)}
+                        {item.notes ? ` · ${item.notes}` : ''}
+                      </Text>
+                      <View style={styles.qtyRow}>
+                        <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
+                          <Text style={styles.qtyBtnText}>−</Text>
+                        </Pressable>
+                        <Text style={styles.qtyVal}>{item.quantity}</Text>
+                        <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+                          <Text style={styles.qtyBtnText}>+</Text>
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
                 ))
@@ -1065,29 +1072,33 @@ const styles = StyleSheet.create({
   productName: { fontSize: 13, color: colors.slate900, ...font('600'), lineHeight: 17 },
   productPrice: { fontSize: 13, color: colors.brand700, ...font('700'), marginTop: 4 },
   cartItem: {
-    flexDirection: 'row',
-    gap: spacing.md,
+    flexDirection: 'column',
+    gap: 4,
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.slate200,
-    padding: spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
-  cartName: { fontSize: 14, color: colors.slate900, ...font('600') },
-  cartNotes: { fontSize: 12, color: colors.slate500, marginTop: 2 },
-  cartPrice: { fontSize: 13, color: colors.brand700, ...font('700'), marginTop: 4 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cartRow1: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cartRow2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cartName: { fontSize: 12, color: colors.slate900, ...font('600'), flex: 1 },
+  cartNotes: { fontSize: 10, color: colors.slate500 },
+  cartUnit: { flex: 1, fontSize: 10, color: colors.slate500 },
+  cartPrice: { fontSize: 12, color: colors.slate900, ...font('700') },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   qtyRowLarge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginVertical: spacing.lg },
   qtyBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
+    width: 28,
+    height: 28,
+    borderRadius: radius.sm,
     backgroundColor: colors.slate100,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qtyBtnText: { fontSize: 18, color: colors.slate800, ...font('700') },
-  qtyVal: { minWidth: 24, textAlign: 'center', ...font('600') },
+  qtyBtnText: { fontSize: 14, color: colors.slate800, ...font('700') },
+  qtyVal: { minWidth: 20, textAlign: 'center', fontSize: 12, ...font('600') },
   qtyValLarge: { fontSize: 22, minWidth: 40, textAlign: 'center', ...font('700') },
   discountBox: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, padding: spacing.md, gap: spacing.sm },
   discountTabs: { flexDirection: 'row', gap: 8 },
