@@ -34,7 +34,7 @@
                             <td class="col-actions">
                                 <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
                                     <a href="{{ route('kasir.orders.show', $order) }}" class="btn-sm btn-ghost text-brand-700">Detail</a>
-                                    @if ($order->status->value === 'paid')
+                                    @if (in_array($order->status->value, ['paid', 'served'], true))
                                         <a href="{{ route('kasir.receipt', $order) }}" class="btn-sm btn-outline">Struk</a>
                                     @endif
                                 </div>

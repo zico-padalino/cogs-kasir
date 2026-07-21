@@ -9,6 +9,7 @@ enum PosOrderStatus: string
     case Confirmed = 'confirmed';
     case Unpaid = 'unpaid';
     case Paid = 'paid';
+    case Served = 'served';
     case Cancelled = 'cancelled';
 
     public function label(): string
@@ -18,7 +19,8 @@ enum PosOrderStatus: string
             self::Submitted => 'Menunggu Kasir',
             self::Confirmed => 'Siap Bayar',
             self::Unpaid => 'Open Bill',
-            self::Paid => 'Selesai',
+            self::Paid => 'Sudah Bayar',
+            self::Served => 'Selesai',
             self::Cancelled => 'Batal',
         };
     }
@@ -30,7 +32,8 @@ enum PosOrderStatus: string
             self::Submitted => 'badge-amber',
             self::Confirmed => 'badge-brand',
             self::Unpaid => 'badge-blue',
-            self::Paid => 'badge-green',
+            self::Paid => 'badge-brand',
+            self::Served => 'badge-green',
             self::Cancelled => 'badge-slate',
         };
     }

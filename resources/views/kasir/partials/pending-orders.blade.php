@@ -5,6 +5,7 @@
     $pendingTotal = $pendingOrders->sum('total');
     $onlineWaiting = $pendingOrders->where('status', PosOrderStatus::Submitted)->count();
     $openBillCount = $pendingOrders->where('status', PosOrderStatus::Unpaid)->count();
+    $awaitingServeCount = $pendingOrders->where('status', PosOrderStatus::Paid)->count();
     $currentOrderId = $currentOrder?->id;
     // Expand only when there are other orders still needing attention.
     $hasActionable = $pendingOrders->contains(
@@ -28,6 +29,9 @@
             @if ($openBillCount > 0)
                 · {{ $openBillCount }} open bill
             @endif
+            @if ($awaitingServeCount > 0)
+                · {{ $awaitingServeCount }} siap antar
+            @endif
             · {{ $format::rupiah($pendingTotal) }}
         </span>
         <span class="pos-pending-toggle-icon" aria-hidden="true">▼</span>
@@ -39,7 +43,8 @@
                 @php
                     $isCurrent = $currentOrderId && (int) $pending->id === (int) $currentOrderId;
                     $isOpenBill = $pending->status === PosOrderStatus::Unpaid;
-                    $actionCols = $isCurrent ? 1 : 2;
+                    $isAwaitingServe = $pending->status === PosOrderStatus::Paid;
+                    $actionCols = $isAwaitingServe ? 1 : ($isCurrent ? 1 : 2);
                     $openLabel = match (true) {
                         $isOpenBill => 'Buka / Tambah',
                         $pending->status === PosOrderStatus::Confirmed => 'Bayar',
@@ -49,8 +54,14 @@
                     $deleteConfirm = $isOpenBill
                         ? 'Hapus Open Bill '.($pending->customer_note ?: $pending->order_number).'?'
                         : 'Hapus pesanan online '.($pending->customer_note ?: $pending->order_number).'? Pesanan akan dibatalkan.';
+                    $serveConfirm = 'Konfirmasi pesanan '.($pending->customer_note ?: $pending->order_number).' sudah diantar / selesai?';
                 @endphp
-                <div @class(['pos-pending-card', 'is-current' => $isCurrent, 'is-open-bill' => $isOpenBill])>
+                <div @class([
+                    'pos-pending-card',
+                    'is-current' => $isCurrent,
+                    'is-open-bill' => $isOpenBill,
+                    'is-awaiting-serve' => $isAwaitingServe,
+                ])>
                     <div class="pos-pending-card-head">
                         <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
                         <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
@@ -60,7 +71,7 @@
                                 · {{ $pending->table->label }}
                             @endif
                         </span>
-                        @if ($isCurrent)
+                        @if ($isCurrent && ! $isAwaitingServe)
                             <span class="badge badge-blue pos-pending-status">Sedang dibuka</span>
                         @else
                             <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $pending->status->label() }}</span>
@@ -70,7 +81,18 @@
                         class="pos-pending-card-actions"
                         style="--pos-pending-actions: {{ $actionCols }}"
                     >
-                        @if ($isCurrent)
+                        @if ($isAwaitingServe)
+                            <form action="{{ route('kasir.orders.serve', $pending) }}" method="POST" class="pos-pending-action-form">
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="pos-pending-action pos-pending-action-serve"
+                                    onclick="return confirm({{ json_encode($serveConfirm) }})"
+                                >
+                                    Sudah diantar / selesai
+                                </button>
+                            </form>
+                        @elseif ($isCurrent)
                             <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form">
                                 @csrf
                                 <button

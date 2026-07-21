@@ -179,6 +179,7 @@ class TableOrderController extends Controller
             'is_submitted' => $order->status->value === 'submitted',
             'is_confirmed' => $order->status->value === 'confirmed',
             'is_paid' => $order->status->value === 'paid',
+            'is_served' => $order->status->value === 'served',
         ]);
     }
 

@@ -186,6 +186,9 @@ export const kasirApi = {
       method: 'POST',
     });
   },
+  markServed(orderId: number) {
+    return apiRequest<Envelope<PosOrder>>(`/kasir/orders/${orderId}/serve`, { method: 'POST' });
+  },
   addItem(payload: { product_id: number; quantity: number; notes?: string; addon_ids?: number[] }) {
     return apiRequest<Envelope<PosOrder>>('/kasir/items', { method: 'POST', body: payload });
   },

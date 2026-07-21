@@ -381,52 +381,71 @@ export default function KasirPosScreen() {
             <View style={styles.pendingBanner}>
               <Text style={styles.pendingTitle}>🔔 Menunggu ({pending.length})</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {pending.map((p) => (
+                {pending.map((p) => {
+                  const awaitingServe = p.can_mark_served || p.status === 'paid';
+                  const isOpenBill = p.is_open_bill || p.status === 'unpaid';
+
+                  return (
                   <View key={p.id} style={styles.pendingCard}>
                     <Text style={styles.pendingNo}>#{p.order_number}</Text>
                     <Text style={styles.pendingMeta} numberOfLines={1}>
                       {p.customer_note || p.table?.label || 'Tanpa nama'}
                     </Text>
                     <Text style={styles.pendingMeta}>
-                      {p.is_open_bill || p.status === 'unpaid' ? 'Open Bill · ' : ''}
+                      {awaitingServe ? 'Sudah Bayar · ' : isOpenBill ? 'Open Bill · ' : ''}
                       {formatRupiah(p.total)}
                     </Text>
                     <View style={styles.pendingActions}>
-                      <Pressable
-                        onPress={async () => {
-                          try {
-                            const res = await kasirApi.loadOrder(p.id);
-                            applyOrder(res.data);
-                            setTab('cart');
-                          } catch (err) {
-                            handleApiError(err);
-                          }
-                        }}
-                        style={styles.pendingLoad}
-                      >
-                        <Text style={styles.pendingLoadText}>
-                          {p.is_open_bill || p.status === 'unpaid'
-                            ? 'Buka'
-                            : p.status === 'confirmed'
-                              ? 'Bayar'
-                              : 'Buka'}
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={async () => {
-                          try {
-                            await kasirApi.cancelPending(p.id);
-                            await refresh();
-                          } catch (err) {
-                            handleApiError(err);
-                          }
-                        }}
-                      >
-                        <Text style={styles.pendingCancel}>Hapus</Text>
-                      </Pressable>
+                      {awaitingServe ? (
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              await kasirApi.markServed(p.id);
+                              await refresh();
+                            } catch (err) {
+                              handleApiError(err);
+                            }
+                          }}
+                          style={styles.pendingLoad}
+                        >
+                          <Text style={styles.pendingLoadText}>Selesai</Text>
+                        </Pressable>
+                      ) : (
+                        <>
+                          <Pressable
+                            onPress={async () => {
+                              try {
+                                const res = await kasirApi.loadOrder(p.id);
+                                applyOrder(res.data);
+                                setTab('cart');
+                              } catch (err) {
+                                handleApiError(err);
+                              }
+                            }}
+                            style={styles.pendingLoad}
+                          >
+                            <Text style={styles.pendingLoadText}>
+                              {isOpenBill ? 'Buka' : p.status === 'confirmed' ? 'Bayar' : 'Buka'}
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={async () => {
+                              try {
+                                await kasirApi.cancelPending(p.id);
+                                await refresh();
+                              } catch (err) {
+                                handleApiError(err);
+                              }
+                            }}
+                          >
+                            <Text style={styles.pendingCancel}>Hapus</Text>
+                          </Pressable>
+                        </>
+                      )}
                     </View>
                   </View>
-                ))}
+                  );
+                })}
               </ScrollView>
             </View>
           ) : null}

@@ -54,10 +54,16 @@
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
             @elseif ($order->status->value === 'paid')
+                @include('order.partials.paid-awaiting-serve', ['order' => $order, 'format' => $format])
+
+                <div class="order-layout-single">
+                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                </div>
+            @elseif ($order->status->value === 'served')
                 <div class="order-status-card order-status-paid">
                     <div class="order-status-icon">✅</div>
-                    <h2 class="text-lg font-bold text-green-900">Pesanan Lunas</h2>
-                    <p class="mt-2 text-sm text-green-800">Terima kasih! Pembayaran sudah diterima di kasir.</p>
+                    <h2 class="text-lg font-bold text-green-900">Pesanan Selesai</h2>
+                    <p class="mt-2 text-sm text-green-800">Terima kasih! Pesanan Anda sudah diantar / selesai.</p>
                     <p class="mt-3 font-mono text-xs text-green-700">{{ $order->order_number }}</p>
                 </div>
 

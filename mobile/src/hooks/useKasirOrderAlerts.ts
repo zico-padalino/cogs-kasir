@@ -37,7 +37,7 @@ export function useKasirOrderAlerts(enabled: boolean) {
         }
 
         const newOrders = orders.filter(
-          (o) => newIds.includes(o.id) && o.source !== 'kasir',
+          (o) => newIds.includes(o.id) && o.source !== 'kasir' && o.status !== 'paid' && o.status !== 'served',
         );
         if (newOrders.length === 0) {
           return;

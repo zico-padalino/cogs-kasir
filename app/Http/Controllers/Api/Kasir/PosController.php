@@ -79,7 +79,8 @@ class PosController extends Controller
                 'total' => (float) $pendingOrders->sum('total'),
                 'order_ids' => $pendingOrders->pluck('id')->values(),
                 'notify_order_ids' => $pendingOrders
-                    ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online)
+                    ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
+                        && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
                     ->pluck('id')
                     ->values(),
                 'has_pending' => $pendingOrders->isNotEmpty(),
@@ -195,7 +196,9 @@ class PosController extends Controller
 
     public function loadOrder(PosOrder $order, PosOrderService $posService): JsonResponse
     {
-        if ($order->status === PosOrderStatus::Paid || $order->status === PosOrderStatus::Cancelled) {
+        if ($order->status === PosOrderStatus::Paid
+            || $order->status === PosOrderStatus::Served
+            || $order->status === PosOrderStatus::Cancelled) {
             return response()->json(['message' => 'Order sudah selesai atau dibatalkan.'], 422);
         }
 
@@ -229,6 +232,22 @@ class PosController extends Controller
 
         return response()->json([
             'message' => 'Pesanan #'.$order->order_number.' masuk ke kasir.',
+            'data' => new PosOrderResource($order),
+        ]);
+    }
+
+    public function markServed(PosOrder $order, PosOrderService $posService): JsonResponse
+    {
+        try {
+            $order = $posService->markServed($order);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $order->load(['items.product', 'table']);
+
+        return response()->json([
+            'message' => 'Pesanan #'.$order->order_number.' dikonfirmasi selesai / sudah diantar.',
             'data' => new PosOrderResource($order),
         ]);
     }
@@ -443,7 +462,7 @@ class PosController extends Controller
 
     public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf): JsonResponse
     {
-        if ($order->status !== PosOrderStatus::Paid) {
+        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
             return response()->json(['message' => 'Order belum dibayar.'], 422);
         }
 
@@ -462,7 +481,7 @@ class PosController extends Controller
 
     public function receiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): \Symfony\Component\HttpFoundation\Response
     {
-        if ($order->status !== PosOrderStatus::Paid) {
+        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
             abort(404);
         }
 

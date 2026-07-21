@@ -71,7 +71,8 @@ class KasirController extends Controller
             'total' => (float) $pendingOrders->sum('total'),
             'order_ids' => $pendingOrders->pluck('id')->values(),
             'notify_order_ids' => $pendingOrders
-                ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online)
+                ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
+                    && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
                 ->pluck('id')
                 ->values(),
             'has_pending' => $pendingOrders->isNotEmpty(),
@@ -85,7 +86,7 @@ class KasirController extends Controller
     public function orders()
     {
         $orders = PosOrder::with(['table', 'items.product', 'cashier'])
-            ->whereIn('status', ['submitted', 'confirmed', 'unpaid', 'paid'])
+            ->whereIn('status', ['submitted', 'confirmed', 'unpaid', 'paid', 'served'])
             ->latest()
             ->paginate(20);
 
@@ -149,7 +150,9 @@ class KasirController extends Controller
 
     public function loadOrder(Request $request, PosOrder $order, PosOrderService $posService)
     {
-        if ($order->status === PosOrderStatus::Paid || $order->status === PosOrderStatus::Cancelled) {
+        if ($order->status === PosOrderStatus::Paid
+            || $order->status === PosOrderStatus::Served
+            || $order->status === PosOrderStatus::Cancelled) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Order sudah selesai atau dibatalkan.'], 422);
             }
@@ -229,6 +232,27 @@ class KasirController extends Controller
                 'order_number' => $order->order_number,
                 'redirect' => route('kasir.index'),
             ]);
+        }
+
+        return redirect()->route('kasir.index')->with('success', $message);
+    }
+
+    public function markServed(PosOrder $order, PosOrderService $posService)
+    {
+        try {
+            $posService->markServed($order);
+        } catch (\RuntimeException $e) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        $message = 'Pesanan #'.$order->order_number.' dikonfirmasi selesai / sudah diantar.';
+
+        if (request()->expectsJson()) {
+            return response()->json(['message' => $message, 'order_number' => $order->order_number]);
         }
 
         return redirect()->route('kasir.index')->with('success', $message);
@@ -525,7 +549,7 @@ class KasirController extends Controller
 
     public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf)
     {
-        if ($order->status !== PosOrderStatus::Paid) {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
             return redirect()->route('kasir.index');
         }
 
@@ -543,7 +567,7 @@ class KasirController extends Controller
 
     public function receiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if ($order->status !== PosOrderStatus::Paid) {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
             abort(404);
         }
 

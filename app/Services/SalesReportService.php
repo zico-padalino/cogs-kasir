@@ -29,7 +29,7 @@ class SalesReportService
 
         $ordersQuery = PosOrder::query()
             ->with(['table', 'cashier'])
-            ->where('status', PosOrderStatus::Paid);
+            ->whereIn('status', [PosOrderStatus::Paid, PosOrderStatus::Served]);
 
         if ($period !== 'all') {
             $ordersQuery->whereBetween('paid_at', [$rangeStart, $rangeEnd]);

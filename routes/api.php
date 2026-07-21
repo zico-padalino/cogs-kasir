@@ -88,6 +88,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('orders/cancel', [PosController::class, 'cancelOrder'])->name('orders.cancel-active');
                 Route::post('orders/{order}/load', [PosController::class, 'loadOrder'])->name('orders.load');
                 Route::post('orders/{order}/confirm', [PosController::class, 'confirmOrder'])->name('orders.confirm');
+                Route::post('orders/{order}/serve', [PosController::class, 'markServed'])->name('orders.serve');
                 Route::post('orders/{order}/cancel', [PosController::class, 'cancelPendingOrder'])->name('orders.cancel');
                 Route::post('items', [PosController::class, 'addItem'])->name('items.store');
                 Route::patch('items/{item}', [PosController::class, 'updateItem'])->name('items.update');

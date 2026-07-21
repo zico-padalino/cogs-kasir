@@ -30,6 +30,7 @@ class PosOrder extends Model
         'payment_method',
         'payment_proof_path',
         'paid_at',
+        'served_at',
         'confirmed_at',
         'confirmed_by',
         'user_id',
@@ -52,6 +53,7 @@ class PosOrder extends Model
             'amount_received' => 'decimal:4',
             'change_amount' => 'decimal:4',
             'paid_at' => 'datetime',
+            'served_at' => 'datetime',
             'confirmed_at' => 'datetime',
         ];
     }
@@ -149,6 +151,22 @@ class PosOrder extends Model
     {
         return $this->source === PosOrderSource::Kasir
             && $this->status === PosOrderStatus::Unpaid;
+    }
+
+    /** Sudah bayar, menunggu konfirmasi antar/selesai. */
+    public function canMarkServed(): bool
+    {
+        return $this->status === PosOrderStatus::Paid;
+    }
+
+    public function isServed(): bool
+    {
+        return $this->status === PosOrderStatus::Served;
+    }
+
+    public function isSettled(): bool
+    {
+        return in_array($this->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true);
     }
 
     public function paymentProofUrl(): ?string

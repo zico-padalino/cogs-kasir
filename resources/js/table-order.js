@@ -314,7 +314,7 @@ function initOrderKasirConfirmation() {
 
             const data = await response.json();
 
-            if (data.is_paid || (initialStatus && data.status !== initialStatus)) {
+            if (data.is_served || data.is_paid || (initialStatus && data.status !== initialStatus)) {
                 window.location.reload();
             }
         } catch {

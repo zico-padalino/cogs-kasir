@@ -90,6 +90,9 @@ export type PosOrder = {
   can_checkout?: boolean;
   is_editable?: boolean;
   is_open_bill?: boolean;
+  can_mark_served?: boolean;
+  is_served?: boolean;
+  served_at?: string | null;
   table?: { id: number; table_number: string; label: string } | null;
   items?: OrderItem[];
   created_at?: string | null;

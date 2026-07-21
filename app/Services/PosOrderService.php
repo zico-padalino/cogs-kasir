@@ -125,7 +125,13 @@ class PosOrderService
                 ->where('source', PosOrderSource::Online)
                 ->first();
 
-            if ($order && in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Submitted, PosOrderStatus::Confirmed, PosOrderStatus::Paid], true)) {
+            if ($order && in_array($order->status, [
+                PosOrderStatus::Open,
+                PosOrderStatus::Submitted,
+                PosOrderStatus::Confirmed,
+                PosOrderStatus::Paid,
+                PosOrderStatus::Served,
+            ], true)) {
                 return $order;
             }
         }
@@ -576,7 +582,7 @@ class PosOrderService
 
     public function cancelOrder(PosOrder $order): void
     {
-        if ($order->status === PosOrderStatus::Paid) {
+        if (in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
             throw new RuntimeException('Pesanan lunas tidak bisa dibatalkan.');
         }
 
@@ -598,6 +604,21 @@ class PosOrderService
         $this->cancelOrder($order);
     }
 
+    /** Konfirmasi pesanan sudah diantar / selesai (setelah bayar). */
+    public function markServed(PosOrder $order): PosOrder
+    {
+        if ($order->status !== PosOrderStatus::Paid) {
+            throw new RuntimeException('Hanya pesanan yang sudah dibayar yang bisa dikonfirmasi selesai.');
+        }
+
+        $order->update([
+            'status' => PosOrderStatus::Served,
+            'served_at' => now(),
+        ]);
+
+        return $order->fresh(['items.product', 'table']);
+    }
+
     /** @return Collection<int, PosOrder> */
     public function waitingOrders()
     {
@@ -610,6 +631,8 @@ class PosOrderService
                 })->orWhere(function ($openBill) {
                     $openBill->where('source', PosOrderSource::Kasir)
                         ->where('status', PosOrderStatus::Unpaid);
+                })->orWhere(function ($awaitingServe) {
+                    $awaitingServe->where('status', PosOrderStatus::Paid);
                 });
             })
             ->latest()

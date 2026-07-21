@@ -118,6 +118,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
         Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
         Route::post('/orders/{order}/confirm', [KasirController::class, 'confirmOrder'])->name('orders.confirm');
+        Route::post('/orders/{order}/serve', [KasirController::class, 'markServed'])->name('orders.serve');
         Route::post('/orders/{order}/cancel', [KasirController::class, 'cancelPendingOrder'])->name('orders.cancel');
         Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
         Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');

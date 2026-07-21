@@ -2432,6 +2432,10 @@
         @apply border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100;
     }
 
+    .pos-pending-action-serve {
+        @apply border border-brand-300 bg-brand-600 text-white hover:bg-brand-700;
+    }
+
     .pos-pending-action-delete {
         @apply border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100;
     }
@@ -3424,6 +3428,10 @@
 
     .pos-pending-card.is-open-bill {
         @apply border-sky-200 bg-sky-50/40;
+    }
+
+    .pos-pending-card.is-awaiting-serve {
+        @apply border-brand-200 bg-brand-50/50;
     }
 
     .pos-receipt-confirm {
