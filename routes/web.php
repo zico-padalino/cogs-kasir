@@ -185,6 +185,7 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
 
     Route::get('harga-jual', [MenuPricingController::class, 'index'])->name('menu-pricing.index');
     Route::put('harga-jual/{product}', [MenuPricingController::class, 'update'])->name('menu-pricing.update');
+    Route::delete('harga-jual/{product}', [MenuPricingController::class, 'destroy'])->name('menu-pricing.destroy');
 
     Route::get('cogs/calculate', fn () => redirect()->route('menu-pricing.index'))->name('cogs.calculate');
     Route::post('cogs/calculate', [CogsController::class, 'process'])->name('cogs.process');

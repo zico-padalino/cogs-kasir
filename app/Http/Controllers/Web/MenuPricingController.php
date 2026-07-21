@@ -90,4 +90,21 @@ class MenuPricingController extends Controller
         return redirect()->route('menu-pricing.index')
             ->with('success', "Harga {$product->name} sudah disimpan.");
     }
+
+    public function destroy(Product $product, ProductHppService $hppService)
+    {
+        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+            abort(404);
+        }
+
+        $product->update([
+            'selling_price' => 0,
+            'is_menu_item' => false,
+        ]);
+
+        $hppService->markAsMenuItem($product, false);
+
+        return redirect()->route('menu-pricing.index')
+            ->with('success', "Harga jual {$product->name} sudah dihapus.");
+    }
 }

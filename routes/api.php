@@ -166,6 +166,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::get('menu-pricing', [MenuPricingApiController::class, 'index'])->name('menu-pricing.index');
             Route::put('menu-pricing/{product}', [MenuPricingApiController::class, 'update'])->name('menu-pricing.update');
+            Route::delete('menu-pricing/{product}', [MenuPricingApiController::class, 'destroy'])->name('menu-pricing.destroy');
 
             Route::post('calculate', [CogsCalcApiController::class, 'process'])->name('calculate');
             Route::get('result', [CogsCalcApiController::class, 'result'])->name('result');

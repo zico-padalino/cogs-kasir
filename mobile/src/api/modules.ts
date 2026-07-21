@@ -33,6 +33,8 @@ export const cogsApi = {
   menuPricing: () => apiRequest<Envelope<unknown>>('/cogs/menu-pricing'),
   updateMenuPrice: (productId: number, body: unknown) =>
     apiRequest<Envelope<unknown>>(`/cogs/menu-pricing/${productId}`, { method: 'PUT', body }),
+  clearMenuPrice: (productId: number) =>
+    apiRequest<Envelope<unknown>>(`/cogs/menu-pricing/${productId}`, { method: 'DELETE' }),
   calculate: (body: unknown) => apiRequest<Envelope<unknown>>('/cogs/calculate', { method: 'POST', body }),
   history: () => apiRequest<Envelope<unknown>>('/cogs/history'),
   overheadRates: () => apiRequest<Envelope<unknown>>('/cogs/overhead-rates'),

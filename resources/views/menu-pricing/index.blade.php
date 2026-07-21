@@ -139,9 +139,32 @@
                                         <input type="checkbox" name="is_menu_item" value="1" class="rounded" @checked(old('is_menu_item', $product->is_menu_item))>
                                         <span class="text-sm font-medium">Tampilkan di Kasir</span>
                                     </label>
-                                    <button type="submit" class="btn-primary px-5 py-2.5 font-semibold">Simpan Harga</button>
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                        @if ((float) $product->selling_price > 0)
+                                            <button
+                                                type="submit"
+                                                form="clear-price-{{ $product->id }}"
+                                                class="btn-sm btn-outline-danger"
+                                                onclick="return confirm({{ json_encode('Hapus harga jual '.$product->name.'? Menu akan hilang dari Kasir.') }})"
+                                            >
+                                                Hapus Harga
+                                            </button>
+                                        @endif
+                                        <button type="submit" class="btn-primary px-5 py-2.5 font-semibold">Simpan Harga</button>
+                                    </div>
                                 </div>
                             </form>
+                            @if ((float) $product->selling_price > 0)
+                                <form
+                                    id="clear-price-{{ $product->id }}"
+                                    action="{{ route('menu-pricing.destroy', $product) }}"
+                                    method="POST"
+                                    class="hidden"
+                                >
+                                    @csrf
+                                    @method('DELETE')
+                                </form>
+                            @endif
                         </div>
                     @endforeach
                 </div>

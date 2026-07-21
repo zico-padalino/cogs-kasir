@@ -96,4 +96,28 @@ class MenuPricingApiController extends Controller
             ],
         ]);
     }
+
+    public function destroy(Product $product, ProductHppService $hppService): JsonResponse
+    {
+        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+            abort(404);
+        }
+
+        $product->update([
+            'selling_price' => 0,
+            'is_menu_item' => false,
+        ]);
+
+        $hppService->markAsMenuItem($product, false);
+
+        return response()->json([
+            'message' => "Harga jual {$product->name} sudah dihapus.",
+            'data' => [
+                'product' => $product->fresh(),
+                'modal' => $hppService->effectiveUnitHpp($product),
+                'untung' => $hppService->grossMargin($product),
+                'persen_untung' => $hppService->grossMarginPercent($product),
+            ],
+        ]);
+    }
 }
