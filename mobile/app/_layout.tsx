@@ -112,22 +112,25 @@ export default function RootLayout() {
     Fraunces_700Bold,
   });
 
+  const fontsReady = fontsLoaded || !!fontError;
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (fontsReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsReady]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
+  // Selalu wrap AuthProvider agar route (termasuk index) tidak pernah di luar context.
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
-        <KasirPushKeepAlive />
-        <RootNavigator />
+        {fontsReady ? (
+          <>
+            <KasirPushKeepAlive />
+            <RootNavigator />
+          </>
+        ) : null}
       </AuthProvider>
     </SafeAreaProvider>
   );

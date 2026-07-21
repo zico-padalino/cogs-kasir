@@ -1,28 +1,16 @@
-import { Redirect } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useAuth } from '@/auth';
 import { colors } from '@/theme';
 
+/**
+ * Splash singkat. Redirect auth ditangani RootNavigator di _layout
+ * supaya layar ini tidak perlu useAuth (hindari race di luar AuthProvider).
+ */
 export default function IndexRedirect() {
-  const { user, activeModule, loading, pin } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={styles.splash}>
-        <ActivityIndicator color={colors.brand600} />
-      </View>
-    );
-  }
-
-  if (!user || !activeModule) {
-    return <Redirect href="/login" />;
-  }
-
-  if (activeModule === 'kasir') {
-    return <Redirect href={(pin?.unlocked ? '/kasir' : '/kasir/pin') as never} />;
-  }
-
-  return <Redirect href="/cogs" />;
+  return (
+    <View style={styles.splash}>
+      <ActivityIndicator color={colors.brand600} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
