@@ -52,7 +52,7 @@ export function initMobileNav() {
         sidebar.classList.add('translate-x-0');
         overlay.classList.remove('pointer-events-none', 'opacity-0');
         overlay.classList.add('pointer-events-auto', 'opacity-100');
-        document.body.classList.add('overflow-hidden', 'touch-none');
+        document.body.classList.add('overflow-hidden', 'touch-none', 'is-mobile-nav-open');
     };
 
     const closeMobile = () => {
@@ -60,7 +60,7 @@ export function initMobileNav() {
         sidebar.classList.remove('translate-x-0');
         overlay.classList.add('pointer-events-none', 'opacity-0');
         overlay.classList.remove('pointer-events-auto', 'opacity-100');
-        document.body.classList.remove('overflow-hidden', 'touch-none');
+        document.body.classList.remove('overflow-hidden', 'touch-none', 'is-mobile-nav-open');
     };
 
     const setDesktopCollapsed = (collapsed) => {

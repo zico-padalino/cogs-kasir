@@ -11,7 +11,15 @@
 
 <div @class(['pos-receipt', 'is-checkout-ready' => $order->canCheckoutAtKasir()])>
     <div class="pos-receipt-head">
-        <div>
+        <button
+            type="button"
+            class="pos-receipt-back lg:hidden"
+            data-kasir-go-menu
+            aria-label="Kembali ke menu"
+        >
+            ← Menu
+        </button>
+        <div class="pos-receipt-head-copy">
             <h2 class="pos-receipt-title">Pesanan</h2>
             <p class="pos-receipt-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
         </div>

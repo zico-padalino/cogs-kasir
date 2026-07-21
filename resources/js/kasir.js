@@ -366,6 +366,18 @@ export function initKasirPos() {
         tab.addEventListener('click', () => setPanel(tab.dataset.kasirTab));
     });
 
+    root.querySelectorAll('[data-kasir-go-menu]').forEach((btn) => {
+        if (btn.dataset.boundGoMenu === '1') {
+            return;
+        }
+        btn.dataset.boundGoMenu = '1';
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setPanel('menu');
+        });
+    });
+
     root.querySelectorAll('[data-kasir-go-cart]').forEach((btn) => {
         btn.addEventListener('click', (event) => {
             event.preventDefault();
@@ -1244,6 +1256,18 @@ function bindOrderActionButtons(root) {
     if (! kasirSetPanel) {
         return;
     }
+
+    root.querySelectorAll('[data-kasir-go-menu]').forEach((btn) => {
+        if (btn.dataset.boundGoMenu === '1') {
+            return;
+        }
+        btn.dataset.boundGoMenu = '1';
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            kasirSetPanel('menu');
+        });
+    });
 
     root.querySelectorAll('[data-kasir-go-cart]').forEach((btn) => {
         btn.addEventListener('click', (event) => {

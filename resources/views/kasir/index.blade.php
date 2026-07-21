@@ -90,21 +90,6 @@
                     @endif
                 </div>
 
-                <div class="pos-view-tabs lg:hidden" role="tablist">
-                    <button type="button" class="pos-view-tab is-active" data-kasir-tab="menu" role="tab" aria-selected="true">
-                        <span class="pos-view-tab-icon">☕</span>
-                        <span>Menu</span>
-                    </button>
-                    <button type="button" class="pos-view-tab" data-kasir-tab="cart" role="tab" aria-selected="false">
-                        <span class="pos-view-tab-icon">🧾</span>
-                        <span>Pesanan</span>
-                        @if ($order->items->isNotEmpty())
-                            <span class="pos-view-tab-total">{{ $format::rupiah($order->total) }}</span>
-                        @endif
-                        <span data-kasir-cart-count class="pos-view-tab-badge {{ $order->items->isEmpty() ? 'hidden' : '' }}">{{ $order->items->count() }}</span>
-                    </button>
-                </div>
-
                 <div class="pos-workspace">
                     <section class="pos-menu-panel kasir-panel-menu flex" data-kasir-panel="menu">
                         <div class="pos-menu-head">
@@ -148,6 +133,22 @@
             <aside class="pos-order-panel kasir-panel-cart hidden lg:flex" data-kasir-panel="cart">
                 @include('kasir.partials.cart-panel', ['order' => $order, 'format' => $format])
             </aside>
+        </div>
+
+        {{-- Di luar pos-main-col agar tetap tampil di tab Pesanan (main-col di-hide) --}}
+        <div class="pos-view-tabs lg:hidden" role="tablist">
+            <button type="button" class="pos-view-tab is-active" data-kasir-tab="menu" role="tab" aria-selected="true">
+                <span class="pos-view-tab-icon">☕</span>
+                <span>Menu</span>
+            </button>
+            <button type="button" class="pos-view-tab" data-kasir-tab="cart" role="tab" aria-selected="false">
+                <span class="pos-view-tab-icon">🧾</span>
+                <span>Pesanan</span>
+                @if ($order->items->isNotEmpty())
+                    <span class="pos-view-tab-total">{{ $format::rupiah($order->total) }}</span>
+                @endif
+                <span data-kasir-cart-count class="pos-view-tab-badge {{ $order->items->isEmpty() ? 'hidden' : '' }}">{{ $order->items->count() }}</span>
+            </button>
         </div>
 
         @include('kasir.partials.item-modals')
