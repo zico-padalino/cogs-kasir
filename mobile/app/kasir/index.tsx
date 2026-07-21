@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -319,25 +320,40 @@ export default function KasirPosScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn}>
-          <View style={styles.menuLine} />
-          <View style={styles.menuLine} />
-          <View style={styles.menuLine} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.topTitle}>{shopName}</Text>
-          <Text style={styles.topSub}>
-            #{order?.order_number ?? '-'} · {order?.order_type_icon} {order?.order_type_label || orderType}
-            {pin?.operator_name ? ` · ${pin.operator_name}` : ''}
-          </Text>
+      <StatusBar barStyle={tab === 'cart' ? 'light-content' : 'dark-content'} />
+      {tab === 'menu' ? (
+        <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
+          <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn}>
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.topTitle}>{shopName}</Text>
+            <Text style={styles.topSub}>
+              #{order?.order_number ?? '-'} · {order?.order_type_icon} {order?.order_type_label || orderType}
+              {pin?.operator_name ? ` · ${pin.operator_name}` : ''}
+            </Text>
+          </View>
+          <Pressable onPress={() => setOrderBarOpen(true)} style={styles.chipBtn}>
+            <Text style={styles.chipText}>Info</Text>
+          </Pressable>
         </View>
-        <Pressable onPress={() => setOrderBarOpen(true)} style={styles.chipBtn}>
-          <Text style={styles.chipText}>Info</Text>
-        </Pressable>
-      </View>
+      ) : (
+        <View style={[styles.cartHeader, { paddingTop: insets.top + spacing.sm }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cartHeaderTitle}>Pesanan</Text>
+            <Text style={styles.cartHeaderMeta}>
+              {itemCount} item · {order?.order_number ?? '-'}
+            </Text>
+          </View>
+          <View style={styles.cartHeaderBadge}>
+            <Text style={styles.cartHeaderBadgeText}>{order?.status_label || 'Draft'}</Text>
+          </View>
+        </View>
+      )}
 
-      {pending.length > 0 ? (
+      {tab === 'menu' && pending.length > 0 ? (
         <View style={styles.pendingBanner}>
           <Text style={styles.pendingTitle}>🔔 Pesanan online ({pending.length})</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -382,16 +398,16 @@ export default function KasirPosScreen() {
         </View>
       ) : null}
 
-      <View style={styles.tabs}>
-        <Pressable onPress={() => setTab('menu')} style={[styles.tab, tab === 'menu' && styles.tabActive]}>
-          <Text style={[styles.tabText, tab === 'menu' && styles.tabTextActive]}>☕ Menu</Text>
-        </Pressable>
-        <Pressable onPress={() => setTab('cart')} style={[styles.tab, tab === 'cart' && styles.tabActive]}>
-          <Text style={[styles.tabText, tab === 'cart' && styles.tabTextActive]}>
-            🧾 Pesanan{itemCount ? ` (${itemCount})` : ''}
-          </Text>
-        </Pressable>
-      </View>
+      {tab === 'menu' ? (
+        <View style={styles.tabs}>
+          <Pressable onPress={() => setTab('menu')} style={[styles.tab, styles.tabActive]}>
+            <Text style={[styles.tabText, styles.tabTextActive]}>☕ Menu</Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('cart')} style={styles.tab}>
+            <Text style={styles.tabText}>🧾 Pesanan{itemCount ? ` (${itemCount})` : ''}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {tab === 'menu' ? (
         <View style={styles.menuPane}>
@@ -402,7 +418,7 @@ export default function KasirPosScreen() {
             placeholderTextColor={colors.slate400}
             style={styles.search}
           />
-        <ScrollView
+          <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.catRow}
@@ -416,9 +432,9 @@ export default function KasirPosScreen() {
                 <Text style={[styles.catChipText, category === slug && styles.catChipTextOn]} numberOfLines={1}>
                   {categoryLabels[slug] || slug}
                 </Text>
-                  </Pressable>
-          ))}
-        </ScrollView>
+              </Pressable>
+            ))}
+          </ScrollView>
           <FlatList
             style={styles.productList}
             data={filteredProducts}
@@ -434,155 +450,203 @@ export default function KasirPosScreen() {
               const noPrice = !(item.selling_price > 0);
 
               return (
-              <Pressable
-                onPress={() => {
-                  if (soldOut || noPrice) {
-                    Alert.alert(soldOut ? 'Habis' : 'Atur harga', soldOut ? 'Stok menu ini habis.' : 'Harga jual belum diatur.');
-                    return;
-                  }
-                  openAdd(item);
-                }}
-                style={[styles.productCard, (soldOut || noPrice) && { opacity: 0.55 }]}
-              >
-                <View style={styles.productMedia}>
-                  <Image source={{ uri: item.image_url }} style={styles.productImage} />
-                  {soldOut ? (
-                    <View style={[styles.productFab, { backgroundColor: colors.rose600 }]}>
-                      <Text style={styles.productFabText}>∅</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.productFab}>
-                      <Text style={styles.productFabText}>+</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.productBody}>
-                  <Text style={styles.productCategory} numberOfLines={1}>
-                    {categoryLabels[item.menu_category || ''] || item.menu_category || 'Lainnya'}
-                  </Text>
-                  <Text style={styles.productName} numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.productPrice} numberOfLines={1}>
-                    {soldOut ? 'Habis' : formatRupiah(item.selling_price)}
-                  </Text>
-                </View>
-              </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (soldOut || noPrice) {
+                      Alert.alert(soldOut ? 'Habis' : 'Atur harga', soldOut ? 'Stok menu ini habis.' : 'Harga jual belum diatur.');
+                      return;
+                    }
+                    openAdd(item);
+                  }}
+                  style={[styles.productCard, (soldOut || noPrice) && { opacity: 0.55 }]}
+                >
+                  <View style={styles.productMedia}>
+                    <Image source={{ uri: item.image_url }} style={styles.productImage} />
+                    {soldOut ? (
+                      <View style={[styles.productFab, { backgroundColor: colors.rose600 }]}>
+                        <Text style={styles.productFabText}>∅</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.productFab}>
+                        <Text style={styles.productFabText}>+</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.productBody}>
+                    <Text style={styles.productCategory} numberOfLines={1}>
+                      {categoryLabels[item.menu_category || ''] || item.menu_category || 'Lainnya'}
+                    </Text>
+                    <Text style={styles.productName} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+                    <Text style={styles.productPrice} numberOfLines={1}>
+                      {soldOut ? 'Habis' : formatRupiah(item.selling_price)}
+                    </Text>
+                  </View>
+                </Pressable>
               );
             }}
             ListEmptyComponent={<Text style={[styles.muted, { padding: spacing.lg }]}>Tidak ada menu.</Text>}
           />
+        </View>
+      ) : (
+        <View style={styles.cartPane}>
+          {(order?.order_type_label || order?.customer_note) ? (
+            <View style={styles.cartContext}>
+              {order?.order_type_label ? (
+                <View style={styles.cartContextChip}>
+                  <Text style={styles.cartContextText}>
+                    {order.order_type_icon ? `${order.order_type_icon} ` : ''}
+                    {order.order_type_label}
+                  </Text>
+                </View>
+              ) : null}
+              {order?.customer_note ? (
+                <View style={styles.cartContextChip}>
+                  <Text style={styles.cartContextText}>{order.customer_note}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              padding: spacing.lg,
+              paddingBottom: (itemCount > 0 && order?.can_checkout !== false ? 96 : 24) + spacing.lg,
+              gap: spacing.md,
+            }}
+          >
+            {(order?.items || []).length === 0 ? (
+              <View style={styles.cartEmpty}>
+                <Text style={{ fontSize: 36 }}>☕</Text>
+                <Text style={styles.cartEmptyTitle}>Belum ada item</Text>
+                <Text style={styles.muted}>Pilih menu untuk mulai pesanan</Text>
               </View>
             ) : (
-        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 140, gap: spacing.md }}>
-          {(order?.items || []).map((item) => (
-            <View key={item.id} style={styles.cartItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cartName}>{item.product_name}</Text>
-                {item.notes ? <Text style={styles.cartNotes}>{item.notes}</Text> : null}
-                <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
-                    </View>
-                    <View style={styles.qtyRow}>
-                <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
-                        <Text style={styles.qtyBtnText}>−</Text>
-                      </Pressable>
-                <Text style={styles.qtyVal}>{item.quantity}</Text>
-                <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
-                        <Text style={styles.qtyBtnText}>+</Text>
-                      </Pressable>
-                    </View>
+              (order?.items || []).map((item) => (
+                <View key={item.id} style={styles.cartItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cartName}>{item.product_name}</Text>
+                    {item.notes ? <Text style={styles.cartNotes}>{item.notes}</Text> : null}
+                    <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
                   </View>
-                ))}
+                  <View style={styles.qtyRow}>
+                    <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
+                      <Text style={styles.qtyBtnText}>−</Text>
+                    </Pressable>
+                    <Text style={styles.qtyVal}>{item.quantity}</Text>
+                    <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+                      <Text style={styles.qtyBtnText}>+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))
+            )}
 
-          <View style={styles.discountBox}>
-            <Text style={styles.sectionLabel}>Diskon</Text>
-            <View style={styles.discountTabs}>
-              {(['amount', 'percent'] as const).map((t) => (
+            {(order?.items || []).length > 0 ? (
+              <>
+                <View style={styles.discountBox}>
+                  <Text style={styles.sectionLabel}>Diskon</Text>
+                  <View style={styles.discountTabs}>
+                    {(['amount', 'percent'] as const).map((t) => (
                       <Pressable
-                  key={t}
-                  onPress={() => {
-                    setDiscountType(t);
-                    void saveDiscount(t, discountValue);
-                  }}
-                  style={[styles.discountTab, discountType === t && styles.discountTabOn]}
-                >
-                  <Text style={styles.discountTabText}>{t === 'amount' ? 'Rp' : '%'}</Text>
+                        key={t}
+                        onPress={() => {
+                          setDiscountType(t);
+                          void saveDiscount(t, discountValue);
+                        }}
+                        style={[styles.discountTab, discountType === t && styles.discountTabOn]}
+                      >
+                        <Text style={styles.discountTabText}>{t === 'amount' ? 'Rp' : '%'}</Text>
                       </Pressable>
                     ))}
-            </View>
-            <TextInput
-              value={discountValue}
-              onChangeText={setDiscountValue}
-              onEndEditing={() => saveDiscount(discountType, discountValue)}
-              keyboardType="numeric"
-              placeholder="0"
-              style={styles.input}
-            />
                   </View>
+                  <TextInput
+                    value={discountValue}
+                    onChangeText={setDiscountValue}
+                    onEndEditing={() => saveDiscount(discountType, discountValue)}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    style={styles.input}
+                  />
+                </View>
 
-          <View style={styles.totals}>
-            <View style={styles.totalRow}><Text style={styles.muted}>Subtotal</Text><Text>{formatRupiah(order?.subtotal ?? 0)}</Text></View>
-            {(order?.discount_amount ?? 0) > 0 ? (
-              <View style={styles.totalRow}><Text style={styles.muted}>Diskon</Text><Text>- {formatRupiah(order?.discount_amount ?? 0)}</Text></View>
+                <View style={styles.totals}>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.muted}>Subtotal</Text>
+                    <Text>{formatRupiah(order?.subtotal ?? 0)}</Text>
+                  </View>
+                  {(order?.discount_amount ?? 0) > 0 ? (
+                    <View style={styles.totalRow}>
+                      <Text style={styles.muted}>Diskon</Text>
+                      <Text>- {formatRupiah(order?.discount_amount ?? 0)}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.rowActions}>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert('Pesanan baru', 'Buat order baru?', [
+                        { text: 'Batal', style: 'cancel' },
+                        {
+                          text: 'Ya',
+                          onPress: async () => {
+                            try {
+                              const res = await kasirApi.newOrder();
+                              applyOrder(res.data);
+                            } catch (err) {
+                              handleApiError(err);
+                            }
+                          },
+                        },
+                      ]);
+                    }}
+                    style={styles.outlineBtn}
+                  >
+                    <Text style={styles.outlineBtnText}>Order Baru</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert('Batalkan', 'Batalkan pesanan aktif?', [
+                        { text: 'Tidak', style: 'cancel' },
+                        {
+                          text: 'Batalkan',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              const res = await kasirApi.cancelOrder();
+                              applyOrder(res.data);
+                            } catch (err) {
+                              handleApiError(err);
+                            }
+                          },
+                        },
+                      ]);
+                    }}
+                    style={styles.dangerBtn}
+                  >
+                    <Text style={styles.dangerBtnText}>Batal</Text>
+                  </Pressable>
+                </View>
+              </>
             ) : null}
-            <View style={styles.totalRow}><Text style={styles.totalLabel}>Total</Text><Text style={styles.totalValue}>{formatRupiah(total)}</Text></View>
-          </View>
-
-          <View style={styles.rowActions}>
-                            <Pressable
-              onPress={() => {
-                Alert.alert('Pesanan baru', 'Buat order baru?', [
-                  { text: 'Batal', style: 'cancel' },
-                  {
-                    text: 'Ya',
-                    onPress: async () => {
-                      try {
-                        const res = await kasirApi.newOrder();
-                        applyOrder(res.data);
-                      } catch (err) {
-                        handleApiError(err);
-                      }
-                    },
-                  },
-                ]);
-              }}
-              style={styles.outlineBtn}
-            >
-              <Text style={styles.outlineBtnText}>Order Baru</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                Alert.alert('Batalkan', 'Batalkan pesanan aktif?', [
-                  { text: 'Tidak', style: 'cancel' },
-                  {
-                    text: 'Batalkan',
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        const res = await kasirApi.cancelOrder();
-                        applyOrder(res.data);
-                      } catch (err) {
-                        handleApiError(err);
-                      }
-                    },
-                  },
-                ]);
-              }}
-              style={styles.dangerBtn}
-            >
-              <Text style={styles.dangerBtnText}>Batal</Text>
-                            </Pressable>
-                        </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       )}
 
-      {itemCount > 0 && order?.can_checkout !== false ? (
-        <View style={[styles.checkoutDock, { paddingBottom: insets.bottom + spacing.sm }]}>
+      {tab === 'cart' && itemCount > 0 && order?.can_checkout !== false ? (
+        <View style={styles.checkoutDockInline}>
           <View>
             <Text style={styles.dockMeta}>{itemCount} item</Text>
             <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
-                </View>
-                      <Pressable
+          </View>
+          <Pressable
             onPress={() => {
               setPayMethod('cash');
               setAmountReceived(formatRupiahInput(Math.ceil(total)));
@@ -592,9 +656,42 @@ export default function KasirPosScreen() {
             style={styles.payBtn}
           >
             <Text style={styles.payBtnText}>Bayar</Text>
-                      </Pressable>
-                    </View>
-                  ) : null}
+          </Pressable>
+        </View>
+      ) : null}
+
+      {tab === 'cart' ? (
+        <View style={[styles.tabsBottom, { paddingBottom: insets.bottom + spacing.xs }]}>
+          <Pressable onPress={() => setTab('menu')} style={styles.tabBottom}>
+            <Text style={styles.tabText}>☕ Menu</Text>
+          </Pressable>
+          <Pressable onPress={() => setTab('cart')} style={[styles.tabBottom, styles.tabBottomActive]}>
+            <Text style={[styles.tabText, styles.tabBottomTextActive]}>
+              🧾 Pesanan{itemCount ? ` (${itemCount})` : ''}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {tab === 'menu' && itemCount > 0 && order?.can_checkout !== false ? (
+        <View style={[styles.checkoutDock, { paddingBottom: insets.bottom + spacing.sm }]}>
+          <View>
+            <Text style={styles.dockMeta}>{itemCount} item</Text>
+            <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              setPayMethod('cash');
+              setAmountReceived(formatRupiahInput(Math.ceil(total)));
+              setProofUri(null);
+              setPayOpen(true);
+            }}
+            style={styles.payBtn}
+          >
+            <Text style={styles.payBtnText}>Bayar</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* Add item modal */}
       <Modal visible={!!addProduct} animationType="slide" transparent onRequestClose={() => setAddProduct(null)}>
@@ -797,10 +894,82 @@ const styles = StyleSheet.create({
   pendingLoadText: { color: colors.white, fontSize: 11, ...font('600') },
   pendingCancel: { color: colors.red600, fontSize: 11, ...font('600'), paddingVertical: 4 },
   tabs: { flexDirection: 'row', backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200 },
+  tabsBottom: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.slate200,
+    paddingTop: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    gap: spacing.xs,
+    shadowColor: '#1C1410',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+  },
   tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
   tabActive: { borderBottomWidth: 2, borderBottomColor: colors.brand600 },
+  tabBottom: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+  },
+  tabBottomActive: {
+    backgroundColor: colors.brand600,
+  },
+  tabBottomTextActive: { color: colors.white, ...font('700') },
   tabText: { color: colors.slate500, fontSize: 14, ...font('500') },
   tabTextActive: { color: colors.brand700, ...font('700') },
+  cartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.slate900,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  cartHeaderTitle: { fontSize: 18, color: colors.white, ...font('700') },
+  cartHeaderMeta: { fontSize: 12, color: colors.slate400, marginTop: 2 },
+  cartHeaderBadge: {
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  cartHeaderBadgeText: { fontSize: 11, color: colors.slate900, ...font('700') },
+  cartPane: { flex: 1, backgroundColor: colors.slate100 },
+  cartContext: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.slate200,
+  },
+  cartContextChip: {
+    borderRadius: radius.full,
+    backgroundColor: colors.brand50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  cartContextText: { fontSize: 12, color: colors.brand700, ...font('600') },
+  cartEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, gap: spacing.sm },
+  cartEmptyTitle: { fontSize: 15, color: colors.slate700, ...font('600') },
+  checkoutDockInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.slate900,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
   search: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,

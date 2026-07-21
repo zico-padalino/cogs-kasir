@@ -344,7 +344,8 @@ export function initKasirPos() {
         syncMobilePayChrome(root, name);
 
         if (window.innerWidth < POS_DESKTOP_BP && name === 'cart') {
-            window.setTimeout(() => scrollToPayDock(root), 120);
+            window.scrollTo(0, 0);
+            root.querySelector('.pos-receipt-body')?.scrollTo?.(0, 0);
         }
     };
 
@@ -445,6 +446,7 @@ export function initKasirPos() {
                 panel.classList.add('flex');
             });
             root.classList.remove('is-mobile-cart-tab', 'is-mobile-menu-tab');
+            document.body.classList.remove('is-mobile-cart-tab', 'is-mobile-menu-tab');
             root.querySelector('[data-pos-mobile-checkout]')?.classList.remove('hidden');
 
             return;
@@ -470,6 +472,13 @@ function syncMobilePayChrome(root, activeTab) {
 
     root.classList.toggle('is-mobile-cart-tab', isMobile && activeTab === 'cart');
     root.classList.toggle('is-mobile-menu-tab', isMobile && activeTab === 'menu');
+    document.body.classList.toggle('is-mobile-cart-tab', isMobile && activeTab === 'cart');
+    document.body.classList.toggle('is-mobile-menu-tab', isMobile && activeTab === 'menu');
+
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+        themeMeta.setAttribute('content', isMobile && activeTab === 'cart' ? '#1c1410' : '#5c4033');
+    }
 
     if (mobileCheckout) {
         mobileCheckout.classList.toggle('hidden', ! isMobile || activeTab === 'cart');
