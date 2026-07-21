@@ -214,6 +214,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('users', [UserAccessApiController::class, 'store'])->name('users.store');
             Route::get('users/{user}', [UserAccessApiController::class, 'show'])->name('users.show');
             Route::put('users/{user}', [UserAccessApiController::class, 'update'])->name('users.update');
+            Route::post('users/{user}/reset-password', [UserAccessApiController::class, 'resetPassword'])->name('users.reset-password');
             Route::delete('users/{user}', [UserAccessApiController::class, 'destroy'])->name('users.destroy');
 
             Route::get('settings', [SettingsApiController::class, 'show'])->name('settings.show');

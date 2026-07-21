@@ -112,6 +112,25 @@ class UserAccessController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'Akun dihapus.');
     }
 
+    public function resetPassword(Request $request, User $user): RedirectResponse
+    {
+        if ($user->isRoot() && ! $request->user()->isRoot()) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('error', 'Hanya akun root yang dapat mereset password akun root.');
+        }
+
+        $defaultPassword = (string) config('pos.default_user_password', 'password');
+
+        $user->password = $defaultPassword;
+        $user->must_change_password = true;
+        $user->save();
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'Password '.$user->name.' direset. Password sementara: '.$defaultPassword.'. Saat login berikutnya, user wajib mengganti password.');
+    }
+
     /** @return array<string, mixed> */
     private function validated(Request $request, ?User $user = null): array
     {

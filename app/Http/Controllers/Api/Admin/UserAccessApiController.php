@@ -110,6 +110,29 @@ class UserAccessApiController extends Controller
         ]);
     }
 
+    public function resetPassword(Request $request, User $user): JsonResponse
+    {
+        if ($user->isRoot() && ! $request->user()->isRoot()) {
+            return response()->json([
+                'message' => 'Hanya akun root yang dapat mereset password akun root.',
+            ], 403);
+        }
+
+        $defaultPassword = (string) config('pos.default_user_password', 'password');
+
+        $user->password = $defaultPassword;
+        $user->must_change_password = true;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password '.$user->name.' direset. Password sementara: '.$defaultPassword.'. Saat login berikutnya, user wajib mengganti password.',
+            'data' => [
+                'user' => $user->fresh(),
+                'temporary_password' => $defaultPassword,
+            ],
+        ]);
+    }
+
     /** @return array<string, mixed> */
     private function validated(Request $request, ?User $user = null): array
     {

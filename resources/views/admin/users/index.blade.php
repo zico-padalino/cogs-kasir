@@ -27,9 +27,17 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="flex shrink-0 gap-1">
+                <div class="flex shrink-0 flex-wrap justify-end gap-1">
                     @if (! $user->isRoot() || auth()->user()->isRoot())
                         <a href="{{ route('admin.users.edit', $user) }}" class="btn-sm btn-outline">Edit</a>
+                        <form
+                            action="{{ route('admin.users.reset-password', $user) }}"
+                            method="POST"
+                            onsubmit="return confirm({{ json_encode('Reset password '.$user->name.' ke password sementara? User wajib ganti password saat login berikutnya.') }})"
+                        >
+                            @csrf
+                            <button type="submit" class="btn-sm btn-outline">Reset Password</button>
+                        </form>
                         @if (auth()->id() !== $user->id)
                             <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Hapus akun ini?')">
                                 @csrf
