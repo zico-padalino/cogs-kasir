@@ -125,13 +125,7 @@ class PosOrderService
                 ->where('source', PosOrderSource::Online)
                 ->first();
 
-            if ($order && in_array($order->status, [
-                PosOrderStatus::Open,
-                PosOrderStatus::Submitted,
-                PosOrderStatus::Confirmed,
-                PosOrderStatus::Unpaid,
-                PosOrderStatus::Paid,
-            ], true)) {
+            if ($order && in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Submitted, PosOrderStatus::Confirmed, PosOrderStatus::Paid], true)) {
                 return $order;
             }
         }
@@ -252,7 +246,7 @@ class PosOrderService
         $this->recalculateTotals($order);
     }
 
-    public function submitOnlineOrder(PosOrder $order, bool $payOnLeave = false): PosOrder
+    public function submitOnlineOrder(PosOrder $order): PosOrder
     {
         if ($order->source !== PosOrderSource::Online) {
             throw new RuntimeException('Hanya pesanan online yang bisa dikirim dari meja.');
@@ -270,9 +264,7 @@ class PosOrderService
             throw new RuntimeException('Pilih Take Away atau Dine In dulu.');
         }
 
-        $order->update([
-            'status' => $payOnLeave ? PosOrderStatus::Unpaid : PosOrderStatus::Submitted,
-        ]);
+        $order->update(['status' => PosOrderStatus::Submitted]);
 
         $fresh = $order->fresh(['items.product', 'table']);
         $this->kasirPushNotifier->notifyNewOnlineOrder($fresh);
@@ -330,7 +322,7 @@ class PosOrderService
                 $order = $this->confirmOrder($order, $cashier, $attr);
             }
 
-            if (! in_array($order->status, [PosOrderStatus::Confirmed, PosOrderStatus::Unpaid], true)) {
+            if ($order->status !== PosOrderStatus::Confirmed) {
                 throw new RuntimeException('Pesanan sudah dibayar atau dibatalkan.');
             }
         } elseif (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Unpaid], true)) {
@@ -482,51 +474,104 @@ class PosOrderService
     }
 
     /**
-     * Simpan tagihan: pesan dulu, bayar saat pelanggan pulang.
-     * Berlaku untuk pesanan kasir maupun QR/meja. Stok belum dipotong sampai lunas.
+     * Buka / perbarui Open Bill di kasir saja.
+     * Jika nama (atau meja) sama dengan Open Bill yang sudah ada, item digabung ke bill itu.
+     * Stok belum dipotong sampai lunas.
+     *
+     * @return array{order: PosOrder, merged: bool}
      */
-    public function holdPayOnLeave(PosOrder $order, ?array $attribution = null): PosOrder
+    public function openBill(PosOrder $order, ?array $attribution = null): array
     {
-        $allowed = match ($order->source) {
-            PosOrderSource::Kasir => [PosOrderStatus::Open, PosOrderStatus::Unpaid],
-            PosOrderSource::Online => [
-                PosOrderStatus::Submitted,
-                PosOrderStatus::Confirmed,
-                PosOrderStatus::Unpaid,
-            ],
-            default => [],
-        };
+        if ($order->source !== PosOrderSource::Kasir) {
+            throw new RuntimeException('Open Bill hanya bisa dibuat dari kasir.');
+        }
 
-        if ($allowed === [] || ! in_array($order->status, $allowed, true)) {
-            throw new RuntimeException('Pesanan ini tidak bisa disimpan sebagai bayar saat pulang.');
+        if (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Unpaid], true)) {
+            throw new RuntimeException('Pesanan ini tidak bisa disimpan sebagai Open Bill.');
         }
 
         $order->loadMissing('items');
 
         if ($order->items->isEmpty()) {
-            throw new RuntimeException('Tambah item dulu sebelum simpan tagihan.');
+            throw new RuntimeException('Tambah item dulu sebelum buat Open Bill.');
         }
 
         if (! filled($order->customer_note) && ! $order->pos_table_id) {
-            throw new RuntimeException('Isi nama pelanggan (atau pilih meja) supaya tagihan mudah dicari saat pulang.');
+            throw new RuntimeException('Isi nama pelanggan (atau pilih meja) supaya Open Bill mudah dicari.');
         }
 
         $attr = $attribution ?? [];
-        $payload = [
-            'status' => PosOrderStatus::Unpaid,
-            'user_id' => $attr['user_id'] ?? $order->user_id,
-            'cashier_employee_id' => $attr['cashier_employee_id'] ?? $order->cashier_employee_id,
-            'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
-        ];
 
-        if ($order->source === PosOrderSource::Online && $order->status === PosOrderStatus::Submitted) {
-            $payload['confirmed_at'] = now();
-            $payload['confirmed_by'] = $attr['user_id'] ?? $order->confirmed_by;
+        return DB::transaction(function () use ($order, $attr) {
+            $existing = $order->status === PosOrderStatus::Open
+                ? $this->findMatchingOpenBill($order)
+                : null;
+
+            if ($existing && (int) $existing->id !== (int) $order->id) {
+                foreach ($order->items as $item) {
+                    $item->update(['pos_order_id' => $existing->id]);
+                }
+
+                $this->recalculateTotals($existing);
+
+                $order->update([
+                    'status' => PosOrderStatus::Cancelled,
+                    'subtotal' => 0,
+                    'discount_amount' => 0,
+                    'total' => 0,
+                ]);
+
+                $existing->update([
+                    'user_id' => $attr['user_id'] ?? $existing->user_id,
+                    'cashier_employee_id' => $attr['cashier_employee_id'] ?? $existing->cashier_employee_id,
+                    'cashier_name' => $attr['cashier_name'] ?? $existing->cashier_name,
+                ]);
+
+                return [
+                    'order' => $existing->fresh(['items.product', 'table']),
+                    'merged' => true,
+                ];
+            }
+
+            $order->update([
+                'status' => PosOrderStatus::Unpaid,
+                'user_id' => $attr['user_id'] ?? $order->user_id,
+                'cashier_employee_id' => $attr['cashier_employee_id'] ?? $order->cashier_employee_id,
+                'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
+            ]);
+
+            return [
+                'order' => $order->fresh(['items.product', 'table']),
+                'merged' => false,
+            ];
+        });
+    }
+
+    /** Cari Open Bill kasir yang cocok (nama sama, atau meja sama jika tanpa nama). */
+    private function findMatchingOpenBill(PosOrder $order): ?PosOrder
+    {
+        $base = PosOrder::query()
+            ->where('source', PosOrderSource::Kasir)
+            ->where('status', PosOrderStatus::Unpaid)
+            ->whereKeyNot($order->id);
+
+        if (filled($order->customer_note)) {
+            $name = mb_strtolower(trim((string) $order->customer_note));
+
+            return (clone $base)
+                ->whereRaw('LOWER(TRIM(customer_note)) = ?', [$name])
+                ->latest('id')
+                ->first();
         }
 
-        $order->update($payload);
+        if ($order->pos_table_id) {
+            return (clone $base)
+                ->where('pos_table_id', $order->pos_table_id)
+                ->latest('id')
+                ->first();
+        }
 
-        return $order->fresh(['items.product', 'table']);
+        return null;
     }
 
     public function cancelOrder(PosOrder $order): void
@@ -541,16 +586,12 @@ class PosOrderService
     public function cancelPendingOnlineOrder(PosOrder $order): void
     {
         $isOnlineWaiting = $order->source === PosOrderSource::Online
-            && in_array($order->status, [
-                PosOrderStatus::Submitted,
-                PosOrderStatus::Confirmed,
-                PosOrderStatus::Unpaid,
-            ], true);
+            && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true);
 
-        $isKasirPayOnLeave = $order->source === PosOrderSource::Kasir
+        $isOpenBill = $order->source === PosOrderSource::Kasir
             && $order->status === PosOrderStatus::Unpaid;
 
-        if (! $isOnlineWaiting && ! $isKasirPayOnLeave) {
+        if (! $isOnlineWaiting && ! $isOpenBill) {
             throw new RuntimeException('Pesanan ini tidak bisa dihapus dari daftar menunggu.');
         }
 
@@ -565,13 +606,9 @@ class PosOrderService
             ->where(function ($query) {
                 $query->where(function ($online) {
                     $online->where('source', PosOrderSource::Online)
-                        ->whereIn('status', [
-                            PosOrderStatus::Submitted,
-                            PosOrderStatus::Confirmed,
-                            PosOrderStatus::Unpaid,
-                        ]);
-                })->orWhere(function ($payOnLeave) {
-                    $payOnLeave->where('source', PosOrderSource::Kasir)
+                        ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed]);
+                })->orWhere(function ($openBill) {
+                    $openBill->where('source', PosOrderSource::Kasir)
                         ->where('status', PosOrderStatus::Unpaid);
                 });
             })

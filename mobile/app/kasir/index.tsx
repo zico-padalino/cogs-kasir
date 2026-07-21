@@ -308,11 +308,14 @@ export default function KasirPosScreen() {
     }
   };
 
-  const submitHoldPayOnLeave = () => {
-    if (!order || (order.source !== 'kasir' && order.source !== 'online')) return;
+  const submitOpenBill = () => {
+    if (!order || order.source !== 'kasir') return;
+    const alreadyOpen = order.is_open_bill || order.status === 'unpaid';
     Alert.alert(
-      'Bayar saat pulang',
-      'Simpan tagihan sekarang? Pelanggan bayar nanti saat pulang. Stok belum dipotong.',
+      'Open Bill',
+      alreadyOpen
+        ? 'Simpan perubahan Open Bill?'
+        : 'Simpan sebagai Open Bill? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.',
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -320,10 +323,10 @@ export default function KasirPosScreen() {
           onPress: async () => {
             setHolding(true);
             try {
-              const res = await kasirApi.holdPayOnLeave();
+              const res = await kasirApi.openBill();
               applyOrder(res.data.active_order);
               await refresh();
-              Alert.alert('Disimpan', res.message || 'Tagihan disimpan — bayar saat pulang.');
+              Alert.alert('Disimpan', res.message || 'Open Bill disimpan.');
             } catch (err) {
               handleApiError(err);
             } finally {
@@ -385,7 +388,7 @@ export default function KasirPosScreen() {
                       {p.customer_note || p.table?.label || 'Tanpa nama'}
                     </Text>
                     <Text style={styles.pendingMeta}>
-                      {p.is_pay_on_leave || p.status === 'unpaid' ? 'Bayar saat pulang · ' : ''}
+                      {p.is_open_bill || p.status === 'unpaid' ? 'Open Bill · ' : ''}
                       {formatRupiah(p.total)}
                     </Text>
                     <View style={styles.pendingActions}>
@@ -402,9 +405,11 @@ export default function KasirPosScreen() {
                         style={styles.pendingLoad}
                       >
                         <Text style={styles.pendingLoadText}>
-                          {p.is_pay_on_leave || p.status === 'unpaid' || p.status === 'confirmed'
-                            ? 'Bayar'
-                            : 'Buka'}
+                          {p.is_open_bill || p.status === 'unpaid'
+                            ? 'Buka'
+                            : p.status === 'confirmed'
+                              ? 'Bayar'
+                              : 'Buka'}
                         </Text>
                       </Pressable>
                       <Pressable
@@ -716,13 +721,15 @@ export default function KasirPosScreen() {
                 <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
               </View>
               <View style={styles.payActions}>
-                {order?.source === 'kasir' || order?.source === 'online' ? (
+                {order?.source === 'kasir' ? (
                   <Pressable
-                    onPress={submitHoldPayOnLeave}
+                    onPress={submitOpenBill}
                     disabled={holding}
                     style={styles.holdBtn}
                   >
-                    <Text style={styles.holdBtnText}>{holding ? '…' : 'Bayar saat pulang'}</Text>
+                    <Text style={styles.holdBtnText}>
+                      {holding ? '…' : order?.is_open_bill || order?.status === 'unpaid' ? 'Simpan Open Bill' : 'Open Bill'}
+                    </Text>
                   </Pressable>
                 ) : null}
                 <Pressable

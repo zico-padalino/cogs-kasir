@@ -17,7 +17,7 @@ enum PosOrderStatus: string
             self::Open => 'Draft',
             self::Submitted => 'Menunggu Kasir',
             self::Confirmed => 'Siap Bayar',
-            self::Unpaid => 'Bayar saat pulang',
+            self::Unpaid => 'Open Bill',
             self::Paid => 'Selesai',
             self::Cancelled => 'Batal',
         };
@@ -29,7 +29,7 @@ enum PosOrderStatus: string
             self::Open => 'badge-slate',
             self::Submitted => 'badge-amber',
             self::Confirmed => 'badge-brand',
-            self::Unpaid => 'badge-amber',
+            self::Unpaid => 'badge-blue',
             self::Paid => 'badge-green',
             self::Cancelled => 'badge-slate',
         };

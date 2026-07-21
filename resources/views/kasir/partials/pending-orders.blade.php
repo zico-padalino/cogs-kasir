@@ -4,7 +4,7 @@
     use App\Enums\PosOrderStatus;
     $pendingTotal = $pendingOrders->sum('total');
     $onlineWaiting = $pendingOrders->where('status', PosOrderStatus::Submitted)->count();
-    $payOnLeaveCount = $pendingOrders->where('status', PosOrderStatus::Unpaid)->count();
+    $openBillCount = $pendingOrders->where('status', PosOrderStatus::Unpaid)->count();
     $currentOrderId = $currentOrder?->id;
     // Expand only when there are other orders still needing attention.
     $hasActionable = $pendingOrders->contains(
@@ -25,8 +25,8 @@
             @if ($onlineWaiting > 0)
                 · {{ $onlineWaiting }} online
             @endif
-            @if ($payOnLeaveCount > 0)
-                · {{ $payOnLeaveCount }} bayar saat pulang
+            @if ($openBillCount > 0)
+                · {{ $openBillCount }} open bill
             @endif
             · {{ $format::rupiah($pendingTotal) }}
         </span>
@@ -38,19 +38,19 @@
             @foreach ($pendingOrders as $pending)
                 @php
                     $isCurrent = $currentOrderId && (int) $pending->id === (int) $currentOrderId;
-                    $isPayOnLeave = $pending->status === PosOrderStatus::Unpaid;
+                    $isOpenBill = $pending->status === PosOrderStatus::Unpaid;
                     $actionCols = $isCurrent ? 1 : 2;
                     $openLabel = match (true) {
-                        $isPayOnLeave => 'Bayar',
+                        $isOpenBill => 'Buka / Tambah',
                         $pending->status === PosOrderStatus::Confirmed => 'Bayar',
                         default => 'Masuk kasir',
                     };
-                    $deleteLabel = $isPayOnLeave ? 'Hapus tagihan' : 'Hapus';
-                    $deleteConfirm = $isPayOnLeave
-                        ? 'Hapus tagihan '.($pending->customer_note ?: $pending->order_number).'? Tagihan akan dibatalkan.'
+                    $deleteLabel = $isOpenBill ? 'Hapus Open Bill' : 'Hapus';
+                    $deleteConfirm = $isOpenBill
+                        ? 'Hapus Open Bill '.($pending->customer_note ?: $pending->order_number).'?'
                         : 'Hapus pesanan online '.($pending->customer_note ?: $pending->order_number).'? Pesanan akan dibatalkan.';
                 @endphp
-                <div @class(['pos-pending-card', 'is-current' => $isCurrent, 'is-pay-on-leave' => $isPayOnLeave])>
+                <div @class(['pos-pending-card', 'is-current' => $isCurrent, 'is-open-bill' => $isOpenBill])>
                     <div class="pos-pending-card-head">
                         <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
                         <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
@@ -78,7 +78,7 @@
                                     class="pos-pending-action pos-pending-action-delete"
                                     onclick="return confirm({{ json_encode($deleteConfirm) }})"
                                 >
-                                    {{ $isPayOnLeave ? 'Hapus tagihan' : 'Hapus pesanan' }}
+                                    {{ $isOpenBill ? 'Hapus Open Bill' : 'Hapus pesanan' }}
                                 </button>
                             </form>
                         @else

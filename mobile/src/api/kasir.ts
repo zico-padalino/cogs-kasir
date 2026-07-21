@@ -114,7 +114,7 @@ export const pesanApi = {
   }) {
     return apiRequest<Envelope<PosOrder>>('/pesan/items', { method: 'POST', body: payload, auth: false });
   },
-  submit(payload: { order_id: number; customer_note: string; order_type: string; pay_mode?: 'now' | 'on_leave' }) {
+  submit(payload: { order_id: number; customer_note: string; order_type: string }) {
     return apiRequest<Envelope<PosOrder>>('/pesan/submit', { method: 'POST', body: payload, auth: false });
   },
   status(orderId: number) {
@@ -198,10 +198,10 @@ export const kasirApi = {
   pay(formData: FormData) {
     return apiRequest<Envelope<PosOrder>>('/kasir/pay', { method: 'POST', formData });
   },
-  holdPayOnLeave() {
+  openBill() {
     return apiRequest<
-      Envelope<{ held_order: PosOrder; active_order: PosOrder }>
-    >('/kasir/bayar-saat-pulang', { method: 'POST' });
+      Envelope<{ held_order: PosOrder; active_order: PosOrder; merged?: boolean }>
+    >('/kasir/open-bill', { method: 'POST' });
   },
   receipt(orderId: number) {
     return apiRequest<

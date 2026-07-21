@@ -179,7 +179,7 @@ class KasirController extends Controller
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dibuka. Lanjut bayar atau tambah item.');
     }
 
-    public function holdPayOnLeave(PosOrderService $posService)
+    public function openBill(PosOrderService $posService)
     {
         $order = $this->activeKasirOrder();
 
@@ -188,7 +188,9 @@ class KasirController extends Controller
         }
 
         try {
-            $held = $posService->holdPayOnLeave($order, $this->cashierAttribution());
+            $result = $posService->openBill($order, $this->cashierAttribution());
+            $held = $result['order'];
+            $merged = $result['merged'];
             $newOrder = $posService->createKasirOrder($this->cashier(), $this->cashierAttribution());
             session(['kasir_order_id' => $newOrder->id]);
         } catch (\RuntimeException $e) {
@@ -196,10 +198,13 @@ class KasirController extends Controller
         }
 
         $who = $held->customer_note ?: $held->order_number;
+        $message = $merged
+            ? 'Item ditambahkan ke Open Bill '.$who.'.'
+            : 'Open Bill '.$who.' disimpan. Buka lagi dari daftar menunggu untuk tambah item atau bayar.';
 
         return redirect()
             ->route('kasir.index')
-            ->with('success', 'Tagihan '.$who.' disimpan — bayar saat pulang. Cari di daftar menunggu.');
+            ->with('success', $message);
     }
 
     public function confirmOrder(PosOrder $order, PosOrderService $posService)
@@ -250,7 +255,7 @@ class KasirController extends Controller
         }
 
         $message = $order->source === PosOrderSource::Kasir
-            ? 'Tagihan #'.$order->order_number.' dihapus.'
+            ? 'Open Bill #'.$order->order_number.' dihapus.'
             : 'Pesanan online #'.$order->order_number.' dihapus.';
 
         if (request()->expectsJson()) {

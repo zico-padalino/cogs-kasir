@@ -253,7 +253,7 @@ class PosController extends Controller
 
         return response()->json([
             'message' => $order->source === PosOrderSource::Kasir
-                ? 'Tagihan #'.$order->order_number.' dihapus.'
+                ? 'Open Bill #'.$order->order_number.' dihapus.'
                 : 'Pesanan online #'.$order->order_number.' dihapus.',
             'data' => [
                 'active_order' => $active ? new PosOrderResource($active) : null,
@@ -408,7 +408,7 @@ class PosController extends Controller
         ]);
     }
 
-    public function holdPayOnLeave(PosOrderService $posService): JsonResponse
+    public function openBill(PosOrderService $posService): JsonResponse
     {
         $order = KasirActiveOrder::find();
 
@@ -417,7 +417,9 @@ class PosController extends Controller
         }
 
         try {
-            $held = $posService->holdPayOnLeave($order, $this->cashierAttribution());
+            $result = $posService->openBill($order, $this->cashierAttribution());
+            $held = $result['order'];
+            $merged = $result['merged'];
             $newOrder = $posService->createKasirOrder($this->cashier(), $this->cashierAttribution());
             KasirActiveOrder::set($newOrder);
             $newOrder->load(['items.product', 'table']);
@@ -428,10 +430,13 @@ class PosController extends Controller
         $who = $held->customer_note ?: $held->order_number;
 
         return response()->json([
-            'message' => 'Tagihan '.$who.' disimpan — bayar saat pulang.',
+            'message' => $merged
+                ? 'Item ditambahkan ke Open Bill '.$who.'.'
+                : 'Open Bill '.$who.' disimpan. Buka lagi untuk tambah item atau bayar.',
             'data' => [
                 'held_order' => new PosOrderResource($held->load(['items.product', 'table'])),
                 'active_order' => new PosOrderResource($newOrder),
+                'merged' => $merged,
             ],
         ]);
     }

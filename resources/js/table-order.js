@@ -277,26 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderSearch();
     initOrderModal();
     initOrderCheckoutTypeCards();
-    initOrderPayMode();
     initOrderKasirConfirmation();
 });
-
-function initOrderPayMode() {
-    const form = document.querySelector('#order-checkout-form');
-    if (! form) {
-        return;
-    }
-
-    const payModeInput = form.querySelector('[data-order-pay-mode]');
-
-    form.querySelectorAll('[data-order-set-pay-mode]').forEach((button) => {
-        button.addEventListener('click', () => {
-            if (payModeInput) {
-                payModeInput.value = button.getAttribute('data-order-set-pay-mode') || 'now';
-            }
-        });
-    });
-}
 
 function initOrderKasirConfirmation() {
     const section = document.querySelector('[data-order-waiting-kasir]');

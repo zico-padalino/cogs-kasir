@@ -47,6 +47,12 @@
         </nav>
     @endif
 
+    @if ($order->isOpenBill())
+        <div class="pos-open-bill-hint">
+            Open Bill aktif — boleh tambah item, lalu tekan <strong>Open Bill</strong> lagi atau <strong>Bayar</strong>.
+        </div>
+    @endif
+
     @if ($order->order_type || $order->customer_note)
         <div class="pos-receipt-context" data-pos-receipt-context>
             @if ($order->order_type)
@@ -94,16 +100,18 @@
                 <button type="button" class="pos-pay-submit" data-kasir-open-pay data-kasir-pay-button>
                     Bayar <span data-kasir-pay-button-total>{{ $format::rupiah($order->total) }}</span>
                 </button>
-                <form action="{{ route('kasir.hold') }}" method="POST" class="pos-hold-form">
-                    @csrf
-                    <button
-                        type="submit"
-                        class="pos-hold-submit"
-                        onclick="return confirm('Simpan tagihan untuk dibayar saat pelanggan pulang? Stok belum dipotong.')"
-                    >
-                        Bayar saat pulang
-                    </button>
-                </form>
+                @if ($order->source === PosOrderSource::Kasir)
+                    <form action="{{ route('kasir.open-bill') }}" method="POST" class="pos-hold-form">
+                        @csrf
+                        <button
+                            type="submit"
+                            class="pos-hold-submit"
+                            onclick="return confirm({{ json_encode($order->isOpenBill() ? 'Simpan perubahan Open Bill?' : 'Simpan sebagai Open Bill? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.') }})"
+                        >
+                            {{ $order->isOpenBill() ? 'Simpan Open Bill' : 'Open Bill' }}
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
     @elseif ($order->items->isNotEmpty())

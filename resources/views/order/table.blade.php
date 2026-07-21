@@ -41,13 +41,7 @@
         @endif
 
         <main class="order-table-main">
-            @if ($order->status->value === 'unpaid')
-                @include('order.partials.pay-on-leave-waiting', ['order' => $order, 'format' => $format])
-
-                <div class="order-layout-single">
-                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-            @elseif ($order->status->value === 'submitted')
+            @if ($order->status->value === 'submitted')
                 @include('order.partials.kasir-confirmation', ['order' => $order, 'format' => $format])
 
                 <div class="order-layout-single">
@@ -110,9 +104,8 @@
                             ])
 
                             @if ($order->items->isNotEmpty())
-                                <form action="{{ route('order.menu.submit') }}" method="POST" class="order-checkout-form" id="order-checkout-form">
+                                <form action="{{ route('order.menu.submit') }}" method="POST" class="order-checkout-form">
                                     @csrf
-                                    <input type="hidden" name="pay_mode" value="now" data-order-pay-mode>
 
                                     <div class="order-checkout-details">
                                         <p class="order-checkout-title">Sebelum kirim</p>
@@ -152,28 +145,18 @@
                                         >
                                     </div>
 
-                                    <div class="order-pay-mode" role="group" aria-label="Cara bayar">
-                                        <p class="order-checkout-title">Cara bayar</p>
-                                        <div class="order-pay-mode-grid">
-                                            <button
-                                                type="submit"
-                                                class="order-pay-mode-btn order-pay-mode-now"
-                                                data-order-set-pay-mode="now"
-                                                onclick="return confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk pembayaran.')"
-                                            >
-                                                <span class="order-pay-mode-name">Bayar di kasir sekarang</span>
-                                                <span class="order-pay-mode-desc">Datang ke kasir setelah kirim</span>
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                class="order-pay-mode-btn order-pay-mode-leave"
-                                                data-order-set-pay-mode="on_leave"
-                                                onclick="return confirm('Pesan dulu, bayar saat pulang? Tagihan tersimpan di kasir.')"
-                                            >
-                                                <span class="order-pay-mode-name">Bayar saat pulang</span>
-                                                <span class="order-pay-mode-desc">Nikmati dulu, bayar nanti di kasir</span>
-                                            </button>
-                                        </div>
+                                    <div class="order-submit-note">
+                                        <p>Setelah dikirim, datang ke <strong>kasir</strong> untuk konfirmasi pesanan & pembayaran.</p>
+                                    </div>
+
+                                    <div class="order-submit-wrap">
+                                        <button
+                                            type="submit"
+                                            class="btn-primary order-submit-btn"
+                                            onclick="return confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')"
+                                        >
+                                            Kirim ke Kasir
+                                        </button>
                                     </div>
                                 </form>
                             @else
@@ -186,7 +169,7 @@
         </main>
 
         <footer class="order-table-footer">
-            <p>Pilih menu · Tipe & nama · Kirim · Bayar di kasir (sekarang atau saat pulang)</p>
+            <p>Pilih menu · Tipe & nama · Kirim · Bayar di kasir</p>
         </footer>
     </div>
 @endsection
