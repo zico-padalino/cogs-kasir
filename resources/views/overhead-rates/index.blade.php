@@ -96,7 +96,7 @@
 
                 <x-slot:footer>
                     <p class="text-sm font-medium text-slate-600">Sudah cukup? Lanjut isi daftar bahan.</p>
-                    <a href="{{ route('materials.index') }}" class="btn-primary btn-sm">Lanjut ke Bahan →</a>
+                    <a href="{{ route('materials.index') }}" class="btn-primary btn-sm">Lanjut ke Bahan Baku →</a>
                 </x-slot:footer>
             @else
                 <div class="module-empty">

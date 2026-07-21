@@ -60,7 +60,7 @@
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <x-stat-card label="Total Biaya" :value="$format::rupiah($cogs->total_cogs)" color="brand" />
-            <x-stat-card label="Bahan" :value="$format::rupiah($cogs->direct_material)" color="green" />
+            <x-stat-card label="Bahan Baku" :value="$format::rupiah($cogs->direct_material)" color="green" />
             <x-stat-card label="Gaji Pekerja" :value="$format::rupiah($cogs->direct_labor)" color="amber" />
             <x-stat-card label="Biaya per Unit" :value="$format::rupiah($cogs->unit_cogs)" color="slate" />
         </div>
@@ -68,7 +68,7 @@
         <div class="hero-stat mb-6">
             <p class="text-sm text-slate-600">Biaya per 1 {{ $order->product->unit }} {{ $order->product->name }}</p>
             <p class="hero-stat-value">{{ $format::rupiah($cogs->unit_cogs) }}</p>
-            <p class="mt-2 text-xs text-slate-500">= Bahan + Upah kerja + Biaya tambahan</p>
+            <p class="mt-2 text-xs text-slate-500">= Bahan Baku + Upah kerja + Biaya tambahan</p>
         </div>
     @else
         <div class="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">

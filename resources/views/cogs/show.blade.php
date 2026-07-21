@@ -19,7 +19,7 @@
 
         <dl class="cogs-detail-breakdown">
             <div class="cogs-detail-line">
-                <dt>Bahan</dt>
+                <dt>Bahan Baku</dt>
                 <dd>{{ $format::rupiah($calculation->direct_material) }}</dd>
             </div>
             <div class="cogs-detail-line">

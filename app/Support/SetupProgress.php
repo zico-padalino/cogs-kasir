@@ -43,8 +43,8 @@ class SetupProgress
       [
         'number' => 2,
         'key' => 'materials',
-        'title' => 'Bahan',
-        'short' => 'Bahan',
+        'title' => 'Bahan Baku',
+        'short' => 'Bahan Baku',
         'description' => 'Catat bahan baku plus stok dan harga belinya.',
         'route' => 'materials.index',
         'done' => $hasRawMaterial && $hasStock,

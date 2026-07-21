@@ -24,7 +24,7 @@ import { ALLOCATION_BASE_LABEL, type AllocationBase, type OverheadRate } from '@
 import { colors, spacing } from '@/theme';
 
 const BASE_OPTIONS: { value: AllocationBase; label: string }[] = [
-  { value: 'direct_material', label: 'Bahan' },
+  { value: 'direct_material', label: 'Bahan Baku' },
   { value: 'labor_hours', label: 'Jam Kerja' },
   { value: 'machine_hours', label: 'Jam Mesin' },
   { value: 'direct_labor', label: 'Upah' },

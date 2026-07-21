@@ -172,6 +172,9 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::put('bahan-jadi/{product}', [BahanJadiController::class, 'update'])->name('bahan-jadi.update');
     Route::delete('bahan-jadi/{product}', [BahanJadiController::class, 'destroy'])->name('bahan-jadi.destroy');
     Route::post('bahan-jadi/stok', [BahanJadiController::class, 'receive'])->name('bahan-jadi.receive');
+    Route::post('bahan-jadi/{product}/bom', [BahanJadiController::class, 'storeBom'])->name('bahan-jadi.bom.store');
+    Route::put('bahan-jadi/{product}/bom/{bom}', [BahanJadiController::class, 'updateBom'])->name('bahan-jadi.bom.update');
+    Route::delete('bahan-jadi/{product}/bom/{bom}', [BahanJadiController::class, 'destroyBom'])->name('bahan-jadi.bom.destroy');
 
     Route::resource('production-orders', ProductionOrderController::class);
     Route::post('production-orders/{production_order}/start', [ProductionOrderController::class, 'start'])->name('production-orders.start');

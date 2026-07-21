@@ -9,7 +9,7 @@
         <div class="module-toolbar">
             <p class="module-toolbar__text">Setelah tambah menu, buka <strong>Isi Resep</strong> untuk tulis bahannya.</p>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm shrink-0">← Bahan</a>
+                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm shrink-0">← Bahan Baku</a>
                 <a href="{{ route('menu-pricing.index') }}" class="btn-outline btn-sm shrink-0">Harga Jual →</a>
                 <a href="{{ route('products.create') }}" class="btn-primary shrink-0 py-2.5 font-semibold">+ Tambah Menu</a>
             </div>

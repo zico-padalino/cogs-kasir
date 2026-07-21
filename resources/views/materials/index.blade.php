@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Bahan')
-@section('heading', 'Langkah 2: Bahan')
-@section('subheading', 'Bahan baku + stok + harga beli — isi sekali langsung jadi')
+@section('title', 'Bahan Baku')
+@section('heading', 'Langkah 2: Bahan Baku')
+@section('subheading', 'Stok + harga beli — isi sekali langsung jadi')
 
 @section('content')
     <div class="module-page module-step-2">
         <div class="page-toolbar materials-toolbar">
-            <p class="text-sm text-slate-500">Kelola bahan &amp; stok</p>
+            <p class="text-sm text-slate-500">Kelola bahan baku &amp; stok</p>
             <div class="materials-toolbar__actions">
                 <a
                     href="{{ route('materials.pdf', ['autoprint' => 1]) }}"
@@ -27,11 +27,11 @@
             </div>
         </div>
 
-        <x-module-form-card :step="2" title="Tambah Bahan" description="Isi nama, satuan, lalu pembelian.">
+        <x-module-form-card :step="2" title="Tambah Bahan Baku" description="Isi nama, satuan, lalu pembelian.">
             <form action="{{ route('materials.store') }}" method="POST" class="material-add-form">
                 @csrf
                 <div>
-                    <label class="form-label">Nama bahan</label>
+                    <label class="form-label">Nama bahan baku</label>
                     <input type="text" name="name" class="form-input" required placeholder="Bubuk kopi" value="{{ old('name') }}">
                 </div>
 
@@ -42,18 +42,18 @@
 
                 <x-material-purchase-fields />
 
-                <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan</button>
+                <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan Baku</button>
             </form>
         </x-module-form-card>
 
-        <x-table-card :step="2" title="Daftar Bahan" :subtitle="$materials->count() . ' bahan terdaftar'">
+        <x-table-card :step="2" title="Daftar Bahan Baku" :subtitle="$materials->count() . ' bahan terdaftar'">
             @if ($materials->isNotEmpty())
                 <div class="space-y-3 p-4 sm:p-5" data-materials-list>
                     <div class="materials-search">
                         <input
                             type="search"
                             class="form-input"
-                            placeholder="Cari bahan..."
+                            placeholder="Cari bahan baku..."
                             data-materials-search
                             autocomplete="off"
                         >
@@ -114,7 +114,7 @@
                                             :stock-unit-label="$material->unit"
                                         />
 
-                                        <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan</button>
+                                        <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan Baku</button>
                                     </form>
                                 </details>
 
@@ -226,7 +226,7 @@
                 </div>
 
                 <x-slot:footer>
-                    <p class="text-sm font-medium text-slate-600">Bahan sudah cukup? Lanjut daftarkan menu.</p>
+                    <p class="text-sm font-medium text-slate-600">Bahan baku sudah cukup? Lanjut daftarkan menu.</p>
                     <a href="{{ route('products.index') }}" class="btn-primary btn-sm">Lanjut ke Menu →</a>
                 </x-slot:footer>
             @else

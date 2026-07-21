@@ -508,7 +508,7 @@ export async function getSetupProgress(): Promise<SetupProgress> {
     {
       number: 4,
       key: 'inventory',
-      short: 'Stok Bahan',
+      short: 'Stok Bahan Baku',
       title: 'Stok Bahan Baku',
       description: 'Catat pembelian bahan: jumlah & harga per lot.',
       hint: 'Harga beli dipakai untuk hitung COGS (FIFO / rata-rata).',

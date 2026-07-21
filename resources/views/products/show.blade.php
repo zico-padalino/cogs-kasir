@@ -62,7 +62,7 @@
                     @if ($allProducts->isEmpty())
                         <p class="alert-tip">
                             Belum ada bahan.
-                            <a href="{{ route('materials.index') }}" class="font-semibold text-brand-700">Tambah bahan dulu →</a>
+                            <a href="{{ route('materials.index') }}" class="font-semibold text-brand-700">Tambah bahan baku dulu →</a>
                         </p>
                     @endif
 
@@ -252,7 +252,13 @@
                         >
                             @csrf
                             <div class="recipe-add-form__material">
-                                <label class="form-label" for="bom_child_product_id">Pilih bahan / bahan jadi</label>
+                                <label class="form-label" for="bom_child_product_id">
+                                    @if ($product->type === \App\Enums\ProductType::SemiFinished)
+                                        Pilih bahan baku
+                                    @else
+                                        Pilih bahan / bahan jadi
+                                    @endif
+                                </label>
                                 <select
                                     id="bom_child_product_id"
                                     name="child_product_id"
@@ -260,10 +266,12 @@
                                     required
                                     data-bom-material
                                     data-searchable-select
-                                    data-search-placeholder="Pilih bahan atau bahan jadi..."
+                                    data-search-placeholder="{{ $product->type === \App\Enums\ProductType::SemiFinished ? 'Pilih bahan baku...' : 'Pilih bahan atau bahan jadi...' }}"
                                     data-search-input-placeholder="Cari nama..."
                                 >
-                                    <option value="">Pilih bahan atau bahan jadi...</option>
+                                    <option value="">
+                                        {{ $product->type === \App\Enums\ProductType::SemiFinished ? 'Pilih bahan baku...' : 'Pilih bahan atau bahan jadi...' }}
+                                    </option>
                                     @php
                                         $bomRaw = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::RawMaterial);
                                         $bomJadi = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::SemiFinished);
@@ -280,7 +288,7 @@
                                             @endforeach
                                         </optgroup>
                                     @endif
-                                    @if ($bomJadi->isNotEmpty())
+                                    @if ($product->type !== \App\Enums\ProductType::SemiFinished && $bomJadi->isNotEmpty())
                                         <optgroup label="Bahan jadi">
                                             @foreach ($bomJadi as $p)
                                                 <option

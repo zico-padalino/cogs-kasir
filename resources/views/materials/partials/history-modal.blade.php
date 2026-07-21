@@ -23,7 +23,7 @@
     >
         <div class="material-history-modal-head">
             <div class="min-w-0 flex-1">
-                <h2 id="material-history-title" class="material-history-modal-title">Riwayat Stok Bahan</h2>
+                <h2 id="material-history-title" class="material-history-modal-title">Riwayat Stok Bahan Baku</h2>
                 <p class="material-history-modal-sub" data-history-label>Hari ini</p>
             </div>
             <button type="button" class="material-history-modal-close" data-material-history-close aria-label="Tutup">×</button>

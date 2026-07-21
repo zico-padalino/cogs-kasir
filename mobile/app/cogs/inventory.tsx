@@ -103,7 +103,7 @@ export default function InventoryScreen() {
             <Text style={styles.mutedText}>Buat bahan baku dulu di langkah Produk.</Text>
           ) : (
             <>
-              <Field label="Bahan">
+              <Field label="Bahan Baku">
                 <View style={styles.chipWrap}>
                   {materials.map((material) => (
                     <Pressable

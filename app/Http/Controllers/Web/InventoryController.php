@@ -207,8 +207,8 @@ class InventoryController extends Controller
         );
 
         $note = $purchase['note'] !== ''
-            ? 'Bahan baru + stok awal · '.$purchase['note']
-            : 'Bahan baru + stok awal';
+            ? 'Bahan baku baru + stok awal · '.$purchase['note']
+            : 'Bahan baku baru + stok awal';
 
         $logService->log(
             action: 'create',
@@ -221,7 +221,7 @@ class InventoryController extends Controller
         );
 
         $success = sprintf(
-            'Bahan %s ditambahkan. Stok masuk %s %s @ %s/%s.',
+            'Bahan baku %s ditambahkan. Stok masuk %s %s @ %s/%s.',
             $product->name,
             Format::number($qty),
             $unit,
@@ -351,7 +351,7 @@ class InventoryController extends Controller
 
         return redirect()->route('materials.index')->with(
             'success',
-            'Bahan diperbarui: '.implode(', ', $changes).'.',
+            'Bahan baku diperbarui: '.implode(', ', $changes).'.',
         );
     }
 
@@ -392,7 +392,7 @@ class InventoryController extends Controller
 
         return redirect()->route('materials.index')->with(
             'success',
-            sprintf('Bahan %s dihapus.%s', $name, $suffix),
+            sprintf('Bahan baku %s dihapus.%s', $name, $suffix),
         );
     }
 

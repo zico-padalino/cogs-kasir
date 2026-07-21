@@ -65,7 +65,7 @@
                     </select>
                 </div>
                 <div class="sm:col-span-2" data-waste-field="material" @class(['hidden' => $oldItemType !== 'material'])>
-                    <label class="form-label">Bahan</label>
+                    <label class="form-label">Bahan baku</label>
                     <select name="product_id" class="form-input" data-waste-select="material" @disabled($oldItemType !== 'material') @required($oldItemType === 'material')>
                         <option value="">— Pilih bahan —</option>
                         @foreach ($materials as $product)

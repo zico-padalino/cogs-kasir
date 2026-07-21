@@ -10,7 +10,7 @@
             <p class="module-toolbar__text">Atur harga jual berdasarkan modal — menu siap tampil di Kasir.</p>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('products.index') }}" class="btn-outline btn-sm shrink-0">← Menu & Resep</a>
-                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm shrink-0">← Bahan</a>
+                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm shrink-0">← Bahan Baku</a>
             </div>
         </div>
 

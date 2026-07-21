@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Rekapan Sisa Bahan — {{ $shopName }}</title>
+    <title>Rekapan Sisa Bahan Baku — {{ $shopName }}</title>
     <style>
         @page {
             size: A4;
@@ -249,7 +249,7 @@
         <div class="header">
             <div>
                 <p class="eyebrow">{{ $shopName }}</p>
-                <h1>Rekapan Sisa Bahan</h1>
+                <h1>Rekapan Sisa Bahan Baku</h1>
                 <p class="header-meta">Stok bahan baku yang tersisa saat ini (harga rata-rata tertimbang)</p>
             </div>
             <div class="header-side">

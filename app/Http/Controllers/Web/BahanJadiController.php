@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Enums\CostingMethod;
 use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
+use App\Models\BillOfMaterial;
 use App\Models\Product;
 use App\Services\InventoryCostService;
 use App\Services\MaterialStockLogService;
@@ -14,6 +15,8 @@ use App\Support\MaterialPurchase;
 use App\Support\MaterialUnits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class BahanJadiController extends Controller
 {
@@ -21,8 +24,25 @@ class BahanJadiController extends Controller
     {
         $items = $this->loadItems($inventoryService);
 
+        $rawMaterials = Product::query()
+            ->where('type', ProductType::RawMaterial->value)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $materialUnits = $rawMaterials->mapWithKeys(fn (Product $material) => [
+            (string) $material->id => [
+                'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
+                'label' => MaterialUnits::label($material->unit),
+                'options' => MaterialUnits::recipeOptions($material->unit),
+                'preferred' => MaterialUnits::preferredInputUnit($material->unit),
+            ],
+        ])->all();
+
         return view('bahan-jadi.index', [
             'items' => $items,
+            'rawMaterials' => $rawMaterials,
+            'materialUnits' => $materialUnits,
             'format' => Format::class,
             'units' => MaterialUnits::class,
             'unitPresets' => MaterialUnits::presets(),
@@ -174,6 +194,109 @@ class BahanJadiController extends Controller
         return redirect()->route('bahan-jadi.index')->with('success', 'Bahan jadi dihapus.');
     }
 
+    public function storeBom(Request $request, Product $product)
+    {
+        $this->assertBahanJadi($product);
+
+        $validated = $request->validate([
+            'child_product_id' => [
+                'required',
+                'exists:products,id',
+                'not_in:'.$product->id,
+            ],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'unit' => ['required', 'string', 'max:20'],
+            'scrap_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sequence' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $child = Product::query()->findOrFail($validated['child_product_id']);
+
+        if ($child->type !== ProductType::RawMaterial) {
+            throw ValidationException::withMessages([
+                'child_product_id' => 'Resep bahan jadi hanya boleh dari bahan baku.',
+            ]);
+        }
+
+        if (! $child->is_active) {
+            throw ValidationException::withMessages([
+                'child_product_id' => 'Bahan ini tidak aktif.',
+            ]);
+        }
+
+        $quantity = $this->quantityInStockUnit(
+            (float) $validated['quantity'],
+            $validated['unit'],
+            $child->unit,
+        );
+
+        BillOfMaterial::updateOrCreate(
+            [
+                'parent_product_id' => $product->id,
+                'child_product_id' => $validated['child_product_id'],
+            ],
+            [
+                'quantity' => $quantity,
+                'scrap_percentage' => $validated['scrap_percentage'] ?? 0,
+                'sequence' => $validated['sequence'] ?? 0,
+            ],
+        );
+
+        return redirect()
+            ->route('bahan-jadi.index')
+            ->with('success', $child->name.' ditambahkan ke resep '.$product->name.'.');
+    }
+
+    public function updateBom(Request $request, Product $product, BillOfMaterial $bom)
+    {
+        $this->assertBahanJadi($product);
+
+        if ($bom->parent_product_id !== $product->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'unit' => ['required', 'string', 'max:20'],
+            'scrap_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sequence' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $child = $bom->childProduct;
+        if (! $child) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Bahan pada resep tidak ditemukan.',
+            ]);
+        }
+
+        $quantity = $this->quantityInStockUnit(
+            (float) $validated['quantity'],
+            $validated['unit'],
+            $child->unit,
+        );
+
+        $bom->update([
+            'quantity' => $quantity,
+            'scrap_percentage' => $validated['scrap_percentage'] ?? $bom->scrap_percentage,
+            'sequence' => $validated['sequence'] ?? $bom->sequence,
+        ]);
+
+        return redirect()->route('bahan-jadi.index')->with('success', 'Resep diperbarui.');
+    }
+
+    public function destroyBom(Product $product, BillOfMaterial $bom)
+    {
+        $this->assertBahanJadi($product);
+
+        if ($bom->parent_product_id !== $product->id) {
+            abort(404);
+        }
+
+        $bom->delete();
+
+        return redirect()->route('bahan-jadi.index')->with('success', 'Bahan dihapus dari resep.');
+    }
+
     public function receive(
         Request $request,
         InventoryCostService $inventoryService,
@@ -221,7 +344,10 @@ class BahanJadiController extends Controller
             ->where('type', ProductType::SemiFinished->value)
             ->where('is_active', true)
             ->withCount('billOfMaterials')
-            ->with(['inventoryLots' => fn ($q) => $q->orderByDesc('received_at')])
+            ->with([
+                'billOfMaterials.childProduct',
+                'inventoryLots' => fn ($q) => $q->orderByDesc('received_at'),
+            ])
             ->orderBy('name')
             ->get()
             ->map(function (Product $product) use ($inventoryService) {
@@ -236,6 +362,17 @@ class BahanJadiController extends Controller
     {
         if ($product->type !== ProductType::SemiFinished) {
             abort(403, 'Hanya bahan jadi yang bisa dikelola di sini.');
+        }
+    }
+
+    private function quantityInStockUnit(float $quantity, ?string $inputUnit, ?string $stockUnit): float
+    {
+        try {
+            return MaterialUnits::convert($quantity, $inputUnit, $stockUnit);
+        } catch (InvalidArgumentException $e) {
+            throw ValidationException::withMessages([
+                'unit' => $e->getMessage(),
+            ]);
         }
     }
 

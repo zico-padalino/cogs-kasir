@@ -37,12 +37,12 @@
             <h2 class="text-lg font-semibold text-slate-900">Alur singkatnya</h2>
             <ol class="mt-3 list-inside list-decimal space-y-2 text-sm text-slate-700">
                 <li><strong>Biaya lain</strong> — listrik, sewa (kalau ada)</li>
-                <li><strong>Bahan</strong> — tepung, gula, dll + stok & harga beli</li>
+                <li><strong>Bahan Baku</strong> — tepung, gula, dll + stok & harga beli</li>
                 <li><strong>Menu & resep</strong> — apa yang dijual + bahan resepnya</li>
                 <li><strong>Harga jual</strong> — tentukan harga menu di Kasir</li>
             </ol>
             <p class="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-800">
-                Modal = Bahan + Upah + Biaya lain
+                Modal = Bahan Baku + Upah + Biaya lain
             </p>
         </div>
 
@@ -89,7 +89,7 @@
             <h2 class="mb-4 text-lg font-semibold">Ringkasan Modal</h2>
             <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <x-stat-card label="Total Modal" :value="$format::rupiah($summary['total_cogs'])" color="brand" />
-                <x-stat-card label="Bahan" :value="$format::rupiah($summary['total_direct_material'])" color="green" />
+                <x-stat-card label="Bahan Baku" :value="$format::rupiah($summary['total_direct_material'])" color="green" />
                 <x-stat-card label="Upah Kerja" :value="$format::rupiah($summary['total_direct_labor'])" color="amber" />
                 <x-stat-card label="Biaya Lain" :value="$format::rupiah($summary['total_overhead'])" color="rose" />
             </div>
