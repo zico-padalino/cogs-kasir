@@ -1356,11 +1356,13 @@
     }
 
     .app-sidebar-shop-name {
-        @apply font-display truncate text-[0.95rem] font-semibold tracking-tight text-espresso;
+        @apply font-display text-[0.95rem] font-semibold leading-snug tracking-tight text-espresso;
+        overflow-wrap: anywhere;
     }
 
     .app-sidebar-shop-meta {
-        @apply mt-0.5 truncate text-[11px] font-medium text-copper;
+        @apply mt-0.5 text-[11px] font-medium leading-snug text-copper;
+        overflow-wrap: anywhere;
     }
 
     .app-sidebar-progress {
