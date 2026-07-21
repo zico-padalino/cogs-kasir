@@ -44,11 +44,7 @@ class PosController extends Controller
 
         $activeOrder->load(['items.product', 'table']);
 
-        $pendingOrders = PosOrder::with(['table', 'items.product'])
-            ->where('source', PosOrderSource::Online)
-            ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed])
-            ->latest()
-            ->get();
+        $pendingOrders = $posService->waitingOrders();
 
         $products = $posService->sellableProducts();
         $products->loadMissing('addons');
@@ -73,19 +69,19 @@ class PosController extends Controller
         ]);
     }
 
-    public function pendingPoll(): JsonResponse
+    public function pendingPoll(PosOrderService $posService): JsonResponse
     {
-        $pendingOrders = PosOrder::with(['table', 'items.product'])
-            ->where('source', PosOrderSource::Online)
-            ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed])
-            ->latest()
-            ->get();
+        $pendingOrders = $posService->waitingOrders();
 
         return response()->json([
             'data' => array_merge([
                 'count' => $pendingOrders->count(),
                 'total' => (float) $pendingOrders->sum('total'),
                 'order_ids' => $pendingOrders->pluck('id')->values(),
+                'notify_order_ids' => $pendingOrders
+                    ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online)
+                    ->pluck('id')
+                    ->values(),
                 'has_pending' => $pendingOrders->isNotEmpty(),
                 'latest_order_id' => $pendingOrders->first()?->id,
                 'orders' => PosOrderResource::collection($pendingOrders),
@@ -256,7 +252,9 @@ class PosController extends Controller
         }
 
         return response()->json([
-            'message' => 'Pesanan online #'.$order->order_number.' dihapus.',
+            'message' => $order->source === PosOrderSource::Kasir
+                ? 'Tagihan #'.$order->order_number.' dihapus.'
+                : 'Pesanan online #'.$order->order_number.' dihapus.',
             'data' => [
                 'active_order' => $active ? new PosOrderResource($active) : null,
             ],
@@ -407,6 +405,34 @@ class PosController extends Controller
         return response()->json([
             'message' => 'Pembayaran berhasil.',
             'data' => new PosOrderResource($paid),
+        ]);
+    }
+
+    public function holdPayOnLeave(PosOrderService $posService): JsonResponse
+    {
+        $order = KasirActiveOrder::find();
+
+        if (! $order) {
+            return response()->json(['message' => 'Tidak ada order aktif.'], 422);
+        }
+
+        try {
+            $held = $posService->holdPayOnLeave($order, $this->cashierAttribution());
+            $newOrder = $posService->createKasirOrder($this->cashier(), $this->cashierAttribution());
+            KasirActiveOrder::set($newOrder);
+            $newOrder->load(['items.product', 'table']);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $who = $held->customer_note ?: $held->order_number;
+
+        return response()->json([
+            'message' => 'Tagihan '.$who.' disimpan — bayar saat pulang.',
+            'data' => [
+                'held_order' => new PosOrderResource($held->load(['items.product', 'table'])),
+                'active_order' => new PosOrderResource($newOrder),
+            ],
         ]);
     }
 

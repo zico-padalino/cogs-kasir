@@ -325,7 +325,7 @@ class PosOrderService
             if ($order->status !== PosOrderStatus::Confirmed) {
                 throw new RuntimeException('Pesanan sudah dibayar atau dibatalkan.');
             }
-        } elseif ($order->status !== PosOrderStatus::Open) {
+        } elseif (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Unpaid], true)) {
             throw new RuntimeException('Pesanan sudah dibayar atau dibatalkan.');
         }
 
@@ -473,6 +473,42 @@ class PosOrderService
         return $requirements;
     }
 
+    /**
+     * Simpan tagihan: pesan dulu, bayar saat pelanggan pulang.
+     * Stok belum dipotong sampai pembayaran lunas.
+     */
+    public function holdPayOnLeave(PosOrder $order, ?array $attribution = null): PosOrder
+    {
+        if ($order->source !== PosOrderSource::Kasir) {
+            throw new RuntimeException('Fitur ini hanya untuk pesanan kasir.');
+        }
+
+        if (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Unpaid], true)) {
+            throw new RuntimeException('Pesanan ini tidak bisa disimpan sebagai bayar saat pulang.');
+        }
+
+        $order->loadMissing('items');
+
+        if ($order->items->isEmpty()) {
+            throw new RuntimeException('Tambah item dulu sebelum simpan tagihan.');
+        }
+
+        if (! filled($order->customer_note) && ! $order->pos_table_id) {
+            throw new RuntimeException('Isi nama pelanggan (atau pilih meja) supaya tagihan mudah dicari saat pulang.');
+        }
+
+        $attr = $attribution ?? [];
+
+        $order->update([
+            'status' => PosOrderStatus::Unpaid,
+            'user_id' => $attr['user_id'] ?? $order->user_id,
+            'cashier_employee_id' => $attr['cashier_employee_id'] ?? $order->cashier_employee_id,
+            'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
+        ]);
+
+        return $order->fresh(['items.product', 'table']);
+    }
+
     public function cancelOrder(PosOrder $order): void
     {
         if ($order->status === PosOrderStatus::Paid) {
@@ -484,15 +520,35 @@ class PosOrderService
 
     public function cancelPendingOnlineOrder(PosOrder $order): void
     {
-        if ($order->source !== PosOrderSource::Online) {
-            throw new RuntimeException('Hanya pesanan online yang bisa dihapus dari daftar ini.');
-        }
+        $isOnlineWaiting = $order->source === PosOrderSource::Online
+            && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true);
 
-        if (! in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true)) {
-            throw new RuntimeException('Pesanan ini tidak bisa dihapus.');
+        $isPayOnLeave = $order->source === PosOrderSource::Kasir
+            && $order->status === PosOrderStatus::Unpaid;
+
+        if (! $isOnlineWaiting && ! $isPayOnLeave) {
+            throw new RuntimeException('Pesanan ini tidak bisa dihapus dari daftar menunggu.');
         }
 
         $this->cancelOrder($order);
+    }
+
+    /** @return Collection<int, PosOrder> */
+    public function waitingOrders()
+    {
+        return PosOrder::query()
+            ->with(['table', 'items.product'])
+            ->where(function ($query) {
+                $query->where(function ($online) {
+                    $online->where('source', PosOrderSource::Online)
+                        ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed]);
+                })->orWhere(function ($payOnLeave) {
+                    $payOnLeave->where('source', PosOrderSource::Kasir)
+                        ->where('status', PosOrderStatus::Unpaid);
+                });
+            })
+            ->latest()
+            ->get();
     }
 
     /** @return Collection<int, Product> */

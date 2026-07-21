@@ -25,13 +25,16 @@ async function listenTask(): Promise<void> {
           const data = res.data;
           const orders = data.orders || [];
           const ids = (data.order_ids || []).map(Number);
-          const newIds = takeNewPendingIds(ids);
+          const notifyIds = (data.notify_order_ids || data.order_ids || []).map(Number);
+          const newIds = takeNewPendingIds(ids, notifyIds);
 
           if (newIds.length > 0) {
-            const newOrders = orders.filter((o) => newIds.includes(o.id));
-            await announceNewOrders(
-              newOrders.length > 0 ? newOrders : orders.slice(0, 1),
+            const newOrders = orders.filter(
+              (o) => newIds.includes(o.id) && o.source !== 'kasir',
             );
+            if (newOrders.length > 0) {
+              await announceNewOrders(newOrders);
+            }
           }
         }
       } catch {

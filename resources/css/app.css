@@ -3406,6 +3406,22 @@
         @apply relative z-10 flex w-full min-h-11 touch-manipulation cursor-pointer items-center justify-center rounded-xl bg-green-600 px-3 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-green-700 active:scale-[0.98];
     }
 
+    .pos-receipt-pay-actions {
+        @apply flex flex-col gap-2;
+    }
+
+    .pos-hold-form {
+        @apply w-full;
+    }
+
+    .pos-hold-submit {
+        @apply relative z-10 flex w-full min-h-10 touch-manipulation cursor-pointer items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98];
+    }
+
+    .pos-pending-card.is-pay-on-leave {
+        @apply border-amber-200 bg-amber-50/40;
+    }
+
     .pos-receipt-confirm {
         @apply border-t border-slate-200 bg-slate-50 p-4;
     }
@@ -3786,6 +3802,15 @@
             font-size: 0.95rem;
             font-weight: 700;
             box-shadow: none;
+        }
+
+        body.is-kasir-pos.is-mobile-cart-tab .pos-hold-submit {
+            min-height: 2.75rem;
+            border-radius: 0.85rem;
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.12);
+            color: #fde68a;
+            font-size: 0.85rem;
         }
 
         body.is-kasir-pos.is-mobile-cart-tab .pos-pay-submit:hover,

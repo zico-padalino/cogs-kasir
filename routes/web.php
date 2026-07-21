@@ -134,6 +134,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
         Route::post('/kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
         Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
+        Route::post('/bayar-saat-pulang', [KasirController::class, 'holdPayOnLeave'])->name('hold');
         Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
         Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
         Route::post('/waste', [KasirWebWasteController::class, 'store'])->name('waste.store');

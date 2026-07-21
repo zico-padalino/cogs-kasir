@@ -71,7 +71,7 @@ class KasirActiveOrder
 
         return PosOrder::with('items.product')
             ->where('id', $orderId)
-            ->whereIn('status', ['open', 'submitted', 'confirmed'])
+            ->whereIn('status', ['open', 'submitted', 'confirmed', 'unpaid'])
             ->first();
     }
 

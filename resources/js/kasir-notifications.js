@@ -258,6 +258,7 @@ async function pollPendingOrders(pollUrl, shell) {
     }
 
     const currentIds = new Set((data.order_ids ?? []).map((id) => Number(id)));
+    const notifyIds = new Set((data.notify_order_ids ?? data.order_ids ?? []).map((id) => Number(id)));
 
     if (knownOrderIds === null) {
         knownOrderIds = currentIds;
@@ -269,7 +270,7 @@ async function pollPendingOrders(pollUrl, shell) {
         return;
     }
 
-    const newIds = [...currentIds].filter((id) => ! knownOrderIds.has(id));
+    const newIds = [...notifyIds].filter((id) => ! knownOrderIds.has(id));
 
     if (newIds.length > 0) {
         if (pinPollOnly) {

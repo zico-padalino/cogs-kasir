@@ -29,13 +29,20 @@ export function useKasirOrderAlerts(enabled: boolean) {
         const data = res.data;
         const orders = data.orders || [];
         const ids = (data.order_ids || []).map(Number);
-        const newIds = takeNewPendingIds(ids);
+        const notifyIds = (data.notify_order_ids || data.order_ids || []).map(Number);
+        const newIds = takeNewPendingIds(ids, notifyIds);
 
         if (newIds.length === 0 || announcingRef.current) {
           return;
         }
 
-        const newOrders = orders.filter((o) => newIds.includes(o.id));
+        const newOrders = orders.filter(
+          (o) => newIds.includes(o.id) && o.source !== 'kasir',
+        );
+        if (newOrders.length === 0) {
+          return;
+        }
+
         const newest =
           newIds.includes(Number(data.latest_order_id)) && data.latest_order_id
             ? Number(data.latest_order_id)
@@ -44,9 +51,7 @@ export function useKasirOrderAlerts(enabled: boolean) {
 
         announcingRef.current = true;
         try {
-          const alert = await announceNewOrders(
-            newOrders.length > 0 ? newOrders : orders.slice(0, 1),
-          );
+          const alert = await announceNewOrders(newOrders);
           if (alert) {
             setOrderAlert({
               title: alert.title,

@@ -15,7 +15,7 @@ class OrderHistoryController extends Controller
     public function index(): JsonResponse
     {
         $orders = PosOrder::with(['table', 'items.product', 'cashier'])
-            ->whereIn('status', ['submitted', 'confirmed', 'paid'])
+            ->whereIn('status', ['submitted', 'confirmed', 'unpaid', 'paid'])
             ->latest()
             ->paginate(20);
 

@@ -42,11 +42,7 @@ class KasirController extends Controller
 
         $activeOrder->load(['items.product', 'table']);
 
-        $pendingOrders = PosOrder::with(['table', 'items'])
-            ->where('source', PosOrderSource::Online)
-            ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed])
-            ->latest()
-            ->get();
+        $pendingOrders = $posService->waitingOrders();
 
         $products = $posService->sellableProducts();
 
@@ -63,13 +59,9 @@ class KasirController extends Controller
         ]);
     }
 
-    public function pendingOrdersPoll()
+    public function pendingOrdersPoll(PosOrderService $posService)
     {
-        $pendingOrders = PosOrder::with(['table'])
-            ->where('source', PosOrderSource::Online)
-            ->whereIn('status', [PosOrderStatus::Submitted, PosOrderStatus::Confirmed])
-            ->latest()
-            ->get();
+        $pendingOrders = $posService->waitingOrders();
 
         $format = Format::class;
         $currentOrder = $this->activeKasirOrder();
@@ -78,6 +70,10 @@ class KasirController extends Controller
             'count' => $pendingOrders->count(),
             'total' => (float) $pendingOrders->sum('total'),
             'order_ids' => $pendingOrders->pluck('id')->values(),
+            'notify_order_ids' => $pendingOrders
+                ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online)
+                ->pluck('id')
+                ->values(),
             'has_pending' => $pendingOrders->isNotEmpty(),
             'latest_order_id' => $pendingOrders->first()?->id,
             'html' => $pendingOrders->isNotEmpty()
@@ -89,7 +85,7 @@ class KasirController extends Controller
     public function orders()
     {
         $orders = PosOrder::with(['table', 'items.product', 'cashier'])
-            ->whereIn('status', ['submitted', 'confirmed', 'paid'])
+            ->whereIn('status', ['submitted', 'confirmed', 'unpaid', 'paid'])
             ->latest()
             ->paginate(20);
 
@@ -180,7 +176,30 @@ class KasirController extends Controller
             return response()->json($this->kasirOrderAjaxPayload($order, 'Order #'.$order->order_number.' masuk ke kasir.'));
         }
 
-        return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' masuk ke kasir. Lanjut bayar.');
+        return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dibuka. Lanjut bayar atau tambah item.');
+    }
+
+    public function holdPayOnLeave(PosOrderService $posService)
+    {
+        $order = $this->activeKasirOrder();
+
+        if (! $order) {
+            return back()->with('error', 'Tidak ada order aktif.');
+        }
+
+        try {
+            $held = $posService->holdPayOnLeave($order, $this->cashierAttribution());
+            $newOrder = $posService->createKasirOrder($this->cashier(), $this->cashierAttribution());
+            session(['kasir_order_id' => $newOrder->id]);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $who = $held->customer_note ?: $held->order_number;
+
+        return redirect()
+            ->route('kasir.index')
+            ->with('success', 'Tagihan '.$who.' disimpan — bayar saat pulang. Cari di daftar menunggu.');
     }
 
     public function confirmOrder(PosOrder $order, PosOrderService $posService)
@@ -230,7 +249,9 @@ class KasirController extends Controller
             session(['kasir_order_id' => $newOrder->id]);
         }
 
-        $message = 'Pesanan online #'.$order->order_number.' dihapus.';
+        $message = $order->source === PosOrderSource::Kasir
+            ? 'Tagihan #'.$order->order_number.' dihapus.'
+            : 'Pesanan online #'.$order->order_number.' dihapus.';
 
         if (request()->expectsJson()) {
             return response()->json([
@@ -541,7 +562,7 @@ class KasirController extends Controller
 
         return PosOrder::with('items.product')
             ->where('id', $orderId)
-            ->whereIn('status', ['open', 'submitted', 'confirmed'])
+            ->whereIn('status', ['open', 'submitted', 'confirmed', 'unpaid'])
             ->first();
     }
 

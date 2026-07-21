@@ -66,6 +66,7 @@ export default function KasirPosScreen() {
   const [amountReceived, setAmountReceived] = useState('');
   const [proofUri, setProofUri] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [holding, setHolding] = useState(false);
 
   const [discountType, setDiscountType] = useState<'amount' | 'percent' | null>(null);
   const [discountValue, setDiscountValue] = useState('');
@@ -307,6 +308,33 @@ export default function KasirPosScreen() {
     }
   };
 
+  const submitHoldPayOnLeave = () => {
+    if (!order || order.source !== 'kasir') return;
+    Alert.alert(
+      'Bayar saat pulang',
+      'Simpan tagihan sekarang? Pelanggan bayar nanti saat pulang. Stok belum dipotong.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Simpan',
+          onPress: async () => {
+            setHolding(true);
+            try {
+              const res = await kasirApi.holdPayOnLeave();
+              applyOrder(res.data.active_order);
+              await refresh();
+              Alert.alert('Disimpan', res.message || 'Tagihan disimpan — bayar saat pulang.');
+            } catch (err) {
+              handleApiError(err);
+            } finally {
+              setHolding(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const cashChange = useMemo(() => {
     if (payMethod !== 'cash') return 0;
     const received = parseRupiahInput(amountReceived);
@@ -348,7 +376,7 @@ export default function KasirPosScreen() {
 
           {pending.length > 0 ? (
             <View style={styles.pendingBanner}>
-              <Text style={styles.pendingTitle}>🔔 Pesanan online ({pending.length})</Text>
+              <Text style={styles.pendingTitle}>🔔 Menunggu ({pending.length})</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {pending.map((p) => (
                   <View key={p.id} style={styles.pendingCard}>
@@ -356,7 +384,10 @@ export default function KasirPosScreen() {
                     <Text style={styles.pendingMeta} numberOfLines={1}>
                       {p.customer_note || p.table?.label || 'Tanpa nama'}
                     </Text>
-                    <Text style={styles.pendingMeta}>{formatRupiah(p.total)}</Text>
+                    <Text style={styles.pendingMeta}>
+                      {p.is_pay_on_leave || p.status === 'unpaid' ? 'Bayar saat pulang · ' : ''}
+                      {formatRupiah(p.total)}
+                    </Text>
                     <View style={styles.pendingActions}>
                       <Pressable
                         onPress={async () => {
@@ -370,7 +401,11 @@ export default function KasirPosScreen() {
                         }}
                         style={styles.pendingLoad}
                       >
-                        <Text style={styles.pendingLoadText}>Buka</Text>
+                        <Text style={styles.pendingLoadText}>
+                          {p.is_pay_on_leave || p.status === 'unpaid' || p.status === 'confirmed'
+                            ? 'Bayar'
+                            : 'Buka'}
+                        </Text>
                       </Pressable>
                       <Pressable
                         onPress={async () => {
@@ -676,21 +711,32 @@ export default function KasirPosScreen() {
 
           {itemCount > 0 && order?.can_checkout !== false ? (
             <View style={styles.checkoutDockInline}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.dockMeta}>{itemCount} item</Text>
                 <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
               </View>
-              <Pressable
-                onPress={() => {
-                  setPayMethod('cash');
-                  setAmountReceived(formatRupiahInput(Math.ceil(total)));
-                  setProofUri(null);
-                  setPayOpen(true);
-                }}
-                style={styles.payBtn}
-              >
-                <Text style={styles.payBtnText}>Bayar</Text>
-              </Pressable>
+              <View style={styles.payActions}>
+                {order?.source === 'kasir' ? (
+                  <Pressable
+                    onPress={submitHoldPayOnLeave}
+                    disabled={holding}
+                    style={styles.holdBtn}
+                  >
+                    <Text style={styles.holdBtnText}>{holding ? '…' : 'Bayar saat pulang'}</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  onPress={() => {
+                    setPayMethod('cash');
+                    setAmountReceived(formatRupiahInput(Math.ceil(total)));
+                    setProofUri(null);
+                    setPayOpen(true);
+                  }}
+                  style={styles.payBtn}
+                >
+                  <Text style={styles.payBtnText}>Bayar</Text>
+                </Pressable>
+              </View>
             </View>
           ) : null}
 
@@ -992,6 +1038,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.md,
   },
+  payActions: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 8,
+    minWidth: 140,
+  },
+  holdBtn: {
+    minHeight: 40,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.amber500,
+    backgroundColor: colors.amber50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  holdBtnText: { color: colors.amber800, fontSize: 12, ...font('700'), textAlign: 'center' },
   search: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,

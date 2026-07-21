@@ -13,9 +13,14 @@ export function seedPendingIds(ids: number[]): void {
   primed = true;
 }
 
-/** Dipakai guard alert: kembalikan ID baru lalu update set. */
-export function takeNewPendingIds(ids: number[]): number[] {
+/**
+ * Sinkronkan semua ID menunggu, kembalikan ID baru yang boleh di-alert.
+ * @param ids semua order menunggu (online + bayar saat pulang)
+ * @param alertIds subset yang memicu notifikasi (biasanya hanya online)
+ */
+export function takeNewPendingIds(ids: number[], alertIds?: number[]): number[] {
   const next = ids.map(Number).filter((id) => Number.isFinite(id));
+  const alertPool = (alertIds ?? ids).map(Number).filter((id) => Number.isFinite(id));
 
   if (!primed) {
     knownIds = new Set(next);
@@ -23,7 +28,7 @@ export function takeNewPendingIds(ids: number[]): number[] {
     return [];
   }
 
-  const fresh = next.filter((id) => !knownIds.has(id));
+  const fresh = alertPool.filter((id) => !knownIds.has(id));
   knownIds = new Set(next);
   return fresh;
 }

@@ -154,6 +154,7 @@ export const kasirApi = {
           count: number;
           total: number;
           order_ids: number[];
+          notify_order_ids?: number[];
           has_pending: boolean;
           latest_order_id?: number | null;
           orders: PosOrder[];
@@ -196,6 +197,11 @@ export const kasirApi = {
   },
   pay(formData: FormData) {
     return apiRequest<Envelope<PosOrder>>('/kasir/pay', { method: 'POST', formData });
+  },
+  holdPayOnLeave() {
+    return apiRequest<
+      Envelope<{ held_order: PosOrder; active_order: PosOrder }>
+    >('/kasir/bayar-saat-pulang', { method: 'POST' });
   },
   receipt(orderId: number) {
     return apiRequest<

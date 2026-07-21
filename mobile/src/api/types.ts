@@ -89,6 +89,7 @@ export type PosOrder = {
   item_count?: number;
   can_checkout?: boolean;
   is_editable?: boolean;
+  is_pay_on_leave?: boolean;
   table?: { id: number; table_number: string; label: string } | null;
   items?: OrderItem[];
   created_at?: string | null;

@@ -102,7 +102,10 @@ class PosOrder extends Model
     public function isKasirEditable(): bool
     {
         return match ($this->source) {
-            PosOrderSource::Kasir => $this->status === PosOrderStatus::Open,
+            PosOrderSource::Kasir => in_array($this->status, [
+                PosOrderStatus::Open,
+                PosOrderStatus::Unpaid,
+            ], true),
             // Pesanan QR/meja: kasir boleh koreksi item sebelum bayar.
             PosOrderSource::Online => in_array($this->status, [
                 PosOrderStatus::Submitted,
@@ -128,7 +131,10 @@ class PosOrder extends Model
     public function canCheckoutAtKasir(): bool
     {
         return match ($this->source) {
-            PosOrderSource::Kasir => $this->status === PosOrderStatus::Open,
+            PosOrderSource::Kasir => in_array($this->status, [
+                PosOrderStatus::Open,
+                PosOrderStatus::Unpaid,
+            ], true),
             // Online: bayar setelah masuk kasir (submitted/confirmed), bukan konfirmasi dulu.
             PosOrderSource::Online => in_array($this->status, [
                 PosOrderStatus::Submitted,
@@ -136,6 +142,12 @@ class PosOrder extends Model
             ], true),
             default => false,
         };
+    }
+
+    /** Tagihan dine-in yang disimpan dulu, dibayar saat pelanggan pulang. */
+    public function isPayOnLeave(): bool
+    {
+        return $this->status === PosOrderStatus::Unpaid;
     }
 
     public function paymentProofUrl(): ?string

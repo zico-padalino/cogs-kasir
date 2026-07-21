@@ -40,6 +40,7 @@ class PosOrderResource extends JsonResource
             'item_count' => $this->whenLoaded('items', fn () => $this->items->count(), $this->items()->count()),
             'can_checkout' => $this->canCheckoutAtKasir(),
             'is_editable' => $this->isKasirEditable(),
+            'is_pay_on_leave' => $this->isPayOnLeave(),
             'table' => $this->whenLoaded('table', fn () => $this->table ? [
                 'id' => $this->table->id,
                 'table_number' => $this->table->table_number,
