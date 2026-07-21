@@ -15,7 +15,7 @@ export function seedPendingIds(ids: number[]): void {
 
 /**
  * Sinkronkan semua ID menunggu, kembalikan ID baru yang boleh di-alert.
- * @param ids semua order menunggu (online + bayar saat pulang)
+ * @param ids semua order menunggu (online + open bill + siap antar)
  * @param alertIds subset yang memicu notifikasi (biasanya hanya online)
  */
 export function takeNewPendingIds(ids: number[], alertIds?: number[]): number[] {

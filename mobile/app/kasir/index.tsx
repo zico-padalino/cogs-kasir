@@ -344,6 +344,17 @@ export default function KasirPosScreen() {
     return Math.max(0, received - total);
   }, [amountReceived, payMethod, total]);
 
+  const pendingSummary = useMemo(() => {
+    const onlineWaiting = pending.filter((p) => p.status === 'submitted').length;
+    const openBillCount = pending.filter((p) => p.is_open_bill || p.status === 'unpaid').length;
+    const awaitingServeCount = pending.filter((p) => p.can_mark_served || p.status === 'paid').length;
+    const pendingTotal = pending.reduce((sum, p) => sum + (p.total || 0), 0);
+    return { onlineWaiting, openBillCount, awaitingServeCount, pendingTotal };
+  }, [pending]);
+
+  const cartEditable = order?.is_editable !== false;
+  const isActiveOpenBill = Boolean(order?.is_open_bill || order?.status === 'unpaid');
+
   if (loading && !order) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
@@ -379,71 +390,143 @@ export default function KasirPosScreen() {
 
           {pending.length > 0 ? (
             <View style={styles.pendingBanner}>
-              <Text style={styles.pendingTitle}>🔔 Menunggu ({pending.length})</Text>
+              <Text style={styles.pendingTitle}>
+                🔔 {pending.length} menunggu
+                {pendingSummary.onlineWaiting > 0 ? ` · ${pendingSummary.onlineWaiting} online` : ''}
+                {pendingSummary.openBillCount > 0 ? ` · ${pendingSummary.openBillCount} open bill` : ''}
+                {pendingSummary.awaitingServeCount > 0 ? ` · ${pendingSummary.awaitingServeCount} siap antar` : ''}
+                {` · ${formatRupiah(pendingSummary.pendingTotal)}`}
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {pending.map((p) => {
                   const awaitingServe = p.can_mark_served || p.status === 'paid';
                   const isOpenBill = p.is_open_bill || p.status === 'unpaid';
+                  const isCurrent = order?.id === p.id;
+                  const openLabel = isOpenBill
+                    ? 'Buka / Tambah'
+                    : p.status === 'confirmed'
+                      ? 'Bayar'
+                      : 'Masuk kasir';
+                  const deleteLabel = isOpenBill ? 'Hapus Open Bill' : 'Hapus';
+                  const deleteConfirm = isOpenBill
+                    ? `Hapus Open Bill ${p.customer_note || p.order_number}?`
+                    : `Hapus pesanan ${p.customer_note || p.order_number}? Pesanan akan dibatalkan.`;
+                  const serveConfirm = `Konfirmasi pesanan ${p.customer_note || p.order_number} sudah diantar / selesai?`;
 
                   return (
-                  <View key={p.id} style={styles.pendingCard}>
-                    <Text style={styles.pendingNo}>#{p.order_number}</Text>
-                    <Text style={styles.pendingMeta} numberOfLines={1}>
-                      {p.customer_note || p.table?.label || 'Tanpa nama'}
-                    </Text>
-                    <Text style={styles.pendingMeta}>
-                      {awaitingServe ? 'Sudah Bayar · ' : isOpenBill ? 'Open Bill · ' : ''}
-                      {formatRupiah(p.total)}
-                    </Text>
-                    <View style={styles.pendingActions}>
-                      {awaitingServe ? (
-                        <Pressable
-                          onPress={async () => {
-                            try {
-                              await kasirApi.markServed(p.id);
-                              await refresh();
-                            } catch (err) {
-                              handleApiError(err);
-                            }
-                          }}
-                          style={styles.pendingLoad}
-                        >
-                          <Text style={styles.pendingLoadText}>Selesai</Text>
-                        </Pressable>
-                      ) : (
-                        <>
+                    <View
+                      key={p.id}
+                      style={[
+                        styles.pendingCard,
+                        isOpenBill && styles.pendingCardOpenBill,
+                        awaitingServe && styles.pendingCardAwaitingServe,
+                        isCurrent && styles.pendingCardCurrent,
+                      ]}
+                    >
+                      <Text style={styles.pendingNo} numberOfLines={1}>
+                        {p.customer_note || 'Tanpa nama'}
+                      </Text>
+                      <Text style={styles.pendingMeta} numberOfLines={1}>
+                        #{p.order_number}
+                        {p.table?.label ? ` · ${p.table.label}` : ''}
+                      </Text>
+                      <Text style={styles.pendingMeta}>
+                        {isCurrent && !awaitingServe
+                          ? 'Sedang dibuka'
+                          : awaitingServe
+                            ? 'Sudah Bayar'
+                            : isOpenBill
+                              ? 'Open Bill'
+                              : p.status_label || p.status}
+                        {' · '}
+                        {formatRupiah(p.total)}
+                      </Text>
+                      <View style={styles.pendingActions}>
+                        {awaitingServe ? (
                           <Pressable
-                            onPress={async () => {
-                              try {
-                                const res = await kasirApi.loadOrder(p.id);
-                                applyOrder(res.data);
-                                setTab('cart');
-                              } catch (err) {
-                                handleApiError(err);
-                              }
+                            onPress={() => {
+                              Alert.alert('Selesai antar', serveConfirm, [
+                                { text: 'Batal', style: 'cancel' },
+                                {
+                                  text: 'Ya, selesai',
+                                  onPress: async () => {
+                                    try {
+                                      await kasirApi.markServed(p.id);
+                                      await refresh();
+                                    } catch (err) {
+                                      handleApiError(err);
+                                    }
+                                  },
+                                },
+                              ]);
                             }}
-                            style={styles.pendingLoad}
+                            style={[styles.pendingLoad, styles.pendingServe]}
                           >
-                            <Text style={styles.pendingLoadText}>
-                              {isOpenBill ? 'Buka' : p.status === 'confirmed' ? 'Bayar' : 'Buka'}
-                            </Text>
+                            <Text style={styles.pendingLoadText}>Sudah diantar / selesai</Text>
                           </Pressable>
+                        ) : isCurrent ? (
                           <Pressable
-                            onPress={async () => {
-                              try {
-                                await kasirApi.cancelPending(p.id);
-                                await refresh();
-                              } catch (err) {
-                                handleApiError(err);
-                              }
+                            onPress={() => {
+                              Alert.alert(deleteLabel, deleteConfirm, [
+                                { text: 'Batal', style: 'cancel' },
+                                {
+                                  text: 'Hapus',
+                                  style: 'destructive',
+                                  onPress: async () => {
+                                    try {
+                                      await kasirApi.cancelPending(p.id);
+                                      await refresh();
+                                    } catch (err) {
+                                      handleApiError(err);
+                                    }
+                                  },
+                                },
+                              ]);
                             }}
                           >
-                            <Text style={styles.pendingCancel}>Hapus</Text>
+                            <Text style={styles.pendingCancel}>{isOpenBill ? 'Hapus Open Bill' : 'Hapus pesanan'}</Text>
                           </Pressable>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <Pressable
+                              onPress={async () => {
+                                try {
+                                  const res = await kasirApi.loadOrder(p.id);
+                                  applyOrder(res.data);
+                                  setTab('cart');
+                                } catch (err) {
+                                  handleApiError(err);
+                                }
+                              }}
+                              style={styles.pendingLoad}
+                            >
+                              <Text style={styles.pendingLoadText}>{openLabel}</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => {
+                                Alert.alert(deleteLabel, deleteConfirm, [
+                                  { text: 'Batal', style: 'cancel' },
+                                  {
+                                    text: 'Hapus',
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                      try {
+                                        await kasirApi.cancelPending(p.id);
+                                        await refresh();
+                                      } catch (err) {
+                                        handleApiError(err);
+                                      }
+                                    },
+                                  },
+                                ]);
+                              }}
+                            >
+                              <Text style={styles.pendingCancel}>{deleteLabel}</Text>
+                            </Pressable>
+                          </>
+                        )}
+                      </View>
                     </View>
-                  </View>
                   );
                 })}
               </ScrollView>
@@ -547,17 +630,26 @@ export default function KasirPosScreen() {
                 <Text style={styles.dockMeta}>{itemCount} item</Text>
                 <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
               </View>
-              <Pressable
-                onPress={() => {
-                  setPayMethod('cash');
-                  setAmountReceived(formatRupiahInput(Math.ceil(total)));
-                  setProofUri(null);
-                  setPayOpen(true);
-                }}
-                style={styles.payBtn}
-              >
-                <Text style={styles.payBtnText}>Bayar</Text>
-              </Pressable>
+              <View style={styles.payActions}>
+                {order?.source === 'kasir' ? (
+                  <Pressable onPress={submitOpenBill} disabled={holding} style={styles.holdBtn}>
+                    <Text style={styles.holdBtnText}>
+                      {holding ? '…' : isActiveOpenBill ? 'Simpan Open Bill' : 'Open Bill'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  onPress={() => {
+                    setPayMethod('cash');
+                    setAmountReceived(formatRupiahInput(Math.ceil(total)));
+                    setProofUri(null);
+                    setPayOpen(true);
+                  }}
+                  style={styles.payBtn}
+                >
+                  <Text style={styles.payBtnText}>Bayar</Text>
+                </Pressable>
+              </View>
             </View>
           ) : null}
         </View>
@@ -578,6 +670,14 @@ export default function KasirPosScreen() {
           </View>
 
           <View style={styles.cartPane}>
+            {isActiveOpenBill ? (
+              <View style={styles.openBillHint}>
+                <Text style={styles.openBillHintText}>
+                  Open Bill aktif — boleh tambah item, lalu tekan Open Bill lagi atau Bayar.
+                </Text>
+              </View>
+            ) : null}
+
             {(order?.order_type_label || order?.customer_note) ? (
               <View style={styles.cartContext}>
                 {order?.order_type_label ? (
@@ -625,13 +725,19 @@ export default function KasirPosScreen() {
                         {item.notes ? ` · ${item.notes}` : ''}
                       </Text>
                       <View style={styles.qtyRow}>
-                        <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
-                          <Text style={styles.qtyBtnText}>−</Text>
-                        </Pressable>
-                        <Text style={styles.qtyVal}>{item.quantity}</Text>
-                        <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
-                          <Text style={styles.qtyBtnText}>+</Text>
-                        </Pressable>
+                        {cartEditable ? (
+                          <>
+                            <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
+                              <Text style={styles.qtyBtnText}>−</Text>
+                            </Pressable>
+                            <Text style={styles.qtyVal}>{item.quantity}</Text>
+                            <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+                              <Text style={styles.qtyBtnText}>+</Text>
+                            </Pressable>
+                          </>
+                        ) : (
+                          <Text style={styles.qtyVal}>×{item.quantity}</Text>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -747,7 +853,7 @@ export default function KasirPosScreen() {
                     style={styles.holdBtn}
                   >
                     <Text style={styles.holdBtnText}>
-                      {holding ? '…' : order?.is_open_bill || order?.status === 'unpaid' ? 'Simpan Open Bill' : 'Open Bill'}
+                      {holding ? '…' : isActiveOpenBill ? 'Simpan Open Bill' : 'Open Bill'}
                     </Text>
                   </Pressable>
                 ) : null}
@@ -979,12 +1085,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.amber200,
     padding: spacing.sm,
-    minWidth: 140,
+    minWidth: 168,
+  },
+  pendingCardOpenBill: {
+    borderColor: colors.amber500,
+    backgroundColor: colors.amber50,
+  },
+  pendingCardAwaitingServe: {
+    borderColor: colors.green200,
+    backgroundColor: colors.green50,
+  },
+  pendingCardCurrent: {
+    borderColor: colors.brand600,
   },
   pendingNo: { fontSize: 13, ...font('700'), color: colors.slate900 },
   pendingMeta: { fontSize: 12, color: colors.slate600 },
-  pendingActions: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  pendingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   pendingLoad: { backgroundColor: colors.brand600, borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 4 },
+  pendingServe: { backgroundColor: colors.green600 },
   pendingLoadText: { color: colors.white, fontSize: 11, ...font('600') },
   pendingCancel: { color: colors.red600, fontSize: 11, ...font('600'), paddingVertical: 4 },
   tabs: { flexDirection: 'row', backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200 },
@@ -1036,6 +1154,17 @@ const styles = StyleSheet.create({
   },
   cartHeaderBadgeText: { fontSize: 11, color: colors.slate900, ...font('700') },
   cartPane: { flex: 1, backgroundColor: colors.slate100 },
+  openBillHint: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.amber200,
+    backgroundColor: colors.amber50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  openBillHintText: { fontSize: 12, color: colors.amber800, lineHeight: 17, ...font('500') },
   cartContext: {
     flexDirection: 'row',
     flexWrap: 'wrap',
