@@ -1860,10 +1860,18 @@
         display: none !important;
     }
 
-    /* Saat sidebar disembunyikan: tampilkan header atas (tombol ☰ di header) */
+    .pos-toolbar-menu-btn {
+        @apply hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/20 active:scale-[0.98];
+    }
+
+    /* Sidebar hide: tanpa bar putih; ☰ di toolbar gelap + grid 5 kolom */
     @media (min-width: 768px) {
-        body.is-sidebar-collapsed.is-kasir-pos .kasir-page-header {
-            display: block !important;
+        body.is-sidebar-collapsed.is-kasir-pos .pos-toolbar-menu-btn {
+            display: inline-flex;
+        }
+
+        body.is-sidebar-collapsed.is-kasir-pos .sidebar-expand-btn {
+            display: none !important;
         }
     }
 
@@ -4539,6 +4547,12 @@
 
         .pos-product-grid {
             grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    @media (min-width: 1024px) {
+        body.is-sidebar-collapsed.is-kasir-pos .pos-product-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
         }
     }
 
