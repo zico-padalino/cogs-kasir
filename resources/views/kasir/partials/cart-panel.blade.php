@@ -1,12 +1,5 @@
 @php
     use App\Enums\PosOrderSource;
-    $isOnline = $order->source === PosOrderSource::Online;
-    $step = match (true) {
-        $order->status->value === 'paid' => 4,
-        $order->canCheckoutAtKasir() => 3,
-        $isOnline => 2,
-        default => 1,
-    };
 @endphp
 
 <div @class(['pos-receipt', 'is-checkout-ready' => $order->canCheckoutAtKasir()])>
@@ -25,27 +18,6 @@
         </div>
         <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
     </div>
-
-    @if ($isOnline)
-        <nav @class(['pos-flow-steps', 'is-compact' => $step >= 3]) aria-label="Alur pesanan">
-            <div class="pos-flow-step {{ $step >= 1 ? 'is-done' : '' }} {{ $step === 1 ? 'is-current' : '' }}">
-                <span class="pos-flow-step-num">1</span>
-                <span class="pos-flow-step-label">Pesan</span>
-            </div>
-            <div class="pos-flow-step {{ $step >= 2 ? 'is-done' : '' }} {{ $step === 2 ? 'is-current' : '' }}">
-                <span class="pos-flow-step-num">2</span>
-                <span class="pos-flow-step-label">Kasir</span>
-            </div>
-            <div class="pos-flow-step {{ $step >= 3 ? 'is-done' : '' }} {{ $step === 3 ? 'is-current' : '' }}">
-                <span class="pos-flow-step-num">3</span>
-                <span class="pos-flow-step-label">Bayar</span>
-            </div>
-            <div class="pos-flow-step {{ $step >= 4 ? 'is-done' : '' }} {{ $step === 4 ? 'is-current' : '' }}">
-                <span class="pos-flow-step-num">4</span>
-                <span class="pos-flow-step-label">Selesai</span>
-            </div>
-        </nav>
-    @endif
 
     @if ($order->isOpenBill())
         <div class="pos-open-bill-hint">
