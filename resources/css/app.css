@@ -2490,7 +2490,7 @@
     }
 
     .pos-product-grid {
-        @apply grid flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-contain p-3 sm:gap-3 sm:p-4;
+        @apply grid flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto overscroll-contain p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:grid-cols-4 xl:grid-cols-4;
         grid-auto-rows: max-content;
         -webkit-overflow-scrolling: touch;
     }
@@ -4051,8 +4051,7 @@
         }
 
         .pos-product-grid {
-            grid-template-columns: repeat(auto-fill, minmax(10.5rem, 12rem));
-            justify-content: start;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.55rem;
             padding: 0.75rem;
             padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
@@ -4151,9 +4150,7 @@
         }
 
         .pos-product-grid {
-            /* Lebar kartu dibatasi; kolom bertambah otomatis saat sidebar disembunyikan */
-            grid-template-columns: repeat(auto-fill, minmax(11.5rem, 12.75rem));
-            justify-content: start;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
         }
     }
 
