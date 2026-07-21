@@ -70,81 +70,85 @@
             </div>
         </header>
 
-        @if ($order->isKasirEditable())
-            @include('kasir.partials.pos-order-bar', [
-                'order' => $order,
-                'orderTypes' => $orderTypes,
-                'format' => $format,
-            ])
-        @endif
-
-        <div data-pos-pending-wrap>
-            @if ($pendingOrders->isNotEmpty())
-                @include('kasir.partials.pending-orders', [
-                    'pendingOrders' => $pendingOrders,
-                    'format' => $format,
-                    'currentOrder' => $order,
-                ])
-            @endif
-        </div>
-
-        <div class="pos-workspace">
-            <section class="pos-menu-panel kasir-panel-menu flex" data-kasir-panel="menu">
-                <div class="pos-menu-head">
-                    <div>
-                        <h2 class="pos-panel-title">Pilih Menu</h2>
-                        <p class="pos-panel-sub">Tap menu untuk atur jumlah & catatan</p>
-                    </div>
-                    <input
-                        type="search"
-                        data-kasir-search
-                        class="pos-search"
-                        placeholder="Cari menu..."
-                        autocomplete="off"
-                    >
-                </div>
-
-                @if ($menuCategories !== [])
-                    <div class="pos-category-tabs" role="tablist">
-                        <button type="button" class="pos-category-tab is-active" data-kasir-category="all">Semua</button>
-                        @foreach ($menuCategories as $category)
-                            <button type="button" class="pos-category-tab" data-kasir-category="{{ $category }}">
-                                {{ $menuCategoryLabels[$category] ?? ucfirst($category) }}
-                            </button>
-                        @endforeach
-                    </div>
+        <div class="pos-body">
+            <div class="pos-main-col">
+                @if ($order->isKasirEditable())
+                    @include('kasir.partials.pos-order-bar', [
+                        'order' => $order,
+                        'orderTypes' => $orderTypes,
+                        'format' => $format,
+                    ])
                 @endif
 
-                @include('kasir.partials.menu-grid', [
-                    'products' => $products,
-                    'format' => $format,
-                    'menuCategoryLabels' => $menuCategoryLabels,
-                ])
-            </section>
+                <div data-pos-pending-wrap>
+                    @if ($pendingOrders->isNotEmpty())
+                        @include('kasir.partials.pending-orders', [
+                            'pendingOrders' => $pendingOrders,
+                            'format' => $format,
+                            'currentOrder' => $order,
+                        ])
+                    @endif
+                </div>
+
+                <div class="pos-view-tabs lg:hidden" role="tablist">
+                    <button type="button" class="pos-view-tab is-active" data-kasir-tab="menu" role="tab" aria-selected="true">
+                        <span class="pos-view-tab-icon">☕</span>
+                        <span>Menu</span>
+                    </button>
+                    <button type="button" class="pos-view-tab" data-kasir-tab="cart" role="tab" aria-selected="false">
+                        <span class="pos-view-tab-icon">🧾</span>
+                        <span>Pesanan</span>
+                        @if ($order->items->isNotEmpty())
+                            <span class="pos-view-tab-total">{{ $format::rupiah($order->total) }}</span>
+                        @endif
+                        <span data-kasir-cart-count class="pos-view-tab-badge {{ $order->items->isEmpty() ? 'hidden' : '' }}">{{ $order->items->count() }}</span>
+                    </button>
+                </div>
+
+                <div class="pos-workspace">
+                    <section class="pos-menu-panel kasir-panel-menu flex" data-kasir-panel="menu">
+                        <div class="pos-menu-head">
+                            <div>
+                                <h2 class="pos-panel-title">Pilih Menu</h2>
+                                <p class="pos-panel-sub">Tap menu untuk atur jumlah & catatan</p>
+                            </div>
+                            <input
+                                type="search"
+                                data-kasir-search
+                                class="pos-search"
+                                placeholder="Cari menu..."
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        @if ($menuCategories !== [])
+                            <div class="pos-category-tabs" role="tablist">
+                                <button type="button" class="pos-category-tab is-active" data-kasir-category="all">Semua</button>
+                                @foreach ($menuCategories as $category)
+                                    <button type="button" class="pos-category-tab" data-kasir-category="{{ $category }}">
+                                        {{ $menuCategoryLabels[$category] ?? ucfirst($category) }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @include('kasir.partials.menu-grid', [
+                            'products' => $products,
+                            'format' => $format,
+                            'menuCategoryLabels' => $menuCategoryLabels,
+                        ])
+                    </section>
+                </div>
+
+                @if ($order->items->isNotEmpty())
+                    @include('kasir.partials.mobile-checkout', ['order' => $order, 'format' => $format])
+                @endif
+            </div>
 
             <aside class="pos-order-panel kasir-panel-cart hidden lg:flex" data-kasir-panel="cart">
                 @include('kasir.partials.cart-panel', ['order' => $order, 'format' => $format])
             </aside>
         </div>
-
-        <div class="pos-view-tabs lg:hidden" role="tablist">
-            <button type="button" class="pos-view-tab is-active" data-kasir-tab="menu" role="tab" aria-selected="true">
-                <span class="pos-view-tab-icon">☕</span>
-                <span>Menu</span>
-            </button>
-            <button type="button" class="pos-view-tab" data-kasir-tab="cart" role="tab" aria-selected="false">
-                <span class="pos-view-tab-icon">🧾</span>
-                <span>Pesanan</span>
-                @if ($order->items->isNotEmpty())
-                    <span class="pos-view-tab-total">{{ $format::rupiah($order->total) }}</span>
-                @endif
-                <span data-kasir-cart-count class="pos-view-tab-badge {{ $order->items->isEmpty() ? 'hidden' : '' }}">{{ $order->items->count() }}</span>
-            </button>
-        </div>
-
-        @if ($order->items->isNotEmpty())
-            @include('kasir.partials.mobile-checkout', ['order' => $order, 'format' => $format])
-        @endif
 
         @include('kasir.partials.item-modals')
 

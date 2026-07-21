@@ -1966,6 +1966,14 @@
         @apply flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-100/70;
     }
 
+    .pos-body {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row;
+    }
+
+    .pos-main-col {
+        @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
+    }
+
     .pos-safe-top,
     .pos-toolbar,
     .pos-order-bar,
@@ -2466,11 +2474,11 @@
     }
 
     .pos-workspace {
-        @apply flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden;
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden;
     }
 
     .pos-menu-panel {
-        @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100 lg:border-r lg:border-slate-300;
+        @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100;
     }
 
     .pos-menu-head {
@@ -3394,7 +3402,12 @@
 
     /* Tab Pesanan: fullscreen sampai atas (selaras app mobile) */
     @media (max-width: 1023px) {
-        /* Tab di bawah workspace pada markup; di tab menu naik ke atas */
+        body.is-kasir-pos.is-mobile-menu-tab .pos-main-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tab Menu/Pesanan di main-col; di tab menu naik ke atas */
         body.is-kasir-pos.is-mobile-menu-tab .pos-view-tabs {
             order: 0;
         }
@@ -3403,7 +3416,6 @@
             order: 1;
         }
 
-        body.is-kasir-pos.is-mobile-menu-tab .pos-toolbar,
         body.is-kasir-pos.is-mobile-menu-tab .pos-order-bar,
         body.is-kasir-pos.is-mobile-menu-tab [data-pos-pending-wrap] {
             order: -1;
@@ -3417,12 +3429,8 @@
         body.is-kasir-pos.is-mobile-cart-tab .mobile-topbar,
         body.is-kasir-pos.is-mobile-cart-tab .kasir-page-header,
         body.is-kasir-pos.is-mobile-cart-tab .pos-toolbar,
-        body.is-kasir-pos.is-mobile-cart-tab .pos-order-bar,
-        body.is-kasir-pos.is-mobile-cart-tab .pos-order-bar-backdrop,
-        body.is-kasir-pos.is-mobile-cart-tab [data-pos-pending-wrap],
-        body.is-kasir-pos.is-mobile-cart-tab [data-pos-mobile-checkout],
-        body.is-kasir-pos.is-mobile-cart-tab .pos-flash,
-        body.is-kasir-pos.is-mobile-cart-tab .pos-menu-panel {
+        body.is-kasir-pos.is-mobile-cart-tab .pos-main-col,
+        body.is-kasir-pos.is-mobile-cart-tab .pos-flash {
             display: none !important;
         }
 
@@ -3431,7 +3439,7 @@
         body.is-kasir-pos.is-mobile-cart-tab .app-content,
         body.is-kasir-pos.is-mobile-cart-tab .app-scroll.pos-main-wrap,
         body.is-kasir-pos.is-mobile-cart-tab .pos-shell,
-        body.is-kasir-pos.is-mobile-cart-tab .pos-workspace {
+        body.is-kasir-pos.is-mobile-cart-tab .pos-body {
             display: block !important;
             min-height: 0;
             height: auto;
@@ -4383,6 +4391,14 @@
             @apply min-h-0 flex-1;
         }
 
+        .pos-body {
+            @apply min-h-0 flex-1 overflow-hidden;
+        }
+
+        .pos-main-col {
+            @apply min-h-0 flex-1 border-r border-slate-300;
+        }
+
         .pos-workspace {
             @apply min-h-0 flex-1 overflow-hidden;
         }
@@ -4390,6 +4406,10 @@
         .pos-menu-panel,
         .pos-order-panel {
             @apply min-h-0 max-h-full overflow-hidden;
+        }
+
+        .pos-order-panel.kasir-panel-cart {
+            @apply !flex h-full min-h-0 w-[15.5rem] shrink-0 flex-col self-stretch xl:w-[17rem];
         }
 
         .kasir-panel-menu,
