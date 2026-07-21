@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\Auth\PasswordController;
 use App\Http\Controllers\Web\Auth\PinSetupController;
 use App\Http\Controllers\Web\CogsController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\BahanJadiController;
 use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\StockWasteController;
 use App\Http\Controllers\Web\OpsAssetController;
@@ -165,6 +166,12 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::put('bahan/stok/{lot}', [InventoryController::class, 'update'])->name('materials.lots.update');
     Route::delete('bahan/stok/{lot}', [InventoryController::class, 'destroy'])->name('materials.lots.destroy');
     Route::redirect('inventory', '/bahan');
+
+    Route::get('bahan-jadi', [BahanJadiController::class, 'index'])->name('bahan-jadi.index');
+    Route::post('bahan-jadi', [BahanJadiController::class, 'store'])->name('bahan-jadi.store');
+    Route::put('bahan-jadi/{product}', [BahanJadiController::class, 'update'])->name('bahan-jadi.update');
+    Route::delete('bahan-jadi/{product}', [BahanJadiController::class, 'destroy'])->name('bahan-jadi.destroy');
+    Route::post('bahan-jadi/stok', [BahanJadiController::class, 'receive'])->name('bahan-jadi.receive');
 
     Route::resource('production-orders', ProductionOrderController::class);
     Route::post('production-orders/{production_order}/start', [ProductionOrderController::class, 'start'])->name('production-orders.start');

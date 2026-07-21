@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProductType;
 use App\Models\BillOfMaterial;
 use App\Models\Product;
 use RuntimeException;
@@ -94,6 +95,12 @@ class BomCostService
         $bomItems = $product->billOfMaterials()->with('childProduct')->get();
 
         if ($bomItems->isEmpty()) {
+            return [['product' => $product, 'quantity' => $quantity]];
+        }
+
+        // Bahan jadi sebagai komponen resep: konsumsi stok bahan jadi (jangan drill ke bahan baku).
+        // depth 0 = produksi/root bahan jadi itu sendiri → tetap explode ke bahan baku.
+        if ($depth > 0 && $product->type === ProductType::SemiFinished) {
             return [['product' => $product, 'quantity' => $quantity]];
         }
 

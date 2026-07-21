@@ -148,6 +148,7 @@ class CogsNavigation
     {
         return [
             'materials.',
+            'bahan-jadi.',
             'overhead-rates.',
             'products.',
             'production-orders.',
@@ -165,6 +166,7 @@ class CogsNavigation
     {
         return [
             '/bahan',
+            '/bahan-jadi',
             '/inventory',
             '/overhead-rates',
             '/products',

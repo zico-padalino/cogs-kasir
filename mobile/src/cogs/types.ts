@@ -120,7 +120,7 @@ export type BomNode = {
 
 export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
   raw_material: 'Bahan Baku',
-  semi_finished: 'Barang Setengah Jadi',
+  semi_finished: 'Bahan Jadi',
   finished_good: 'Barang Jadi',
 };
 

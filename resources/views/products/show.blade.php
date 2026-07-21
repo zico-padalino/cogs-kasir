@@ -6,7 +6,11 @@
 
 @section('content')
     <div class="module-page module-step-3">
-        <a href="{{ route('products.index') }}" class="cogs-detail-back">← Kembali ke daftar menu</a>
+        @if ($product->type === \App\Enums\ProductType::SemiFinished)
+            <a href="{{ route('bahan-jadi.index') }}" class="cogs-detail-back">← Kembali ke Bahan Jadi</a>
+        @else
+            <a href="{{ route('products.index') }}" class="cogs-detail-back">← Kembali ke daftar menu</a>
+        @endif
 
         @if (session('modal_overhead_details') !== null)
             <div class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
@@ -39,8 +43,13 @@
         <div class="recipe-desktop">
             <div class="recipe-desktop__main">
                 <x-module-tip :step="3" title="Cara isi resep" class="recipe-tip-desktop">
-                    Pilih bahan, isi jumlah pakai (bisa gram/kg/ml), lalu <strong>Tambah ke Resep</strong>.
-                    Kolom <strong>Biaya</strong> dihitung otomatis dari harga beli bahan.
+                    @if ($product->type === \App\Enums\ProductType::SemiFinished)
+                        Pilih <strong>bahan baku</strong> yang dipakai membuat bahan jadi ini, isi jumlah, lalu <strong>Tambah ke Resep</strong>.
+                    @else
+                        Pilih <strong>bahan</strong> atau <strong>bahan jadi</strong>, isi jumlah pakai, lalu <strong>Tambah ke Resep</strong>.
+                        Saat menu terjual, stok bahan/bahan jadi ikut berkurang.
+                    @endif
+                    Kolom <strong>Biaya</strong> dihitung otomatis dari harga stok.
                     Setelah lengkap, klik <strong>Hitung Modal</strong> untuk menyimpan modal resmi.
                 </x-module-tip>
 
@@ -243,7 +252,7 @@
                         >
                             @csrf
                             <div class="recipe-add-form__material">
-                                <label class="form-label" for="bom_child_product_id">Pilih bahan</label>
+                                <label class="form-label" for="bom_child_product_id">Pilih bahan / bahan jadi</label>
                                 <select
                                     id="bom_child_product_id"
                                     name="child_product_id"
@@ -251,18 +260,38 @@
                                     required
                                     data-bom-material
                                     data-searchable-select
-                                    data-search-placeholder="Pilih bahan..."
-                                    data-search-input-placeholder="Cari nama bahan..."
+                                    data-search-placeholder="Pilih bahan atau bahan jadi..."
+                                    data-search-input-placeholder="Cari nama..."
                                 >
-                                    <option value="">Pilih bahan...</option>
-                                    @foreach ($allProducts as $p)
-                                        <option
-                                            value="{{ $p->id }}"
-                                            @selected((string) old('child_product_id') === (string) $p->id)
-                                        >
-                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
-                                        </option>
-                                    @endforeach
+                                    <option value="">Pilih bahan atau bahan jadi...</option>
+                                    @php
+                                        $bomRaw = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::RawMaterial);
+                                        $bomJadi = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::SemiFinished);
+                                    @endphp
+                                    @if ($bomRaw->isNotEmpty())
+                                        <optgroup label="Bahan baku">
+                                            @foreach ($bomRaw as $p)
+                                                <option
+                                                    value="{{ $p->id }}"
+                                                    @selected((string) old('child_product_id') === (string) $p->id)
+                                                >
+                                                    {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    @if ($bomJadi->isNotEmpty())
+                                        <optgroup label="Bahan jadi">
+                                            @foreach ($bomJadi as $p)
+                                                <option
+                                                    value="{{ $p->id }}"
+                                                    @selected((string) old('child_product_id') === (string) $p->id)
+                                                >
+                                                    {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
                                 </select>
                             </div>
                             <div class="recipe-add-form__qty">
@@ -361,7 +390,7 @@
                                                                 <label class="form-label">Bahan (opsional)</label>
                                                                 <select name="material_product_id" class="form-input" data-addon-edit-material>
                                                                     <option value="">Tanpa bahan</option>
-                                                                    @foreach ($allProducts as $p)
+                                                                    @foreach ($rawMaterials as $p)
                                                                         <option value="{{ $p->id }}" @selected($addon->material_product_id === $p->id)>{{ $p->name }}</option>
                                                                     @endforeach
                                                                 </select>
@@ -438,7 +467,7 @@
                                 <label class="form-label" for="addon_material">Bahan terkait (opsional)</label>
                                 <select id="addon_material" name="material_product_id" class="form-input" data-addon-material>
                                     <option value="">Tanpa bahan</option>
-                                    @foreach ($allProducts as $p)
+                                    @foreach ($rawMaterials as $p)
                                         <option value="{{ $p->id }}" @selected((string) old('material_product_id') === (string) $p->id)>{{ $p->name }}</option>
                                     @endforeach
                                 </select>

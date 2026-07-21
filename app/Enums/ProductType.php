@@ -12,7 +12,7 @@ enum ProductType: string
     {
         return match ($this) {
             self::RawMaterial => 'Bahan Baku',
-            self::SemiFinished => 'Barang Setengah Jadi',
+            self::SemiFinished => 'Bahan Jadi',
             self::FinishedGood => 'Barang Jadi',
         };
     }

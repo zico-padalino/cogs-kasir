@@ -53,6 +53,12 @@
                            class="app-sidebar-link {{ $active ? 'is-active' : '' }}">
                             <span class="truncate">{{ $step['short'] }}</span>
                         </a>
+                        @if (($step['key'] ?? '') === 'materials')
+                            <a href="{{ route('bahan-jadi.index') }}"
+                               class="app-sidebar-link {{ request()->routeIs('bahan-jadi.*') ? 'is-active' : '' }}">
+                                <span class="truncate">Bahan Jadi</span>
+                            </a>
+                        @endif
                     @endforeach
 
                     <a href="{{ route('stock-wastes.index') }}"
@@ -81,6 +87,13 @@
                             </span>
                             <span class="truncate">{{ $step['short'] }}</span>
                         </a>
+                        @if (($step['key'] ?? '') === 'materials')
+                            <a href="{{ route('bahan-jadi.index') }}"
+                               class="app-sidebar-link {{ request()->routeIs('bahan-jadi.*') ? 'is-active' : '' }}">
+                                <span class="app-sidebar-link-icon">🥣</span>
+                                <span class="truncate">Bahan Jadi</span>
+                            </a>
+                        @endif
                     @endforeach
 
                     <a href="{{ route('stock-wastes.index') }}"

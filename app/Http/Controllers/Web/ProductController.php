@@ -29,7 +29,7 @@ class ProductController extends Controller
   public function index()
   {
     $products = Product::query()
-      ->whereIn('type', [ProductType::SemiFinished->value, ProductType::FinishedGood->value])
+      ->where('type', ProductType::FinishedGood->value)
       ->withCount('billOfMaterials')
       ->orderBy('name')
       ->get();
@@ -72,11 +72,19 @@ class ProductController extends Controller
 
     $product->load(['billOfMaterials.childProduct', 'addons.material']);
 
+    $childTypes = $product->type === ProductType::SemiFinished
+      ? [ProductType::RawMaterial->value]
+      : [ProductType::RawMaterial->value, ProductType::SemiFinished->value];
+
     $allProducts = Product::query()
-      ->where('type', ProductType::RawMaterial->value)
+      ->whereIn('type', $childTypes)
       ->where('is_active', true)
       ->orderBy('name')
       ->get();
+
+    $rawMaterials = $allProducts
+      ->filter(fn (Product $p) => $p->type === ProductType::RawMaterial)
+      ->values();
 
     $materialUnits = $allProducts->mapWithKeys(fn (Product $material) => [
       (string) $material->id => [
@@ -117,6 +125,7 @@ class ProductController extends Controller
     return view('products.show', [
       'product' => $product,
       'allProducts' => $allProducts,
+      'rawMaterials' => $rawMaterials,
       'materialUnits' => $materialUnits,
       'bomLineCosts' => $bomLineCosts,
       'materialCost' => $materialCost,
@@ -186,9 +195,15 @@ class ProductController extends Controller
 
     $child = Product::query()->findOrFail($validated['child_product_id']);
 
-    if ($child->type !== ProductType::RawMaterial) {
+    $allowedChildTypes = $product->type === ProductType::SemiFinished
+      ? [ProductType::RawMaterial]
+      : [ProductType::RawMaterial, ProductType::SemiFinished];
+
+    if (! in_array($child->type, $allowedChildTypes, true)) {
       throw ValidationException::withMessages([
-        'child_product_id' => 'Hanya bahan baku yang bisa dimasukkan ke resep.',
+        'child_product_id' => $product->type === ProductType::SemiFinished
+          ? 'Resep bahan jadi hanya boleh dari bahan baku.'
+          : 'Hanya bahan baku atau bahan jadi yang bisa dimasukkan ke resep.',
       ]);
     }
 
