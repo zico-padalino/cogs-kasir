@@ -37,11 +37,6 @@
             <div class="auth-alert-error mb-3" role="alert">{{ $errors->first() }}</div>
         @endif
 
-        <div class="mb-3 space-y-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
-            <p><strong>Login stasiun</strong> boleh akun siapa saja (contoh: {{ $currentUser->name }}).</p>
-            <p><strong>PIN</strong> memakai PIN pegawai yang sedang bertugas — nama di kasir & struk mengikuti pegawai itu, bukan akun login.</p>
-        </div>
-
         <form action="{{ route('kasir.pin.unlock.submit') }}" method="POST" class="space-y-3" autocomplete="off" id="kasir-pin-form">
             @csrf
             <div>
@@ -70,7 +65,12 @@
             <p class="text-slate-400">PIN dibuat di Admin → Data Karyawan</p>
         </div>
 
-        <div class="mt-3 border-t border-slate-200 pt-3">
+        <div class="mt-3 space-y-2 border-t border-slate-200 pt-3">
+            @if (count($currentUser->accessibleModules()) > 1)
+                <a href="{{ route('hub') }}" class="btn-outline flex w-full min-h-10 items-center justify-center border-slate-300 text-slate-700 no-underline hover:border-brand-300 hover:bg-brand-50 hover:text-espresso">
+                    Pindah Modul
+                </a>
+            @endif
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button
@@ -80,7 +80,7 @@
                     Keluar / Logout
                 </button>
             </form>
-            <p class="mt-1.5 text-center text-[10px] text-slate-400">Keluar dari akun login stasiun ini</p>
+            <p class="text-center text-[10px] text-slate-400">Keluar dari akun login stasiun ini</p>
         </div>
     </div>
 
