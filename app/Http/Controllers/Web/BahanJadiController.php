@@ -14,6 +14,7 @@ use App\Support\Format;
 use App\Support\MaterialPurchase;
 use App\Support\MaterialUnits;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -62,11 +63,16 @@ class BahanJadiController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'unit_preset' => ['required', 'string', 'max:20'],
             'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
+            'ingredients' => ['nullable', 'array'],
+            'ingredients.*.child_product_id' => ['nullable', 'exists:products,id'],
+            'ingredients.*.quantity' => ['nullable', 'numeric', 'gt:0'],
+            'ingredients.*.unit' => ['nullable', 'string', 'max:20'],
         ], MaterialPurchase::validationRules()), [
             'name.required' => 'Nama bahan jadi wajib diisi.',
             'unit_custom.required_if' => 'Isi satuan jika memilih Lainnya.',
             'direct_total.required_if' => 'Isi harga total.',
             'purchase_cost.required_if' => 'Isi harga total.',
+            'ingredients.*.quantity.gt' => 'Jumlah bahan baku harus lebih dari 0.',
         ]);
 
         $unit = MaterialUnits::resolve($validated['unit_preset'], $validated['unit_custom'] ?? '');
@@ -79,35 +85,54 @@ class BahanJadiController extends Controller
             return back()->withErrors(['quantity' => 'Jumlah stok tidak valid.'])->withInput();
         }
 
-        $product = Product::create([
-            'sku' => $this->generateSku($validated['name']),
-            'name' => $validated['name'],
-            'type' => ProductType::SemiFinished,
-            'unit' => $unit,
-            'costing_method' => CostingMethod::WeightedAverage,
-            'is_active' => true,
-            'is_menu_item' => false,
-        ]);
+        $ingredients = $this->normalizeIngredientRows($validated['ingredients'] ?? []);
 
-        $lot = $inventoryService->receiveStock(
-            product: $product,
-            quantity: $purchase['quantity'],
-            unitCost: $purchase['unit_cost'],
-        );
+        $product = DB::transaction(function () use (
+            $validated,
+            $unit,
+            $purchase,
+            $ingredients,
+            $inventoryService,
+            $logService,
+        ) {
+            $product = Product::create([
+                'sku' => $this->generateSku($validated['name']),
+                'name' => $validated['name'],
+                'type' => ProductType::SemiFinished,
+                'unit' => $unit,
+                'costing_method' => CostingMethod::WeightedAverage,
+                'is_active' => true,
+                'is_menu_item' => false,
+            ]);
 
-        $logService->log(
-            action: 'create',
-            product: $product,
-            quantityBefore: 0,
-            quantityAfter: $purchase['quantity'],
-            unitCost: $purchase['unit_cost'],
-            lot: $lot,
-            note: 'Bahan jadi baru + stok awal'.($purchase['note'] !== '' ? ' · '.$purchase['note'] : ''),
-        );
+            $this->saveIngredientRows($product, $ingredients);
+
+            $lot = $inventoryService->receiveStock(
+                product: $product,
+                quantity: $purchase['quantity'],
+                unitCost: $purchase['unit_cost'],
+            );
+
+            $logService->log(
+                action: 'create',
+                product: $product,
+                quantityBefore: 0,
+                quantityAfter: $purchase['quantity'],
+                unitCost: $purchase['unit_cost'],
+                lot: $lot,
+                note: 'Bahan jadi baru + stok awal'.($purchase['note'] !== '' ? ' · '.$purchase['note'] : ''),
+            );
+
+            return $product;
+        });
+
+        $recipeNote = count($ingredients) > 0
+            ? ' Resep: '.count($ingredients).' bahan baku.'
+            : '';
 
         return redirect()
             ->route('bahan-jadi.index')
-            ->with('success', 'Bahan jadi '.$product->name.' ditambahkan.');
+            ->with('success', 'Bahan jadi '.$product->name.' ditambahkan.'.$recipeNote);
     }
 
     public function update(
@@ -224,22 +249,13 @@ class BahanJadiController extends Controller
             ]);
         }
 
-        $quantity = $this->quantityInStockUnit(
-            (float) $validated['quantity'],
-            $validated['unit'],
-            $child->unit,
-        );
-
-        BillOfMaterial::updateOrCreate(
-            [
-                'parent_product_id' => $product->id,
-                'child_product_id' => $validated['child_product_id'],
-            ],
-            [
-                'quantity' => $quantity,
-                'scrap_percentage' => $validated['scrap_percentage'] ?? 0,
-                'sequence' => $validated['sequence'] ?? 0,
-            ],
+        $this->upsertBomLine(
+            product: $product,
+            child: $child,
+            quantityInput: (float) $validated['quantity'],
+            unitInput: $validated['unit'],
+            scrapPercentage: $validated['scrap_percentage'] ?? 0,
+            sequence: $validated['sequence'] ?? 0,
         );
 
         return redirect()
@@ -363,6 +379,102 @@ class BahanJadiController extends Controller
         if ($product->type !== ProductType::SemiFinished) {
             abort(403, 'Hanya bahan jadi yang bisa dikelola di sini.');
         }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return list<array{child_product_id: int, quantity: float, unit: string}>
+     */
+    private function normalizeIngredientRows(array $rows): array
+    {
+        $normalized = [];
+        $seen = [];
+
+        foreach (array_values($rows) as $index => $row) {
+            $childId = (int) ($row['child_product_id'] ?? 0);
+            $quantity = $row['quantity'] ?? null;
+            $unit = trim((string) ($row['unit'] ?? ''));
+
+            $hasAny = $childId > 0 || filled($quantity) || $unit !== '';
+            if (! $hasAny) {
+                continue;
+            }
+
+            if ($childId <= 0 || ! filled($quantity) || $unit === '') {
+                throw ValidationException::withMessages([
+                    "ingredients.{$index}.child_product_id" => 'Lengkapi bahan baku, jumlah, dan satuan.',
+                ]);
+            }
+
+            if (isset($seen[$childId])) {
+                throw ValidationException::withMessages([
+                    "ingredients.{$index}.child_product_id" => 'Bahan baku yang sama tidak boleh dipilih dua kali.',
+                ]);
+            }
+
+            $seen[$childId] = true;
+            $normalized[] = [
+                'child_product_id' => $childId,
+                'quantity' => (float) $quantity,
+                'unit' => $unit,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param  list<array{child_product_id: int, quantity: float, unit: string}>  $ingredients
+     */
+    private function saveIngredientRows(Product $product, array $ingredients): void
+    {
+        foreach ($ingredients as $sequence => $row) {
+            $child = Product::query()->findOrFail($row['child_product_id']);
+
+            if ($child->type !== ProductType::RawMaterial) {
+                throw ValidationException::withMessages([
+                    'ingredients' => 'Resep bahan jadi hanya boleh dari bahan baku.',
+                ]);
+            }
+
+            if (! $child->is_active) {
+                throw ValidationException::withMessages([
+                    'ingredients' => 'Bahan "'.$child->name.'" tidak aktif.',
+                ]);
+            }
+
+            $this->upsertBomLine(
+                product: $product,
+                child: $child,
+                quantityInput: $row['quantity'],
+                unitInput: $row['unit'],
+                scrapPercentage: 0,
+                sequence: $sequence,
+            );
+        }
+    }
+
+    private function upsertBomLine(
+        Product $product,
+        Product $child,
+        float $quantityInput,
+        string $unitInput,
+        float|int $scrapPercentage = 0,
+        int $sequence = 0,
+    ): void {
+        $quantity = $this->quantityInStockUnit($quantityInput, $unitInput, $child->unit);
+
+        BillOfMaterial::updateOrCreate(
+            [
+                'parent_product_id' => $product->id,
+                'child_product_id' => $child->id,
+            ],
+            [
+                'quantity' => $quantity,
+                'scrap_percentage' => $scrapPercentage,
+                'sequence' => $sequence,
+            ],
+        );
     }
 
     private function quantityInStockUnit(float $quantity, ?string $inputUnit, ?string $stockUnit): float

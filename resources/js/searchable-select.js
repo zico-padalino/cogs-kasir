@@ -263,4 +263,6 @@ function initSearchableSelects(root = document) {
 
 document.addEventListener('DOMContentLoaded', () => initSearchableSelects());
 
+window.initSearchableSelects = initSearchableSelects;
+
 export { initSearchableSelects };
