@@ -18,6 +18,7 @@ import { AuthProvider, ROLE_META, useAuth } from '@/auth';
 import { KasirOrderAlertGuard } from '@/components/KasirOrderAlertGuard';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
 import { KasirPushKeepAlive } from '@/components/KasirPushKeepAlive';
+import { warmupOrderSpeech } from '@/kasir/orderAlert';
 import {
   addKasirNotificationResponseListener,
   setupKasirPushRuntime,
@@ -29,6 +30,8 @@ applyGlobalFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 // Background task sedini mungkin (HP terkunci / app di-swipe tutup).
 void setupKasirPushRuntime();
+// Siapkan engine TTS lebih awal agar suara AI tidak sering kosong di call pertama.
+void warmupOrderSpeech();
 
 const PUBLIC_SEGMENTS = new Set(['login', 'pesan-online']);
 

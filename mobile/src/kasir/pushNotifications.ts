@@ -57,6 +57,8 @@ async function speakFromNotification(notification: Notifications.Notification): 
   if (!payload) {
     return;
   }
+  // Beri jeda singkat agar bunyi notifikasi tidak merebut audio focus dari TTS.
+  await new Promise((resolve) => setTimeout(resolve, 450));
   await announceSpeakText(payload.speakText, payload.dedupeKey);
 }
 
