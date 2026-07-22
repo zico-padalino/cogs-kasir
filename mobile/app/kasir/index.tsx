@@ -26,7 +26,6 @@ import {
   AppDrawer,
   PermanentSidebar,
   SIDEBAR_WIDTH,
-  usePosSplitLayout,
   useSidebarLayout,
 } from '@/components/AppScaffold';
 import { consumePendingOpenOrderId, seedPendingIds } from '@/kasir/pendingOrderTracker';
@@ -42,29 +41,23 @@ const PRODUCT_PAD = spacing.md;
 export default function KasirPosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { setPin, pin } = useAuth();
   const { isDesktop, showPermanent, setCollapsed, toggleCollapsed } = useSidebarLayout();
-  const isWide = usePosSplitLayout();
+  // Tab-only (Menu | Pesanan). Rotasi hanya menyesuaikan kolom grid & spacing.
+  const isLandscape = windowWidth > windowHeight;
   const contentWidth = showPermanent ? windowWidth - SIDEBAR_WIDTH : windowWidth;
-  // Panel pesanan ~30% lebar (min 260, max 340) — selalu cukup lebar di landscape.
-  const cartWidth = isWide
-    ? Math.round(Math.min(340, Math.max(260, contentWidth * 0.32)))
-    : contentWidth;
-  const menuColWidth = isWide ? Math.max(240, contentWidth - cartWidth) : contentWidth;
-  const productCols = isWide
-    ? menuColWidth >= 900
+  const productCols = isLandscape
+    ? contentWidth >= 1000
       ? 5
-      : menuColWidth >= 700
+      : contentWidth >= 800
         ? 4
-        : menuColWidth >= 480
-          ? 3
-          : 2
-    : menuColWidth >= 420
+        : 3
+    : contentWidth >= 420
       ? 3
       : 2;
   const productCardWidth =
-    (menuColWidth - PRODUCT_PAD * 2 - PRODUCT_GAP * (productCols - 1)) / productCols;
+    (contentWidth - PRODUCT_PAD * 2 - PRODUCT_GAP * (productCols - 1)) / productCols;
 
   const [tab, setTab] = useState<TabKey>('menu');
   const [loading, setLoading] = useState(true);
@@ -412,7 +405,7 @@ export default function KasirPosScreen() {
         style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <StatusBar barStyle={!isWide && tab === 'cart' ? 'light-content' : 'dark-content'} />
+        <StatusBar barStyle={tab === 'cart' ? 'light-content' : 'dark-content'} />
 
         <View style={[styles.shell, showPermanent && styles.shellWithSidebar]}>
           {showPermanent ? (
@@ -421,14 +414,8 @@ export default function KasirPosScreen() {
 
           <View style={styles.posBody}>
             {/* MENU */}
-            {(isWide || tab === 'menu') ? (
-              <View
-                style={[
-                  styles.mainCol,
-                  isWide && { width: menuColWidth, flexGrow: 0, flexShrink: 0 },
-                  !isWide && { flex: 1 },
-                ]}
-              >
+            {tab === 'menu' ? (
+              <View style={styles.mainCol}>
           <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
             <Pressable
               onPress={() => {
@@ -695,8 +682,7 @@ export default function KasirPosScreen() {
               contentContainerStyle={[
                 styles.productListContent,
                 {
-                  paddingBottom:
-                    (!isWide ? 72 : 0) + (itemCount > 0 && !isWide ? 88 : 24) + insets.bottom,
+                  paddingBottom: 72 + (itemCount > 0 ? 88 : 24) + insets.bottom,
                 },
               ]}
               columnWrapperStyle={productCols > 1 ? styles.productRow : undefined}
@@ -745,7 +731,7 @@ export default function KasirPosScreen() {
             />
           </View>
 
-          {!isWide && itemCount > 0 && order?.can_checkout !== false ? (
+          {itemCount > 0 && order?.can_checkout !== false ? (
             <View style={[styles.checkoutDock, { paddingBottom: spacing.sm }]}>
               <View>
                 <Text style={styles.dockMeta}>{itemCount} item</Text>
@@ -773,31 +759,13 @@ export default function KasirPosScreen() {
               </View>
             </View>
           ) : null}
-
-          {!isWide ? (
-            <View style={[styles.tabsBottom, { paddingBottom: insets.bottom + spacing.xs }]}>
-              <Pressable onPress={() => setTab('menu')} style={[styles.tabBottom, styles.tabBottomActive]}>
-                <Text style={[styles.tabText, styles.tabBottomTextActive]}>☕ Menu</Text>
-              </Pressable>
-              <Pressable onPress={() => setTab('cart')} style={styles.tabBottom}>
-                <Text style={styles.tabText}>🧾 Pesanan{itemCount ? ` (${itemCount})` : ''}</Text>
-              </Pressable>
-            </View>
-          ) : null}
         </View>
       ) : null}
 
-      {/* PANEL PESANAN — selalu tampil di landscape/split */}
-      {isWide || tab === 'cart' ? (
-        <View
-          style={[
-            styles.cartCol,
-            isWide
-              ? [styles.cartColWide, { width: cartWidth }]
-              : styles.cartColMobile,
-          ]}
-        >
-          <View style={[styles.cartHeader, !isWide && { paddingTop: insets.top + spacing.sm }]}>
+      {/* PANEL PESANAN — tab */}
+      {tab === 'cart' ? (
+        <View style={[styles.cartCol, styles.cartColMobile]}>
+          <View style={[styles.cartHeader, { paddingTop: insets.top + spacing.sm }]}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.cartHeaderTitle}>Pesanan</Text>
               <Text style={styles.cartHeaderMeta} numberOfLines={1}>
@@ -962,21 +930,26 @@ export default function KasirPosScreen() {
               </Pressable>
             )}
           </View>
+        </View>
+      ) : null}
 
-          {!isWide ? (
+            {/* Tab Menu | Pesanan — selalu di bawah */}
             <View style={[styles.tabsBottom, { paddingBottom: insets.bottom + spacing.xs }]}>
-              <Pressable onPress={() => setTab('menu')} style={styles.tabBottom}>
-                <Text style={styles.tabText}>☕ Menu</Text>
+              <Pressable
+                onPress={() => setTab('menu')}
+                style={[styles.tabBottom, tab === 'menu' && styles.tabBottomActive]}
+              >
+                <Text style={[styles.tabText, tab === 'menu' && styles.tabBottomTextActive]}>☕ Menu</Text>
               </Pressable>
-              <Pressable onPress={() => setTab('cart')} style={[styles.tabBottom, styles.tabBottomActive]}>
-                <Text style={[styles.tabText, styles.tabBottomTextActive]}>
+              <Pressable
+                onPress={() => setTab('cart')}
+                style={[styles.tabBottom, tab === 'cart' && styles.tabBottomActive]}
+              >
+                <Text style={[styles.tabText, tab === 'cart' && styles.tabBottomTextActive]}>
                   🧾 Pesanan{itemCount ? ` (${itemCount})` : ''}
                 </Text>
               </Pressable>
             </View>
-          ) : null}
-        </View>
-      ) : null}
           </View>
         </View>
 
@@ -1108,19 +1081,13 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f6f1ea' },
   shell: { flex: 1, minWidth: 0 },
   shellWithSidebar: { flexDirection: 'row' },
-  posBody: { flex: 1, minWidth: 0, flexDirection: 'row', backgroundColor: '#f6f1ea' },
+  posBody: { flex: 1, minWidth: 0, flexDirection: 'column', backgroundColor: '#f6f1ea' },
   mainCol: { flex: 1, minWidth: 0, backgroundColor: '#f6f1ea' },
   cartCol: {
+    flex: 1,
     backgroundColor: colors.white,
-    borderLeftWidth: 1,
-    borderLeftColor: colors.slate200,
   },
-  cartColWide: {
-    flexGrow: 0,
-    flexShrink: 0,
-    alignSelf: 'stretch',
-    minWidth: 260,
-  },
+  cartColWide: {},
   cartColMobile: { flex: 1 },
   cartScroll: { flex: 1 },
   cartScrollContent: {
