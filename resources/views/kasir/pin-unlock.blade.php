@@ -66,11 +66,9 @@
         </div>
 
         <div class="mt-3 space-y-2 border-t border-slate-200 pt-3">
-            @if (count($currentUser->accessibleModules()) > 1)
-                <a href="{{ route('hub') }}" class="btn-outline flex w-full min-h-10 items-center justify-center border-slate-300 text-slate-700 no-underline hover:border-brand-300 hover:bg-brand-50 hover:text-espresso">
-                    Pindah Modul
-                </a>
-            @endif
+            <a href="{{ route('pin.edit') }}" class="btn-outline flex w-full min-h-10 items-center justify-center border-slate-300 text-slate-700 no-underline hover:border-brand-300 hover:bg-brand-50 hover:text-espresso">
+                Ubah PIN
+            </a>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button

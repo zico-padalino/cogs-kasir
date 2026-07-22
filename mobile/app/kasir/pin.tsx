@@ -13,16 +13,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
 import { authApi, pinApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
 import {
   isKasirListenModeRunning,
   startKasirListenMode,
 } from '@/kasir/kasirListenMode';
-import {
-  registerKasirPushToken,
-} from '@/kasir/pushNotifications';
+import { registerKasirPushToken } from '@/kasir/pushNotifications';
 import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
@@ -32,6 +29,7 @@ type ShopInfo = {
   initial: string;
 };
 
+/** Samakan UI/UX dengan web kasir/pin-unlock (tanpa pindah modul → Ubah PIN). */
 export default function PinUnlockScreen() {
   const { setPin, logout, user } = useAuth();
   const router = useRouter();
@@ -44,49 +42,18 @@ export default function PinUnlockScreen() {
   const [pin, setPinValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [pushStatus, setPushStatus] = useState<string>('Mendaftar push…');
-  const [listenStatus, setListenStatus] = useState<string>('Menyalakan mode suara…');
   const inputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const appOwnership = Constants.appOwnership; // 'expo' = Expo Go, null = APK build
 
   useEffect(() => {
-    // Pastikan push aktif meski masih di layar PIN (app bisa ditutup setelah ini).
-    void registerKasirPushToken()
-      .then((token) => {
-        const mode = appOwnership === 'expo' ? 'Expo Go' : 'APK/FCM';
-        if (token) {
-          setPushStatus(`${mode} · push siap · ${token.slice(0, 18)}…`);
-        } else {
-          setPushStatus(
-            appOwnership === 'expo'
-              ? 'Expo Go · izinkan notifikasi di Setting HP'
-              : 'APK · push gagal — izinkan notifikasi / pastikan google-services.json ikut build',
-          );
-        }
-      })
-      .catch(() => {
-        setPushStatus(
-          appOwnership === 'expo'
-            ? 'Expo Go · gagal daftar token ke server'
-            : 'APK · gagal daftar FCM — cek google-services.json & deploy service-account di server',
-        );
+    // Push + mode suara tetap aktif di belakang layar (tanpa status debug di UI).
+    void registerKasirPushToken();
+    if (Platform.OS === 'android') {
+      void startKasirListenMode().then(async (ok) => {
+        if (!ok) await isKasirListenModeRunning();
       });
-
-    void (async () => {
-      if (Platform.OS !== 'android') {
-        setListenStatus('Suara AI di luar app: Android saja');
-        return;
-      }
-      const ok = await startKasirListenMode();
-      const running = ok || (await isKasirListenModeRunning());
-      setListenStatus(
-        running
-          ? 'Mode suara aktif · notifikasi tetap “Kasir siap terima pesanan”'
-          : 'Mode suara gagal — izinkan notifikasi / jangan batasi baterai app',
-      );
-    })();
+    }
 
     authApi
       .shop()
@@ -223,17 +190,6 @@ export default function PinUnlockScreen() {
 
           <View style={styles.divider} />
 
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>
-              <Text style={styles.infoStrong}>Login stasiun</Text>
-              {user ? ` boleh akun siapa saja (contoh: ${user.name}).` : ' boleh akun siapa saja.'}
-            </Text>
-            <Text style={[styles.infoText, { marginTop: 4 }]}>
-              <Text style={styles.infoStrong}>PIN</Text> memakai PIN pegawai yang sedang bertugas —
-              nama di kasir & struk mengikuti pegawai itu, bukan akun login.
-            </Text>
-          </View>
-
           {error ? (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
@@ -283,23 +239,23 @@ export default function PinUnlockScreen() {
             <Text style={styles.metaMuted}>PIN dibuat di Admin → Data Karyawan</Text>
           </View>
 
-          <View style={styles.logoutWrap}>
-            <Text style={styles.logoutHint}>
-              Mode: {appOwnership === 'expo' ? 'Expo Go (bukan APK toko)' : 'APK terpasang'}
-            </Text>
-            {appOwnership === 'expo' ? (
-              <Text style={styles.pushWarn}>
-                Expo Go selalu bisa dapat push. Untuk kasir toko, wajib pakai APK hasil build.
-              </Text>
-            ) : null}
-            <Text style={styles.pushStatus}>{pushStatus}</Text>
-            <Text style={styles.listenStatus}>{listenStatus}</Text>
+          <View style={styles.actionsWrap}>
+            <Pressable
+              onPress={() => router.push('/kasir/ubah-pin' as never)}
+              style={({ pressed }) => [styles.outlineBtn, pressed && { opacity: 0.9 }]}
+            >
+              <Text style={styles.outlineText}>Ubah PIN</Text>
+            </Pressable>
 
             <Pressable
               onPress={() => logout()}
-              style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.9 }]}
+              style={({ pressed }) => [
+                styles.outlineBtn,
+                styles.logoutBtn,
+                pressed && { opacity: 0.9 },
+              ]}
             >
-              <Text style={styles.logoutText}>Keluar / Logout</Text>
+              <Text style={[styles.outlineText, styles.logoutText]}>Keluar / Logout</Text>
             </Pressable>
             <Text style={styles.logoutHint}>Keluar dari akun login stasiun ini</Text>
           </View>
@@ -404,17 +360,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.slate200,
     marginVertical: spacing.md,
   },
-  infoBox: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.slate50,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  infoText: { fontSize: 11, lineHeight: 16, color: colors.slate600 },
-  infoStrong: { ...font('700'), color: colors.slate700 },
   errorBox: {
     borderRadius: radius.md,
     borderWidth: 1,
@@ -466,14 +411,14 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 11, color: colors.slate500 },
   metaStrong: { ...font('600'), color: colors.slate700 },
   metaMuted: { fontSize: 11, color: colors.slate400 },
-  logoutWrap: {
+  actionsWrap: {
     marginTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.slate200,
     paddingTop: spacing.md,
     gap: 8,
   },
-  logoutBtn: {
+  outlineBtn: {
     minHeight: 40,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -482,33 +427,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoutText: { color: colors.slate700, fontSize: 14, ...font('500') },
+  outlineText: { color: colors.slate700, fontSize: 14, ...font('500') },
+  logoutBtn: {},
+  logoutText: {},
   logoutHint: {
     marginTop: 2,
     fontSize: 10,
     color: colors.slate400,
     textAlign: 'center',
-  },
-  pushWarn: {
-    marginTop: 4,
-    fontSize: 10,
-    color: '#b45309',
-    textAlign: 'center',
-    ...font('500'),
-  },
-  pushStatus: {
-    marginTop: 4,
-    marginBottom: 4,
-    fontSize: 10,
-    color: colors.brand700,
-    textAlign: 'center',
-    ...font('600'),
-  },
-  listenStatus: {
-    marginBottom: 8,
-    fontSize: 10,
-    color: colors.slate600,
-    textAlign: 'center',
-    ...font('500'),
   },
 });

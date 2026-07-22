@@ -82,7 +82,7 @@ function RootNavigator() {
         router.replace((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
         return;
       }
-      if (first === 'kasir' && second !== 'pin' && second !== 'attendance' && !pin?.unlocked) {
+      if (first === 'kasir' && second !== 'pin' && second !== 'attendance' && second !== 'ubah-pin' && !pin?.unlocked) {
         router.replace('/kasir/pin' as never);
       }
     } else if (first === 'kasir') {

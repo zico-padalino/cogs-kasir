@@ -85,7 +85,8 @@ class PinSetupController extends Controller
 
         return match ($module) {
             UserRole::Admin->value => 'layouts.admin',
-            UserRole::Kasir->value => 'layouts.kasir',
+            // Saat PIN terkunci, jangan pakai layout kasir (JS notifikasi bisa redirect balik ke unlock).
+            UserRole::Kasir->value => KasirPin::isUnlocked() ? 'layouts.kasir' : 'layouts.app',
             default => 'layouts.app',
         };
     }
