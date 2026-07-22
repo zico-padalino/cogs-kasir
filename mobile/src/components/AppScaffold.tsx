@@ -57,10 +57,11 @@ function isActive(item: NavItem, pathname: string): boolean {
   );
 }
 
-/** Menu|cart berdampingan: landscape ATAU lebar ≥900 (mirror web tablet). */
+/** Menu|cart berdampingan: landscape ATAU lebar tablet (≥700). */
 export function usePosSplitLayout(): boolean {
   const { width, height } = useWindowDimensions();
-  return width > height || width >= POS_SPLIT_MIN_WIDTH;
+  // Rasio landscape longgar agar tablet/phone rotasi pasti split.
+  return width > height * 0.95 || width >= 700;
 }
 
 export function useSidebarLayout() {

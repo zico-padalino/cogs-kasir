@@ -38,7 +38,6 @@ type PayMethod = 'cash' | 'qris' | 'transfer';
 
 const PRODUCT_GAP = spacing.sm;
 const PRODUCT_PAD = spacing.md;
-const CART_COL_WIDTH = 268;
 
 export default function KasirPosScreen() {
   const router = useRouter();
@@ -48,13 +47,19 @@ export default function KasirPosScreen() {
   const { isDesktop, showPermanent, setCollapsed, toggleCollapsed } = useSidebarLayout();
   const isWide = usePosSplitLayout();
   const contentWidth = showPermanent ? windowWidth - SIDEBAR_WIDTH : windowWidth;
-  const menuColWidth = isWide ? Math.max(280, contentWidth - CART_COL_WIDTH) : contentWidth;
+  // Panel pesanan ~30% lebar (min 260, max 340) — selalu cukup lebar di landscape.
+  const cartWidth = isWide
+    ? Math.round(Math.min(340, Math.max(260, contentWidth * 0.32)))
+    : contentWidth;
+  const menuColWidth = isWide ? Math.max(240, contentWidth - cartWidth) : contentWidth;
   const productCols = isWide
     ? menuColWidth >= 900
       ? 5
       : menuColWidth >= 700
         ? 4
-        : 3
+        : menuColWidth >= 480
+          ? 3
+          : 2
     : menuColWidth >= 420
       ? 3
       : 2;
@@ -402,18 +407,28 @@ export default function KasirPosScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, showPermanent && styles.rootWithSidebar]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <StatusBar barStyle={!isWide && tab === 'cart' ? 'light-content' : 'dark-content'} />
-      {showPermanent ? (
-        <PermanentSidebar moduleType="kasir" onCollapse={() => setCollapsed(true)} />
-      ) : null}
+    <View style={styles.root}>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <StatusBar barStyle={!isWide && tab === 'cart' ? 'light-content' : 'dark-content'} />
 
-      <View style={[styles.posBody, isWide && styles.posBodyWide]}>
-      {isWide || tab === 'menu' ? (
-        <View style={[styles.mainCol, isWide && styles.mainColWide]}>
+        <View style={[styles.shell, showPermanent && styles.shellWithSidebar]}>
+          {showPermanent ? (
+            <PermanentSidebar moduleType="kasir" onCollapse={() => setCollapsed(true)} />
+          ) : null}
+
+          <View style={styles.posBody}>
+            {/* MENU */}
+            {(isWide || tab === 'menu') ? (
+              <View
+                style={[
+                  styles.mainCol,
+                  isWide && { width: menuColWidth, flexGrow: 0, flexShrink: 0 },
+                  !isWide && { flex: 1 },
+                ]}
+              >
           <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
             <Pressable
               onPress={() => {
@@ -772,187 +787,158 @@ export default function KasirPosScreen() {
         </View>
       ) : null}
 
+      {/* PANEL PESANAN — selalu tampil di landscape/split */}
       {isWide || tab === 'cart' ? (
-        <View style={[styles.cartCol, isWide ? styles.cartColWide : styles.cartColMobile]}>
+        <View
+          style={[
+            styles.cartCol,
+            isWide
+              ? [styles.cartColWide, { width: cartWidth }]
+              : styles.cartColMobile,
+          ]}
+        >
           <View style={[styles.cartHeader, !isWide && { paddingTop: insets.top + spacing.sm }]}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.cartHeaderTitle}>Pesanan</Text>
-              <Text style={styles.cartHeaderMeta}>
-                {itemCount} item · {order?.order_number ?? '-'}
+              <Text style={styles.cartHeaderMeta} numberOfLines={1}>
+                {customerNote || 'Umum'} · #{order?.order_number ?? '—'}
               </Text>
             </View>
             <View style={styles.cartHeaderBadge}>
-              <Text style={styles.cartHeaderBadgeText}>{order?.status_label || 'Draft'}</Text>
+              <Text style={styles.cartHeaderBadgeText}>
+                {itemCount > 0 ? order?.status_label || 'Draft' : 'Draft'}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.cartPane}>
-            {isActiveOpenBill ? (
-              <View style={styles.openBillHint}>
-                <Text style={styles.openBillHintText}>
-                  Open Bill aktif — boleh tambah item, lalu tekan Open Bill lagi atau Bayar.
-                </Text>
+          <View style={styles.cartContext}>
+            <View style={styles.cartContextChip}>
+              <Text style={styles.cartContextText}>
+                {order?.order_type_icon ? `${order.order_type_icon} ` : '🥡 '}
+                {order?.order_type_label || (orderType === 'dine_in' ? 'Dine In' : 'Take Away')}
+              </Text>
+            </View>
+            {customerNote ? (
+              <View style={styles.cartContextChip}>
+                <Text style={styles.cartContextText}>{customerNote}</Text>
               </View>
             ) : null}
+          </View>
 
-            {(order?.order_type_label || order?.customer_note) ? (
-              <View style={styles.cartContext}>
-                {order?.order_type_label ? (
-                  <View style={styles.cartContextChip}>
-                    <Text style={styles.cartContextText}>
-                      {order.order_type_icon ? `${order.order_type_icon} ` : ''}
-                      {order.order_type_label}
-                    </Text>
-                  </View>
-                ) : null}
-                {order?.customer_note ? (
-                  <View style={styles.cartContextChip}>
-                    <Text style={styles.cartContextText}>{order.customer_note}</Text>
-                  </View>
-                ) : null}
+          {isActiveOpenBill ? (
+            <View style={styles.openBillHint}>
+              <Text style={styles.openBillHintText}>
+                Open Bill aktif — boleh tambah item, lalu simpan lagi atau Bayar.
+              </Text>
+            </View>
+          ) : null}
+
+          <ScrollView
+            style={styles.cartScroll}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={styles.cartScrollContent}
+          >
+            {(order?.items || []).length === 0 ? (
+              <View style={styles.cartEmpty}>
+                <Text style={{ fontSize: 40 }}>🛒</Text>
+                <Text style={styles.cartEmptyTitle}>Belum ada item</Text>
+                <Text style={styles.muted}>Pilih menu untuk mulai pesanan</Text>
               </View>
-            ) : null}
-
-            <ScrollView
-              style={{ flex: 1 }}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              contentContainerStyle={{
-                padding: spacing.lg,
-                paddingBottom: (itemCount > 0 && order?.can_checkout !== false ? 96 : 24) + spacing.lg,
-                gap: spacing.md,
-              }}
-            >
-              {(order?.items || []).length === 0 ? (
-                <View style={styles.cartEmpty}>
-                  <Text style={{ fontSize: 36 }}>☕</Text>
-                  <Text style={styles.cartEmptyTitle}>Belum ada item</Text>
-                  <Text style={styles.muted}>Pilih menu untuk mulai pesanan</Text>
-                </View>
-              ) : (
-                (order?.items || []).map((item) => (
-                  <View key={item.id} style={styles.cartItem}>
+            ) : (
+              (order?.items || []).map((item) => (
+                <View key={item.id} style={styles.cartItemCard}>
+                  {item.product_image_url ? (
+                    <Image source={{ uri: item.product_image_url }} style={styles.cartItemThumb} />
+                  ) : (
+                    <View style={[styles.cartItemThumb, styles.cartItemThumbFallback]}>
+                      <Text style={{ fontSize: 18 }}>☕</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={styles.cartRow1}>
-                      <Text style={styles.cartName} numberOfLines={1}>
+                      <Text style={styles.cartName} numberOfLines={2}>
                         {item.product_name}
                       </Text>
                       <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
                     </View>
-                    <View style={styles.cartRow2}>
-                      <Text style={styles.cartUnit}>
-                        {formatRupiah(item.unit_price)}
-                        {item.notes ? ` · ${item.notes}` : ''}
-                      </Text>
-                      <View style={styles.qtyRow}>
-                        {cartEditable ? (
-                          <>
-                            <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
-                              <Text style={styles.qtyBtnText}>−</Text>
-                            </Pressable>
-                            <Text style={styles.qtyVal}>{item.quantity}</Text>
-                            <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
-                              <Text style={styles.qtyBtnText}>+</Text>
-                            </Pressable>
-                          </>
-                        ) : (
-                          <Text style={styles.qtyVal}>×{item.quantity}</Text>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-
-              {(order?.items || []).length > 0 ? (
-                <>
-                  <View style={styles.discountBox}>
-                    <Text style={styles.sectionLabel}>Diskon</Text>
-                    <View style={styles.discountTabs}>
-                      {(['amount', 'percent'] as const).map((t) => (
-                        <Pressable
-                          key={t}
-                          onPress={() => {
-                            setDiscountType(t);
-                            void saveDiscount(t, discountValue);
-                          }}
-                          style={[styles.discountTab, discountType === t && styles.discountTabOn]}
-                        >
-                          <Text style={styles.discountTabText}>{t === 'amount' ? 'Rp' : '%'}</Text>
+                    <Text style={styles.cartUnit}>{formatRupiah(item.unit_price)}</Text>
+                    <View style={styles.cartItemActions}>
+                      {cartEditable ? (
+                        <View style={styles.qtyRow}>
+                          <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
+                            <Text style={styles.qtyBtnText}>−</Text>
+                          </Pressable>
+                          <Text style={styles.qtyVal}>{item.quantity}</Text>
+                          <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+                            <Text style={styles.qtyBtnText}>+</Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Text style={styles.qtyVal}>×{item.quantity}</Text>
+                      )}
+                      {cartEditable ? (
+                        <Pressable onPress={() => changeQty(item.id, 0)} style={styles.cartDeleteBtn}>
+                          <Text style={styles.cartDeleteText}>×</Text>
                         </Pressable>
-                      ))}
+                      ) : null}
                     </View>
-                    <TextInput
-                      value={discountValue}
-                      onChangeText={setDiscountValue}
-                      onEndEditing={() => saveDiscount(discountType, discountValue)}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      style={styles.input}
-                    />
+                    {item.notes ? <Text style={styles.cartNote}>{item.notes}</Text> : null}
                   </View>
+                </View>
+              ))
+            )}
 
-                  <View style={styles.totals}>
-                    <View style={styles.totalRow}>
-                      <Text style={styles.muted}>Subtotal</Text>
-                      <Text>{formatRupiah(order?.subtotal ?? 0)}</Text>
-                    </View>
-                    {(order?.discount_amount ?? 0) > 0 ? (
-                      <View style={styles.totalRow}>
-                        <Text style={styles.muted}>Diskon</Text>
-                        <Text>- {formatRupiah(order?.discount_amount ?? 0)}</Text>
-                      </View>
-                    ) : null}
-                    <View style={styles.totalRow}>
-                      <Text style={styles.totalLabel}>Total</Text>
-                      <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.rowActions}>
-                    <Pressable onPress={newOrder} style={styles.outlineBtn}>
-                      <Text style={styles.outlineBtnText}>Order Baru</Text>
-                    </Pressable>
+            {(order?.items || []).length > 0 ? (
+              <View style={styles.discountBox}>
+                <Text style={styles.sectionLabel}>Diskon</Text>
+                <View style={styles.discountTabs}>
+                  {(['amount', 'percent'] as const).map((t) => (
                     <Pressable
+                      key={t}
                       onPress={() => {
-                        Alert.alert('Batalkan', 'Batalkan pesanan aktif?', [
-                          { text: 'Tidak', style: 'cancel' },
-                          {
-                            text: 'Batalkan',
-                            style: 'destructive',
-                            onPress: async () => {
-                              try {
-                                const res = await kasirApi.cancelOrder();
-                                applyOrder(res.data);
-                              } catch (err) {
-                                handleApiError(err);
-                              }
-                            },
-                          },
-                        ]);
+                        setDiscountType(t);
+                        void saveDiscount(t, discountValue);
                       }}
-                      style={styles.dangerBtn}
+                      style={[styles.discountTab, discountType === t && styles.discountTabOn]}
                     >
-                      <Text style={styles.dangerBtnText}>Batal</Text>
+                      <Text style={styles.discountTabText}>{t === 'amount' ? 'Rp' : '%'}</Text>
                     </Pressable>
-                  </View>
-                </>
-              ) : null}
-            </ScrollView>
-          </View>
-
-          {itemCount > 0 && order?.can_checkout !== false ? (
-            <View style={styles.checkoutDockInline}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.dockMeta}>{itemCount} item</Text>
-                <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
+                  ))}
+                </View>
+                <TextInput
+                  value={discountValue}
+                  onChangeText={setDiscountValue}
+                  onEndEditing={() => saveDiscount(discountType, discountValue)}
+                  keyboardType="numeric"
+                  placeholder="Tambah diskon"
+                  placeholderTextColor={colors.slate400}
+                  style={styles.input}
+                />
               </View>
-              <View style={styles.payActions}>
+            ) : null}
+          </ScrollView>
+
+          <View style={[styles.cartFooter, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+            <View style={styles.totalRow}>
+              <Text style={styles.muted}>Subtotal</Text>
+              <Text style={styles.cartFooterAmount}>{formatRupiah(order?.subtotal ?? 0)}</Text>
+            </View>
+            {(order?.discount_amount ?? 0) > 0 ? (
+              <View style={styles.totalRow}>
+                <Text style={styles.muted}>Diskon</Text>
+                <Text style={styles.cartFooterAmount}>- {formatRupiah(order?.discount_amount ?? 0)}</Text>
+              </View>
+            ) : null}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
+            </View>
+
+            {itemCount > 0 && order?.can_checkout !== false ? (
+              <View style={styles.cartFooterActions}>
                 {order?.source === 'kasir' ? (
-                  <Pressable
-                    onPress={submitOpenBill}
-                    disabled={holding}
-                    style={styles.holdBtn}
-                  >
+                  <Pressable onPress={submitOpenBill} disabled={holding} style={styles.holdBtn}>
                     <Text style={styles.holdBtnText}>
                       {holding ? '…' : isActiveOpenBill ? 'Simpan Open Bill' : 'Open Bill'}
                     </Text>
@@ -965,13 +951,17 @@ export default function KasirPosScreen() {
                     setProofUri(null);
                     setPayOpen(true);
                   }}
-                  style={styles.payBtn}
+                  style={styles.payBtnGreen}
                 >
-                  <Text style={styles.payBtnText}>Bayar</Text>
+                  <Text style={styles.payBtnText}>Bayar {formatRupiah(total)}</Text>
                 </Pressable>
               </View>
-            </View>
-          ) : null}
+            ) : (
+              <Pressable onPress={newOrder} style={styles.outlineBtn}>
+                <Text style={styles.outlineBtnText}>+ Pesanan Baru</Text>
+              </Pressable>
+            )}
+          </View>
 
           {!isWide ? (
             <View style={[styles.tabsBottom, { paddingBottom: insets.bottom + spacing.xs }]}>
@@ -987,6 +977,8 @@ export default function KasirPosScreen() {
           ) : null}
         </View>
       ) : null}
+          </View>
+        </View>
 
       {/* Add item modal */}
       <Modal visible={!!addProduct} animationType="slide" transparent onRequestClose={() => setAddProduct(null)}>
@@ -1107,27 +1099,87 @@ export default function KasirPosScreen() {
       {!isDesktop ? (
         <AppDrawer moduleType="kasir" visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
       ) : null}
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f6f1ea' },
-  rootWithSidebar: { flexDirection: 'row' },
-  posBody: { flex: 1, minWidth: 0 },
-  posBodyWide: { flexDirection: 'row' },
-  mainCol: { flex: 1, minWidth: 0 },
-  mainColWide: { borderRightWidth: 1, borderRightColor: colors.slate200 },
-  cartCol: { flex: 1, backgroundColor: colors.slate100 },
-  cartColWide: {
-    flexGrow: 0,
-    flexShrink: 0,
-    width: CART_COL_WIDTH,
+  shell: { flex: 1, minWidth: 0 },
+  shellWithSidebar: { flexDirection: 'row' },
+  posBody: { flex: 1, minWidth: 0, flexDirection: 'row', backgroundColor: '#f6f1ea' },
+  mainCol: { flex: 1, minWidth: 0, backgroundColor: '#f6f1ea' },
+  cartCol: {
+    backgroundColor: colors.white,
     borderLeftWidth: 1,
     borderLeftColor: colors.slate200,
   },
-  cartColMobile: {},
+  cartColWide: {
+    flexGrow: 0,
+    flexShrink: 0,
+    alignSelf: 'stretch',
+    minWidth: 260,
+  },
+  cartColMobile: { flex: 1 },
+  cartScroll: { flex: 1 },
+  cartScrollContent: {
+    padding: spacing.md,
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
+    flexGrow: 1,
+  },
+  cartItemCard: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
+    padding: spacing.sm,
+  },
+  cartItemThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.slate100,
+  },
+  cartItemThumbFallback: { alignItems: 'center', justifyContent: 'center' },
+  cartItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  cartDeleteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.sm,
+    backgroundColor: colors.red50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartDeleteText: { color: colors.red600, fontSize: 18, ...font('700'), lineHeight: 20 },
+  cartNote: { marginTop: 4, fontSize: 11, color: colors.slate500 },
+  cartFooter: {
+    borderTopWidth: 1,
+    borderTopColor: colors.slate200,
+    backgroundColor: '#f6f1ea',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    gap: 6,
+  },
+  cartFooterAmount: { color: colors.slate800, fontSize: 13, ...font('600') },
+  cartFooterActions: { flexDirection: 'row', gap: 8, marginTop: spacing.sm },
+  payBtnGreen: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.green600,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   muted: { color: colors.slate500, fontSize: 13 },
   topbar: {
@@ -1321,11 +1373,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.slate200,
+    borderBottomColor: colors.slate100,
   },
   cartContextChip: {
     borderRadius: radius.full,
