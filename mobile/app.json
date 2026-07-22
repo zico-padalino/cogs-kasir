@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.cogsperhitungan.kasir",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5c4033"
@@ -54,7 +54,8 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "softwareKeyboardLayoutMode": "resize"
           }
         }
       ],

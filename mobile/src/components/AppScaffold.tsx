@@ -1,6 +1,16 @@
 import { useRouter, usePathname } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi, pinApi } from '@/api/kasir';
 import { ROLE_META, useAuth, type Role } from '@/auth';
@@ -8,6 +18,11 @@ import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type NavItem = { label: string; icon: string; route: string; match?: string[] };
+
+/** Samakan breakpoint web: sidebar ≥768, POS split menu|cart ≥1024. */
+export const SIDEBAR_BREAKPOINT = 768;
+export const POS_SPLIT_BREAKPOINT = 1024;
+export const SIDEBAR_WIDTH = 256;
 
 const NAV: Record<Role, NavItem[]> = {
   cogs: [
@@ -35,19 +50,23 @@ const BRAND_HEADER: Record<Role, { badge: string; title: string; subtitle: strin
 
 function isActive(item: NavItem, pathname: string): boolean {
   const targets = item.match ?? [item.route];
-
-  return targets.some((target) => (target === '/cogs' || target === '/kasir' ? pathname === target : pathname.startsWith(target)));
+  return targets.some((target) =>
+    target === '/cogs' || target === '/kasir' ? pathname === target : pathname.startsWith(target),
+  );
 }
 
-export function AppDrawer({
-  moduleType,
-  visible,
-  onClose,
-}: {
+export function useShowPermanentSidebar(): boolean {
+  const { width } = useWindowDimensions();
+  return width >= SIDEBAR_BREAKPOINT;
+}
+
+type SidebarBodyProps = {
   moduleType: Role;
-  visible: boolean;
-  onClose: () => void;
-}) {
+  onNavigate?: () => void;
+  compact?: boolean;
+};
+
+function SidebarBody({ moduleType, onNavigate, compact }: SidebarBodyProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
@@ -58,9 +77,7 @@ export function AppDrawer({
   const [shopInitial, setShopInitial] = useState(header.badge);
 
   useEffect(() => {
-    if (moduleType !== 'kasir') {
-      return;
-    }
+    if (moduleType !== 'kasir') return;
     authApi
       .shop()
       .then((res) => {
@@ -68,20 +85,18 @@ export function AppDrawer({
         setShopLogo(resolveMediaUrl(res.data.logo_url));
         setShopInitial(res.data.initial || (res.data.name?.[0] || 'K').toUpperCase());
       })
-      .catch(() => {
-        // pakai default
-      });
+      .catch(() => {});
   }, [moduleType, header.title]);
 
   const go = (route: string) => {
-    onClose();
+    onNavigate?.();
     if (pathname !== route) {
       router.replace(route as never);
     }
   };
 
   const handleLock = () => {
-    onClose();
+    onNavigate?.();
     Alert.alert('Kunci Kasir', 'Kunci sesi PIN sekarang?', [
       { text: 'Batal', style: 'cancel' },
       {
@@ -100,73 +115,123 @@ export function AppDrawer({
   };
 
   const handleLogout = () => {
-    onClose();
+    onNavigate?.();
     Alert.alert('Keluar', 'Yakin ingin keluar dari akun ini?', [
       { text: 'Batal', style: 'cancel' },
       { text: 'Keluar', style: 'destructive', onPress: () => logout() },
     ]);
   };
 
+  const operatorName = pin?.operator_name || user?.name || 'Pengguna';
+  const hasOperatorPin = Boolean(pin?.operator_name);
+
+  return (
+    <View style={[styles.sidebarInner, compact && styles.sidebarInnerCompact, { paddingTop: insets.top + spacing.md }]}>
+      <View style={styles.sidebarHead}>
+        {shopLogo ? (
+          <Image source={{ uri: shopLogo }} style={styles.brandLogo} />
+        ) : (
+          <View style={styles.brandBadge}>
+            <Text style={styles.brandBadgeText}>{moduleType === 'kasir' ? shopInitial : header.badge}</Text>
+          </View>
+        )}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.brandTitle} numberOfLines={1}>
+            {moduleType === 'kasir' ? shopName : header.title}
+          </Text>
+          <Text style={styles.brandSubtitle}>{header.subtitle}</Text>
+        </View>
+      </View>
+
+      <ScrollView style={styles.navScroll} contentContainerStyle={styles.navList}>
+        {NAV[moduleType].map((item) => {
+          const active = isActive(item, pathname);
+          return (
+            <Pressable
+              key={item.route}
+              onPress={() => go(item.route)}
+              style={[styles.navItem, active && styles.navItemActive]}
+            >
+              <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
+                <Text style={styles.navIcon}>{item.icon}</Text>
+              </View>
+              <Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <View style={[styles.sidebarFoot, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+        <View style={styles.userChip}>
+          <Text style={styles.userName} numberOfLines={1}>
+            {operatorName}
+          </Text>
+          <Text style={styles.userRole}>
+            {moduleType === 'kasir'
+              ? hasOperatorPin
+                ? 'Kasir bertugas · PIN aktif'
+                : 'Modul Kasir'
+              : ROLE_META[moduleType].label}
+          </Text>
+          {moduleType === 'kasir' && hasOperatorPin && user?.name ? (
+            <Text style={styles.userHint} numberOfLines={1}>
+              Stasiun: {user.name}
+            </Text>
+          ) : null}
+        </View>
+
+        {moduleType === 'kasir' ? (
+          <Pressable
+            onPress={() => {
+              onNavigate?.();
+              router.push('/kasir/ubah-pin' as never);
+            }}
+            style={styles.logoutBtn}
+          >
+            <Text style={styles.logoutText}>🔢  Ubah PIN</Text>
+          </Pressable>
+        ) : null}
+
+        {moduleType === 'kasir' ? (
+          <Pressable onPress={handleLock} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>🔒  Kunci Kasir</Text>
+          </Pressable>
+        ) : null}
+
+        <Pressable onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>↩  Keluar</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** Sidebar tetap (tablet+) — seperti web md:pl-64. */
+export function PermanentSidebar({ moduleType }: { moduleType: Role }) {
+  return (
+    <View style={styles.permanentSidebar}>
+      <SidebarBody moduleType={moduleType} compact />
+    </View>
+  );
+}
+
+export function AppDrawer({
+  moduleType,
+  visible,
+  onClose,
+}: {
+  moduleType: Role;
+  visible: boolean;
+  onClose: () => void;
+}) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlayRoot}>
-        <View style={[styles.sidebar, { paddingTop: insets.top + spacing.md }]}>
-          <View style={styles.sidebarHead}>
-            {shopLogo ? (
-              <Image source={{ uri: shopLogo }} style={styles.brandLogo} />
-            ) : (
-              <View style={styles.brandBadge}>
-                <Text style={styles.brandBadgeText}>
-                  {moduleType === 'kasir' ? shopInitial : header.badge}
-                </Text>
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.brandTitle}>{moduleType === 'kasir' ? shopName : header.title}</Text>
-              <Text style={styles.brandSubtitle}>{header.subtitle}</Text>
-            </View>
-          </View>
-
-          <ScrollView style={styles.navScroll} contentContainerStyle={styles.navList}>
-            {NAV[moduleType].map((item) => {
-              const active = isActive(item, pathname);
-
-              return (
-                <Pressable
-                  key={item.route}
-                  onPress={() => go(item.route)}
-                  style={[styles.navItem, active && styles.navItemActive]}
-                >
-                  <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
-                    <Text style={styles.navIcon}>{item.icon}</Text>
-                  </View>
-                  <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
-                </Pressable>
-              );
-            })}
-
-          </ScrollView>
-
-          <View style={[styles.sidebarFoot, { paddingBottom: insets.bottom + spacing.md }]}>
-            <View style={styles.userChip}>
-              <Text style={styles.userName} numberOfLines={1}>
-                {pin?.operator_name || user?.name || 'Pengguna'}
-              </Text>
-              <Text style={styles.userRole}>
-                {moduleType === 'kasir' ? 'Modul Kasir' : ROLE_META[moduleType].label}
-              </Text>
-            </View>
-            {moduleType === 'kasir' ? (
-              <Pressable onPress={handleLock} style={styles.logoutBtn}>
-                <Text style={styles.logoutText}>🔒  Kunci Kasir</Text>
-              </Pressable>
-            ) : null}
-            <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-              <Text style={styles.logoutText}>↩  Keluar</Text>
-            </Pressable>
-          </View>
+        <View style={styles.drawerSidebar}>
+          <SidebarBody moduleType={moduleType} onNavigate={onClose} />
         </View>
-
         <Pressable style={styles.overlayBackdrop} onPress={onClose} />
       </View>
     </Modal>
@@ -185,37 +250,48 @@ export function AppScaffold({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const showSidebar = useShowPermanentSidebar();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn} hitSlop={8}>
-          <View style={styles.menuLine} />
-          <View style={styles.menuLine} />
-          <View style={styles.menuLine} />
-        </Pressable>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.topbarTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text style={styles.topbarSubtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
+    <View style={[styles.root, showSidebar && styles.rootWithSidebar]}>
+      {showSidebar ? <PermanentSidebar moduleType={moduleType} /> : null}
+
+      <View style={styles.contentCol}>
+        <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
+          {!showSidebar ? (
+            <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn} hitSlop={8}>
+              <View style={styles.menuLine} />
+              <View style={styles.menuLine} />
+              <View style={styles.menuLine} />
+            </Pressable>
           ) : null}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.topbarTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle ? (
+              <Text style={styles.topbarSubtitle} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
         </View>
+
+        <View style={{ flex: 1 }}>{children}</View>
       </View>
 
-      <View style={{ flex: 1 }}>{children}</View>
-
-      <AppDrawer moduleType={moduleType} visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      {!showSidebar ? (
+        <AppDrawer moduleType={moduleType} visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.slate100 },
+  rootWithSidebar: { flexDirection: 'row' },
+  contentCol: { flex: 1, minWidth: 0 },
   topbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,17 +318,31 @@ const styles = StyleSheet.create({
   topbarSubtitle: { fontSize: 13, color: colors.slate500, marginTop: 2 },
   overlayRoot: { flex: 1, flexDirection: 'row' },
   overlayBackdrop: { flex: 1, backgroundColor: 'rgba(28,20,16,0.42)' },
-  sidebar: {
+  permanentSidebar: {
+    width: SIDEBAR_WIDTH,
+    flexGrow: 0,
+    flexShrink: 0,
+    backgroundColor: '#ebe3d6',
+    borderRightWidth: 1,
+    borderRightColor: colors.brand200,
+  },
+  drawerSidebar: {
     width: '82%',
     maxWidth: 300,
     backgroundColor: '#ebe3d6',
-    paddingHorizontal: spacing.md,
     borderRightWidth: 1,
     borderRightColor: colors.brand200,
     shadowColor: '#1c1410',
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 8,
+  },
+  sidebarInner: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+  },
+  sidebarInnerCompact: {
+    paddingHorizontal: spacing.sm,
   },
   sidebarHead: {
     flexDirection: 'row',
@@ -319,7 +409,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.brand200,
     paddingTop: spacing.md,
-    gap: spacing.sm,
+    gap: 2,
   },
   userChip: {
     borderRadius: radius.md,
@@ -328,11 +418,13 @@ const styles = StyleSheet.create({
     borderColor: colors.brand100,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
   },
   userName: { color: colors.espresso, fontSize: 13, ...font('600') },
   userRole: { color: colors.slate500, fontSize: 11, marginTop: 1 },
+  userHint: { color: colors.slate400, fontSize: 10, marginTop: 2 },
   logoutBtn: {
-    minHeight: 44,
+    minHeight: 40,
     borderRadius: radius.md,
     alignItems: 'flex-start',
     justifyContent: 'center',
