@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, usePathname } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   Alert,
   Image,
@@ -19,10 +20,11 @@ import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type NavItem = { label: string; icon: string; route: string; match?: string[] };
 
-/** Samakan breakpoint web: sidebar ≥768, POS split menu|cart ≥1024. */
+/** Samakan web: sidebar ≥768, POS split menu|cart saat landscape atau ≥900. */
 export const SIDEBAR_BREAKPOINT = 768;
-export const POS_SPLIT_BREAKPOINT = 1024;
+export const POS_SPLIT_MIN_WIDTH = 900;
 export const SIDEBAR_WIDTH = 256;
+const SIDEBAR_STORAGE_KEY = 'pos-sidebar-collapsed';
 
 const NAV: Record<Role, NavItem[]> = {
   cogs: [
@@ -55,18 +57,68 @@ function isActive(item: NavItem, pathname: string): boolean {
   );
 }
 
-export function useShowPermanentSidebar(): boolean {
+/** Menu|cart berdampingan: landscape ATAU lebar ≥900 (mirror web tablet). */
+export function usePosSplitLayout(): boolean {
+  const { width, height } = useWindowDimensions();
+  return width > height || width >= POS_SPLIT_MIN_WIDTH;
+}
+
+export function useSidebarLayout() {
   const { width } = useWindowDimensions();
-  return width >= SIDEBAR_BREAKPOINT;
+  const isDesktop = width >= SIDEBAR_BREAKPOINT;
+  const [collapsed, setCollapsedState] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(SIDEBAR_STORAGE_KEY)
+      .then((value) => {
+        if (!alive) return;
+        setCollapsedState(value === '1');
+      })
+      .finally(() => {
+        if (alive) setReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const setCollapsed = useCallback((next: boolean) => {
+    setCollapsedState(next);
+    void AsyncStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0');
+  }, []);
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed(!collapsed);
+  }, [collapsed, setCollapsed]);
+
+  const showPermanent = isDesktop && !collapsed;
+
+  return {
+    isDesktop,
+    collapsed,
+    ready,
+    showPermanent,
+    setCollapsed,
+    toggleCollapsed,
+  };
+}
+
+/** @deprecated pakai useSidebarLayout().showPermanent */
+export function useShowPermanentSidebar(): boolean {
+  return useSidebarLayout().showPermanent;
 }
 
 type SidebarBodyProps = {
   moduleType: Role;
   onNavigate?: () => void;
+  onCollapse?: () => void;
+  showCollapse?: boolean;
   compact?: boolean;
 };
 
-function SidebarBody({ moduleType, onNavigate, compact }: SidebarBodyProps) {
+function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact }: SidebarBodyProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
@@ -141,6 +193,11 @@ function SidebarBody({ moduleType, onNavigate, compact }: SidebarBodyProps) {
           </Text>
           <Text style={styles.brandSubtitle}>{header.subtitle}</Text>
         </View>
+        {showCollapse && onCollapse ? (
+          <Pressable onPress={onCollapse} style={styles.collapseBtn} hitSlop={8} accessibilityLabel="Sembunyikan menu">
+            <Text style={styles.collapseBtnText}>«</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView style={styles.navScroll} contentContainerStyle={styles.navList}>
@@ -208,11 +265,16 @@ function SidebarBody({ moduleType, onNavigate, compact }: SidebarBodyProps) {
   );
 }
 
-/** Sidebar tetap (tablet+) — seperti web md:pl-64. */
-export function PermanentSidebar({ moduleType }: { moduleType: Role }) {
+export function PermanentSidebar({
+  moduleType,
+  onCollapse,
+}: {
+  moduleType: Role;
+  onCollapse?: () => void;
+}) {
   return (
     <View style={styles.permanentSidebar}>
-      <SidebarBody moduleType={moduleType} compact />
+      <SidebarBody moduleType={moduleType} compact showCollapse={!!onCollapse} onCollapse={onCollapse} />
     </View>
   );
 }
@@ -250,22 +312,31 @@ export function AppScaffold({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
-  const showSidebar = useShowPermanentSidebar();
+  const { isDesktop, showPermanent, toggleCollapsed, setCollapsed } = useSidebarLayout();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const onMenuPress = () => {
+    if (isDesktop) {
+      // Mirror web: ☰ di desktop = expand/collapse sidebar
+      toggleCollapsed();
+      return;
+    }
+    setDrawerOpen(true);
+  };
+
   return (
-    <View style={[styles.root, showSidebar && styles.rootWithSidebar]}>
-      {showSidebar ? <PermanentSidebar moduleType={moduleType} /> : null}
+    <View style={[styles.root, showPermanent && styles.rootWithSidebar]}>
+      {showPermanent ? (
+        <PermanentSidebar moduleType={moduleType} onCollapse={() => setCollapsed(true)} />
+      ) : null}
 
       <View style={styles.contentCol}>
         <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
-          {!showSidebar ? (
-            <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn} hitSlop={8}>
-              <View style={styles.menuLine} />
-              <View style={styles.menuLine} />
-              <View style={styles.menuLine} />
-            </Pressable>
-          ) : null}
+          <Pressable onPress={onMenuPress} style={styles.menuBtn} hitSlop={8} accessibilityLabel="Menu">
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+            <View style={styles.menuLine} />
+          </Pressable>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.topbarTitle} numberOfLines={1}>
               {title}
@@ -281,7 +352,7 @@ export function AppScaffold({
         <View style={{ flex: 1 }}>{children}</View>
       </View>
 
-      {!showSidebar ? (
+      {!isDesktop ? (
         <AppDrawer moduleType={moduleType} visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
       ) : null}
     </View>
@@ -347,12 +418,23 @@ const styles = StyleSheet.create({
   sidebarHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.brand200,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.sm,
   },
+  collapseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.brand200,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collapseBtnText: { color: colors.espresso, fontSize: 16, ...font('700') },
   brandBadge: {
     width: 40,
     height: 40,

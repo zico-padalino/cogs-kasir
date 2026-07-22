@@ -25,9 +25,9 @@ import { asApiError, useAuth } from '@/auth';
 import {
   AppDrawer,
   PermanentSidebar,
-  POS_SPLIT_BREAKPOINT,
   SIDEBAR_WIDTH,
-  useShowPermanentSidebar,
+  usePosSplitLayout,
+  useSidebarLayout,
 } from '@/components/AppScaffold';
 import { consumePendingOpenOrderId, seedPendingIds } from '@/kasir/pendingOrderTracker';
 import { colors, font, radius, spacing } from '@/theme';
@@ -38,18 +38,26 @@ type PayMethod = 'cash' | 'qris' | 'transfer';
 
 const PRODUCT_GAP = spacing.sm;
 const PRODUCT_PAD = spacing.md;
-const CART_COL_WIDTH = 280;
+const CART_COL_WIDTH = 268;
 
 export default function KasirPosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const { setPin, pin } = useAuth();
-  const showSidebar = useShowPermanentSidebar();
-  const isWide = windowWidth >= POS_SPLIT_BREAKPOINT;
-  const contentWidth = showSidebar ? windowWidth - SIDEBAR_WIDTH : windowWidth;
-  const menuColWidth = isWide ? Math.max(320, contentWidth - CART_COL_WIDTH) : contentWidth;
-  const productCols = isWide ? (menuColWidth >= 720 ? 4 : 3) : menuColWidth >= 420 ? 3 : 2;
+  const { isDesktop, showPermanent, setCollapsed, toggleCollapsed } = useSidebarLayout();
+  const isWide = usePosSplitLayout();
+  const contentWidth = showPermanent ? windowWidth - SIDEBAR_WIDTH : windowWidth;
+  const menuColWidth = isWide ? Math.max(280, contentWidth - CART_COL_WIDTH) : contentWidth;
+  const productCols = isWide
+    ? menuColWidth >= 900
+      ? 5
+      : menuColWidth >= 700
+        ? 4
+        : 3
+    : menuColWidth >= 420
+      ? 3
+      : 2;
   const productCardWidth =
     (menuColWidth - PRODUCT_PAD * 2 - PRODUCT_GAP * (productCols - 1)) / productCols;
 
@@ -395,41 +403,98 @@ export default function KasirPosScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, showSidebar && styles.rootWithSidebar]}
+      style={[styles.root, showPermanent && styles.rootWithSidebar]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar barStyle={!isWide && tab === 'cart' ? 'light-content' : 'dark-content'} />
-      {showSidebar ? <PermanentSidebar moduleType="kasir" /> : null}
+      {showPermanent ? (
+        <PermanentSidebar moduleType="kasir" onCollapse={() => setCollapsed(true)} />
+      ) : null}
 
       <View style={[styles.posBody, isWide && styles.posBodyWide]}>
       {isWide || tab === 'menu' ? (
         <View style={[styles.mainCol, isWide && styles.mainColWide]}>
-          <View style={[styles.topbar, !showSidebar && { paddingTop: insets.top + spacing.sm }]}>
-            {!showSidebar ? (
-              <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuBtn}>
-                <View style={styles.menuLine} />
-                <View style={styles.menuLine} />
-                <View style={styles.menuLine} />
-              </Pressable>
-            ) : null}
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.topTitle} numberOfLines={1}>
-                {order?.order_number ? `#${order.order_number}` : shopName}
-              </Text>
-              <Text style={styles.topSub} numberOfLines={1}>
-                {order?.order_type_icon ? `${order.order_type_icon} ` : ''}
-                {order?.order_type_label || (orderType === 'dine_in' ? 'Dine In' : 'Take Away')}
-                {order?.status_label ? ` · ${order.status_label}` : ' · Draft'}
-                {pin?.operator_name ? ` · ${pin.operator_name}` : ''}
+          <View style={[styles.topbar, { paddingTop: insets.top + spacing.sm }]}>
+            <Pressable
+              onPress={() => {
+                if (isDesktop) {
+                  toggleCollapsed();
+                  return;
+                }
+                setDrawerOpen(true);
+              }}
+              style={styles.menuBtn}
+              accessibilityLabel="Menu"
+            >
+              <View style={styles.menuLine} />
+              <View style={styles.menuLine} />
+              <View style={styles.menuLine} />
+            </Pressable>
+
+            <View style={styles.trxChip}>
+              <Text style={styles.trxChipText} numberOfLines={1}>
+                #{order?.order_number ?? '—'}
               </Text>
             </View>
-            <Pressable onPress={() => setOrderBarOpen(true)} style={styles.chipBtn}>
-              <Text style={styles.chipText}>Tipe</Text>
-            </Pressable>
+            <View style={styles.metaChip}>
+              <Text style={styles.metaChipText} numberOfLines={1}>
+                {order?.order_type_icon ? `${order.order_type_icon} ` : ''}
+                {order?.order_type_label || (orderType === 'dine_in' ? 'Dine In' : 'Take Away')}
+              </Text>
+            </View>
+            <View style={styles.draftChip}>
+              <Text style={styles.draftChipText}>{order?.status_label || 'Draft'}</Text>
+            </View>
+
+            <View style={{ flex: 1 }} />
+
             <Pressable onPress={newOrder} style={styles.newOrderBtn}>
               <Text style={styles.newOrderBtnText}>+ Pesanan Baru</Text>
             </Pressable>
           </View>
+
+          <Pressable onPress={() => setOrderBarOpen((v) => !v)} style={styles.orderTypeBar}>
+            <Text style={styles.orderTypeBarLabel}>Tipe pesanan</Text>
+            <Text style={styles.orderTypeBarValue} numberOfLines={1}>
+              {order?.order_type_icon ? `${order.order_type_icon} ` : ''}
+              {order?.order_type_label || (orderType === 'dine_in' ? 'Dine In' : 'Take Away')}
+              {customerNote ? ` · ${customerNote}` : ''}
+            </Text>
+            <Text style={styles.orderTypeBarCaret}>{orderBarOpen ? '▲' : '▼'}</Text>
+          </Pressable>
+
+          {orderBarOpen ? (
+            <View style={styles.orderTypePanel}>
+              <View style={styles.typeRow}>
+                {[
+                  { value: 'dine_in', label: 'Dine In', icon: '🪑', hint: 'Makan di tempat' },
+                  { value: 'takeaway', label: 'Take Away', icon: '🥡', hint: 'Bungkus / dibawa pulang' },
+                ].map((t) => (
+                  <Pressable
+                    key={t.value}
+                    onPress={() => {
+                      setOrderType(t.value);
+                      void saveOrderContext(t.value, customerNote);
+                    }}
+                    style={[styles.typeCard, orderType === t.value && styles.typeCardOn]}
+                  >
+                    <Text style={{ fontSize: 22 }}>{t.icon}</Text>
+                    <Text style={styles.typeLabel}>{t.label}</Text>
+                    <Text style={styles.typeHint}>{t.hint}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.sectionLabel}>Nama pelanggan</Text>
+              <TextInput
+                value={customerNote}
+                onChangeText={setCustomerNote}
+                onEndEditing={() => saveOrderContext(orderType, customerNote)}
+                placeholder="Contoh: Budi"
+                placeholderTextColor={colors.slate400}
+                style={styles.input}
+              />
+            </View>
+          ) : null}
 
           {pending.length > 0 ? (
             <View style={styles.pendingBanner}>
@@ -709,7 +774,7 @@ export default function KasirPosScreen() {
 
       {isWide || tab === 'cart' ? (
         <View style={[styles.cartCol, isWide ? styles.cartColWide : styles.cartColMobile]}>
-          <View style={[styles.cartHeader, !showSidebar && !isWide && { paddingTop: insets.top + spacing.sm }]}>
+          <View style={[styles.cartHeader, !isWide && { paddingTop: insets.top + spacing.sm }]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.cartHeaderTitle}>Pesanan</Text>
               <Text style={styles.cartHeaderMeta}>
@@ -979,50 +1044,6 @@ export default function KasirPosScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Order bar modal */}
-      <Modal visible={orderBarOpen} animationType="fade" transparent onRequestClose={() => setOrderBarOpen(false)}>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOrderBarOpen(false)} />
-          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled" bounces={false}>
-            <View style={[styles.modalSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
-              <Text style={styles.modalTitle}>Tipe pesanan</Text>
-              <View style={styles.typeRow}>
-                {[
-                  { value: 'dine_in', label: 'Dine In', icon: '🪑' },
-                  { value: 'takeaway', label: 'Take Away', icon: '🥡' },
-                ].map((t) => (
-                  <Pressable
-                    key={t.value}
-                    onPress={() => {
-                      setOrderType(t.value);
-                      void saveOrderContext(t.value, customerNote);
-                    }}
-                    style={[styles.typeCard, orderType === t.value && styles.typeCardOn]}
-                  >
-                    <Text style={{ fontSize: 22 }}>{t.icon}</Text>
-                    <Text style={styles.typeLabel}>{t.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={styles.sectionLabel}>Nama pelanggan</Text>
-              <TextInput
-                value={customerNote}
-                onChangeText={setCustomerNote}
-                onEndEditing={() => saveOrderContext(orderType, customerNote)}
-                placeholder="Opsional"
-                style={styles.input}
-              />
-              <Pressable onPress={() => setOrderBarOpen(false)} style={[styles.payBtn, { marginTop: spacing.md }]}>
-                <Text style={styles.payBtnText}>Simpan</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
-
       {/* Pay modal */}
       <Modal visible={payOpen} animationType="slide" transparent onRequestClose={() => setPayOpen(false)}>
         <KeyboardAvoidingView
@@ -1083,7 +1104,7 @@ export default function KasirPosScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {!showSidebar ? (
+      {!isDesktop ? (
         <AppDrawer moduleType="kasir" visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
       ) : null}
       </View>
@@ -1112,12 +1133,12 @@ const styles = StyleSheet.create({
   topbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 8,
     backgroundColor: colors.espresso,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingBottom: spacing.sm,
     minHeight: 56,
   },
   menuBtn: {
@@ -1131,15 +1152,29 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   menuLine: { width: 16, height: 2, borderRadius: 2, backgroundColor: colors.white },
-  topTitle: { fontSize: 15, color: colors.white, ...font('700') },
-  topSub: { fontSize: 11, color: 'rgba(255,255,255,0.72)', marginTop: 2 },
-  chipBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
+  trxChip: {
+    maxWidth: 140,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: radius.md,
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  chipText: { color: colors.white, fontSize: 12, ...font('600') },
+  trxChipText: { color: colors.white, fontSize: 12, ...font('700') },
+  metaChip: {
+    maxWidth: 120,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  metaChipText: { color: 'rgba(255,255,255,0.92)', fontSize: 11, ...font('600') },
+  draftChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+  },
+  draftChipText: { color: colors.espresso, fontSize: 11, ...font('700') },
   newOrderBtn: {
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
@@ -1147,6 +1182,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   newOrderBtnText: { color: colors.espresso, fontSize: 12, ...font('700') },
+  orderTypeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#efe6da',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.brand200,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+  },
+  orderTypeBarLabel: {
+    fontSize: 10,
+    color: colors.slate500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    ...font('700'),
+  },
+  orderTypeBarValue: { flex: 1, fontSize: 13, color: colors.slate800, ...font('600') },
+  orderTypeBarCaret: { fontSize: 10, color: colors.slate500 },
+  orderTypePanel: {
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.slate200,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: 8,
+  },
+  typeHint: { fontSize: 10, color: colors.slate500, marginTop: 2 },
   menuHeading: {
     fontSize: 13,
     color: colors.slate700,
