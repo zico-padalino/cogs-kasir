@@ -6,7 +6,6 @@ import {
   Linking,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -28,11 +27,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 function normalizePhone(raw: string): string {
   let digits = String(raw || '').replace(/\D+/g, '');
   if (digits.startsWith('0')) {
-    digits = '62' + digits.slice(1);
+    digits = `62${digits.slice(1)}`;
   } else if (digits.startsWith('8') && digits.length >= 9) {
-    digits = '62' + digits;
+    digits = `62${digits}`;
   }
   return digits;
+}
+
+function isValidWaPhone(phone: string): boolean {
+  return /^62\d{8,15}$/.test(phone);
 }
 
 export default function ReceiptScreen() {
@@ -108,11 +111,12 @@ export default function ReceiptScreen() {
 
   const onSendWhatsApp = async () => {
     const phone = normalizePhone(waPhone);
-    if (!/^62\d{8,15}$/.test(phone)) {
+    if (!isValidWaPhone(phone)) {
       setWaError('Nomor WhatsApp tidak valid. Pakai format 08xxxxxxxxxx.');
       return;
     }
-    const message = waMessage || (order ? `Struk #${order.order_number}` : 'Struk');
+
+    const message = waMessage || `Struk #${order?.order_number ?? ''}`;
     if (!message.trim()) {
       setWaError('Pesan WhatsApp belum siap.');
       return;
@@ -124,12 +128,12 @@ export default function ReceiptScreen() {
       const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
       const canOpen = await Linking.canOpenURL(url);
       if (!canOpen) {
-        setWaError('Tidak bisa membuka WhatsApp. Pastikan aplikasi WA terpasang.');
+        setWaError('Tidak bisa membuka WhatsApp di perangkat ini.');
         return;
       }
       await Linking.openURL(url);
     } catch {
-      setWaError('Gagal membuka WhatsApp.');
+      setWaError('Gagal membuka WhatsApp. Pastikan aplikasi WA terpasang.');
     } finally {
       setWaSending(false);
     }
@@ -145,10 +149,7 @@ export default function ReceiptScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
-      >
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }} keyboardShouldPersistTaps="handled">
         <View style={styles.successBadge}>
           <Text style={styles.successText}>Pembayaran berhasil</Text>
         </View>
@@ -165,19 +166,19 @@ export default function ReceiptScreen() {
                 <Text style={styles.itemName}>
                   {item.quantity}× {item.product_name}
                 </Text>
-                {item.notes ? <Text style={styles.metaLeft}>{item.notes}</Text> : null}
+                {item.notes ? <Text style={styles.meta}>{item.notes}</Text> : null}
               </View>
               <Text style={styles.itemTotal}>{formatRupiah(item.line_total)}</Text>
             </View>
           ))}
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.metaLeft}>Subtotal</Text>
+            <Text style={styles.meta}>Subtotal</Text>
             <Text>{formatRupiah(order.subtotal)}</Text>
           </View>
           {order.discount_amount > 0 ? (
             <View style={styles.row}>
-              <Text style={styles.metaLeft}>Diskon</Text>
+              <Text style={styles.meta}>Diskon</Text>
               <Text>- {formatRupiah(order.discount_amount)}</Text>
             </View>
           ) : null}
@@ -187,7 +188,7 @@ export default function ReceiptScreen() {
           </View>
           {order.change_amount != null && order.change_amount > 0 ? (
             <View style={styles.row}>
-              <Text style={styles.metaLeft}>Kembalian</Text>
+              <Text style={styles.meta}>Kembalian</Text>
               <Text>{formatRupiah(order.change_amount)}</Text>
             </View>
           ) : null}
@@ -219,23 +220,23 @@ export default function ReceiptScreen() {
           </Pressable>
         ) : null}
 
-        <Pressable
-          onPress={() => {
-            setWaOpen(true);
-            setWaError('');
-          }}
-          style={styles.outlineBtn}
-        >
-          <Text style={styles.outlineText}>Kirim WhatsApp</Text>
-        </Pressable>
-
-        {waOpen ? (
+        {!waOpen ? (
+          <Pressable
+            onPress={() => {
+              setWaOpen(true);
+              setWaError('');
+            }}
+            style={styles.outlineBtn}
+          >
+            <Text style={styles.outlineText}>Kirim WhatsApp</Text>
+          </Pressable>
+        ) : (
           <View style={styles.waPanel}>
-            <Text style={styles.label}>Nomor WhatsApp pelanggan</Text>
+            <Text style={styles.waLabel}>Nomor WhatsApp pelanggan</Text>
             <TextInput
               value={waPhone}
-              onChangeText={(v) => {
-                setWaPhone(v);
+              onChangeText={(value) => {
+                setWaPhone(value);
                 if (waError) setWaError('');
               }}
               placeholder="08xxxxxxxxxx"
@@ -243,21 +244,19 @@ export default function ReceiptScreen() {
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"
-              style={styles.input}
+              style={styles.waInput}
               returnKeyType="send"
               onSubmitEditing={onSendWhatsApp}
             />
-            <Text style={styles.hintLeft}>
-              Chat WhatsApp langsung dibuka ke nomor ini dengan tautan PDF struk.
-            </Text>
-            {waError ? <Text style={styles.errorText}>{waError}</Text> : null}
+            <Text style={styles.waHint}>Chat WhatsApp langsung dibuka ke nomor ini dengan tautan PDF struk.</Text>
+            {waError ? <Text style={styles.waError}>{waError}</Text> : null}
             <View style={styles.waActions}>
               <Pressable
                 onPress={onSendWhatsApp}
                 disabled={waSending}
-                style={[styles.primaryBtn, styles.waActionBtn]}
+                style={[styles.primaryBtn, styles.waActionBtn, waSending && styles.btnDisabled]}
               >
-                <Text style={styles.primaryText}>{waSending ? 'Membuka…' : 'Kirim Sekarang'}</Text>
+                <Text style={styles.primaryText}>{waSending ? 'Membuka WA…' : 'Kirim Sekarang'}</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -270,14 +269,7 @@ export default function ReceiptScreen() {
               </Pressable>
             </View>
           </View>
-        ) : null}
-
-        <Pressable
-          onPress={() => Share.share({ message: waMessage || `Struk #${order.order_number}` })}
-          style={styles.outlineBtn}
-        >
-          <Text style={styles.outlineText}>Bagikan…</Text>
-        </Pressable>
+        )}
 
         <Pressable onPress={() => router.replace('/kasir')} style={styles.outlineBtn}>
           <Text style={styles.outlineText}>Kembali ke POS</Text>
@@ -303,7 +295,6 @@ const styles = StyleSheet.create({
   shop: { textAlign: 'center', fontSize: 18, color: colors.slate900, ...font('700') },
   orderNo: { textAlign: 'center', fontSize: 22, color: colors.brand700, ...font('700') },
   meta: { fontSize: 12, color: colors.slate500, textAlign: 'center' },
-  metaLeft: { fontSize: 12, color: colors.slate500 },
   card: {
     backgroundColor: colors.white,
     borderRadius: radius.xl,
@@ -333,29 +324,6 @@ const styles = StyleSheet.create({
   paperChipText: { color: colors.slate700, ...font('600') },
   paperChipTextActive: { color: colors.brand700 },
   hint: { fontSize: 12, color: colors.slate500, textAlign: 'center' },
-  hintLeft: { fontSize: 12, color: colors.slate500, marginTop: spacing.xs },
-  label: { fontSize: 13, color: colors.slate700, ...font('600'), marginBottom: spacing.xs },
-  input: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: colors.slate300,
-    borderRadius: radius.md,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md,
-    fontSize: 16,
-    color: colors.slate900,
-  },
-  waPanel: {
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  waActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  waActionBtn: { flex: 1 },
-  errorText: { fontSize: 13, color: colors.red600, marginTop: spacing.xs },
   outlineBtn: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -374,4 +342,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryText: { color: colors.white, ...font('700') },
+  btnDisabled: { opacity: 0.7 },
+  waPanel: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  waLabel: { fontSize: 13, color: colors.slate700, ...font('600') },
+  waInput: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.slate300,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    fontSize: 16,
+    color: colors.slate900,
+    backgroundColor: colors.cream,
+  },
+  waHint: { fontSize: 12, color: colors.slate500 },
+  waError: { fontSize: 13, color: colors.red600 },
+  waActions: { gap: spacing.sm, marginTop: spacing.xs },
+  waActionBtn: { width: '100%' },
 });
