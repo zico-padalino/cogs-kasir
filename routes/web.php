@@ -73,6 +73,11 @@ Route::delete('pesan/items/{item}', [TableOrderController::class, 'removeItem'])
 Route::post('pesan/submit', [TableOrderController::class, 'submit'])->name('order.menu.submit');
 Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
 
+// Public signed receipt PDF (WhatsApp / share) — avoids /storage 403 on shared hosting.
+Route::get('/struk/{order}/pdf', [KasirController::class, 'publicReceiptPdf'])
+    ->middleware('signed')
+    ->name('receipts.public');
+
 Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
     ->name('pwa.manifest')
     ->where('app', 'kasir|order');

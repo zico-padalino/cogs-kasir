@@ -592,6 +592,25 @@ class KasirController extends Controller
         ]);
     }
 
+    /**
+     * Public signed PDF for WhatsApp / share links (no login required).
+     */
+    public function publicReceiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->store($order);
+        $inline = request()->boolean('print', true);
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
     public function receiptThermal(PosOrder $order, EscPosReceiptService $escPos): Response
     {
         if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {

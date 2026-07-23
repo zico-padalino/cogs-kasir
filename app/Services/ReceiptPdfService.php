@@ -6,6 +6,7 @@ use App\Models\PosOrder;
 use App\Support\Format;
 use App\Support\SimplePdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ReceiptPdfService
 {
@@ -27,7 +28,8 @@ class ReceiptPdfService
             'binary' => $binary,
             'filename' => $filename,
             'path' => $path,
-            'url' => asset('storage/'.$path),
+            // Serve via signed Laravel route — direct /storage/... is often 403 on shared hosting.
+            'url' => URL::signedRoute('receipts.public', ['order' => $order]),
         ];
     }
 
