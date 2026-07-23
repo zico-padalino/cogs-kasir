@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -12,6 +13,13 @@ import {
 } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import type { PosOrder } from '@/api/types';
+import {
+  getThermalPaper,
+  printThermalViaRawBt,
+  setThermalPaper,
+  type ThermalPaper,
+  type ThermalPayload,
+} from '@/kasir/thermalPrint';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,16 +32,26 @@ export default function ReceiptScreen() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [waMessage, setWaMessage] = useState('');
   const [shopName, setShopName] = useState('');
+  const [thermal, setThermal] = useState<ThermalPayload | null>(null);
+  const [paper, setPaper] = useState<ThermalPaper>('58mm');
+  const [printing, setPrinting] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const loadReceipt = async (paperSize: ThermalPaper) => {
+    const res = await kasirApi.receipt(Number(id), paperSize);
+    setOrder(res.data.order);
+    setPdfUrl(res.data.pdf_url);
+    setWaMessage(res.data.wa_message);
+    setShopName(res.data.shop_name);
+    setThermal(res.data.thermal ?? null);
+  };
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await kasirApi.receipt(Number(id));
-        setOrder(res.data.order);
-        setPdfUrl(res.data.pdf_url);
-        setWaMessage(res.data.wa_message);
-        setShopName(res.data.shop_name);
+        const saved = await getThermalPaper();
+        setPaper(saved);
+        await loadReceipt(saved);
       } catch {
         // PIN_LOCKED → redirect global
       } finally {
@@ -41,6 +59,37 @@ export default function ReceiptScreen() {
       }
     })();
   }, [id]);
+
+  const onChangePaper = async (next: ThermalPaper) => {
+    setPaper(next);
+    await setThermalPaper(next);
+    try {
+      await loadReceipt(next);
+    } catch {
+      Alert.alert('Gagal', 'Tidak bisa memuat data thermal untuk ukuran kertas ini.');
+    }
+  };
+
+  const onPrintThermal = async () => {
+    if (!thermal?.base64) {
+      Alert.alert('Belum siap', 'Data cetak thermal belum tersedia.');
+      return;
+    }
+    setPrinting(true);
+    try {
+      const result = await printThermalViaRawBt(thermal);
+      if (result === 'store') {
+        Alert.alert(
+          'Pasang RawBT',
+          'Untuk cetak ke printer Ainuo, pasang aplikasi RawBT, pair printer di Bluetooth, lalu coba lagi.',
+        );
+      } else if (result === 'failed') {
+        Alert.alert('Gagal cetak', 'Tidak bisa membuka RawBT. Pastikan aplikasi RawBT terpasang.');
+      }
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   if (loading || !order) {
     return (
@@ -97,6 +146,26 @@ export default function ReceiptScreen() {
           ) : null}
         </View>
 
+        <View style={styles.paperRow}>
+          <Pressable
+            onPress={() => onChangePaper('58mm')}
+            style={[styles.paperChip, paper === '58mm' && styles.paperChipActive]}
+          >
+            <Text style={[styles.paperChipText, paper === '58mm' && styles.paperChipTextActive]}>58mm</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onChangePaper('80mm')}
+            style={[styles.paperChip, paper === '80mm' && styles.paperChipActive]}
+          >
+            <Text style={[styles.paperChipText, paper === '80mm' && styles.paperChipTextActive]}>80mm</Text>
+          </Pressable>
+        </View>
+
+        <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
+          <Text style={styles.primaryText}>{printing ? 'Membuka printer…' : 'Cetak Thermal (Ainuo)'}</Text>
+        </Pressable>
+        <Text style={styles.hint}>Pair printer Ainuo di Bluetooth, lalu pasang RawBT sebagai jembatan cetak.</Text>
+
         {pdfUrl ? (
           <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>
             <Text style={styles.outlineText}>Buka PDF Struk</Text>
@@ -110,8 +179,8 @@ export default function ReceiptScreen() {
           <Text style={styles.outlineText}>Bagikan / WhatsApp</Text>
         </Pressable>
 
-        <Pressable onPress={() => router.replace('/kasir')} style={styles.primaryBtn}>
-          <Text style={styles.primaryText}>Kembali ke POS</Text>
+        <Pressable onPress={() => router.replace('/kasir')} style={styles.outlineBtn}>
+          <Text style={styles.outlineText}>Kembali ke POS</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -148,6 +217,21 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.slate200, marginVertical: spacing.sm },
   totalLabel: { fontSize: 15, ...font('700') },
   total: { fontSize: 16, color: colors.brand700, ...font('700') },
+  paperRow: { flexDirection: 'row', gap: spacing.sm },
+  paperChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate300,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paperChipActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
+  paperChipText: { color: colors.slate700, ...font('600') },
+  paperChipTextActive: { color: colors.brand700 },
+  hint: { fontSize: 12, color: colors.slate500, textAlign: 'center' },
   outlineBtn: {
     minHeight: 48,
     borderRadius: radius.md,

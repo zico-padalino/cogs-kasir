@@ -206,10 +206,24 @@ export const kasirApi = {
       Envelope<{ held_order: PosOrder; active_order: PosOrder; merged?: boolean }>
     >('/kasir/open-bill', { method: 'POST' });
   },
-  receipt(orderId: number) {
+  receipt(orderId: number, paper?: '58mm' | '80mm') {
+    const qs = paper ? `?paper=${encodeURIComponent(paper)}` : '';
     return apiRequest<
-      Envelope<{ order: PosOrder; pdf_url: string; wa_message: string; shop_name: string }>
-    >(`/kasir/orders/${orderId}/receipt`);
+      Envelope<{
+        order: PosOrder;
+        pdf_url: string;
+        wa_message: string;
+        shop_name: string;
+        thermal?: {
+          paper: string;
+          width: number;
+          base64: string;
+          rawbt_url: string;
+          intent_url: string;
+          rawbt_play_store?: string;
+        };
+      }>
+    >(`/kasir/orders/${orderId}/receipt${qs}`);
   },
   orders() {
     return apiRequest<{ data: PosOrder[]; meta?: unknown; links?: unknown }>('/kasir/orders');

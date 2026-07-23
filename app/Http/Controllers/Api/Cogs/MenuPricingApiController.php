@@ -16,7 +16,7 @@ class MenuPricingApiController extends Controller
     public function index(ProductHppService $hppService): JsonResponse
     {
         $items = Product::query()
-            ->whereIn('type', [ProductType::FinishedGood->value, ProductType::SemiFinished->value])
+            ->where('type', ProductType::FinishedGood->value)
             ->where('is_active', true)
             ->latest('id')
             ->get()
@@ -37,7 +37,7 @@ class MenuPricingApiController extends Controller
 
     public function update(Request $request, Product $product, ProductHppService $hppService): JsonResponse
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if ($product->type !== ProductType::FinishedGood) {
             abort(404);
         }
 
@@ -99,7 +99,7 @@ class MenuPricingApiController extends Controller
 
     public function destroy(Product $product, ProductHppService $hppService): JsonResponse
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if ($product->type !== ProductType::FinishedGood) {
             abort(404);
         }
 

@@ -13,6 +13,7 @@ use App\Models\PosOrder;
 use App\Models\PosOrderItem;
 use App\Models\Product;
 use App\Services\PosOrderService;
+use App\Services\EscPosReceiptService;
 use App\Services\ReceiptPdfService;
 use App\Support\KasirActiveOrder;
 use App\Support\KasirPin;
@@ -460,7 +461,7 @@ class PosController extends Controller
         ]);
     }
 
-    public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf): JsonResponse
+    public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf, EscPosReceiptService $escPos): JsonResponse
     {
         if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
             return response()->json(['message' => 'Order belum dibayar.'], 422);
@@ -468,6 +469,8 @@ class PosController extends Controller
 
         $order->load(['items.product', 'table', 'cashier']);
         $pdf = $receiptPdf->store($order);
+        $paper = request()->query('paper');
+        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
 
         return response()->json([
             'data' => [
@@ -475,6 +478,14 @@ class PosController extends Controller
                 'pdf_url' => $pdf['url'],
                 'wa_message' => $receiptPdf->whatsappMessage($order, $pdf['url']),
                 'shop_name' => config('pos.shop_name'),
+                'thermal' => [
+                    'paper' => $thermal['paper'],
+                    'width' => $thermal['width'],
+                    'base64' => $thermal['base64'],
+                    'rawbt_url' => $thermal['rawbt_url'],
+                    'intent_url' => $thermal['intent_url'],
+                    'rawbt_play_store' => config('pos.thermal.rawbt_play_store'),
+                ],
             ],
         ]);
     }
@@ -492,6 +503,24 @@ class PosController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
             'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function receiptThermal(PosOrder $order, EscPosReceiptService $escPos): \Symfony\Component\HttpFoundation\Response
+    {
+        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+            abort(404);
+        }
+
+        $paper = request()->query('paper');
+        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
+        $filename = 'struk-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $order->order_number).'.bin';
+
+        return response($thermal['binary'], 200, [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+            'X-Thermal-Paper' => $thermal['paper'],
         ]);
     }
 }

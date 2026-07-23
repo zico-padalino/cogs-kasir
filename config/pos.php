@@ -51,4 +51,13 @@ return [
 
     /** Berapa menit sesi PIN kasir berlaku sebelum harus dimasukkan lagi. */
     'kasir_pin_ttl_minutes' => (int) env('KASIR_PIN_TTL_MINUTES', 10),
+
+    /**
+     * Thermal printer (Ainuo / ESC/POS via RawBT di Android).
+     * paper: 58mm (32 kolom) atau 80mm (48 kolom).
+     */
+    'thermal' => [
+        'paper' => env('POS_THERMAL_PAPER', '58mm'),
+        'rawbt_play_store' => 'https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter',
+    ],
 ];

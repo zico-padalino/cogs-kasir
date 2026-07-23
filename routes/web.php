@@ -139,6 +139,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/open-bill', [KasirController::class, 'openBill'])->name('open-bill');
         Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
         Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
+        Route::get('/receipt/{order}/thermal', [KasirController::class, 'receiptThermal'])->name('receipt.thermal');
         Route::post('/waste', [KasirWebWasteController::class, 'store'])->name('waste.store');
     });
 });
