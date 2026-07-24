@@ -354,6 +354,7 @@
 
                 var intentUrl = thermal.intent_url;
                 var thermerUrl = thermal.thermer_url;
+                var shareText = thermal.thermer_share_text || '';
                 var playStore = thermal.thermer_play_store
                     || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
@@ -361,7 +362,12 @@
                     if (hintEl) {
                         hintEl.textContent = 'Membuka Thermer… Pastikan printer sudah di-pair.';
                     }
-                    var target = intentUrl || thermerUrl;
+                    // Bangun ulang intent SEND tanpa fallback Play Store
+                    var target = intentUrl;
+                    if (shareText) {
+                        target = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;package=mate.bluetoothprint;S.android.intent.extra.TEXT='
+                            + encodeURIComponent(shareText) + ';end';
+                    }
                     if (!target) {
                         if (hintEl) hintEl.textContent = 'Data thermal belum siap.';
                         return;
@@ -369,13 +375,13 @@
                     window.location.href = target;
                     setTimeout(function () {
                         if (hintEl) {
-                            hintEl.innerHTML = 'Jika tidak terbuka, <a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">pasang Thermer</a> lalu pair printer Bluetooth.';
+                            hintEl.innerHTML = 'Jika share sheet muncul, pilih <strong>Thermer</strong>. '
+                                + 'Kalau belum terpasang: <a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">Play Store</a>.';
                         }
                     }, 1800);
                     return;
                 }
 
-                // Desktop / iOS: print monospace sheet; di iOS buka Thermer jika ada
                 if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') && thermerUrl) {
                     if (hintEl) {
                         hintEl.textContent = 'Membuka Thermer…';

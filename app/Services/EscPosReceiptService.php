@@ -30,6 +30,7 @@ class EscPosReceiptService
      *     width: int,
      *     thermer_url: string,
      *     intent_url: string,
+     *     thermer_share_text: string,
      *     thermer_play_store: string,
      *     thermer_json: string,
      *     rawbt_url: string
@@ -41,16 +42,22 @@ class EscPosReceiptService
         $width = $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
         $binary = $this->build($order, $width);
         $base64 = base64_encode($binary);
-        $thermerJson = $this->buildThermerJson($order, $width);
+        $blocks = $this->thermerBlocks($order, $width);
+        $thermerJson = $this->blocksToThermerJson($blocks);
+        $shareText = $this->blocksToThermerShareText($blocks);
         $playStore = (string) config(
             'pos.thermal.thermer_play_store',
             'https://play.google.com/store/apps/details?id=mate.bluetoothprint'
         );
-        $encoded = rawurlencode($thermerJson);
-        $thermerUrl = 'thermer://?data='.$encoded;
-        $intentUrl = 'intent://?data='.$encoded
-            .'#Intent;scheme=thermer;package=mate.bluetoothprint;S.browser_fallback_url='
-            .rawurlencode($playStore)
+
+        // iOS: custom scheme thermer://?data=JSON
+        $thermerUrl = 'thermer://?data='.rawurlencode($thermerJson);
+
+        // Android: ACTION_SEND text/plain ke package Thermer (bukan scheme + Play Store fallback).
+        // Fallback ke Play Store justru yang bikin HP terbuka ke store padahal Thermer sudah terpasang.
+        $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+            .'package=mate.bluetoothprint;'
+            .'S.android.intent.extra.TEXT='.rawurlencode($shareText)
             .';end;';
 
         return [
@@ -59,38 +66,40 @@ class EscPosReceiptService
             'paper' => $paper,
             'width' => $width,
             'thermer_json' => $thermerJson,
+            'thermer_share_text' => $shareText,
             'thermer_url' => $thermerUrl,
             'intent_url' => $intentUrl,
             'thermer_play_store' => $playStore,
-            // Legacy alias (same Thermer intent) — older clients may still read rawbt_* keys.
-            'rawbt_url' => $thermerUrl,
+            'rawbt_url' => $intentUrl,
             'rawbt_play_store' => $playStore,
         ];
     }
 
     /**
-     * Thermer JSON document (object keyed by entry index) for thermer://?data=…
-     *
-     * @see https://github.com/tussharmate/ios-thermer-custom-schema
+     * @return list<array{content: string, bold: int, align: int, format: int}>
      */
-    public function buildThermerJson(PosOrder $order, int $width = self::WIDTH_58): string
+    private function thermerBlocks(PosOrder $order, int $width): array
     {
         $order->loadMissing(['items.product', 'table', 'cashier']);
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $w = max(24, $width);
-        $entries = [];
-        $i = 0;
+        $blocks = [];
 
-        $entries[(string) $i++] = $this->thermerText($this->sanitize($shopName), bold: 1, align: 1, format: 3);
-        $entries[(string) $i++] = $this->thermerText($this->joinLines([
-            'Struk Pembayaran',
-            $this->sanitize($order->order_number),
-            $order->paid_at?->format('d/m/Y H:i') ?? '-',
-            $order->order_type ? $this->sanitize($order->order_type->label()) : null,
-            $order->table ? 'Meja: '.$this->sanitize($order->table->label) : null,
-            $order->customer_note ? 'Pelanggan: '.$this->sanitize($order->customer_note) : null,
-            str_repeat('-', $w),
-        ]), bold: 0, align: 1, format: 0);
+        $blocks[] = ['content' => $this->sanitize($shopName), 'bold' => 1, 'align' => 1, 'format' => 3];
+        $blocks[] = [
+            'content' => $this->joinLines([
+                'Struk Pembayaran',
+                $this->sanitize($order->order_number),
+                $order->paid_at?->format('d/m/Y H:i') ?? '-',
+                $order->order_type ? $this->sanitize($order->order_type->label()) : null,
+                $order->table ? 'Meja: '.$this->sanitize($order->table->label) : null,
+                $order->customer_note ? 'Pelanggan: '.$this->sanitize($order->customer_note) : null,
+                str_repeat('-', $w),
+            ], "\n"),
+            'bold' => 0,
+            'align' => 1,
+            'format' => 0,
+        ];
 
         $itemLines = [];
         foreach ($order->items as $item) {
@@ -107,7 +116,12 @@ class EscPosReceiptService
             }
         }
         $itemLines[] = str_repeat('-', $w);
-        $entries[(string) $i++] = $this->thermerText($this->joinLines($itemLines) ?: '-', bold: 0, align: 0, format: 0);
+        $blocks[] = [
+            'content' => $this->joinLines($itemLines, "\n") ?: '-',
+            'bold' => 0,
+            'align' => 0,
+            'format' => 0,
+        ];
 
         $totalLines = [];
         if ($order->hasDiscount()) {
@@ -115,7 +129,12 @@ class EscPosReceiptService
             $totalLines[] = $this->columnsText('Diskon', '- '.Format::rupiah($order->discount_amount), $w);
         }
         $totalLines[] = $this->columnsText('TOTAL', Format::rupiah($order->total), $w);
-        $entries[(string) $i++] = $this->thermerText($this->joinLines($totalLines), bold: 1, align: 0, format: 0);
+        $blocks[] = [
+            'content' => $this->joinLines($totalLines, "\n"),
+            'bold' => 1,
+            'align' => 0,
+            'format' => 0,
+        ];
 
         $footerLines = [
             'Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'),
@@ -127,31 +146,65 @@ class EscPosReceiptService
         if ($order->cashierDisplayName() !== '-') {
             $footerLines[] = 'Kasir: '.$this->sanitize($order->cashierDisplayName());
         }
-        $entries[(string) $i++] = $this->thermerText($this->joinLines($footerLines), bold: 0, align: 0, format: 0);
+        $blocks[] = [
+            'content' => $this->joinLines($footerLines, "\n"),
+            'bold' => 0,
+            'align' => 0,
+            'format' => 0,
+        ];
 
-        $entries[(string) $i++] = $this->thermerText("Terima kasih<br /><br /><br />", bold: 0, align: 1, format: 0);
+        $blocks[] = [
+            'content' => "Terima kasih\n\n\n",
+            'bold' => 0,
+            'align' => 1,
+            'format' => 0,
+        ];
+
+        return $blocks;
+    }
+
+    /**
+     * @param  list<array{content: string, bold: int, align: int, format: int}>  $blocks
+     */
+    private function blocksToThermerJson(array $blocks): string
+    {
+        $entries = [];
+        foreach ($blocks as $index => $block) {
+            $entries[(string) $index] = [
+                'type' => 0,
+                'content' => str_replace("\n", '<br />', $block['content']),
+                'bold' => $block['bold'],
+                'align' => $block['align'],
+                'format' => $block['format'],
+            ];
+        }
 
         return json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
     }
 
     /**
-     * @return array{type: int, content: string, bold: int, align: int, format: int}
+     * Format markup Android Thermer: &lt;BAF&gt;text (Bold, Align, Format).
+     *
+     * @param  list<array{content: string, bold: int, align: int, format: int}>  $blocks
      */
-    private function thermerText(string $content, int $bold, int $align, int $format): array
+    private function blocksToThermerShareText(array $blocks): string
     {
-        return [
-            'type' => 0,
-            'content' => $content,
-            'bold' => $bold,
-            'align' => $align,
-            'format' => $format,
-        ];
+        $out = '';
+        foreach ($blocks as $block) {
+            $tag = '<'.$block['bold'].$block['align'].$block['format'].'>';
+            $out .= $tag.$block['content'];
+            if (! str_ends_with($block['content'], "\n")) {
+                $out .= "\n";
+            }
+        }
+
+        return $out;
     }
 
     /**
      * @param  list<string|null>  $lines
      */
-    private function joinLines(array $lines): string
+    private function joinLines(array $lines, string $separator = '<br />'): string
     {
         $parts = [];
         foreach ($lines as $line) {
@@ -161,7 +214,7 @@ class EscPosReceiptService
             $parts[] = $line;
         }
 
-        return implode('<br />', $parts);
+        return implode($separator, $parts);
     }
 
     public function build(PosOrder $order, int $width = self::WIDTH_58): string

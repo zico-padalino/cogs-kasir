@@ -34,7 +34,7 @@ function withKasirBackgroundActions(config) {
       }
     }
 
-    // Package visibility (Android 11+) — buka Thermer untuk cetak thermal
+    // Package visibility (Android 11+) — Thermer via ACTION_SEND + package
     if (!manifest.manifest.queries) {
       manifest.manifest.queries = [];
     }
@@ -45,6 +45,24 @@ function withKasirBackgroundActions(config) {
     if (!hasThermerPackage) {
       queries.push({
         package: [{ $: { 'android:name': 'mate.bluetoothprint' } }],
+      });
+    }
+    const hasSendText = queries.some(
+      (q) =>
+        q.intent?.some(
+          (intent) =>
+            intent.action?.some((a) => a.$?.['android:name'] === 'android.intent.action.SEND') &&
+            intent.data?.some((d) => d.$?.['android:mimeType'] === 'text/plain'),
+        ),
+    );
+    if (!hasSendText) {
+      queries.push({
+        intent: [
+          {
+            action: [{ $: { 'android:name': 'android.intent.action.SEND' } }],
+            data: [{ $: { 'android:mimeType': 'text/plain' } }],
+          },
+        ],
       });
     }
     const hasThermerScheme = queries.some(

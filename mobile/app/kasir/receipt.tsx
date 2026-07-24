@@ -90,7 +90,7 @@ export default function ReceiptScreen() {
   };
 
   const onPrintThermal = async () => {
-    if (!thermal?.thermer_url && !thermal?.thermer_json && !thermal?.intent_url) {
+    if (!thermal?.thermer_share_text && !thermal?.thermer_url && !thermal?.intent_url) {
       Alert.alert('Belum siap', 'Data cetak thermal belum tersedia.');
       return;
     }
@@ -99,11 +99,22 @@ export default function ReceiptScreen() {
       const result = await printThermalViaThermer(thermal);
       if (result === 'store') {
         Alert.alert(
-          'Pasang Thermer',
-          'Untuk cetak ke printer thermal, pasang aplikasi Thermer, pair printer di Bluetooth, lalu coba lagi.',
+          'Thermer tidak terbuka',
+          'Pastikan Thermer terpasang. Kalau sudah, coba cetak lagi — atau bagikan teks struk ke Thermer dari share sheet.',
+          [
+            { text: 'Batal', style: 'cancel' },
+            {
+              text: 'Buka Play Store',
+              onPress: () =>
+                Linking.openURL(
+                  thermal.thermer_play_store ||
+                    'https://play.google.com/store/apps/details?id=mate.bluetoothprint',
+                ),
+            },
+          ],
         );
       } else if (result === 'failed') {
-        Alert.alert('Gagal cetak', 'Tidak bisa membuka Thermer. Pastikan aplikasi Thermer terpasang.');
+        Alert.alert('Gagal cetak', 'Tidak bisa membuka Thermer. Coba lagi atau bagikan ke Thermer manual.');
       }
     } finally {
       setPrinting(false);

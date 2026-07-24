@@ -661,9 +661,10 @@ class KasirController extends Controller
                 'base64' => $thermal['base64'],
                 'thermer_url' => $thermal['thermer_url'],
                 'intent_url' => $thermal['intent_url'],
+                'thermer_share_text' => $thermal['thermer_share_text'],
                 'thermer_play_store' => $thermal['thermer_play_store'],
                 'thermer_json' => $thermal['thermer_json'],
-                'rawbt_url' => $thermal['thermer_url'],
+                'rawbt_url' => $thermal['intent_url'],
                 'rawbt_play_store' => $thermal['thermer_play_store'],
             ],
         ]);
@@ -737,6 +738,7 @@ class KasirController extends Controller
             'base64' => $thermal['base64'],
             'thermer_url' => $thermal['thermer_url'],
             'intent_url' => $thermal['intent_url'],
+            'thermer_share_text' => $thermal['thermer_share_text'],
             'thermer_play_store' => $thermal['thermer_play_store'],
             'thermer_json' => $thermal['thermer_json'],
         ]);

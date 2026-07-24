@@ -240,6 +240,7 @@ export const kasirApi = {
           base64?: string;
           thermer_url?: string;
           thermer_json?: string;
+          thermer_share_text?: string;
           intent_url: string;
           thermer_play_store?: string;
           rawbt_url?: string;
