@@ -5167,7 +5167,7 @@
 
     .order-detail-modal-panel {
         @apply w-full max-w-none rounded-b-none rounded-t-3xl p-0 sm:max-w-md sm:rounded-3xl;
-        max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
+        max-height: min(85dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
     }
 
     .order-detail-modal-close {
@@ -5176,21 +5176,25 @@
 
     .order-detail-hero {
         @apply relative flex items-center justify-center overflow-hidden bg-slate-100;
-        max-height: min(36vh, 14rem);
+        max-height: min(26vh, 10rem);
     }
 
     .order-detail-image {
         @apply mx-auto block h-auto w-full object-contain;
-        max-height: min(36vh, 14rem);
+        max-height: min(26vh, 10rem);
     }
 
     .order-detail-info {
-        @apply space-y-1 px-4 pt-4;
+        @apply space-y-0.5 px-3.5 pt-3;
     }
 
     .order-detail-desc {
-        @apply text-sm leading-relaxed text-slate-600;
+        @apply text-xs leading-relaxed text-slate-600 sm:text-sm;
         white-space: pre-line;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
     }
 
     .order-detail-unavailable {
@@ -5198,8 +5202,8 @@
     }
 
     .order-detail-modal-panel .order-modal-form {
-        @apply px-4 pb-4 pt-3;
-        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        @apply space-y-2.5 px-3.5 pb-3.5 pt-2;
+        padding-bottom: max(0.875rem, env(safe-area-inset-bottom));
     }
 
     .order-modal-head {
