@@ -237,9 +237,12 @@ export const kasirApi = {
         thermal?: {
           paper: string;
           width: number;
-          base64: string;
-          rawbt_url: string;
+          base64?: string;
+          thermer_url?: string;
+          thermer_json?: string;
           intent_url: string;
+          thermer_play_store?: string;
+          rawbt_url?: string;
           rawbt_play_store?: string;
         };
       }>

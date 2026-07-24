@@ -85,7 +85,7 @@
 
         <div class="form-actions receipt-actions mt-4 no-print">
             <button type="button" class="btn-primary w-full" data-receipt-thermal-print>
-                Cetak Thermal (Ainuo)
+                Cetak Thermal (Thermer)
             </button>
             <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
@@ -98,7 +98,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Android: pasang RawBT, pair printer Ainuo di Bluetooth, lalu cetak.
+                Android: pasang Thermer, pair printer Bluetooth, lalu cetak.
             </p>
             <a
                 href="{{ $pdfRoute }}?print=1"
@@ -145,6 +145,7 @@
             'message' => $waMessage,
             'thermal' => $thermal,
             'thermalRoute' => $thermalRoute ?? null,
+            'thermalJsonRoute' => $thermalJsonRoute ?? null,
             'orderNumber' => $order->order_number,
             'shopName' => $shopName,
             'items' => $order->items->map(function ($item) use ($format) {
@@ -323,20 +324,18 @@
             }
 
             async function fetchThermal(paper) {
-                var base = payload.thermalRoute || '';
-                if (!base) {
+                var jsonBase = payload.thermalJsonRoute || '';
+                if (!jsonBase) {
                     return payload.thermal || {};
                 }
-                var url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'paper=' + encodeURIComponent(paper) + '&format=json';
-                // Prefer server JSON via same receipt page data; re-fetch binary endpoint as JSON not available —
-                // use intent from initial payload when paper matches, else hit API-less rebuild via query on thermal route:
-                // Web thermal route returns binary. Rebuild intent client-side is hard.
-                // Instead: navigate with paper query to a JSON endpoint — use data attribute reload.
                 try {
-                    var res = await fetch(base + '?paper=' + encodeURIComponent(paper), {
+                    var res = await fetch(jsonBase + '?paper=' + encodeURIComponent(paper), {
+                        credentials: 'same-origin',
                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                     });
-                    // binary response — fall back to embedded payload when paper matches default
+                    if (res.ok) {
+                        return await res.json();
+                    }
                 } catch (e) {}
                 return payload.thermal || {};
             }
@@ -348,43 +347,21 @@
                 } catch (e) {}
 
                 var thermal = payload.thermal || {};
-                // Reload thermal payload for selected paper from thermal route with Accept json via dedicated meta
-                // Use hidden endpoint: append format=json on thermalRoute by fetching receipt page? 
-                // Simpler: fetch /receipt/{id}/thermal?paper=xx as blob then base64 — heavy.
-                // Use server-provided URLs with paper query by reconstructing from base64 endpoint.
-                var intentUrl = thermal.intent_url;
-                var rawbtUrl = thermal.rawbt_url;
-                var playStore = thermal.rawbt_play_store || 'https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter';
-
-                if (paper !== thermal.paper && payload.thermalRoute) {
-                    try {
-                        var jsonUrl = payload.thermalRoute.replace(/\/thermal$/, '/thermal-json');
-                        // If thermal-json missing, request with header won't work. Add query paper to reload page data:
-                        // Fetch binary and convert to base64 in browser.
-                        var binRes = await fetch(payload.thermalRoute + '?paper=' + encodeURIComponent(paper), {
-                            credentials: 'same-origin'
-                        });
-                        if (binRes.ok) {
-                            var buf = await binRes.arrayBuffer();
-                            var bytes = new Uint8Array(buf);
-                            var binary = '';
-                            for (var i = 0; i < bytes.length; i++) {
-                                binary += String.fromCharCode(bytes[i]);
-                            }
-                            var b64 = btoa(binary);
-                            intentUrl = 'intent:base64,' + b64 + '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
-                            rawbtUrl = 'rawbt:base64,' + b64;
-                        }
-                    } catch (err) {
-                        // keep default thermal
-                    }
+                if (paper !== thermal.paper || !thermal.intent_url) {
+                    thermal = await fetchThermal(paper);
+                    payload.thermal = thermal;
                 }
+
+                var intentUrl = thermal.intent_url;
+                var thermerUrl = thermal.thermer_url;
+                var playStore = thermal.thermer_play_store
+                    || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
                 if (isAndroid()) {
                     if (hintEl) {
-                        hintEl.textContent = 'Membuka RawBT… Pastikan printer Ainuo sudah di-pair.';
+                        hintEl.textContent = 'Membuka Thermer… Pastikan printer sudah di-pair.';
                     }
-                    var target = intentUrl || rawbtUrl;
+                    var target = intentUrl || thermerUrl;
                     if (!target) {
                         if (hintEl) hintEl.textContent = 'Data thermal belum siap.';
                         return;
@@ -392,15 +369,23 @@
                     window.location.href = target;
                     setTimeout(function () {
                         if (hintEl) {
-                            hintEl.innerHTML = 'Jika tidak terbuka, <a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">pasang RawBT</a> lalu pair Ainuo.';
+                            hintEl.innerHTML = 'Jika tidak terbuka, <a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">pasang Thermer</a> lalu pair printer Bluetooth.';
                         }
                     }, 1800);
                     return;
                 }
 
-                // Desktop / iOS: print monospace sheet; user picks Ainuo/RawBT if installed as system printer
+                // Desktop / iOS: print monospace sheet; di iOS buka Thermer jika ada
+                if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') && thermerUrl) {
+                    if (hintEl) {
+                        hintEl.textContent = 'Membuka Thermer…';
+                    }
+                    window.location.href = thermerUrl;
+                    return;
+                }
+
                 if (hintEl) {
-                    hintEl.textContent = 'Desktop: pilih printer Ainuo / RawBT di dialog cetak. Di Android Chrome gunakan RawBT.';
+                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome gunakan Thermer.';
                 }
                 printDesktopFallback();
             }

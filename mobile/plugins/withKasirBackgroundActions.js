@@ -5,7 +5,7 @@ const {
 
 /**
  * Pastikan service background actions punya foregroundServiceType (Android 14+),
- * dan izinkan query package RawBT untuk cetak thermal Ainuo.
+ * dan izinkan query package Thermer untuk cetak thermal.
  */
 function withKasirBackgroundActions(config) {
   return withAndroidManifest(config, (config) => {
@@ -34,32 +34,32 @@ function withKasirBackgroundActions(config) {
       }
     }
 
-    // Package visibility (Android 11+) — buka RawBT untuk cetak ESC/POS
+    // Package visibility (Android 11+) — buka Thermer untuk cetak thermal
     if (!manifest.manifest.queries) {
       manifest.manifest.queries = [];
     }
     const queries = manifest.manifest.queries;
-    const hasRawBtPackage = queries.some(
-      (q) => q.package?.some((p) => p.$?.['android:name'] === 'ru.a402d.rawbtprinter'),
+    const hasThermerPackage = queries.some(
+      (q) => q.package?.some((p) => p.$?.['android:name'] === 'mate.bluetoothprint'),
     );
-    if (!hasRawBtPackage) {
+    if (!hasThermerPackage) {
       queries.push({
-        package: [{ $: { 'android:name': 'ru.a402d.rawbtprinter' } }],
+        package: [{ $: { 'android:name': 'mate.bluetoothprint' } }],
       });
     }
-    const hasRawBtScheme = queries.some(
+    const hasThermerScheme = queries.some(
       (q) =>
         q.intent?.some(
           (intent) =>
-            intent.data?.some((d) => d.$?.['android:scheme'] === 'rawbt'),
+            intent.data?.some((d) => d.$?.['android:scheme'] === 'thermer'),
         ),
     );
-    if (!hasRawBtScheme) {
+    if (!hasThermerScheme) {
       queries.push({
         intent: [
           {
             action: [{ $: { 'android:name': 'android.intent.action.VIEW' } }],
-            data: [{ $: { 'android:scheme': 'rawbt' } }],
+            data: [{ $: { 'android:scheme': 'thermer' } }],
           },
         ],
       });

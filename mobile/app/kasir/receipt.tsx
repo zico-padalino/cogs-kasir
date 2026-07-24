@@ -15,7 +15,7 @@ import { kasirApi } from '@/api/kasir';
 import type { PosOrder } from '@/api/types';
 import {
   getThermalPaper,
-  printThermalViaRawBt,
+  printThermalViaThermer,
   setThermalPaper,
   type ThermalPaper,
   type ThermalPayload,
@@ -90,20 +90,20 @@ export default function ReceiptScreen() {
   };
 
   const onPrintThermal = async () => {
-    if (!thermal?.base64) {
+    if (!thermal?.thermer_url && !thermal?.thermer_json && !thermal?.intent_url) {
       Alert.alert('Belum siap', 'Data cetak thermal belum tersedia.');
       return;
     }
     setPrinting(true);
     try {
-      const result = await printThermalViaRawBt(thermal);
+      const result = await printThermalViaThermer(thermal);
       if (result === 'store') {
         Alert.alert(
-          'Pasang RawBT',
-          'Untuk cetak ke printer Ainuo, pasang aplikasi RawBT, pair printer di Bluetooth, lalu coba lagi.',
+          'Pasang Thermer',
+          'Untuk cetak ke printer thermal, pasang aplikasi Thermer, pair printer di Bluetooth, lalu coba lagi.',
         );
       } else if (result === 'failed') {
-        Alert.alert('Gagal cetak', 'Tidak bisa membuka RawBT. Pastikan aplikasi RawBT terpasang.');
+        Alert.alert('Gagal cetak', 'Tidak bisa membuka Thermer. Pastikan aplikasi Thermer terpasang.');
       }
     } finally {
       setPrinting(false);
@@ -211,9 +211,9 @@ export default function ReceiptScreen() {
         </View>
 
         <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
-          <Text style={styles.primaryText}>{printing ? 'Membuka printer…' : 'Cetak Thermal (Ainuo)'}</Text>
+          <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal (Thermer)'}</Text>
         </Pressable>
-        <Text style={styles.hint}>Pair printer Ainuo di Bluetooth, lalu pasang RawBT sebagai jembatan cetak.</Text>
+        <Text style={styles.hint}>Pair printer di Bluetooth, lalu pasang Thermer sebagai jembatan cetak.</Text>
 
         {pdfUrl ? (
           <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>

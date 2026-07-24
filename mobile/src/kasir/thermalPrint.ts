@@ -6,14 +6,19 @@ export type ThermalPaper = '58mm' | '80mm';
 export type ThermalPayload = {
   paper: string;
   width: number;
-  base64: string;
-  rawbt_url: string;
+  base64?: string;
+  thermer_url?: string;
+  thermer_json?: string;
   intent_url: string;
+  thermer_play_store?: string;
+  /** @deprecated gunakan thermer_url */
+  rawbt_url?: string;
+  /** @deprecated gunakan thermer_play_store */
   rawbt_play_store?: string;
 };
 
 const PAPER_KEY = 'pos-thermal-paper';
-const RAWBT_PLAY = 'https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter';
+const THERMER_PLAY = 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
 export async function getThermalPaper(): Promise<ThermalPaper> {
   try {
@@ -28,31 +33,56 @@ export async function setThermalPaper(paper: ThermalPaper): Promise<void> {
   await AsyncStorage.setItem(PAPER_KEY, paper);
 }
 
+function buildThermerUrls(thermal: ThermalPayload): {
+  thermerUrl: string;
+  intentUrl: string;
+  playStore: string;
+} {
+  const playStore = thermal.thermer_play_store || thermal.rawbt_play_store || THERMER_PLAY;
+
+  if (thermal.thermer_json) {
+    const encoded = encodeURIComponent(thermal.thermer_json);
+    return {
+      thermerUrl: `thermer://?data=${encoded}`,
+      intentUrl:
+        `intent://?data=${encoded}#Intent;scheme=thermer;package=mate.bluetoothprint;` +
+        `S.browser_fallback_url=${encodeURIComponent(playStore)};end;`,
+      playStore,
+    };
+  }
+
+  return {
+    thermerUrl: thermal.thermer_url || thermal.rawbt_url || '',
+    intentUrl: thermal.intent_url || '',
+    playStore,
+  };
+}
+
 /**
- * Cetak ESC/POS ke printer Ainuo lewat RawBT (Bluetooth).
- * Intent scheme membuka RawBT; jika belum terpasang, Android biasanya arahkan ke Play Store.
+ * Cetak struk ke printer Bluetooth lewat aplikasi Thermer (mate.bluetoothprint).
+ * Buka scheme thermer://; jika belum terpasang, arahkan ke Play Store.
  */
-export async function printThermalViaRawBt(thermal: ThermalPayload): Promise<'opened' | 'store' | 'failed'> {
-  const intentUrl = thermal.intent_url;
-  const rawbtUrl = thermal.rawbt_url;
-  const playStore = thermal.rawbt_play_store || RAWBT_PLAY;
+export async function printThermalViaThermer(
+  thermal: ThermalPayload,
+): Promise<'opened' | 'store' | 'failed'> {
+  const { thermerUrl, intentUrl, playStore } = buildThermerUrls(thermal);
 
   const tryOpen = async (url: string) => {
     await Linking.openURL(url);
   };
 
   if (Platform.OS === 'android') {
+    if (thermerUrl) {
+      try {
+        await tryOpen(thermerUrl);
+        return 'opened';
+      } catch {
+        // coba intent URL
+      }
+    }
     if (intentUrl) {
       try {
         await tryOpen(intentUrl);
-        return 'opened';
-      } catch {
-        // try rawbt scheme
-      }
-    }
-    if (rawbtUrl) {
-      try {
-        await tryOpen(rawbtUrl);
         return 'opened';
       } catch {
         // fall through to store
@@ -66,14 +96,23 @@ export async function printThermalViaRawBt(thermal: ThermalPayload): Promise<'op
     }
   }
 
+  // iOS: Thermer memakai scheme yang sama
   try {
-    if (rawbtUrl) {
-      await tryOpen(rawbtUrl);
+    if (thermerUrl) {
+      await tryOpen(thermerUrl);
       return 'opened';
     }
   } catch {
     // ignore
   }
 
-  return 'failed';
+  try {
+    await tryOpen(playStore);
+    return 'store';
+  } catch {
+    return 'failed';
+  }
 }
+
+/** @deprecated alias — pakai printThermalViaThermer */
+export const printThermalViaRawBt = printThermalViaThermer;

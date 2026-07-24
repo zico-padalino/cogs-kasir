@@ -653,14 +653,18 @@ class KasirController extends Controller
             'pdfUrl' => $pdf['url'],
             'pdfRoute' => route('kasir.receipt.pdf', $order),
             'thermalRoute' => route('kasir.receipt.thermal', $order),
+            'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             'waMessage' => $receiptPdf->whatsappMessage($order, $pdf['url']),
             'thermal' => [
                 'paper' => $thermal['paper'],
                 'width' => $thermal['width'],
                 'base64' => $thermal['base64'],
-                'rawbt_url' => $thermal['rawbt_url'],
+                'thermer_url' => $thermal['thermer_url'],
                 'intent_url' => $thermal['intent_url'],
-                'rawbt_play_store' => config('pos.thermal.rawbt_play_store'),
+                'thermer_play_store' => $thermal['thermer_play_store'],
+                'thermer_json' => $thermal['thermer_json'],
+                'rawbt_url' => $thermal['thermer_url'],
+                'rawbt_play_store' => $thermal['thermer_play_store'],
             ],
         ]);
     }
@@ -715,6 +719,26 @@ class KasirController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             'Cache-Control' => 'private, max-age=0, must-revalidate',
             'X-Thermal-Paper' => $thermal['paper'],
+        ]);
+    }
+
+    public function receiptThermalJson(PosOrder $order, EscPosReceiptService $escPos): \Illuminate\Http\JsonResponse
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $paper = request()->query('paper');
+        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
+
+        return response()->json([
+            'paper' => $thermal['paper'],
+            'width' => $thermal['width'],
+            'base64' => $thermal['base64'],
+            'thermer_url' => $thermal['thermer_url'],
+            'intent_url' => $thermal['intent_url'],
+            'thermer_play_store' => $thermal['thermer_play_store'],
+            'thermer_json' => $thermal['thermer_json'],
         ]);
     }
 

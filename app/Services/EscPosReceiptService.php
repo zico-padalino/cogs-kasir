@@ -7,7 +7,7 @@ use App\Support\Format;
 use App\Support\PosItemNotes;
 
 /**
- * ESC/POS receipt for Ainuo / generic Bluetooth thermal printers (58mm & 80mm).
+ * ESC/POS receipt + Thermer (mate.bluetoothprint) payload for Bluetooth thermal printers.
  */
 class EscPosReceiptService
 {
@@ -23,7 +23,17 @@ class EscPosReceiptService
     }
 
     /**
-     * @return array{binary: string, base64: string, paper: string, width: int, rawbt_url: string, intent_url: string}
+     * @return array{
+     *     binary: string,
+     *     base64: string,
+     *     paper: string,
+     *     width: int,
+     *     thermer_url: string,
+     *     intent_url: string,
+     *     thermer_play_store: string,
+     *     thermer_json: string,
+     *     rawbt_url: string
+     * }
      */
     public function payload(PosOrder $order, ?string $paper = null): array
     {
@@ -31,15 +41,127 @@ class EscPosReceiptService
         $width = $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
         $binary = $this->build($order, $width);
         $base64 = base64_encode($binary);
+        $thermerJson = $this->buildThermerJson($order, $width);
+        $playStore = (string) config(
+            'pos.thermal.thermer_play_store',
+            'https://play.google.com/store/apps/details?id=mate.bluetoothprint'
+        );
+        $encoded = rawurlencode($thermerJson);
+        $thermerUrl = 'thermer://?data='.$encoded;
+        $intentUrl = 'intent://?data='.$encoded
+            .'#Intent;scheme=thermer;package=mate.bluetoothprint;S.browser_fallback_url='
+            .rawurlencode($playStore)
+            .';end;';
 
         return [
             'binary' => $binary,
             'base64' => $base64,
             'paper' => $paper,
             'width' => $width,
-            'rawbt_url' => 'rawbt:base64,'.$base64,
-            'intent_url' => 'intent:base64,'.$base64.'#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;',
+            'thermer_json' => $thermerJson,
+            'thermer_url' => $thermerUrl,
+            'intent_url' => $intentUrl,
+            'thermer_play_store' => $playStore,
+            // Legacy alias (same Thermer intent) — older clients may still read rawbt_* keys.
+            'rawbt_url' => $thermerUrl,
+            'rawbt_play_store' => $playStore,
         ];
+    }
+
+    /**
+     * Thermer JSON document (object keyed by entry index) for thermer://?data=…
+     *
+     * @see https://github.com/tussharmate/ios-thermer-custom-schema
+     */
+    public function buildThermerJson(PosOrder $order, int $width = self::WIDTH_58): string
+    {
+        $order->loadMissing(['items.product', 'table', 'cashier']);
+        $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
+        $w = max(24, $width);
+        $entries = [];
+        $i = 0;
+
+        $entries[(string) $i++] = $this->thermerText($this->sanitize($shopName), bold: 1, align: 1, format: 3);
+        $entries[(string) $i++] = $this->thermerText($this->joinLines([
+            'Struk Pembayaran',
+            $this->sanitize($order->order_number),
+            $order->paid_at?->format('d/m/Y H:i') ?? '-',
+            $order->order_type ? $this->sanitize($order->order_type->label()) : null,
+            $order->table ? 'Meja: '.$this->sanitize($order->table->label) : null,
+            $order->customer_note ? 'Pelanggan: '.$this->sanitize($order->customer_note) : null,
+            str_repeat('-', $w),
+        ]), bold: 0, align: 1, format: 0);
+
+        $itemLines = [];
+        foreach ($order->items as $item) {
+            $qty = Format::number($item->quantity, 0);
+            $name = $this->sanitize($item->product?->name ?? 'Item');
+            $itemLines[] = $this->columnsText($name.' x '.$qty, Format::rupiah($item->line_total), $w);
+
+            $noteParts = PosItemNotes::split($item->notes);
+            if ($noteParts['addon_labels'] !== []) {
+                $itemLines[] = '  '.$this->sanitize(implode(' · ', $noteParts['addon_labels']));
+            }
+            if ($noteParts['customer']) {
+                $itemLines[] = '  Catatan: '.$this->sanitize($noteParts['customer']);
+            }
+        }
+        $itemLines[] = str_repeat('-', $w);
+        $entries[(string) $i++] = $this->thermerText($this->joinLines($itemLines) ?: '-', bold: 0, align: 0, format: 0);
+
+        $totalLines = [];
+        if ($order->hasDiscount()) {
+            $totalLines[] = $this->columnsText('Subtotal', Format::rupiah($order->subtotal), $w);
+            $totalLines[] = $this->columnsText('Diskon', '- '.Format::rupiah($order->discount_amount), $w);
+        }
+        $totalLines[] = $this->columnsText('TOTAL', Format::rupiah($order->total), $w);
+        $entries[(string) $i++] = $this->thermerText($this->joinLines($totalLines), bold: 1, align: 0, format: 0);
+
+        $footerLines = [
+            'Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'),
+        ];
+        if ($order->payment_method?->value === 'cash' && $order->amount_received) {
+            $footerLines[] = 'Diterima: '.Format::rupiah($order->amount_received);
+            $footerLines[] = 'Kembalian: '.Format::rupiah($order->change_amount);
+        }
+        if ($order->cashierDisplayName() !== '-') {
+            $footerLines[] = 'Kasir: '.$this->sanitize($order->cashierDisplayName());
+        }
+        $entries[(string) $i++] = $this->thermerText($this->joinLines($footerLines), bold: 0, align: 0, format: 0);
+
+        $entries[(string) $i++] = $this->thermerText("Terima kasih<br /><br /><br />", bold: 0, align: 1, format: 0);
+
+        return json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+    }
+
+    /**
+     * @return array{type: int, content: string, bold: int, align: int, format: int}
+     */
+    private function thermerText(string $content, int $bold, int $align, int $format): array
+    {
+        return [
+            'type' => 0,
+            'content' => $content,
+            'bold' => $bold,
+            'align' => $align,
+            'format' => $format,
+        ];
+    }
+
+    /**
+     * @param  list<string|null>  $lines
+     */
+    private function joinLines(array $lines): string
+    {
+        $parts = [];
+        foreach ($lines as $line) {
+            if ($line === null || $line === '') {
+                continue;
+            }
+            $parts[] = $line;
+        }
+
+        return implode('<br />', $parts);
     }
 
     public function build(PosOrder $order, int $width = self::WIDTH_58): string
@@ -127,6 +249,11 @@ class EscPosReceiptService
 
     private function columns(string $left, string $right, int $width): string
     {
+        return $this->columnsText($left, $right, $width)."\n";
+    }
+
+    private function columnsText(string $left, string $right, int $width): string
+    {
         $left = $this->sanitize($left);
         $right = $this->sanitize($right);
         $rightLen = strlen($right);
@@ -138,7 +265,7 @@ class EscPosReceiptService
 
         $pad = $width - strlen($left) - $rightLen;
 
-        return $left.str_repeat(' ', max(1, $pad)).$right."\n";
+        return $left.str_repeat(' ', max(1, $pad)).$right;
     }
 
     private function wrap(string $text, int $width): string
@@ -163,6 +290,7 @@ class EscPosReceiptService
         ];
         $text = strtr($text, $map);
 
-        return preg_replace('/[^\x20-\x7E]/', '?', $text) ?? $text;
+        // Thermer mendukung teks multibahasa; tetap jaga karakter aman untuk layout kolom.
+        return preg_replace('/[^\x20-\x7E]+/u', '?', $text) ?? $text;
     }
 }

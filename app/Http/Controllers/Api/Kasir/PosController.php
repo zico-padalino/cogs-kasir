@@ -532,9 +532,13 @@ class PosController extends Controller
                     'paper' => $thermal['paper'],
                     'width' => $thermal['width'],
                     'base64' => $thermal['base64'],
-                    'rawbt_url' => $thermal['rawbt_url'],
+                    'thermer_url' => $thermal['thermer_url'],
                     'intent_url' => $thermal['intent_url'],
-                    'rawbt_play_store' => config('pos.thermal.rawbt_play_store'),
+                    'thermer_play_store' => $thermal['thermer_play_store'],
+                    'thermer_json' => $thermal['thermer_json'],
+                    // Alias lama
+                    'rawbt_url' => $thermal['thermer_url'],
+                    'rawbt_play_store' => $thermal['thermer_play_store'],
                 ],
             ],
         ]);

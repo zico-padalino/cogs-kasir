@@ -53,11 +53,13 @@ return [
     'kasir_pin_ttl_minutes' => (int) env('KASIR_PIN_TTL_MINUTES', 15),
 
     /**
-     * Thermal printer (Ainuo / ESC/POS via RawBT di Android).
+     * Thermal printer (ESC/POS + Thermer / mate.bluetoothprint di Android).
      * paper: 58mm (32 kolom) atau 80mm (48 kolom).
      */
     'thermal' => [
         'paper' => env('POS_THERMAL_PAPER', '58mm'),
-        'rawbt_play_store' => 'https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter',
+        'thermer_play_store' => 'https://play.google.com/store/apps/details?id=mate.bluetoothprint',
+        // Alias lama (kompatibilitas).
+        'rawbt_play_store' => 'https://play.google.com/store/apps/details?id=mate.bluetoothprint',
     ],
 ];
