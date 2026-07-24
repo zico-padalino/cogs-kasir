@@ -98,7 +98,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Sekali klik membuka Thermer (struk besar). Pastikan printer sudah dipilih di Thermer.
+                Layout sama struk PDF, sedikit lebih besar. Pair printer di Thermer lalu cetak.
             </p>
             <a
                 href="{{ $pdfRoute }}?print=1"
