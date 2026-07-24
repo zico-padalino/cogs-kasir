@@ -189,6 +189,13 @@ class PosOrderService
         return DB::transaction(function () use ($order, $product, $quantity, $unitPrice, $fromKasir, $notes, $addonIds) {
             $this->assertOrderMutable($order, $fromKasir);
 
+            if ($fromKasir
+                && $order->source === PosOrderSource::Kasir
+                && ! filled($order->customer_note)
+            ) {
+                throw new RuntimeException('Isi nama pelanggan dulu sebelum menambah menu.');
+            }
+
             $this->assertSellable($product, $quantity, forPayment: false, order: $order);
 
             $addons = collect();

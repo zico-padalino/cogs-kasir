@@ -745,6 +745,7 @@ class KasirController extends Controller
             'total' => (float) $order->total,
             'item_count' => $order->items->count(),
             'can_checkout' => $order->canCheckoutAtKasir(),
+            'require_customer' => $order->source === PosOrderSource::Kasir && $order->isKasirEditable(),
             'fragments' => [
                 'cart' => view('kasir.partials.cart-panel', compact('order', 'format'))->render(),
                 'pay_modal' => view('kasir.partials.pay-modal', compact('order', 'format'))->render(),

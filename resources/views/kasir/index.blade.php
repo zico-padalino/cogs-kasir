@@ -29,7 +29,12 @@
 @endsection
 
 @section('content')
-    <div id="kasir-pos" class="pos-shell" data-pos-total="{{ $order->total }}">
+    <div
+        id="kasir-pos"
+        class="pos-shell"
+        data-pos-total="{{ $order->total }}"
+        data-kasir-require-customer="{{ $order->source === \App\Enums\PosOrderSource::Kasir && $order->isKasirEditable() ? '1' : '0' }}"
+    >
         <header class="pos-toolbar">
             <div class="pos-toolbar-left">
                 <button

@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -96,6 +96,7 @@ export default function KasirPosScreen() {
   const [customerNote, setCustomerNote] = useState('');
   const [orderType, setOrderType] = useState('takeaway');
   const [orderBarOpen, setOrderBarOpen] = useState(false);
+  const customerInputRef = useRef<TextInput>(null);
 
   const applyOrder = useCallback((next: Order) => {
     setOrder(next);
@@ -217,6 +218,22 @@ export default function KasirPosScreen() {
   const total = order?.total ?? 0;
 
   const openAdd = (product: MenuProduct) => {
+    const requiresName = order?.source === 'kasir';
+    const name = (customerNote || '').trim();
+
+    if (requiresName && !name) {
+      setOrderBarOpen(true);
+      Alert.alert('Nama diperlukan', 'Isi nama pelanggan dulu sebelum menambah menu.', [
+        {
+          text: 'Isi nama',
+          onPress: () => {
+            setTimeout(() => customerInputRef.current?.focus(), 120);
+          },
+        },
+      ]);
+      return;
+    }
+
     setAddProduct(product);
     setQty(1);
     setNotes('');
@@ -225,8 +242,22 @@ export default function KasirPosScreen() {
 
   const submitAdd = async () => {
     if (!addProduct) return;
+
+    const requiresName = order?.source === 'kasir';
+    const name = (customerNote || '').trim();
+    if (requiresName && !name) {
+      setAddProduct(null);
+      setOrderBarOpen(true);
+      Alert.alert('Nama diperlukan', 'Isi nama pelanggan dulu sebelum menambah menu.');
+      return;
+    }
+
     setSavingItem(true);
     try {
+      if (requiresName && name && name !== (order?.customer_note || '').trim()) {
+        await saveOrderContext(orderType, name);
+      }
+
       const res = await kasirApi.addItem({
         product_id: addProduct.id,
         quantity: qty,
@@ -576,15 +607,17 @@ export default function KasirPosScreen() {
                   </Pressable>
                 ))}
               </View>
-              <Text style={styles.sectionLabel}>Nama pelanggan</Text>
+              <Text style={styles.sectionLabel}>Nama pelanggan (wajib)</Text>
               <TextInput
+                ref={customerInputRef}
                 value={customerNote}
                 onChangeText={setCustomerNote}
                 onEndEditing={() => saveOrderContext(orderType, customerNote)}
-                placeholder="Contoh: Budi"
+                placeholder="Contoh: Budi — isi dulu sebelum pilih menu"
                 placeholderTextColor={colors.slate400}
                 style={styles.input}
               />
+              <Text style={styles.customerRequiredHint}>Isi nama dulu sebelum menambah menu.</Text>
             </View>
           ) : null}
 
@@ -1849,6 +1882,7 @@ const styles = StyleSheet.create({
   discountTabOn: { backgroundColor: colors.brand100 },
   discountTabText: { ...font('600'), color: colors.slate700 },
   sectionLabel: { fontSize: 13, color: colors.slate700, ...font('600') },
+  customerRequiredHint: { marginTop: 6, fontSize: 12, color: colors.amber800, ...font('500') },
   qrisFrame: {
     borderRadius: radius.md,
     borderWidth: 1,

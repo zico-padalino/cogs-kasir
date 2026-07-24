@@ -5,6 +5,72 @@ import { formatRupiahInput, formatRupiahInputLive, parseRupiahInput } from './ru
 
 const POS_DESKTOP_BP = 1024;
 
+function clearKasirCustomerNameError(root) {
+    const field = root.querySelector('[data-pos-customer-field]');
+    const error = root.querySelector('[data-pos-customer-error]');
+    field?.classList.remove('is-invalid');
+    error?.classList.add('hidden');
+}
+
+function promptKasirCustomerName(root) {
+    const bar = root.querySelector('[data-pos-order-bar]');
+    const field = root.querySelector('[data-pos-customer-field]');
+    const input = root.querySelector('[data-pos-customer-note]');
+    const error = root.querySelector('[data-pos-customer-error]');
+    const backdrop = root.querySelector('[data-pos-order-bar-backdrop]');
+    const toggle = root.querySelector('[data-pos-order-bar-toggle]');
+
+    if (bar) {
+        bar.classList.add('is-expanded');
+    }
+
+    if (window.innerWidth < POS_DESKTOP_BP) {
+        root.classList.add('is-order-bar-open');
+        backdrop?.classList.remove('hidden');
+        backdrop?.setAttribute('aria-hidden', 'false');
+    }
+
+    toggle?.setAttribute('aria-expanded', 'true');
+    field?.classList.add('is-invalid');
+    error?.classList.remove('hidden');
+
+    window.requestAnimationFrame(() => {
+        input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        input?.focus();
+        input?.select?.();
+    });
+}
+
+async function ensureKasirCustomerName(root) {
+    if (root.dataset.kasirRequireCustomer !== '1') {
+        return true;
+    }
+
+    const input = root.querySelector('[data-pos-customer-note]');
+    const name = (input?.value || '').trim();
+
+    if (! name) {
+        promptKasirCustomerName(root);
+
+        return false;
+    }
+
+    clearKasirCustomerNameError(root);
+
+    // Pastikan nama sudah tersimpan ke server sebelum add item.
+    if (typeof root.__kasirFlushOrderBar === 'function') {
+        try {
+            await root.__kasirFlushOrderBar();
+        } catch {
+            promptKasirCustomerName(root);
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
 /**
  * Safari/Chrome mobile: toolbar browser menutupi bottom dock.
  * Tinggi layout mengikuti area yang benar-benar terlihat (visualViewport).
@@ -204,6 +270,14 @@ function initKasirModals(root) {
         window.setTimeout(() => addQty?.focus(), 50);
     };
 
+    const tryOpenAddModal = async (product) => {
+        if (! await ensureKasirCustomerName(root)) {
+            return;
+        }
+
+        openAddModal(product);
+    };
+
     const closeAddModal = () => {
         addModal.classList.add('hidden');
         addModal.setAttribute('aria-hidden', 'true');
@@ -249,7 +323,7 @@ function initKasirModals(root) {
 
             const card = addTrigger.closest('[data-kasir-product]');
             if (card) {
-                openAddModal(readProductCard(card));
+                void tryOpenAddModal(readProductCard(card));
             }
 
             return;
@@ -286,7 +360,7 @@ function initKasirModals(root) {
     detailAdd?.addEventListener('click', () => {
         if (activeProduct) {
             closeDetailModal();
-            openAddModal(activeProduct);
+            void tryOpenAddModal(activeProduct);
         }
     });
 
@@ -985,6 +1059,7 @@ function initPosOrderBar(root) {
             updateToolbar(data);
             updateReceiptContext(data);
             updateOrderSummary(data);
+            clearKasirCustomerNameError(root);
             setSaveStatus('success', 'Tersimpan');
             const collapseDelay = window.innerWidth < POS_DESKTOP_BP ? 350 : 450;
             window.setTimeout(() => {
@@ -993,14 +1068,27 @@ function initPosOrderBar(root) {
             }, collapseDelay);
         } catch (error) {
             setSaveStatus('error', error.message || 'Gagal menyimpan.');
+            throw error;
         } finally {
             saving = false;
         }
     };
 
+    root.__kasirFlushOrderBar = async () => {
+        window.clearTimeout(saveTimer);
+
+        while (saving) {
+            await new Promise((resolve) => window.setTimeout(resolve, 40));
+        }
+
+        await saveOrderBar();
+    };
+
     const queueSave = (delay = 0) => {
         window.clearTimeout(saveTimer);
-        saveTimer = window.setTimeout(saveOrderBar, delay);
+        saveTimer = window.setTimeout(() => {
+            void saveOrderBar().catch(() => {});
+        }, delay);
     };
 
     orderBarToggle?.addEventListener('click', () => {
@@ -1036,7 +1124,12 @@ function initPosOrderBar(root) {
         });
     });
 
-    customerInput?.addEventListener('input', () => queueSave(700));
+    customerInput?.addEventListener('input', () => {
+        if ((customerInput.value || '').trim()) {
+            clearKasirCustomerNameError(root);
+        }
+        queueSave(700);
+    });
     customerInput?.addEventListener('blur', () => queueSave(0));
 
     syncTypeCards();
@@ -1683,6 +1776,10 @@ export function refreshKasirOrderUi(payload) {
     const root = document.getElementById('kasir-pos');
     if (! root || ! payload?.fragments) {
         return false;
+    }
+
+    if (payload.require_customer !== undefined) {
+        root.dataset.kasirRequireCustomer = payload.require_customer ? '1' : '0';
     }
 
     const cartPanel = root.querySelector('[data-kasir-panel="cart"]');

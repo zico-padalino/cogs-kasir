@@ -59,7 +59,10 @@
 
         <div class="pos-order-bar-fields">
             <div class="pos-order-field-group" data-pos-customer-field>
-                <label class="pos-order-bar-label" for="pos-customer-note">Nama pelanggan</label>
+                <div class="pos-order-field-head">
+                    <label class="pos-order-bar-label" for="pos-customer-note">Nama pelanggan</label>
+                    <span class="pos-order-required">Wajib</span>
+                </div>
                 <input
                     id="pos-customer-note"
                     type="text"
@@ -70,9 +73,14 @@
                     placeholder="Contoh: Budi"
                     data-pos-customer-note
                     autocomplete="off"
+                    required
+                    aria-required="true"
                 >
-                <p class="pos-order-field-hint">
-                    Untuk memanggil pelanggan saat pesanan siap.
+                <p class="pos-order-field-hint" data-pos-customer-hint>
+                    Isi nama dulu sebelum pilih menu.
+                </p>
+                <p class="pos-order-field-error hidden" data-pos-customer-error role="alert">
+                    Isi nama pelanggan dulu sebelum menambah menu.
                 </p>
             </div>
         </div>
