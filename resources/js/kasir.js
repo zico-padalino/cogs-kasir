@@ -430,6 +430,30 @@ export function initKasirPos() {
     });
 
     if (searchInput) {
+        const setSearchFocused = (on) => {
+            if (window.innerWidth >= POS_DESKTOP_BP) {
+                document.body.classList.remove('is-menu-search-focused');
+
+                return;
+            }
+
+            document.body.classList.toggle('is-menu-search-focused', on);
+
+            if (on) {
+                window.requestAnimationFrame(() => {
+                    searchInput.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                });
+                window.setTimeout(() => {
+                    searchInput.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                }, 280);
+            }
+        };
+
+        searchInput.addEventListener('focus', () => setSearchFocused(true));
+        searchInput.addEventListener('blur', () => {
+            window.setTimeout(() => setSearchFocused(false), 120);
+        });
+
         searchInput.addEventListener('input', () => {
             const query = searchInput.value.trim().toLowerCase();
 
