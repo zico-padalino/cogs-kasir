@@ -319,6 +319,15 @@ export default function KasirPosScreen() {
       setPayOpen(false);
       setProofUri(null);
       setAmountReceived('');
+      if (res.stock_out_message) {
+        Alert.alert('Stok habis', res.stock_out_message, [
+          {
+            text: 'OK',
+            onPress: () => router.push(`/kasir/receipt?id=${res.data.id}` as never),
+          },
+        ]);
+        return;
+      }
       router.push(`/kasir/receipt?id=${res.data.id}` as never);
     } catch (err) {
       handleApiError(err);

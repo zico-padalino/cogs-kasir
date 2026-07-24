@@ -48,6 +48,30 @@ class PosSaleStockConsumptionTest extends TestCase
                 $table->json('addon_ids')->nullable();
             });
         }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'cashier_employee_id')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->unsignedBigInteger('cashier_employee_id')->nullable();
+            });
+        }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'cashier_name')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->string('cashier_name')->nullable();
+            });
+        }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'amount_received')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->decimal('amount_received', 15, 4)->nullable();
+            });
+        }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'change_amount')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->decimal('change_amount', 15, 4)->nullable();
+            });
+        }
     }
 
     public function test_record_sale_cogs_consumes_finished_goods_stock(): void
@@ -217,5 +241,110 @@ class PosSaleStockConsumptionTest extends TestCase
             'id' => $order->id,
             'status' => 'paid',
         ]);
+    }
+
+    public function test_pay_order_notifies_when_finished_goods_and_stock_run_out(): void
+    {
+        $flour = Product::create([
+            'sku' => 'RM-FLOUR-OUT',
+            'name' => 'Tepung Habis',
+            'type' => ProductType::RawMaterial,
+            'unit' => 'g',
+            'costing_method' => CostingMethod::Fifo,
+            'standard_cost' => 10,
+            'is_active' => true,
+        ]);
+
+        $menuFg = Product::create([
+            'sku' => 'FG-OUT',
+            'name' => 'Roti Habis',
+            'type' => ProductType::FinishedGood,
+            'unit' => 'pcs',
+            'selling_price' => 15000,
+            'costing_method' => CostingMethod::WeightedAverage,
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        $menuBom = Product::create([
+            'sku' => 'FG-BOM-OUT',
+            'name' => 'Menu Resep',
+            'type' => ProductType::FinishedGood,
+            'unit' => 'pcs',
+            'selling_price' => 12000,
+            'costing_method' => CostingMethod::WeightedAverage,
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        app(InventoryCostService::class)->receiveStock($menuFg, 1, 8000);
+        app(InventoryCostService::class)->receiveStock($flour, 100, 10);
+
+        BillOfMaterial::create([
+            'parent_product_id' => $menuBom->id,
+            'child_product_id' => $flour->id,
+            'quantity' => 100,
+            'scrap_percentage' => 0,
+            'sequence' => 1,
+        ]);
+
+        $kasir = User::factory()->kasir()->create();
+
+        $order = PosOrder::create([
+            'order_number' => 'TRX-TEST-STOCK-OUT-001',
+            'order_day' => now()->toDateString(),
+            'source' => PosOrderSource::Kasir,
+            'order_type' => PosOrderType::Takeaway,
+            'status' => PosOrderStatus::Open,
+            'user_id' => $kasir->id,
+            'subtotal' => 27000,
+            'total' => 27000,
+        ]);
+
+        PosOrderItem::create([
+            'pos_order_id' => $order->id,
+            'product_id' => $menuFg->id,
+            'quantity' => 1,
+            'unit_price' => 15000,
+            'line_total' => 15000,
+        ]);
+
+        PosOrderItem::create([
+            'pos_order_id' => $order->id,
+            'product_id' => $menuBom->id,
+            'quantity' => 1,
+            'unit_price' => 12000,
+            'line_total' => 12000,
+        ]);
+
+        $notifier = \Mockery::mock(\App\Services\KasirPushNotifier::class);
+        $notifier->shouldReceive('notifyStockOut')
+            ->once()
+            ->withArgs(function (array $items, $paidOrder) use ($menuFg, $flour, $order) {
+                $ids = collect($items)->pluck('id')->sort()->values()->all();
+                $expected = collect([$menuFg->id, $flour->id])->sort()->values()->all();
+
+                return $ids === $expected
+                    && $paidOrder->id === $order->id
+                    && collect($items)->contains(fn ($item) => $item['type_label'] === 'Barang Jadi')
+                    && collect($items)->contains(fn ($item) => $item['type_label'] === 'Barang Stok');
+            });
+
+        $this->app->instance(\App\Services\KasirPushNotifier::class, $notifier);
+
+        $result = app(PosOrderService::class)->payOrder(
+            $order->fresh('items.product'),
+            PaymentMethod::Qris,
+            $kasir,
+            null,
+            UploadedFile::fake()->image('bukti.jpg'),
+        );
+
+        $this->assertEquals(0, $menuFg->fresh()->availableQuantity());
+        $this->assertEquals(0, $flour->fresh()->availableQuantity());
+        $this->assertNotNull($result['stock_out_message']);
+        $this->assertStringContainsString('Roti Habis', $result['stock_out_message']);
+        $this->assertStringContainsString('Tepung Habis', $result['stock_out_message']);
+        $this->assertCount(2, $result['stock_out']);
     }
 }

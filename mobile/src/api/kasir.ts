@@ -7,7 +7,18 @@ import type {
   PosOrder,
 } from './types';
 
-type Envelope<T> = { message?: string; data: T };
+type Envelope<T> = {
+  message?: string;
+  data: T;
+  stock_out?: Array<{
+    id: number;
+    name: string;
+    type: string;
+    type_label: string;
+    sku?: string | null;
+  }>;
+  stock_out_message?: string | null;
+};
 
 export const authApi = {
   shop() {

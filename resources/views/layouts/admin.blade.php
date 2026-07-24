@@ -148,6 +148,11 @@
                             ✓ {{ session('success') }}
                         </div>
                     @endif
+                    @if (session('warning'))
+                        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mb-6" role="status">
+                            ⚠ {{ session('warning') }}
+                        </div>
+                    @endif
                     @if (session('error'))
                         <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:mb-6">
                             {{ session('error') }}

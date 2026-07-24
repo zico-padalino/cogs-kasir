@@ -17,6 +17,7 @@ type PushData = {
   order_id?: number | string;
   customer_name?: string;
   speak_text?: string;
+  product_names?: string;
 };
 
 Notifications.setNotificationHandler({
@@ -35,6 +36,20 @@ function pushPayloadFromNotification(
 ): { speakText: string; dedupeKey: string } | null {
   const content = notification.request.content;
   const data = (content.data || {}) as PushData;
+
+  if (data.type === 'stock_out') {
+    const speakText =
+      (typeof data.speak_text === 'string' && data.speak_text.trim()) ||
+      (typeof data.product_names === 'string' && data.product_names.trim()
+        ? `Stok habis: ${data.product_names.trim()}.`
+        : '') ||
+      (content.body ? `Stok habis. ${content.body}` : 'Stok habis.');
+
+    return {
+      speakText,
+      dedupeKey: `stock-out-${String(data.order_id ?? data.product_names ?? speakText)}`,
+    };
+  }
 
   if (data.type && data.type !== 'new_order') {
     return null;
@@ -78,12 +93,16 @@ if (!TaskManager.isTaskDefined(BACKGROUND_NOTIFICATION_TASK)) {
       }
 
       const raw = (data as { data?: PushData } | undefined)?.data;
-      if (raw?.speak_text || raw?.customer_name || raw?.type === 'new_order') {
+      if (raw?.speak_text || raw?.customer_name || raw?.type === 'new_order' || raw?.type === 'stock_out') {
         const speakText =
           raw.speak_text ||
-          (raw.customer_name
-            ? `Pesanan baru masuk, atas nama ${raw.customer_name}.`
-            : 'Pesanan baru masuk.');
+          (raw.type === 'stock_out'
+            ? raw.product_names
+              ? `Stok habis: ${raw.product_names}.`
+              : 'Stok habis.'
+            : raw.customer_name
+              ? `Pesanan baru masuk, atas nama ${raw.customer_name}.`
+              : 'Pesanan baru masuk.');
         await announceSpeakText(speakText, String(raw.order_id ?? speakText));
       }
     } catch {

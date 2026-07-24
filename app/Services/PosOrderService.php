@@ -311,7 +311,12 @@ class PosOrderService
     }
 
     /**
-     * @return array{order: PosOrder, invoice: string}
+     * @return array{
+     *     order: PosOrder,
+     *     invoice: string,
+     *     stock_out: list<array{id: int, name: string, type: string, type_label: string, sku: string|null}>,
+     *     stock_out_message: ?string
+     * }
      */
     public function payOrder(
         PosOrder $order,
@@ -367,13 +372,14 @@ class PosOrderService
         }
 
         try {
-            return DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath, $attr) {
+            $result = DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath, $attr) {
                 $invoiceBase = 'POS-'.$order->order_number;
                 $soldAt = now();
                 $subtotal = (float) $order->subtotal;
                 $payableTotal = (float) $order->total;
                 $allocatedRevenue = 0.0;
                 $itemCount = $order->items->count();
+                $consumedProductIds = [];
 
                 foreach ($order->items as $index => $item) {
                     $lineSubtotal = (float) $item->line_total;
@@ -397,10 +403,16 @@ class PosOrderService
                         'sold_at' => $soldAt,
                     ]);
 
-                    $this->cogsCalculationService->recordSaleCogs(
+                    $calculation = $this->cogsCalculationService->recordSaleCogs(
                         $sale,
                         $this->addonMaterialRequirements($item),
                     );
+
+                    foreach ($calculation->breakdown['consumption_details'] ?? [] as $detail) {
+                        if (! empty($detail['product_id'])) {
+                            $consumedProductIds[] = (int) $detail['product_id'];
+                        }
+                    }
                 }
 
                 $order->update([
@@ -421,9 +433,13 @@ class PosOrderService
                     $this->cashLedgerService->recordCashSale($paidOrder, $cashier);
                 }
 
+                $stockOut = $this->resolveDepletedStockItems($consumedProductIds);
+
                 return [
                     'order' => $paidOrder,
                     'invoice' => $invoiceBase,
+                    'stock_out' => $stockOut,
+                    'stock_out_message' => $this->formatStockOutMessage($stockOut, $paidOrder),
                 ];
             });
         } catch (\Throwable $e) {
@@ -433,6 +449,62 @@ class PosOrderService
 
             throw $e;
         }
+
+        if (($result['stock_out'] ?? []) !== []) {
+            $this->kasirPushNotifier->notifyStockOut($result['stock_out'], $result['order']);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  list<int>  $productIds
+     * @return list<array{id: int, name: string, type: string, type_label: string, sku: string|null}>
+     */
+    private function resolveDepletedStockItems(array $productIds): array
+    {
+        $ids = array_values(array_unique(array_filter($productIds)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return Product::query()
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Product $product) => $product->availableQuantity() <= 0)
+            ->map(fn (Product $product) => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'type' => $product->type->value,
+                'type_label' => match ($product->type) {
+                    ProductType::FinishedGood => 'Barang Jadi',
+                    ProductType::SemiFinished => 'Bahan Jadi',
+                    ProductType::RawMaterial => 'Barang Stok',
+                },
+                'sku' => $product->sku,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<array{id: int, name: string, type: string, type_label: string, sku?: string|null}>  $items
+     */
+    private function formatStockOutMessage(array $items, ?PosOrder $order = null): ?string
+    {
+        if ($items === []) {
+            return null;
+        }
+
+        $list = collect($items)
+            ->map(fn (array $item) => $item['name'].' ('.$item['type_label'].')')
+            ->implode(', ');
+
+        $suffix = $order?->order_number ? " setelah pesanan {$order->order_number}" : '';
+
+        return "Stok habis{$suffix}: {$list}.";
     }
 
     /**

@@ -424,6 +424,8 @@ class PosController extends Controller
 
         return response()->json([
             'message' => 'Pembayaran berhasil.',
+            'stock_out' => $result['stock_out'] ?? [],
+            'stock_out_message' => $result['stock_out_message'] ?? null,
             'data' => new PosOrderResource($paid),
         ]);
     }

@@ -16,23 +16,68 @@ class KasirPushNotifier
 
     public function notifyNewOnlineOrder(PosOrder $order): void
     {
-        if (! config('pos.push.enabled', true)) {
-            return;
-        }
-
         $customer = trim((string) ($order->customer_note ?: 'Pelanggan'));
         $orderType = $order->order_type?->value ?? 'online';
         $title = 'Pesanan baru masuk';
         $body = "Atas nama {$customer}".($orderType ? " · {$orderType}" : '');
         $speakText = "Pesanan baru masuk, atas nama {$customer}.";
 
-        $data = [
-            'type' => 'new_order',
-            'order_id' => (string) $order->id,
-            'order_number' => (string) $order->order_number,
-            'customer_name' => $customer,
-            'speak_text' => $speakText,
-        ];
+        $this->dispatch(
+            title: $title,
+            body: $body,
+            data: [
+                'type' => 'new_order',
+                'order_id' => (string) $order->id,
+                'order_number' => (string) $order->order_number,
+                'customer_name' => $customer,
+                'speak_text' => $speakText,
+            ],
+            wakeWeb: true,
+        );
+    }
+
+    /**
+     * @param  list<array{id: int, name: string, type: string, type_label: string, sku?: string|null}>  $items
+     */
+    public function notifyStockOut(array $items, ?PosOrder $order = null): void
+    {
+        if ($items === []) {
+            return;
+        }
+
+        $names = collect($items)
+            ->map(fn (array $item) => $item['name'].' ('.$item['type_label'].')')
+            ->values()
+            ->all();
+
+        $list = implode(', ', $names);
+        $orderSuffix = $order?->order_number ? " · pesanan {$order->order_number}" : '';
+        $title = 'Stok habis';
+        $body = $list.$orderSuffix;
+        $speakText = 'Stok habis: '.implode(', ', array_column($items, 'name')).'.';
+
+        $this->dispatch(
+            title: $title,
+            body: $body,
+            data: [
+                'type' => 'stock_out',
+                'order_id' => $order ? (string) $order->id : '',
+                'order_number' => $order ? (string) $order->order_number : '',
+                'product_names' => $list,
+                'speak_text' => $speakText,
+            ],
+            wakeWeb: true,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function dispatch(string $title, string $body, array $data, bool $wakeWeb = false): void
+    {
+        if (! config('pos.push.enabled', true)) {
+            return;
+        }
 
         try {
             $fcmTokens = DevicePushToken::query()
@@ -63,12 +108,14 @@ class KasirPushNotifier
                 }
             }
 
-            $webSubs = DevicePushToken::query()
-                ->where('platform', DevicePushToken::PLATFORM_WEB)
-                ->get()
-                ->all();
+            if ($wakeWeb) {
+                $webSubs = DevicePushToken::query()
+                    ->where('platform', DevicePushToken::PLATFORM_WEB)
+                    ->get()
+                    ->all();
 
-            $this->webPushService->sendWakeUp($webSubs);
+                $this->webPushService->sendWakeUp($webSubs);
+            }
         } catch (\Throwable $e) {
             Log::warning('Kasir push notifier failed: '.$e->getMessage());
         }

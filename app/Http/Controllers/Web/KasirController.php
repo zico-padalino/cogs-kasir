@@ -544,8 +544,14 @@ class KasirController extends Controller
 
         session()->forget('kasir_order_id');
 
-        return redirect()->route('kasir.receipt', $result['order'])
+        $redirect = redirect()->route('kasir.receipt', $result['order'])
             ->with('success', 'Pembayaran berhasil.');
+
+        if (! empty($result['stock_out_message'])) {
+            $redirect->with('warning', $result['stock_out_message']);
+        }
+
+        return $redirect;
     }
 
     public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf, EscPosReceiptService $escPos)
