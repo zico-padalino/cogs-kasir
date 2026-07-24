@@ -1,3 +1,30 @@
+function initOrderItemNotes() {
+    const notes = document.querySelectorAll('.pos-order-item-note-details');
+    if (! notes.length) {
+        return;
+    }
+
+    notes.forEach((details) => {
+        details.addEventListener('toggle', () => {
+            if (! details.open) {
+                return;
+            }
+
+            notes.forEach((other) => {
+                if (other !== details) {
+                    other.open = false;
+                }
+            });
+
+            const input = details.querySelector('textarea');
+            window.requestAnimationFrame(() => {
+                input?.focus();
+                input?.setSelectionRange(input.value.length, input.value.length);
+            });
+        });
+    });
+}
+
 function initOrderCheckoutTypeCards() {
     const form = document.querySelector('.order-checkout-form');
     if (! form) {
@@ -277,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderSearch();
     initOrderModal();
     initOrderCheckoutTypeCards();
+    initOrderItemNotes();
     initOrderKasirConfirmation();
 });
 

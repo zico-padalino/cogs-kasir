@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.cogsperhitungan.kasir",
-      "versionCode": 25,
+      "versionCode": 26,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#5c4033"

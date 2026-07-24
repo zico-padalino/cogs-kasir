@@ -2841,19 +2841,19 @@
     }
 
     .pos-item-note-form {
-        @apply mt-2 space-y-1.5;
+        @apply space-y-2;
     }
 
     .pos-item-note-label {
-        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-400;
+        @apply block text-[11px] font-semibold text-slate-600;
     }
 
     .pos-item-note-input {
-        @apply text-xs;
+        @apply min-h-[4.5rem] text-sm leading-relaxed;
     }
 
     .pos-item-note-save {
-        @apply text-[11px] font-semibold text-brand-600 hover:text-brand-700;
+        @apply inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98] sm:w-auto sm:min-w-[8.5rem];
     }
 
     .pos-modal-open {
@@ -3279,7 +3279,11 @@
     }
 
     .pos-order-item {
-        @apply flex items-center gap-1.5;
+        @apply flex flex-col gap-2;
+    }
+
+    .pos-order-item-top {
+        @apply flex min-w-0 items-center gap-2;
     }
 
     .pos-order-item-thumb-btn {
@@ -3303,19 +3307,51 @@
     }
 
     .pos-order-item-note-details {
-        @apply relative shrink-0;
+        @apply w-full border-t border-slate-200/80 pt-2;
     }
 
     .pos-order-item-note-summary {
-        @apply cursor-pointer list-none whitespace-nowrap text-[10px] font-semibold text-brand-700 hover:text-brand-800;
+        @apply flex cursor-pointer list-none items-center gap-2 rounded-xl border border-dashed border-brand-300/70 bg-brand-50/60 px-3 py-2.5 text-sm font-semibold text-brand-800 transition hover:border-brand-400 hover:bg-brand-50;
+    }
+
+    .pos-order-item-note-summary.has-note {
+        @apply border-solid border-amber-200 bg-amber-50 text-amber-950;
     }
 
     .pos-order-item-note-summary::-webkit-details-marker {
         display: none;
     }
 
+    .pos-order-item-note-summary-label {
+        @apply shrink-0 rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900;
+    }
+
+    .pos-order-item-note-summary-text {
+        @apply min-w-0 flex-1 truncate text-left text-xs font-medium text-amber-950 sm:text-sm;
+    }
+
+    .pos-order-item-note-summary-action {
+        @apply shrink-0 text-xs font-bold text-brand-700;
+    }
+
+    .pos-order-item-note-summary.has-note .pos-order-item-note-summary-action {
+        @apply text-amber-800;
+    }
+
+    .pos-order-item-note-details[open] > .pos-order-item-note-summary {
+        @apply mb-2 border-solid border-brand-300 bg-white;
+    }
+
     .pos-order-item-note-form {
-        @apply absolute left-0 top-full z-20 mt-1 w-44 space-y-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg;
+        @apply space-y-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm;
+    }
+
+    .pos-order-item-note-actions {
+        @apply flex items-center justify-end;
+    }
+
+    .pos-order-item-note-readonly {
+        @apply w-full;
     }
 
     .pos-cart-qty {
@@ -4931,6 +4967,10 @@
         @apply mt-0 space-y-0 lg:mt-3 lg:space-y-3;
     }
 
+    .order-checkout-fields {
+        @apply block;
+    }
+
     .order-checkout-details {
         @apply rounded-2xl border border-brand-200 bg-brand-50/60 p-3.5;
     }
@@ -5336,7 +5376,11 @@
         }
 
         .order-cart-row-wrap .order-cart-row.pos-order-item {
-            @apply grid items-start gap-x-3 gap-y-2;
+            @apply gap-2;
+        }
+
+        .order-cart-row .pos-order-item-top {
+            @apply grid w-full items-start gap-x-3 gap-y-2;
             grid-template-columns: auto minmax(0, 1fr);
         }
 
@@ -5362,6 +5406,18 @@
 
         .order-cart-row .pos-receipt-line-total {
             @apply text-sm;
+        }
+
+        .order-cart-row .pos-order-item-note-details {
+            @apply border-t border-slate-200/80 pt-2;
+        }
+
+        .order-cart-row .pos-order-item-note-summary {
+            @apply min-h-11 px-3 py-2.5;
+        }
+
+        .order-cart-row .pos-item-note-input {
+            @apply min-h-[5rem] text-base;
         }
     }
 
