@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class CashLedgerService
@@ -127,7 +128,7 @@ class CashLedgerService
 
     public function clearOrderSaleEntries(PosOrder $order): void
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('cash_ledger_entries')) {
+        if (! Schema::hasTable('cash_ledger_entries')) {
             return;
         }
 
