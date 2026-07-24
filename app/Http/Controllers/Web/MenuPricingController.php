@@ -74,12 +74,7 @@ class MenuPricingController extends Controller
             $sellingPrice = Format::parseRupiah($validated['selling_price'] ?? 0);
         }
 
-        if ($sellingPrice <= 0) {
-            throw ValidationException::withMessages([
-                'selling_price' => 'Isi harga jual atau persen untung.',
-            ]);
-        }
-
+        // Harga jual boleh 0 agar checklist "Tampilkan di Kasir" tetap bisa disimpan.
         $product->update([
             'selling_price' => max(0, $sellingPrice),
             'is_menu_item' => $request->boolean('is_menu_item'),
@@ -87,8 +82,12 @@ class MenuPricingController extends Controller
 
         $hppService->markAsMenuItem($product, $request->boolean('is_menu_item'));
 
+        $message = $sellingPrice > 0
+            ? "Harga {$product->name} sudah disimpan."
+            : "Pengaturan {$product->name} sudah disimpan.";
+
         return redirect()->route('menu-pricing.index')
-            ->with('success', "Harga {$product->name} sudah disimpan.");
+            ->with('success', $message);
     }
 
     public function destroy(Product $product, ProductHppService $hppService)
