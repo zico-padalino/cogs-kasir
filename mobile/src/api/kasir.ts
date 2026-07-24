@@ -225,8 +225,9 @@ export const kasirApi = {
       }>
     >(`/kasir/orders/${orderId}/receipt${qs}`);
   },
-  orders() {
-    return apiRequest<{ data: PosOrder[]; meta?: unknown; links?: unknown }>('/kasir/orders');
+  orders(page = 1) {
+    const qs = page > 1 ? `?page=${page}` : '';
+    return apiRequest<{ data: PosOrder[]; meta?: unknown; links?: unknown }>(`/kasir/orders${qs}`);
   },
   order(orderId: number) {
     return apiRequest<Envelope<PosOrder>>(`/kasir/orders/${orderId}`);

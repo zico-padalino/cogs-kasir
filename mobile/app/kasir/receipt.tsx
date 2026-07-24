@@ -39,9 +39,10 @@ function isValidWaPhone(phone: string): boolean {
 }
 
 export default function ReceiptScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const fromHistory = from === 'history';
   const [order, setOrder] = useState<PosOrder | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [waMessage, setWaMessage] = useState('');
@@ -151,7 +152,7 @@ export default function ReceiptScreen() {
     <View style={[styles.root, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }} keyboardShouldPersistTaps="handled">
         <View style={styles.successBadge}>
-          <Text style={styles.successText}>Pembayaran berhasil</Text>
+          <Text style={styles.successText}>{fromHistory ? 'Struk Pesanan' : 'Pembayaran berhasil'}</Text>
         </View>
         <Text style={styles.shop}>{shopName}</Text>
         <Text style={styles.orderNo}>#{order.order_number}</Text>
@@ -216,7 +217,7 @@ export default function ReceiptScreen() {
 
         {pdfUrl ? (
           <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>
-            <Text style={styles.outlineText}>Buka PDF Struk</Text>
+            <Text style={styles.outlineText}>Cetak PDF</Text>
           </Pressable>
         ) : null}
 
@@ -271,8 +272,11 @@ export default function ReceiptScreen() {
           </View>
         )}
 
-        <Pressable onPress={() => router.replace('/kasir')} style={styles.outlineBtn}>
-          <Text style={styles.outlineText}>Kembali ke POS</Text>
+        <Pressable
+          onPress={() => router.replace((fromHistory ? '/kasir/orders' : '/kasir') as never)}
+          style={styles.outlineBtn}
+        >
+          <Text style={styles.outlineText}>{fromHistory ? 'Kembali ke Riwayat' : 'POS Baru'}</Text>
         </Pressable>
       </ScrollView>
     </View>

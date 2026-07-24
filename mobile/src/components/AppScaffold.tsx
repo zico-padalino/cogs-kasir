@@ -36,7 +36,7 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   kasir: [
     { label: 'Point of Sale', icon: '🛒', route: '/kasir' },
-    { label: 'Riwayat Pesanan', icon: '📋', route: '/kasir/orders', match: ['/kasir/orders', '/kasir/order-detail'] },
+    { label: 'Riwayat Pesanan', icon: '📋', route: '/kasir/orders', match: ['/kasir/orders', '/kasir/order-detail', '/kasir/receipt'] },
     { label: 'Meja QR', icon: '🪑', route: '/kasir/tables' },
     { label: 'Kelola Menu', icon: '🍽️', route: '/kasir/menu', match: ['/kasir/menu', '/kasir/menu-edit'] },
     { label: 'Atur Kategori', icon: '🏷️', route: '/kasir/categories' },
