@@ -64,13 +64,13 @@
                     $canChecklist = $pending->canChecklistDelivered() && $itemCount > 0;
                     $deliverItems = $canChecklist
                         ? $pending->items->map(fn ($item) => [
-                            'id' => $item->id,
+                            'id' => (int) $item->id,
                             'name' => $item->product?->name ?? 'Item',
                             'qty' => (float) $item->quantity,
                             'is_delivered' => (bool) $item->is_delivered,
                             'url' => route('kasir.items.delivered', $item),
-                        ])->values()
-                        : collect();
+                        ])->values()->all()
+                        : [];
                 @endphp
                 <div @class([
                     'pos-pending-card',
@@ -140,8 +140,8 @@
                                 class="pos-pending-action pos-pending-action-deliver"
                                 data-deliver-open
                                 data-deliver-title="{{ $pending->customer_note ?: $pending->order_number }}"
-                                data-deliver-items="{{ e(json_encode($deliverItems)) }}"
                             >
+                                <span hidden data-deliver-payload>@json($deliverItems)</span>
                                 Ceklis antar
                             </button>
                         @endif

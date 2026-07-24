@@ -308,16 +308,86 @@ function initKasirModals(root) {
 }
 
 function parseDeliverItems(raw) {
-    if (! raw) {
+    if (raw == null) {
         return [];
     }
 
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
+    const text = String(raw).trim();
+    if (! text) {
         return [];
     }
+
+    const tryParse = (value) => {
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (_) {
+            return null;
+        }
+    };
+
+    const direct = tryParse(text);
+    if (direct) {
+        return direct;
+    }
+
+    // Fallback: JSON diatribut ter-escape HTML entity
+    if (text.includes('&')) {
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        const decoded = tryParse(textarea.value);
+        if (decoded) {
+            return decoded;
+        }
+    }
+
+    // Fallback: base64
+    try {
+        const decoded = tryParse(atob(text));
+        if (decoded) {
+            return decoded;
+        }
+    } catch (_) {
+        // ignore
+    }
+
+    return [];
+}
+
+function readDeliverItemsFromButton(btn) {
+    if (! btn) {
+        return [];
+    }
+
+    const payload = btn.querySelector('[data-deliver-payload]');
+    if (payload) {
+        const fromPayload = parseDeliverItems(payload.textContent);
+        if (fromPayload.length > 0) {
+            return fromPayload;
+        }
+    }
+
+    const attr = btn.getAttribute('data-deliver-items');
+    const fromAttr = parseDeliverItems(attr);
+    if (fromAttr.length > 0) {
+        return fromAttr;
+    }
+
+    return parseDeliverItems(btn.dataset.deliverItems);
+}
+
+function writeDeliverItemsToButton(btn, nextItems) {
+    if (! btn) {
+        return;
+    }
+
+    const encoded = JSON.stringify(nextItems);
+    const payload = btn.querySelector('[data-deliver-payload]');
+    if (payload) {
+        payload.textContent = encoded;
+    }
+    btn.setAttribute('data-deliver-items', encoded);
+    btn.dataset.deliverItems = encoded;
 }
 
 function escapeDeliverHtml(value) {
@@ -372,11 +442,11 @@ function initDeliverModal() {
             const totalEl = activeOpenBtn.querySelector('[data-deliver-total]');
             if (doneEl) doneEl.textContent = String(done);
             if (totalEl) totalEl.textContent = String(total);
-            activeOpenBtn.dataset.deliverItems = JSON.stringify(items);
+            writeDeliverItemsToButton(activeOpenBtn, items);
         }
         document.querySelectorAll('[data-deliver-open]').forEach((btn) => {
             if (btn === activeOpenBtn) return;
-            const btnItems = parseDeliverItems(btn.dataset.deliverItems);
+            const btnItems = readDeliverItemsFromButton(btn);
             if (btnItems.length === 0) return;
             const same = btnItems.some((row) => items.some((item) => Number(item.id) === Number(row.id)));
             if (! same) return;
@@ -384,7 +454,7 @@ function initDeliverModal() {
                 const next = items.find((item) => Number(item.id) === Number(row.id));
                 return next ? { ...row, is_delivered: next.is_delivered } : row;
             });
-            btn.dataset.deliverItems = JSON.stringify(merged);
+            writeDeliverItemsToButton(btn, merged);
             const d = merged.filter((row) => row.is_delivered).length;
             const doneNode = btn.querySelector('[data-deliver-done]');
             const totalNode = btn.querySelector('[data-deliver-total]');
@@ -479,7 +549,7 @@ function initDeliverModal() {
 
     const openWith = (btn) => {
         activeOpenBtn = btn;
-        items = parseDeliverItems(btn.dataset.deliverItems);
+        items = readDeliverItemsFromButton(btn);
         if (titleEl) {
             titleEl.textContent = btn.dataset.deliverTitle || 'Item pesanan';
         }
