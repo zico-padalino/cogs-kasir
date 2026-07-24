@@ -10,6 +10,21 @@
     <title>@yield('title', 'Menu Meja') — Pemesanan</title>
     @include('layouts.partials.pwa-head', ['app' => 'order'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        (function () {
+            function syncVvh() {
+                var vv = window.visualViewport;
+                var h = vv ? Math.round(vv.height) : window.innerHeight;
+                document.documentElement.style.setProperty('--vvh', Math.max(240, h) + 'px');
+            }
+            syncVvh();
+            window.addEventListener('resize', syncVvh);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', syncVvh);
+                window.visualViewport.addEventListener('scroll', syncVvh);
+            }
+        })();
+    </script>
 </head>
 <body class="order-table-body min-h-screen bg-[#f6f1ea] font-sans text-slate-900 antialiased">
     @include('layouts.partials.pwa-install-banner', ['app' => 'order'])

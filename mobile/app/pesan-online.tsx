@@ -110,7 +110,7 @@ export default function PesanOnlineScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: totalQty > 0 ? 108 + insets.bottom : insets.bottom + spacing.lg },
+          { paddingBottom: spacing.xl },
         ]}
       >
         {errorText ? (
@@ -314,10 +314,6 @@ const styles = StyleSheet.create({
   qtyBtnText: { fontSize: 18, fontWeight: '700', color: colors.slate900 },
   qtyValue: { minWidth: 24, textAlign: 'center', fontWeight: '700', color: colors.slate900 },
   footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
