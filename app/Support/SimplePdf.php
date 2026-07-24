@@ -16,19 +16,19 @@ final class SimplePdf
 
     public function title(string $text): self
     {
-        $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => 13.0, 'bold' => true, 'align' => 'C'];
+        $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => 18.0, 'bold' => true, 'align' => 'C'];
 
         return $this;
     }
 
-    public function line(string $text = '', float $size = 9.5, bool $bold = false, string $align = 'L'): self
+    public function line(string $text = '', float $size = 12, bool $bold = false, string $align = 'L'): self
     {
         $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => $size, 'bold' => $bold, 'align' => $align];
 
         return $this;
     }
 
-    public function spacer(float $amount = 6): self
+    public function spacer(float $amount = 8): self
     {
         $this->ops[] = ['type' => 'spacer', 'amount' => $amount];
 
@@ -42,7 +42,7 @@ final class SimplePdf
         return $this;
     }
 
-    public function twoColumns(string $left, string $right, float $size = 9.5): self
+    public function twoColumns(string $left, string $right, float $size = 12): self
     {
         $this->ops[] = ['type' => 'columns', 'left' => $left, 'right' => $right, 'size' => $size];
 
@@ -54,43 +54,43 @@ final class SimplePdf
         $contentHeight = $this->margin;
         foreach ($this->ops as $op) {
             $contentHeight += match ($op['type']) {
-                'spacer' => $op['amount'] ?? 6,
-                'separator' => 10,
-                'columns' => ($op['size'] ?? 9.5) + 4,
-                default => ($op['size'] ?? 9.5) + 4,
+                'spacer' => $op['amount'] ?? 8,
+                'separator' => 12,
+                'columns' => ($op['size'] ?? 12) + 5,
+                default => ($op['size'] ?? 12) + 5,
             };
         }
         $contentHeight += $this->margin;
 
-        $pageHeight = max(320, (int) ceil($contentHeight));
+        $pageHeight = max(360, (int) ceil($contentHeight));
         $y = $pageHeight - $this->margin;
         $stream = [];
 
         foreach ($this->ops as $op) {
             if ($op['type'] === 'spacer') {
-                $y -= $op['amount'] ?? 6;
+                $y -= $op['amount'] ?? 8;
                 continue;
             }
 
             if ($op['type'] === 'separator') {
                 $stream[] = sprintf('%.2F %.2F m %.2F %.2F l S', $this->margin, $y, $this->pageWidth - $this->margin, $y);
-                $y -= 10;
+                $y -= 12;
                 continue;
             }
 
             if ($op['type'] === 'columns') {
-                $size = $op['size'] ?? 9.5;
+                $size = $op['size'] ?? 12;
                 $textY = $y - $size;
                 $left = (string) ($op['left'] ?? '');
                 $right = (string) ($op['right'] ?? '');
                 $this->writeText($stream, $left, $this->margin, $textY, $size, false);
                 $rightWidth = $this->textWidth($right, $size);
                 $this->writeText($stream, $right, $this->pageWidth - $this->margin - $rightWidth, $textY, $size, true);
-                $y -= ($size + 4);
+                $y -= ($size + 5);
                 continue;
             }
 
-            $size = $op['size'] ?? 9.5;
+            $size = $op['size'] ?? 12;
             $bold = (bool) ($op['bold'] ?? false);
             $align = $op['align'] ?? 'L';
             $text = (string) ($op['text'] ?? '');
@@ -102,7 +102,7 @@ final class SimplePdf
                 default => $this->margin,
             };
             $this->writeText($stream, $text, $x, $textY, $size, $bold);
-            $y -= ($size + 4);
+            $y -= ($size + 5);
         }
 
         $content = implode("\n", $stream)."\n";
