@@ -371,6 +371,8 @@ CREATE TABLE IF NOT EXISTS `pos_order_items` (
     `line_total`    DECIMAL(18,4) NOT NULL,
     `notes`         VARCHAR(255) NULL DEFAULT NULL,
     `addon_ids`     JSON NULL,
+    `is_delivered`  TINYINT(1) NOT NULL DEFAULT 0,
+    `delivered_at`  TIMESTAMP NULL DEFAULT NULL,
     `created_at`    TIMESTAMP NULL DEFAULT NULL,
     `updated_at`    TIMESTAMP NULL DEFAULT NULL,
     PRIMARY KEY (`id`),

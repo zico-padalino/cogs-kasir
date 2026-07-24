@@ -259,6 +259,52 @@ class KasirController extends Controller
         return redirect()->route('kasir.index')->with('success', $message);
     }
 
+    public function toggleItemDelivered(Request $request, PosOrderItem $item, PosOrderService $posService)
+    {
+        $validated = $request->validate([
+            'is_delivered' => ['required', 'boolean'],
+        ]);
+
+        try {
+            $order = $posService->setItemDelivered($item, (bool) $validated['is_delivered']);
+        } catch (\RuntimeException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        $message = $validated['is_delivered']
+            ? 'Item ditandai sudah diantar.'
+            : 'Ceklis antar dibatalkan.';
+
+        if ($request->expectsJson()) {
+            $order->load(['items.product', 'table']);
+            $item->refresh();
+
+            return response()->json([
+                'message' => $message,
+                'data' => [
+                    'order_id' => $order->id,
+                    'status' => $order->status->value,
+                    'status_label' => $order->status->label(),
+                    'item' => [
+                        'id' => $item->id,
+                        'is_delivered' => (bool) $item->is_delivered,
+                        'delivered_at' => $item->delivered_at?->toIso8601String(),
+                    ],
+                    'items' => $order->items->map(fn (PosOrderItem $row) => [
+                        'id' => $row->id,
+                        'is_delivered' => (bool) $row->is_delivered,
+                    ]),
+                ],
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function cancelPendingOrder(PosOrder $order, PosOrderService $posService)
     {
         $wasActive = (int) session('kasir_order_id') === (int) $order->id;

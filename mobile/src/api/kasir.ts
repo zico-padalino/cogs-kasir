@@ -206,6 +206,12 @@ export const kasirApi = {
   updateItem(itemId: number, payload: { quantity?: number; notes?: string | null }) {
     return apiRequest<Envelope<PosOrder>>(`/kasir/items/${itemId}`, { method: 'PATCH', body: payload });
   },
+  setItemDelivered(itemId: number, isDelivered: boolean) {
+    return apiRequest<Envelope<PosOrder>>(`/kasir/items/${itemId}/delivered`, {
+      method: 'PATCH',
+      body: { is_delivered: isDelivered },
+    });
+  },
   removeItem(itemId: number) {
     return apiRequest<Envelope<PosOrder>>(`/kasir/items/${itemId}`, { method: 'DELETE' });
   },

@@ -15,6 +15,8 @@ class PosOrderItem extends Model
         'line_total',
         'notes',
         'addon_ids',
+        'is_delivered',
+        'delivered_at',
     ];
 
     protected function casts(): array
@@ -24,6 +26,8 @@ class PosOrderItem extends Model
             'unit_price' => 'decimal:4',
             'line_total' => 'decimal:4',
             'addon_ids' => 'array',
+            'is_delivered' => 'boolean',
+            'delivered_at' => 'datetime',
         ];
     }
 

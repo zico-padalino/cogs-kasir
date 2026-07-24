@@ -59,6 +59,8 @@ export type OrderItem = {
   line_total: number;
   notes?: string | null;
   addon_ids?: number[];
+  is_delivered?: boolean;
+  delivered_at?: string | null;
 };
 
 export type PosOrder = {

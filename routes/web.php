@@ -130,6 +130,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/orders/{order}/cancel', [KasirController::class, 'cancelPendingOrder'])->name('orders.cancel');
         Route::post('/items', [KasirController::class, 'addItem'])->name('items.store');
         Route::patch('/items/{item}', [KasirController::class, 'updateItem'])->name('items.update');
+        Route::patch('/items/{item}/delivered', [KasirController::class, 'toggleItemDelivered'])->name('items.delivered');
         Route::delete('/items/{item}', [KasirController::class, 'removeItem'])->name('items.destroy');
         Route::get('/products', [KasirProductController::class, 'index'])->name('products.index');
         Route::get('/products/{product}/edit', [KasirProductController::class, 'edit'])->name('products.edit');

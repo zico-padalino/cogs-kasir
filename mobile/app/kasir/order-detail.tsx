@@ -1,8 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { kasirApi } from '@/api/kasir';
-import type { PosOrder } from '@/api/types';
+import type { OrderItem, PosOrder } from '@/api/types';
+import { asApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
@@ -26,21 +35,43 @@ export default function OrderDetailScreen() {
   const router = useRouter();
   const [order, setOrder] = useState<PosOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await kasirApi.order(Number(id));
-        setOrder(res.data);
-      } catch {
-        // PIN_LOCKED → redirect global
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    try {
+      const res = await kasirApi.order(Number(id));
+      setOrder(res.data);
+    } catch {
+      // PIN_LOCKED → redirect global
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  const canLihatStruk = order?.status === 'paid' || order?.status === 'served';
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const canChecklist = order?.status === 'paid' || order?.status === 'served';
+  const canLihatStruk = canChecklist;
+  const deliveredCount = useMemo(
+    () => (order?.items || []).filter((item) => item.is_delivered).length,
+    [order?.items],
+  );
+
+  const toggleDelivered = async (item: OrderItem) => {
+    if (!canChecklist || togglingId) return;
+    const next = !item.is_delivered;
+    setTogglingId(item.id);
+    try {
+      const res = await kasirApi.setItemDelivered(item.id, next);
+      setOrder(res.data);
+    } catch (e) {
+      Alert.alert('Gagal', asApiError(e).message || 'Tidak bisa menyimpan ceklis.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   return (
     <AppScaffold
@@ -67,18 +98,43 @@ export default function OrderDetailScreen() {
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Item Pesanan</Text>
-            {(order.items || []).map((item) => (
-              <View key={item.id} style={styles.itemRow}>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.itemName}>{item.product_name}</Text>
-                  {item.notes ? <Text style={styles.note}>Catatan: {item.notes}</Text> : null}
-                  <Text style={styles.meta}>
-                    Qty {item.quantity} · {formatRupiah(item.unit_price)}
-                  </Text>
+            {canChecklist && (order.items || []).length > 0 ? (
+              <Text style={styles.progress}>
+                Diantar: {deliveredCount}/{(order.items || []).length}
+              </Text>
+            ) : null}
+            {(order.items || []).map((item) => {
+              const delivered = Boolean(item.is_delivered);
+              return (
+                <View
+                  key={item.id}
+                  style={[styles.itemRow, delivered && styles.itemRowDelivered]}
+                >
+                  {canChecklist ? (
+                    <Pressable
+                      onPress={() => void toggleDelivered(item)}
+                      disabled={togglingId === item.id}
+                      style={[styles.checkBox, delivered && styles.checkBoxOn]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: delivered }}
+                      accessibilityLabel={`Sudah diantar: ${item.product_name || 'item'}`}
+                    >
+                      <Text style={styles.checkMark}>{delivered ? '✓' : ''}</Text>
+                    </Pressable>
+                  ) : null}
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.itemName, delivered && styles.itemNameDelivered]}>
+                      {item.product_name}
+                    </Text>
+                    {item.notes ? <Text style={styles.note}>Catatan: {item.notes}</Text> : null}
+                    <Text style={styles.meta}>
+                      Qty {item.quantity} · {formatRupiah(item.unit_price)}
+                    </Text>
+                  </View>
+                  <Text style={styles.lineTotal}>{formatRupiah(item.line_total)}</Text>
                 </View>
-                <Text style={styles.lineTotal}>{formatRupiah(item.line_total)}</Text>
-              </View>
-            ))}
+              );
+            })}
             <View style={styles.divider} />
             {order.discount_amount > 0 ? (
               <>
@@ -151,13 +207,37 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: { fontSize: 15, color: colors.slate900, ...font('700'), marginBottom: 4 },
+  progress: { fontSize: 12, color: colors.slate500, marginBottom: 2 },
   itemRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingVertical: spacing.xs,
   },
+  itemRowDelivered: {
+    backgroundColor: '#ecfdf5',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xs,
+  },
+  checkBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.slate300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    backgroundColor: colors.white,
+  },
+  checkBoxOn: {
+    borderColor: colors.brand600,
+    backgroundColor: colors.brand600,
+  },
+  checkMark: { color: colors.white, fontSize: 14, ...font('700'), lineHeight: 16 },
   itemName: { fontSize: 14, color: colors.slate900, ...font('600') },
+  itemNameDelivered: { color: colors.slate500, textDecorationLine: 'line-through' },
   note: { fontSize: 12, color: colors.amber700 },
   meta: { fontSize: 12, color: colors.slate500 },
   lineTotal: { fontSize: 13, color: colors.slate800, ...font('600') },

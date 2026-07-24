@@ -93,6 +93,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('orders/{order}/cancel', [PosController::class, 'cancelPendingOrder'])->name('orders.cancel');
                 Route::post('items', [PosController::class, 'addItem'])->name('items.store');
                 Route::patch('items/{item}', [PosController::class, 'updateItem'])->name('items.update');
+                Route::patch('items/{item}/delivered', [PosController::class, 'toggleItemDelivered'])->name('items.delivered');
                 Route::delete('items/{item}', [PosController::class, 'removeItem'])->name('items.destroy');
                 Route::post('pay', [PosController::class, 'pay'])->name('pay');
                 Route::post('open-bill', [PosController::class, 'openBill'])->name('open-bill');

@@ -253,6 +253,28 @@ class PosController extends Controller
         ]);
     }
 
+    public function toggleItemDelivered(Request $request, PosOrderItem $item, PosOrderService $posService): JsonResponse
+    {
+        $validated = $request->validate([
+            'is_delivered' => ['required', 'boolean'],
+        ]);
+
+        try {
+            $order = $posService->setItemDelivered($item, (bool) $validated['is_delivered']);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $order->load(['items.product', 'table']);
+
+        return response()->json([
+            'message' => $validated['is_delivered']
+                ? 'Item ditandai sudah diantar.'
+                : 'Ceklis antar dibatalkan.',
+            'data' => new PosOrderResource($order),
+        ]);
+    }
+
     public function cancelPendingOrder(PosOrder $order, PosOrderService $posService): JsonResponse
     {
         $wasActive = KasirActiveOrder::getId() === (int) $order->id;

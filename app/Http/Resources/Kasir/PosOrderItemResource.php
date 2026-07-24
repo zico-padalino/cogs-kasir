@@ -21,6 +21,8 @@ class PosOrderItemResource extends JsonResource
             'line_total' => (float) $this->line_total,
             'notes' => $this->notes,
             'addon_ids' => $this->addon_ids ?? [],
+            'is_delivered' => (bool) $this->is_delivered,
+            'delivered_at' => $this->delivered_at?->toIso8601String(),
         ];
     }
 }

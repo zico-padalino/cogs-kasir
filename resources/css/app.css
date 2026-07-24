@@ -193,6 +193,22 @@
         @apply font-bold tabular-nums text-brand-600;
     }
 
+    .table-default tbody tr.is-delivered {
+        @apply bg-emerald-50/70;
+    }
+
+    .table-default tbody tr.is-delivered td {
+        @apply text-slate-500;
+    }
+
+    .pos-deliver-check {
+        @apply inline-flex cursor-pointer items-center justify-center;
+    }
+
+    .pos-deliver-checkbox {
+        @apply h-5 w-5 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500;
+    }
+
     /* ── Badges ── */
     .badge {
         @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;

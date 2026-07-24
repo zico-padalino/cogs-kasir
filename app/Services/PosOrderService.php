@@ -691,6 +691,30 @@ class PosOrderService
         return $order->fresh(['items.product', 'table']);
     }
 
+    /** Tandai item sudah / belum diantar (setelah bayar). */
+    public function setItemDelivered(PosOrderItem $item, bool $delivered): PosOrder
+    {
+        $order = $item->order;
+
+        if (! $order || ! $order->isSettled()) {
+            throw new RuntimeException('Ceklis antar hanya untuk pesanan yang sudah dibayar.');
+        }
+
+        $item->update([
+            'is_delivered' => $delivered,
+            'delivered_at' => $delivered ? now() : null,
+        ]);
+
+        if ($delivered && $order->status === PosOrderStatus::Paid) {
+            $remaining = $order->items()->where('is_delivered', false)->exists();
+            if (! $remaining) {
+                return $this->markServed($order->fresh());
+            }
+        }
+
+        return $order->fresh(['items.product', 'table']);
+    }
+
     /** @return Collection<int, PosOrder> */
     public function waitingOrders()
     {
