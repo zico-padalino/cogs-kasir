@@ -561,21 +561,8 @@ export function initKasirPos() {
             event.preventDefault();
             event.stopPropagation();
 
-            const payModal = root.querySelector('[data-kasir-pay-modal]');
-            const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
-
-            // Order kasir siap bayar → buka modal pembayaran
-            if (payModal) {
-                openKasirOverlay(payModal);
-                return;
-            }
-
-            // Online masih menunggu → buka modal konfirmasi
-            if (confirmModal) {
-                openKasirOverlay(confirmModal);
-                return;
-            }
-
+            // Dock selalu buka tab keranjang dulu (cek item / diskon / simpan),
+            // supaya "Bayar" tidak loncat langsung ke modal.
             const activeTab = root.querySelector('[data-kasir-tab].is-active')?.dataset.kasirTab;
 
             if (activeTab !== 'cart') {
@@ -699,7 +686,7 @@ function syncMobilePayChrome(root, activeTab) {
     }
 
     if (goCartLabel) {
-        goCartLabel.textContent = 'Bayar';
+        goCartLabel.textContent = needsConfirm ? 'Lihat & konfirmasi' : 'Lihat pesanan';
     }
 }
 
@@ -1482,19 +1469,6 @@ function bindOrderActionButtons(root) {
         btn.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-
-            const payModal = root.querySelector('[data-kasir-pay-modal]');
-            const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
-
-            if (payModal) {
-                openKasirOverlay(payModal);
-                return;
-            }
-
-            if (confirmModal) {
-                openKasirOverlay(confirmModal);
-                return;
-            }
 
             const activeTab = root.querySelector('[data-kasir-tab].is-active')?.dataset.kasirTab;
 

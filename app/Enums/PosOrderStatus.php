@@ -18,7 +18,7 @@ enum PosOrderStatus: string
             self::Open => 'Draft',
             self::Submitted => 'Menunggu Kasir',
             self::Confirmed => 'Siap Bayar',
-            self::Unpaid => 'Open Bill',
+            self::Unpaid => 'Tagihan terbuka',
             self::Paid => 'Sudah Bayar',
             self::Served => 'Selesai',
             self::Cancelled => 'Batal',

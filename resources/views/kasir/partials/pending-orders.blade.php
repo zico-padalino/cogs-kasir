@@ -21,23 +21,25 @@
         data-pos-pending-toggle
         aria-expanded="{{ $defaultExpanded ? 'true' : 'false' }}"
     >
-        <span>
-            {{ $pendingOrders->count() }} menunggu
-            @if ($onlineWaiting > 0)
-                · {{ $onlineWaiting }} online
-            @endif
-            @if ($openBillCount > 0)
-                · {{ $openBillCount }} open bill
-            @endif
-            @if ($awaitingServeCount > 0)
-                · {{ $awaitingServeCount }} siap antar
-            @endif
-            · {{ $format::rupiah($pendingTotal) }}
+        <span class="pos-pending-toggle-main">
+            <strong>{{ $pendingOrders->count() }} perlu ditangani</strong>
+            <span class="pos-pending-toggle-total">{{ $format::rupiah($pendingTotal) }}</span>
         </span>
         <span class="pos-pending-toggle-icon" aria-hidden="true">▼</span>
     </button>
     <div class="pos-pending-body" data-pos-pending-body>
-        <p class="pos-pending-title">Pesanan menunggu ({{ $pendingOrders->count() }})</p>
+        <div class="pos-pending-chips" aria-label="Ringkasan jenis">
+            @if ($onlineWaiting > 0)
+                <span class="pos-pending-chip">{{ $onlineWaiting }} online</span>
+            @endif
+            @if ($openBillCount > 0)
+                <span class="pos-pending-chip">{{ $openBillCount }} tagihan terbuka</span>
+            @endif
+            @if ($awaitingServeCount > 0)
+                <span class="pos-pending-chip">{{ $awaitingServeCount }} siap antar</span>
+            @endif
+        </div>
+        <p class="pos-pending-title">Antrian pesanan ({{ $pendingOrders->count() }})</p>
         <div class="pos-pending-list">
             @foreach ($pendingOrders as $pending)
                 @php
@@ -47,15 +49,15 @@
                     $canOpen = ! $isCurrent && ! $isAwaitingServe;
                     $actionCols = $isAwaitingServe ? 1 : ($isCurrent ? 1 : 2);
                     $openLabel = match (true) {
-                        $isOpenBill => 'Buka / Tambah',
-                        $pending->status === PosOrderStatus::Confirmed => 'Bayar',
+                        $isOpenBill => 'Lanjut isi',
+                        $pending->status === PosOrderStatus::Confirmed => 'Buka di kasir',
                         default => 'Masuk kasir',
                     };
-                    $deleteLabel = $isOpenBill ? 'Hapus Open Bill' : 'Hapus';
+                    $deleteLabel = $isOpenBill ? 'Hapus tagihan' : 'Hapus';
                     $deleteConfirm = $isOpenBill
-                        ? 'Hapus Open Bill '.($pending->customer_note ?: $pending->order_number).'?'
+                        ? 'Hapus tagihan terbuka '.($pending->customer_note ?: $pending->order_number).'?'
                         : 'Hapus pesanan online '.($pending->customer_note ?: $pending->order_number).'? Pesanan akan dibatalkan.';
-                    $serveConfirm = 'Konfirmasi pesanan '.($pending->customer_note ?: $pending->order_number).' sudah diantar / selesai?';
+                    $serveConfirm = 'Tandai pesanan '.($pending->customer_note ?: $pending->order_number).' sudah selesai diantar?';
                     $itemCount = $pending->items->count();
                     $deliveredCount = $pending->items->where('is_delivered', true)->count();
                     $showDeliverProgress = $itemCount > 0 && ($isOpenBill || $isAwaitingServe);
@@ -151,7 +153,7 @@
                                     class="pos-pending-action pos-pending-action-serve"
                                     onclick="return confirm({{ json_encode($serveConfirm) }})"
                                 >
-                                    Sudah diantar / selesai
+                                    Tandai selesai
                                 </button>
                             </form>
                         @elseif ($isCurrent)
@@ -162,7 +164,7 @@
                                     class="pos-pending-action pos-pending-action-delete"
                                     onclick="return confirm({{ json_encode($deleteConfirm) }})"
                                 >
-                                    {{ $isOpenBill ? 'Hapus Open Bill' : 'Hapus pesanan' }}
+                                    {{ $isOpenBill ? 'Hapus tagihan' : 'Hapus pesanan' }}
                                 </button>
                             </form>
                         @else

@@ -4,17 +4,17 @@
     <div class="pos-deliver-modal-panel" role="dialog" aria-modal="true" aria-labelledby="kasir-deliver-modal-title">
         <div class="pos-deliver-modal-head">
             <div class="min-w-0 flex-1">
-                <p class="pos-deliver-modal-eyebrow">Ceklis antar</p>
+                <p class="pos-deliver-modal-eyebrow">Tandai item diantar</p>
                 <h2 id="kasir-deliver-modal-title" class="pos-deliver-modal-title" data-deliver-modal-title>Item pesanan</h2>
                 <p class="pos-deliver-modal-progress" data-deliver-modal-progress>Diantar 0/0</p>
             </div>
-            <button type="button" class="pos-add-modal-close" data-kasir-close-deliver aria-label="Tutup">×</button>
+            <button type="button" class="pos-add-modal-close" data-kasir-close-deliver aria-label="Tutup ceklis">×</button>
         </div>
 
         <div class="pos-deliver-modal-list" data-deliver-modal-list>
             <p class="pos-deliver-modal-empty">Tidak ada item.</p>
         </div>
 
-        <button type="button" class="btn-primary w-full" data-kasir-close-deliver>Selesai</button>
+        <button type="button" class="btn-primary w-full" data-kasir-close-deliver>Tutup ceklis</button>
     </div>
 </div>

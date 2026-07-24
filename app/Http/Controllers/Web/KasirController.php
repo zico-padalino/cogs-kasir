@@ -203,8 +203,8 @@ class KasirController extends Controller
 
         $who = $held->customer_note ?: $held->order_number;
         $message = $merged
-            ? 'Item ditambahkan ke Open Bill '.$who.'.'
-            : 'Open Bill '.$who.' disimpan. Buka lagi dari daftar menunggu untuk tambah item atau bayar.';
+            ? 'Item ditambahkan ke tagihan terbuka '.$who.'.'
+            : 'Tagihan terbuka '.$who.' disimpan. Buka lagi dari antrian untuk tambah item atau bayar.';
 
         return redirect()
             ->route('kasir.index')
@@ -326,7 +326,7 @@ class KasirController extends Controller
         }
 
         $message = $order->source === PosOrderSource::Kasir
-            ? 'Open Bill #'.$order->order_number.' dihapus.'
+            ? 'Tagihan terbuka #'.$order->order_number.' dihapus.'
             : 'Pesanan online #'.$order->order_number.' dihapus.';
 
         if (request()->expectsJson()) {

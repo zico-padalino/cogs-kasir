@@ -295,7 +295,7 @@ class PosController extends Controller
 
         return response()->json([
             'message' => $order->source === PosOrderSource::Kasir
-                ? 'Open Bill #'.$order->order_number.' dihapus.'
+                ? 'Tagihan terbuka #'.$order->order_number.' dihapus.'
                 : 'Pesanan online #'.$order->order_number.' dihapus.',
             'data' => [
                 'active_order' => $active ? new PosOrderResource($active) : null,
@@ -475,8 +475,8 @@ class PosController extends Controller
 
         return response()->json([
             'message' => $merged
-                ? 'Item ditambahkan ke Open Bill '.$who.'.'
-                : 'Open Bill '.$who.' disimpan. Buka lagi untuk tambah item atau bayar.',
+                ? 'Item ditambahkan ke tagihan terbuka '.$who.'.'
+                : 'Tagihan terbuka '.$who.' disimpan. Buka lagi untuk tambah item atau bayar.',
             'data' => [
                 'held_order' => new PosOrderResource($held->load(['items.product', 'table'])),
                 'active_order' => new PosOrderResource($newOrder),

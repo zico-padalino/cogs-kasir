@@ -4,7 +4,7 @@
         <div class="pos-pay-modal-panel" role="dialog" aria-modal="true" aria-labelledby="kasir-pay-modal-title">
             <div class="pos-pay-modal-head">
                 <div class="min-w-0 flex-1">
-                    <p class="pos-pay-modal-eyebrow">Langkah 3 · Pembayaran</p>
+                    <p class="pos-pay-modal-eyebrow">Pembayaran</p>
                     <h2 id="kasir-pay-modal-title" class="pos-pay-modal-title">Total Bayar</h2>
                     <p class="pos-pay-modal-total" data-kasir-pay-modal-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</p>
                     <p class="pos-pay-modal-meta">
@@ -67,7 +67,12 @@
                 </div>
 
                 <div class="pos-qris-panel hidden" data-pos-qris-panel>
-                    <p class="pos-pay-label">Scan QRIS</p>
+                    <ol class="pos-qris-steps" aria-label="Langkah bayar QRIS">
+                        <li><span>1</span> Pelanggan scan QR</li>
+                        <li><span>2</span> Ambil foto bukti</li>
+                        <li><span>3</span> Konfirmasi bayar</li>
+                    </ol>
+                    <p class="pos-pay-label">1 · Kode QRIS</p>
                     <div class="pos-qris-frame">
                         <img
                             src="{{ asset('qris.jpeg') }}"
@@ -76,7 +81,7 @@
                             data-pos-qris-image
                         >
                     </div>
-                    <p class="pos-qris-hint">Minta pelanggan scan kode di atas, lalu unggah bukti pembayaran.</p>
+                    <p class="pos-qris-hint">Tunjukkan kode ke pelanggan. Setelah transfer, lanjut unggah bukti di bawah.</p>
                 </div>
 
                 <div class="pos-proof-panel hidden" data-pos-proof-panel>
@@ -107,7 +112,7 @@
                     class="pos-pay-submit"
                     data-pos-pay-submit
                 >
-                    Bayar &amp; Selesaikan {{ $format::rupiah($order->total) }}
+                    Konfirmasi bayar {{ $format::rupiah($order->total) }}
                 </button>
             </form>
         </div>

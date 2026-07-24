@@ -561,21 +561,21 @@ class PosOrderService
     public function openBill(PosOrder $order, ?array $attribution = null): array
     {
         if ($order->source !== PosOrderSource::Kasir) {
-            throw new RuntimeException('Open Bill hanya bisa dibuat dari kasir.');
+            throw new RuntimeException('Tagihan terbuka hanya bisa dibuat dari kasir.');
         }
 
         if (! in_array($order->status, [PosOrderStatus::Open, PosOrderStatus::Unpaid], true)) {
-            throw new RuntimeException('Pesanan ini tidak bisa disimpan sebagai Open Bill.');
+            throw new RuntimeException('Pesanan ini tidak bisa disimpan sebagai tagihan terbuka.');
         }
 
         $order->loadMissing('items');
 
         if ($order->items->isEmpty()) {
-            throw new RuntimeException('Tambah item dulu sebelum buat Open Bill.');
+            throw new RuntimeException('Tambah item dulu sebelum simpan tagihan terbuka.');
         }
 
         if (! filled($order->customer_note) && ! $order->pos_table_id) {
-            throw new RuntimeException('Isi nama pelanggan (atau pilih meja) supaya Open Bill mudah dicari.');
+            throw new RuntimeException('Isi nama pelanggan (atau pilih meja) supaya tagihan terbuka mudah dicari.');
         }
 
         $attr = $attribution ?? [];

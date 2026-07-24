@@ -13,6 +13,7 @@
                 <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
+                <span class="pos-topbar-action-text">Batal</span>
             </button>
         </form>
     @endif
@@ -22,6 +23,7 @@
             <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
             </svg>
+            <span class="pos-topbar-action-text">Baru</span>
         </button>
     </form>
 @endsection
@@ -46,14 +48,14 @@
                     <span class="pos-order-chip-value">{{ $order->order_number }}</span>
                 </div>
                 @if ($order->order_type)
-                    <span class="pos-type-chip max-lg:hidden" data-pos-toolbar-type>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+                    <span class="pos-type-chip pos-type-chip-compact" data-pos-toolbar-type>{{ $order->order_type->icon() }} <span class="pos-chip-text">{{ $order->order_type->label() }}</span></span>
                 @else
-                    <span class="pos-type-chip hidden" data-pos-toolbar-type></span>
+                    <span class="pos-type-chip pos-type-chip-compact hidden" data-pos-toolbar-type></span>
                 @endif
                 @if ($order->customer_note)
-                    <span class="pos-customer-chip max-lg:hidden" data-pos-toolbar-customer>{{ $order->customer_note }}</span>
+                    <span class="pos-customer-chip pos-customer-chip-compact" data-pos-toolbar-customer>{{ $order->customer_note }}</span>
                 @else
-                    <span class="pos-customer-chip hidden" data-pos-toolbar-customer></span>
+                    <span class="pos-customer-chip pos-customer-chip-compact hidden" data-pos-toolbar-customer></span>
                 @endif
                 <span class="badge max-lg:hidden {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
@@ -108,6 +110,7 @@
                                 <h2 class="pos-panel-title">Pilih Menu</h2>
                                 <p class="pos-panel-sub">Tap menu untuk atur jumlah & catatan</p>
                             </div>
+                            <p class="pos-search-focus-cue" aria-live="polite">Sedang cari menu — tap di luar untuk selesai</p>
                             <input
                                 type="search"
                                 data-kasir-search
@@ -154,7 +157,7 @@
             </button>
             <button type="button" class="pos-view-tab" data-kasir-tab="cart" role="tab" aria-selected="false">
                 <span class="pos-view-tab-icon">🧾</span>
-                <span>Pesanan</span>
+                <span>Keranjang</span>
                 @if ($order->items->isNotEmpty())
                     <span class="pos-view-tab-total">{{ $format::rupiah($order->total) }}</span>
                 @endif

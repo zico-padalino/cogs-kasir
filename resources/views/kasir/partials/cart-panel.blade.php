@@ -13,7 +13,7 @@
             ← Menu
         </button>
         <div class="pos-receipt-head-copy">
-            <h2 class="pos-receipt-title">Pesanan</h2>
+            <h2 class="pos-receipt-title">Keranjang</h2>
             <p class="pos-receipt-meta">{{ $order->items->count() }} item · {{ $order->order_number }}</p>
         </div>
         <span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
@@ -21,7 +21,7 @@
 
     @if ($order->isOpenBill())
         <div class="pos-open-bill-hint">
-            Open Bill aktif — boleh tambah item. Pakai <strong>Ceklis antar</strong> untuk tandai yang sudah diantar, lalu simpan atau Bayar.
+            Tagihan terbuka — boleh tambah item. Stok dipotong saat bayar.
         </div>
     @endif
 
@@ -64,6 +64,7 @@
                         <span data-deliver-done>{{ $cartDelivered }}</span>/<span data-deliver-total>{{ $cartItemCount }}</span>
                     </span>
                 </button>
+                <p class="pos-deliver-open-hint">Tandai item yang sudah diantar ke meja / pelanggan.</p>
             @endif
             <div class="pos-receipt-lines">
                 @foreach ($order->items as $item)
@@ -94,6 +95,8 @@
                 @include('kasir.partials.order-totals', ['order' => $order, 'format' => $format, 'totalLabel' => 'Total'])
             </div>
 
+            <p class="pos-receipt-pay-guide lg:hidden">Cek item → atur diskon → bayar atau simpan dulu</p>
+
             <div class="pos-receipt-pay-actions">
                 <button type="button" class="pos-pay-submit" data-kasir-open-pay data-kasir-pay-button>
                     Bayar <span data-kasir-pay-button-total>{{ $format::rupiah($order->total) }}</span>
@@ -104,9 +107,9 @@
                         <button
                             type="submit"
                             class="pos-hold-submit"
-                            onclick="return confirm({{ json_encode($order->isOpenBill() ? 'Simpan perubahan Open Bill?' : 'Simpan sebagai Open Bill? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.') }})"
+                            onclick="return confirm({{ json_encode($order->isOpenBill() ? 'Simpan perubahan tagihan terbuka?' : 'Simpan dulu (bayar nanti)? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.') }})"
                         >
-                            {{ $order->isOpenBill() ? 'Simpan Open Bill' : 'Open Bill' }}
+                            {{ $order->isOpenBill() ? 'Update tagihan' : 'Simpan dulu' }}
                         </button>
                     </form>
                 @endif
