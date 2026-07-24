@@ -83,15 +83,15 @@ class WebPagesTest extends TestCase
         $this->get(route('reset-data.show'))->assertOk();
     }
 
-    public function test_cogs_remembers_last_working_page(): void
+    public function test_cogs_home_opens_beranda(): void
     {
         $this->actingAsCogsUser();
 
         $this->get(route('materials.index'))->assertOk();
-        $this->get(route('home'))->assertRedirect(route('materials.index'));
+        $this->get(route('home'))->assertRedirect(route('dashboard'));
 
         $this->get(route('menu-pricing.index'))->assertOk();
-        $this->get(route('home'))->assertRedirect(route('menu-pricing.index'));
+        $this->get(route('home'))->assertRedirect(route('dashboard'));
     }
 
     public function test_can_add_recipe_ingredient_with_gram_unit(): void

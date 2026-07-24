@@ -5,45 +5,19 @@ namespace App\Support;
 class CogsNavigation
 {
     /**
-     * URL untuk masuk modul COGS (halaman kerja terakhir, bukan beranda).
+     * URL untuk masuk modul COGS — selalu ke Beranda.
      */
     public static function preferredUrl(): string
     {
-        $lastUrl = session('cogs.last_url');
-
-        if (is_string($lastUrl) && self::isCogsPath(parse_url($lastUrl, PHP_URL_PATH) ?? '')) {
-            $path = parse_url($lastUrl, PHP_URL_PATH) ?? '';
-
-            if ($path !== '/dashboard') {
-                return $lastUrl;
-            }
-        }
-
         return route(self::preferredRouteName());
     }
 
     /**
-     * Route name untuk masuk modul COGS (bukan beranda/panduan).
+     * Route name untuk masuk modul COGS — selalu ke Beranda.
      */
     public static function preferredRouteName(): string
     {
-        $last = session('cogs.last_route');
-
-        if (is_string($last) && self::isRememberableRoute($last)) {
-            $resolved = self::resolvableRouteName($last);
-
-            if ($resolved !== null) {
-                return $resolved;
-            }
-        }
-
-        if (SetupProgress::isFullyComplete()) {
-            return 'menu-pricing.index';
-        }
-
-        $step = SetupProgress::currentStep();
-
-        return $step['route'] ?? 'overhead-rates.index';
+        return 'dashboard';
     }
 
     public static function isCogsRoute(?string $name): bool
@@ -96,51 +70,6 @@ class CogsNavigation
             'cogs.last_route' => $routeName,
             'cogs.last_url' => $url,
         ]);
-    }
-
-    private static function isRememberableRoute(string $name): bool
-    {
-        return self::isCogsRoute($name) && $name !== 'dashboard';
-    }
-
-    private static function resolvableRouteName(string $name): ?string
-    {
-        if (self::routeExists($name)) {
-            return $name;
-        }
-
-        $fallbacks = [
-            'products.show' => 'products.index',
-            'products.edit' => 'products.index',
-            'products.create' => 'products.index',
-            'menu-pos.edit' => 'menu-pos.index',
-            'overhead-rates.edit' => 'overhead-rates.index',
-            'production-orders.show' => 'production-orders.index',
-            'production-orders.edit' => 'production-orders.index',
-            'production-orders.create' => 'production-orders.index',
-            'cogs.history.show' => 'cogs.history',
-            'cogs.result' => 'menu-pricing.index',
-            'cogs.calculate' => 'menu-pricing.index',
-        ];
-
-        $fallback = $fallbacks[$name] ?? null;
-
-        if ($fallback !== null && self::routeExists($fallback)) {
-            return $fallback;
-        }
-
-        return null;
-    }
-
-    private static function routeExists(string $name): bool
-    {
-        try {
-            route($name);
-
-            return true;
-        } catch (\Throwable) {
-            return false;
-        }
     }
 
     /** @return list<string> */
