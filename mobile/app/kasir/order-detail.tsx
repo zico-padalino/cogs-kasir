@@ -85,9 +85,14 @@ export default function OrderDetailScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl }}>
-          <Pressable onPress={() => router.push('/kasir/orders' as never)}>
-            <Text style={styles.back}>← Kembali ke Riwayat</Text>
-          </Pressable>
+          <View style={styles.navRow}>
+            <Pressable onPress={() => router.push('/kasir' as never)}>
+              <Text style={styles.back}>← Kembali ke POS</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/kasir/orders' as never)}>
+              <Text style={styles.backMuted}>Riwayat</Text>
+            </Pressable>
+          </View>
 
           <View>
             <Text style={styles.heading}>{order.order_number}</Text>
@@ -195,7 +200,9 @@ export default function OrderDetailScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  navRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md },
   back: { color: colors.brand700, ...font('600'), fontSize: 14 },
+  backMuted: { color: colors.slate500, ...font('600'), fontSize: 14 },
   heading: { fontSize: 20, color: colors.slate900, ...font('700') },
   subheading: { fontSize: 13, color: colors.slate500, marginTop: 4 },
   card: {

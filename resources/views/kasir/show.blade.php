@@ -11,7 +11,10 @@
     @endphp
 
     <div class="mb-4 sm:mb-6">
-        <a href="{{ route('kasir.orders') }}" class="page-back">← Kembali ke Riwayat</a>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a href="{{ route('kasir.index') }}" class="page-back">← Kembali ke POS</a>
+            <a href="{{ route('kasir.orders') }}" class="page-back text-slate-500">Riwayat</a>
+        </div>
         <h1 class="mt-2 hidden text-2xl font-bold md:block">{{ $order->order_number }}</h1>
         <p class="mt-1 text-sm text-slate-500">{{ $order->source->label() }} · {{ $order->table?->label ?? 'Walk-in' }}</p>
     </div>
