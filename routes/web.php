@@ -66,11 +66,13 @@ Route::post('absensi', [PublicAttendanceController::class, 'store'])->name('atte
 
 Route::get('pesan', [TableOrderController::class, 'show'])->name('order.menu');
 Route::post('pesan/new-order', [TableOrderController::class, 'newOrder'])->name('order.menu.new');
-Route::patch('pesan/customer', [TableOrderController::class, 'updateCustomer'])->name('order.menu.customer');
+Route::match(['patch', 'post'], 'pesan/customer', [TableOrderController::class, 'updateCustomer'])->name('order.menu.customer');
 Route::post('pesan/items', [TableOrderController::class, 'addItem'])->name('order.menu.items');
-Route::patch('pesan/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.menu.items.update');
-Route::delete('pesan/items/{item}', [TableOrderController::class, 'removeItem'])->name('order.menu.items.destroy');
-Route::post('pesan/submit', [TableOrderController::class, 'submit'])->name('order.menu.submit');
+Route::match(['patch', 'post'], 'pesan/items/{item}', [TableOrderController::class, 'updateItem'])->name('order.menu.items.update');
+Route::match(['delete', 'post'], 'pesan/items/{item}/hapus', [TableOrderController::class, 'removeItem'])->name('order.menu.items.destroy');
+// Hindari path /submit — sering diblok WAF/hosting (405).
+Route::post('pesan/kirim', [TableOrderController::class, 'submit'])->name('order.menu.submit');
+Route::post('pesan/submit', [TableOrderController::class, 'submit']); // alias lama
 Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
 
 // Public signed receipt PDF (WhatsApp / share) — avoids /storage 403 on shared hosting.

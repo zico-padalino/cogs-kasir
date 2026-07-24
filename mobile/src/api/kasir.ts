@@ -115,7 +115,7 @@ export const pesanApi = {
     return apiRequest<Envelope<PosOrder>>('/pesan/items', { method: 'POST', body: payload, auth: false });
   },
   submit(payload: { order_id: number; customer_note: string; order_type: string }) {
-    return apiRequest<Envelope<PosOrder>>('/pesan/submit', { method: 'POST', body: payload, auth: false });
+    return apiRequest<Envelope<PosOrder>>('/pesan/kirim', { method: 'POST', body: payload, auth: false });
   },
   status(orderId: number) {
     return apiRequest<Envelope<Record<string, unknown>>>(`/pesan/status?order_id=${orderId}`, { auth: false });

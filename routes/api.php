@@ -47,11 +47,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::prefix('pesan')->name('pesan.')->group(function () {
         Route::get('/', [TableOrderController::class, 'show'])->name('show');
         Route::post('new-order', [TableOrderController::class, 'newOrder'])->name('new');
-        Route::patch('customer', [TableOrderController::class, 'updateCustomer'])->name('customer');
+        Route::match(['patch', 'post'], 'customer', [TableOrderController::class, 'updateCustomer'])->name('customer');
         Route::post('items', [TableOrderController::class, 'addItem'])->name('items.store');
-        Route::patch('items/{item}', [TableOrderController::class, 'updateItem'])->name('items.update');
-        Route::delete('items/{item}', [TableOrderController::class, 'removeItem'])->name('items.destroy');
-        Route::post('submit', [TableOrderController::class, 'submit'])->name('submit');
+        Route::match(['patch', 'post'], 'items/{item}', [TableOrderController::class, 'updateItem'])->name('items.update');
+        Route::match(['delete', 'post'], 'items/{item}/hapus', [TableOrderController::class, 'removeItem'])->name('items.destroy');
+        Route::post('kirim', [TableOrderController::class, 'submit'])->name('submit');
+        Route::post('submit', [TableOrderController::class, 'submit']); // alias lama
         Route::get('status', [TableOrderController::class, 'status'])->name('status');
     });
 

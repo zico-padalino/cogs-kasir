@@ -1,3 +1,30 @@
+function initOrderSubmit() {
+    const button = document.querySelector('[data-order-submit]');
+    const form = document.getElementById('order-submit-form');
+
+    if (! (button instanceof HTMLElement) || ! (form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    button.addEventListener('click', () => {
+        if (typeof form.reportValidity === 'function' && ! form.reportValidity()) {
+            form.querySelector(':invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            return;
+        }
+
+        if (! window.confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')) {
+            return;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
+    });
+}
+
 function initOrderItemNotes() {
     const notes = document.querySelectorAll('.pos-order-item-note-details');
     if (! notes.length) {
@@ -305,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderModal();
     initOrderCheckoutTypeCards();
     initOrderItemNotes();
+    initOrderSubmit();
     initOrderKasirConfirmation();
 });
 

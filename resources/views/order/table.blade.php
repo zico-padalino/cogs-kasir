@@ -166,10 +166,9 @@
 
                                     <div class="order-submit-wrap">
                                         <button
-                                            type="submit"
-                                            form="order-submit-form"
+                                            type="button"
                                             class="btn-primary order-submit-btn"
-                                            onclick="return confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')"
+                                            data-order-submit
                                         >
                                             Kirim ke Kasir
                                         </button>
