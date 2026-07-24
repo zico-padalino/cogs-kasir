@@ -87,7 +87,9 @@
 </form>
 
 <div class="pembukuan-stats {{ $isSummaryOnly ? 'mb-5' : 'mb-4' }}">
-    <x-stat-card label="Omzet" :value="$format::rupiah($omzet)" color="green" />
+    <x-stat-card label="Omzet kotor (seharusnya)" :value="$format::rupiah($omzet_kotor ?? $omzet)" color="slate" />
+    <x-stat-card label="Total diskon" :value="$format::rupiah($diskon_total ?? 0)" color="amber" />
+    <x-stat-card label="Omzet bersih" :value="$format::rupiah($omzet)" color="green" />
     <x-stat-card label="Transaksi" :value="$format::number($count, 0)" color="brand" />
     <x-stat-card label="Rata-rata per transaksi" :value="$format::rupiah($average)" color="slate" />
 </div>
@@ -112,8 +114,16 @@
                             <div>
                                 <p class="text-sm font-medium text-slate-800">{{ $day['date']->translatedFormat('l, d M') }}</p>
                                 <p class="text-xs text-slate-500">{{ $day['count'] }} transaksi</p>
+                                @if (($day['discount'] ?? 0) > 0)
+                                    <p class="text-xs text-amber-700">Diskon {{ $format::rupiah($day['discount']) }}</p>
+                                @endif
                             </div>
-                            <p class="text-sm font-semibold text-slate-900">{{ $format::rupiah($day['total']) }}</p>
+                            <div class="text-right">
+                                @if (($day['discount'] ?? 0) > 0)
+                                    <p class="text-xs text-slate-400 line-through">{{ $format::rupiah($day['subtotal'] ?? $day['total']) }}</p>
+                                @endif
+                                <p class="text-sm font-semibold text-slate-900">{{ $format::rupiah($day['total']) }}</p>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -167,6 +177,10 @@
         @forelse ($orders as $order)
             <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
                 <div class="min-w-0">
+                    @if ($order->hasDiscount())
+                        <p class="text-xs text-slate-400 line-through">{{ $format::rupiah($order->subtotal) }}</p>
+                        <p class="text-xs font-medium text-amber-700">Diskon -{{ $format::rupiah($order->discount_amount) }}</p>
+                    @endif
                     <p class="text-sm font-semibold text-slate-900">{{ $format::rupiah($order->total) }}</p>
                     <p class="mt-0.5 font-mono text-xs text-slate-600">{{ $order->order_number }}</p>
                     <p class="mt-0.5 text-xs text-slate-500">

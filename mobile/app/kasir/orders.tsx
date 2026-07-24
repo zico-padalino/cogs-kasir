@@ -112,6 +112,12 @@ export default function OrdersScreen() {
                   <Text style={styles.meta}>Waktu: {formatOrderTime(item.created_at)}</Text>
                 </View>
                 <View style={styles.rightCol}>
+                  {item.has_discount || (item.discount_amount ?? 0) > 0 ? (
+                    <>
+                      <Text style={styles.subtotalStrike}>{formatRupiah(item.subtotal)}</Text>
+                      <Text style={styles.discountText}>-{formatRupiah(item.discount_amount || 0)}</Text>
+                    </>
+                  ) : null}
                   <Text style={styles.total}>{formatRupiah(item.total)}</Text>
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{item.status_label || item.status || '-'}</Text>
@@ -151,7 +157,9 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', gap: spacing.md },
   orderNo: { fontSize: 14, color: colors.slate900, ...font('700'), fontVariant: ['tabular-nums'] },
   meta: { fontSize: 12, color: colors.slate500, marginTop: 2 },
-  rightCol: { alignItems: 'flex-end', gap: 6 },
+  rightCol: { alignItems: 'flex-end', gap: 4 },
+  subtotalStrike: { fontSize: 12, color: colors.slate400, textDecorationLine: 'line-through' },
+  discountText: { fontSize: 12, color: colors.amber700, ...font('600') },
   total: { fontSize: 14, color: colors.brand700, ...font('700') },
   badge: {
     backgroundColor: colors.brand50,

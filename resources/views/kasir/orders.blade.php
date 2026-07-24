@@ -15,7 +15,9 @@
                         <th>Pemesan</th>
                         <th>Sumber</th>
                         <th>Meja</th>
-                        <th>Total</th>
+                        <th>Harga normal</th>
+                        <th>Diskon</th>
+                        <th>Total bayar</th>
                         <th>Status</th>
                         <th>Waktu</th>
                         <th class="col-actions">Aksi</th>
@@ -28,6 +30,16 @@
                             <td>{{ $order->customer_note ?: '-' }}</td>
                             <td>{{ $order->source->label() }}</td>
                             <td>{{ $order->table?->label ?? '-' }}</td>
+                            <td class="cell-money {{ $order->hasDiscount() ? 'text-slate-500' : '' }}">
+                                {{ $format::rupiah($order->subtotal) }}
+                            </td>
+                            <td class="{{ $order->hasDiscount() ? 'font-medium text-amber-700' : 'cell-muted' }}">
+                                @if ($order->hasDiscount())
+                                    -{{ $format::rupiah($order->discount_amount) }}
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td class="cell-money">{{ $format::rupiah($order->total) }}</td>
                             <td><span class="badge {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span></td>
                             <td class="text-xs cell-muted">{{ $order->created_at->format('d/m/Y H:i') }}</td>

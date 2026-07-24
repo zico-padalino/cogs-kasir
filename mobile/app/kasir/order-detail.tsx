@@ -150,17 +150,17 @@ export default function OrderDetailScreen() {
             {order.discount_amount > 0 ? (
               <>
                 <View style={styles.row}>
-                  <Text style={styles.meta}>Subtotal</Text>
-                  <Text>{formatRupiah(order.subtotal)}</Text>
+                  <Text style={styles.meta}>Harga normal</Text>
+                  <Text style={styles.strike}>{formatRupiah(order.subtotal)}</Text>
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.meta}>Diskon</Text>
-                  <Text>- {formatRupiah(order.discount_amount)}</Text>
+                  <Text style={styles.discount}>- {formatRupiah(order.discount_amount)}</Text>
                 </View>
               </>
             ) : null}
             <View style={styles.row}>
-              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalLabel}>Total bayar</Text>
               <Text style={styles.total}>{formatRupiah(order.total)}</Text>
             </View>
             {canLihatStruk ? (
@@ -256,6 +256,8 @@ const styles = StyleSheet.create({
   lineTotal: { fontSize: 13, color: colors.slate800, ...font('600') },
   divider: { height: 1, backgroundColor: colors.slate200, marginVertical: spacing.xs },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 },
+  strike: { fontSize: 13, color: colors.slate400, textDecorationLine: 'line-through' },
+  discount: { fontSize: 13, color: colors.amber700, ...font('600') },
   totalLabel: { fontSize: 15, ...font('700') },
   total: { fontSize: 15, color: colors.brand700, ...font('700') },
   metaRow: {

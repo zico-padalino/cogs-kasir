@@ -38,6 +38,8 @@ class SalesReportService
         $orders = $ordersQuery->orderByDesc('paid_at')->get();
 
         $omzet = (float) $orders->sum('total');
+        $omzetKotor = (float) $orders->sum('subtotal');
+        $diskonTotal = (float) $orders->sum('discount_amount');
         $count = $orders->count();
 
         $byPayment = [];
@@ -47,6 +49,8 @@ class SalesReportService
                 'label' => $method->label(),
                 'count' => $group->count(),
                 'total' => (float) $group->sum('total'),
+                'subtotal' => (float) $group->sum('subtotal'),
+                'discount' => (float) $group->sum('discount_amount'),
             ];
         }
 
@@ -64,6 +68,8 @@ class SalesReportService
             'orders' => $orders,
             'byDay' => $byDay,
             'omzet' => $omzet,
+            'omzet_kotor' => $omzetKotor,
+            'diskon_total' => $diskonTotal,
             'count' => $count,
             'average' => $count > 0 ? $omzet / $count : 0,
             'byPayment' => $byPayment,
@@ -140,6 +146,8 @@ class SalesReportService
                 'date' => $cursor->copy(),
                 'count' => $dayOrders->count(),
                 'total' => (float) $dayOrders->sum('total'),
+                'subtotal' => (float) $dayOrders->sum('subtotal'),
+                'discount' => (float) $dayOrders->sum('discount_amount'),
             ]);
 
             $cursor->addDay();

@@ -74,7 +74,17 @@
                 </tbody>
             </table>
             <x-slot:footer>
-                <p class="w-full text-lg font-bold">Total: {{ $format::rupiah($order->total) }}</p>
+                <div class="w-full space-y-1">
+                    @if ($order->hasDiscount())
+                        <p class="text-sm text-slate-500">
+                            Harga normal: <span class="line-through">{{ $format::rupiah($order->subtotal) }}</span>
+                        </p>
+                        <p class="text-sm font-medium text-amber-700">
+                            Diskon: -{{ $format::rupiah($order->discount_amount) }}
+                        </p>
+                    @endif
+                    <p class="text-lg font-bold">Total bayar: {{ $format::rupiah($order->total) }}</p>
+                </div>
                 @if (in_array($order->status->value, ['paid', 'served'], true))
                     <a href="{{ route('kasir.receipt', $order) }}" class="btn-primary w-full sm:w-auto">Lihat Struk</a>
                 @endif

@@ -324,7 +324,15 @@
 
         <div class="summary">
             <div class="summary-card">
-                <span class="label">Omzet</span>
+                <span class="label">Omzet kotor</span>
+                <span class="value">{{ $format::rupiah($omzet_kotor ?? $omzet) }}</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Total diskon</span>
+                <span class="value">{{ $format::rupiah($diskon_total ?? 0) }}</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Omzet bersih</span>
                 <span class="value">{{ $format::rupiah($omzet) }}</span>
             </div>
             <div class="summary-card">
@@ -420,7 +428,9 @@
                             <th>No. Order</th>
                             <th>Sumber</th>
                             <th>Metode</th>
-                            <th class="right">Total</th>
+                            <th class="right">Normal</th>
+                            <th class="right">Diskon</th>
+                            <th class="right">Bayar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -435,11 +445,21 @@
                                     @endif
                                 </td>
                                 <td>{{ $order->payment_method?->label() ?? '-' }}</td>
+                                <td class="right">{{ $format::rupiah($order->subtotal) }}</td>
+                                <td class="right">
+                                    @if ($order->hasDiscount())
+                                        -{{ $format::rupiah($order->discount_amount) }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td class="right">{{ $format::rupiah($order->total) }}</td>
                             </tr>
                         @endforeach
                         <tr class="total-row">
-                            <td colspan="4">Total omzet</td>
+                            <td colspan="4">Total</td>
+                            <td class="right">{{ $format::rupiah($omzet_kotor ?? $omzet) }}</td>
+                            <td class="right">-{{ $format::rupiah($diskon_total ?? 0) }}</td>
                             <td class="right">{{ $format::rupiah($omzet) }}</td>
                         </tr>
                     </tbody>

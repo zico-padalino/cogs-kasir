@@ -13,6 +13,8 @@ export default function PembukuanScreen() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     omzet: number;
+    omzet_kotor?: number;
+    diskon_total?: number;
     count: number;
     average: number;
     range_label?: string;
@@ -66,9 +68,19 @@ export default function PembukuanScreen() {
           <Text style={styles.range}>{data.range_label}</Text>
           <View style={styles.stats}>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Omzet</Text>
+              <Text style={styles.statLabel}>Omzet kotor</Text>
+              <Text style={styles.statValue}>{formatRupiah(Number(data.omzet_kotor ?? data.omzet ?? 0))}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>Diskon</Text>
+              <Text style={styles.statValue}>{formatRupiah(Number(data.diskon_total || 0))}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>Omzet bersih</Text>
               <Text style={styles.statValue}>{formatRupiah(Number(data.omzet || 0))}</Text>
             </View>
+          </View>
+          <View style={styles.stats}>
             <View style={styles.stat}>
               <Text style={styles.statLabel}>Transaksi</Text>
               <Text style={styles.statValue}>{data.count}</Text>
@@ -93,8 +105,13 @@ export default function PembukuanScreen() {
           {(data.orders || []).slice(0, 30).map((order) => (
             <View key={order.id} style={styles.card}>
               <Text style={styles.cardTitle}>#{order.order_number}</Text>
+              {order.has_discount || (order.discount_amount ?? 0) > 0 ? (
+                <Text style={styles.meta}>
+                  Normal {formatRupiah(order.subtotal)} · Diskon -{formatRupiah(order.discount_amount || 0)}
+                </Text>
+              ) : null}
               <Text style={styles.meta}>
-                {order.payment_method_label} · {formatRupiah(order.total)}
+                {order.payment_method_label} · Bayar {formatRupiah(order.total)}
               </Text>
             </View>
           ))}
