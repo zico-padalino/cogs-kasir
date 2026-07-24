@@ -8,6 +8,15 @@
         $canChecklist = $order->canChecklistDelivered();
         $deliveredCount = $order->items->where('is_delivered', true)->count();
         $itemCount = $order->items->count();
+        $deliverItems = $canChecklist && $itemCount > 0
+            ? $order->items->map(fn ($item) => [
+                'id' => $item->id,
+                'name' => $item->product?->name ?? 'Item',
+                'qty' => (float) $item->quantity,
+                'is_delivered' => (bool) $item->is_delivered,
+                'url' => route('kasir.items.delivered', $item),
+            ])->values()
+            : collect();
     @endphp
 
     <div class="mb-4 sm:mb-6">
@@ -22,16 +31,22 @@
     <div class="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <x-table-card title="Item Pesanan">
             @if ($canChecklist && $itemCount > 0)
-                <p class="mb-3 text-xs text-slate-500" data-deliver-progress>
-                    Diantar: <span data-deliver-done>{{ $deliveredCount }}</span>/<span data-deliver-total>{{ $itemCount }}</span>
-                </p>
+                <button
+                    type="button"
+                    class="pos-deliver-open-btn mb-3"
+                    data-deliver-open
+                    data-deliver-title="{{ $order->customer_note ?: $order->order_number }}"
+                    data-deliver-items='@json($deliverItems)'
+                >
+                    <span class="pos-deliver-open-btn-label">Ceklis antar</span>
+                    <span class="pos-deliver-open-btn-progress" data-deliver-progress>
+                        <span data-deliver-done>{{ $deliveredCount }}</span>/<span data-deliver-total>{{ $itemCount }}</span>
+                    </span>
+                </button>
             @endif
             <table class="table-default">
                 <thead>
                     <tr>
-                        @if ($canChecklist)
-                            <th class="w-12 text-center">Antar</th>
-                        @endif
                         <th>Produk</th>
                         <th>Qty</th>
                         <th>Harga</th>
@@ -41,20 +56,6 @@
                 <tbody>
                     @foreach ($order->items as $item)
                         <tr @class(['is-delivered' => $item->is_delivered]) data-order-item-row data-item-id="{{ $item->id }}">
-                            @if ($canChecklist)
-                                <td class="text-center align-middle">
-                                    <label class="pos-deliver-check">
-                                        <input
-                                            type="checkbox"
-                                            class="pos-deliver-checkbox"
-                                            data-deliver-toggle
-                                            data-url="{{ route('kasir.items.delivered', $item) }}"
-                                            @checked($item->is_delivered)
-                                            aria-label="Sudah diantar: {{ $item->product->name }}"
-                                        >
-                                    </label>
-                                </td>
-                            @endif
                             <td>
                                 <div class="flex items-center gap-3">
                                     <x-product-image :product="$item->product" class="h-10 w-10 rounded-lg" />
@@ -62,6 +63,9 @@
                                         <p class="font-medium">{{ $item->product->name }}</p>
                                         @if ($item->notes)
                                             <p class="text-xs text-amber-700">Catatan: {{ $item->notes }}</p>
+                                        @endif
+                                        @if ($item->is_delivered)
+                                            <p class="text-xs font-medium text-emerald-700">✓ Sudah diantar</p>
                                         @endif
                                     </div>
                                 </div>
@@ -114,57 +118,5 @@
         </div>
     </div>
 
-    @if ($canChecklist)
-        <script>
-            (function () {
-                const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
-                const progressDone = document.querySelector('[data-deliver-done]');
-                const statusBadge = document.querySelector('[data-order-status-badge]');
-
-                function syncProgress() {
-                    if (! progressDone) return;
-                    const checked = document.querySelectorAll('[data-deliver-toggle]:checked').length;
-                    progressDone.textContent = String(checked);
-                }
-
-                document.querySelectorAll('[data-deliver-toggle]').forEach((input) => {
-                    input.addEventListener('change', async () => {
-                        const url = input.getAttribute('data-url');
-                        const row = input.closest('[data-order-item-row]');
-                        const next = Boolean(input.checked);
-                        input.disabled = true;
-
-                        try {
-                            const res = await fetch(url, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': csrf || '',
-                                    'X-Requested-With': 'XMLHttpRequest',
-                                },
-                                body: JSON.stringify({ is_delivered: next }),
-                            });
-                            const payload = await res.json().catch(() => ({}));
-                            if (! res.ok) {
-                                input.checked = ! next;
-                                alert(payload.message || 'Gagal menyimpan ceklis.');
-                                return;
-                            }
-                            row?.classList.toggle('is-delivered', next);
-                            syncProgress();
-                            if (payload.data?.status_label && statusBadge) {
-                                statusBadge.textContent = payload.data.status_label;
-                            }
-                        } catch (e) {
-                            input.checked = ! next;
-                            alert('Gagal menyimpan ceklis.');
-                        } finally {
-                            input.disabled = false;
-                        }
-                    });
-                });
-            })();
-        </script>
-    @endif
+    @include('kasir.partials.deliver-modal')
 @endsection

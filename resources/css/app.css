@@ -2590,8 +2590,82 @@
         @apply border border-brand-300 bg-brand-600 text-white hover:bg-brand-700;
     }
 
+    .pos-pending-action-deliver {
+        @apply border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100;
+    }
+
     .pos-pending-action-delete {
         @apply border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100;
+    }
+
+    .pos-deliver-open-btn {
+        @apply mb-2 flex w-full items-center justify-between gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-left transition active:scale-[0.99] hover:bg-emerald-100;
+    }
+
+    .pos-deliver-open-btn-label {
+        @apply text-sm font-semibold text-emerald-900;
+    }
+
+    .pos-deliver-open-btn-progress {
+        @apply rounded-full bg-white px-2.5 py-1 text-xs font-bold tabular-nums text-emerald-800 ring-1 ring-emerald-200;
+    }
+
+    .pos-deliver-modal {
+        @apply fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-4;
+    }
+
+    .pos-deliver-modal-panel {
+        @apply relative z-10 flex max-h-[min(88dvh,var(--vvh,88dvh))] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .pos-deliver-modal-head {
+        @apply mb-3 flex shrink-0 items-start gap-3 border-b border-slate-100 pb-3;
+    }
+
+    .pos-deliver-modal-eyebrow {
+        @apply text-[11px] font-bold uppercase tracking-wider text-emerald-700;
+    }
+
+    .pos-deliver-modal-title {
+        @apply mt-0.5 text-lg font-bold text-slate-900;
+    }
+
+    .pos-deliver-modal-progress {
+        @apply mt-1 text-xs font-medium text-slate-500;
+    }
+
+    .pos-deliver-modal-list {
+        @apply min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain py-1;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pos-deliver-modal-empty {
+        @apply py-8 text-center text-sm text-slate-500;
+    }
+
+    .pos-deliver-modal-row {
+        @apply flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 transition hover:border-emerald-300 hover:bg-emerald-50/60;
+    }
+
+    .pos-deliver-modal-row.is-delivered {
+        @apply border-emerald-200 bg-emerald-50;
+    }
+
+    .pos-deliver-modal-row-body {
+        @apply flex min-w-0 flex-1 flex-col gap-0.5;
+    }
+
+    .pos-deliver-modal-row-name {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .pos-deliver-modal-row.is-delivered .pos-deliver-modal-row-name {
+        @apply text-slate-500 line-through;
+    }
+
+    .pos-deliver-modal-row-meta {
+        @apply text-xs text-slate-500;
     }
 
     .pos-pending-btn {

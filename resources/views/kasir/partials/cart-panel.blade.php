@@ -21,7 +21,7 @@
 
     @if ($order->isOpenBill())
         <div class="pos-open-bill-hint">
-            Open Bill aktif — boleh tambah item, ceklis yang sudah diantar, lalu tekan <strong>Open Bill</strong> lagi atau <strong>Bayar</strong>.
+            Open Bill aktif — boleh tambah item. Pakai <strong>Ceklis antar</strong> untuk tandai yang sudah diantar, lalu simpan atau Bayar.
         </div>
     @endif
 
@@ -44,10 +44,26 @@
                 @php
                     $cartDelivered = $order->items->where('is_delivered', true)->count();
                     $cartItemCount = $order->items->count();
+                    $deliverItems = $order->items->map(fn ($item) => [
+                        'id' => $item->id,
+                        'name' => $item->product?->name ?? 'Item',
+                        'qty' => (float) $item->quantity,
+                        'is_delivered' => (bool) $item->is_delivered,
+                        'url' => route('kasir.items.delivered', $item),
+                    ])->values();
                 @endphp
-                <p class="pos-cart-deliver-progress" data-deliver-progress>
-                    Diantar: <span data-deliver-done>{{ $cartDelivered }}</span>/<span data-deliver-total>{{ $cartItemCount }}</span>
-                </p>
+                <button
+                    type="button"
+                    class="pos-deliver-open-btn"
+                    data-deliver-open
+                    data-deliver-title="{{ $order->customer_note ?: $order->order_number }}"
+                    data-deliver-items='@json($deliverItems)'
+                >
+                    <span class="pos-deliver-open-btn-label">Ceklis antar</span>
+                    <span class="pos-deliver-open-btn-progress" data-deliver-progress>
+                        <span data-deliver-done>{{ $cartDelivered }}</span>/<span data-deliver-total>{{ $cartItemCount }}</span>
+                    </span>
+                </button>
             @endif
             <div class="pos-receipt-lines">
                 @foreach ($order->items as $item)
@@ -55,7 +71,7 @@
                         :item="$item"
                         :format="$format"
                         :editable="$order->isKasirEditable()"
-                        :can-deliver="$order->canChecklistDelivered()"
+                        :can-deliver="false"
                         :update-url="route('kasir.items.update', $item)"
                         :destroy-url="route('kasir.items.destroy', $item)"
                     />

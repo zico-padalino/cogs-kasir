@@ -20,7 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { kasirApi, pinApi } from '@/api/kasir';
-import type { MenuProduct, PosOrder, PosOrder as Order } from '@/api/types';
+import type { MenuProduct, OrderItem, PosOrder, PosOrder as Order } from '@/api/types';
 import { asApiError, useAuth } from '@/auth';
 import {
   AppDrawer,
@@ -86,6 +86,10 @@ export default function KasirPosScreen() {
   const [proofUri, setProofUri] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [holding, setHolding] = useState(false);
+  const [deliverOpen, setDeliverOpen] = useState(false);
+  const [deliverTitle, setDeliverTitle] = useState('');
+  const [deliverItems, setDeliverItems] = useState<OrderItem[]>([]);
+  const [deliverTogglingId, setDeliverTogglingId] = useState<number | null>(null);
 
   const [discountType, setDiscountType] = useState<'amount' | 'percent' | null>(null);
   const [discountValue, setDiscountValue] = useState('');
@@ -277,12 +281,36 @@ export default function KasirPosScreen() {
     }
   };
 
-  const toggleCartItemDelivered = async (itemId: number, next: boolean) => {
+  const openDeliverModal = (title: string, items: OrderItem[]) => {
+    setDeliverTitle(title);
+    setDeliverItems(items);
+    setDeliverOpen(true);
+  };
+
+  const toggleDeliverModalItem = async (item: OrderItem) => {
+    if (deliverTogglingId) return;
+    const next = !item.is_delivered;
+    setDeliverTogglingId(item.id);
     try {
-      const res = await kasirApi.setItemDelivered(itemId, next);
-      if (res.data) applyOrder(res.data);
+      const res = await kasirApi.setItemDelivered(item.id, next);
+      const updatedItems = res.data?.items || [];
+      setDeliverItems(updatedItems.length ? updatedItems : deliverItems.map((row) => (
+        row.id === item.id ? { ...row, is_delivered: next } : row
+      )));
+      if (res.data && order?.id === res.data.id) {
+        applyOrder(res.data);
+      }
+      if (res.data) {
+        setPending((prev) =>
+          prev.map((p) => (p.id === res.data?.id ? { ...p, ...res.data, items: res.data.items } : p)),
+        );
+      } else {
+        await refresh();
+      }
     } catch (err) {
       handleApiError(err);
+    } finally {
+      setDeliverTogglingId(null);
     }
   };
 
@@ -608,6 +636,16 @@ export default function KasirPosScreen() {
                         ) : null}
                       </Pressable>
                       <View style={styles.pendingActions}>
+                        {(isOpenBill || awaitingServe) && (p.items || []).length > 0 ? (
+                          <Pressable
+                            onPress={() =>
+                              openDeliverModal(p.customer_note || p.order_number, p.items || [])
+                            }
+                            style={[styles.pendingDeliverBtn, styles.pendingActionHalf]}
+                          >
+                            <Text style={styles.pendingDeliverBtnText}>Ceklis antar</Text>
+                          </Pressable>
+                        ) : null}
                         {awaitingServe ? (
                           <Pressable
                             onPress={() => {
@@ -626,7 +664,7 @@ export default function KasirPosScreen() {
                                 },
                               ]);
                             }}
-                            style={[styles.pendingLoad, styles.pendingServe, styles.pendingActionFull]}
+                            style={[styles.pendingLoad, styles.pendingServe, styles.pendingActionHalf]}
                           >
                             <Text style={styles.pendingLoadText}>Sudah diantar / selesai</Text>
                           </Pressable>
@@ -649,7 +687,7 @@ export default function KasirPosScreen() {
                                 },
                               ]);
                             }}
-                            style={styles.pendingActionFull}
+                            style={styles.pendingActionHalf}
                           >
                             <Text style={styles.pendingCancel}>{isOpenBill ? 'Hapus Open Bill' : 'Hapus pesanan'}</Text>
                           </Pressable>
@@ -855,7 +893,7 @@ export default function KasirPosScreen() {
           {isActiveOpenBill ? (
             <View style={styles.openBillHint}>
               <Text style={styles.openBillHintText}>
-                Open Bill aktif — boleh tambah item, ceklis yang sudah diantar, lalu simpan lagi atau Bayar.
+                Open Bill aktif — boleh tambah item. Tekan Ceklis antar untuk tandai yang sudah diantar, lalu simpan atau Bayar.
               </Text>
             </View>
           ) : null}
@@ -875,9 +913,20 @@ export default function KasirPosScreen() {
             ) : (
               <>
                 {canChecklistDelivered ? (
-                  <Text style={styles.cartDeliverProgress}>
-                    Diantar: {cartDeliveredCount}/{(order?.items || []).length}
-                  </Text>
+                  <Pressable
+                    onPress={() =>
+                      openDeliverModal(
+                        customerNote || order?.order_number || 'Pesanan',
+                        order?.items || [],
+                      )
+                    }
+                    style={styles.deliverOpenBtn}
+                  >
+                    <Text style={styles.deliverOpenLabel}>Ceklis antar</Text>
+                    <Text style={styles.deliverOpenProgress}>
+                      {cartDeliveredCount}/{(order?.items || []).length}
+                    </Text>
+                  </Pressable>
                 ) : null}
                 {(order?.items || []).map((item) => {
                   const delivered = Boolean(item.is_delivered);
@@ -886,16 +935,6 @@ export default function KasirPosScreen() {
                       key={item.id}
                       style={[styles.cartItemCard, delivered && styles.cartItemCardDelivered]}
                     >
-                      {canChecklistDelivered ? (
-                        <Pressable
-                          onPress={() => void toggleCartItemDelivered(item.id, !delivered)}
-                          style={[styles.cartCheckBox, delivered && styles.cartCheckBoxOn]}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: delivered }}
-                        >
-                          <Text style={styles.cartCheckMark}>{delivered ? '✓' : ''}</Text>
-                        </Pressable>
-                      ) : null}
                       {item.product_image_url ? (
                         <Image source={{ uri: item.product_image_url }} style={styles.cartItemThumb} />
                       ) : (
@@ -914,6 +953,7 @@ export default function KasirPosScreen() {
                           <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
                         </View>
                         <Text style={styles.cartUnit}>{formatRupiah(item.unit_price)}</Text>
+                        {delivered ? <Text style={styles.cartDeliveredTag}>✓ Sudah diantar</Text> : null}
                         <View style={styles.cartItemActions}>
                           {cartEditable ? (
                             <View style={styles.qtyRow}>
@@ -1092,6 +1132,56 @@ export default function KasirPosScreen() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Deliver checklist modal */}
+      <Modal visible={deliverOpen} animationType="slide" transparent onRequestClose={() => setDeliverOpen(false)}>
+        <View style={styles.deliverOverlay}>
+          <View style={[styles.deliverSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+            <View style={styles.deliverHead}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.deliverEyebrow}>Ceklis antar</Text>
+                <Text style={styles.deliverTitle} numberOfLines={1}>{deliverTitle}</Text>
+                <Text style={styles.deliverProgress}>
+                  Diantar {deliverItems.filter((i) => i.is_delivered).length}/{deliverItems.length}
+                </Text>
+              </View>
+              <Pressable onPress={() => setDeliverOpen(false)} style={styles.deliverClose}>
+                <Text style={styles.deliverCloseText}>×</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.deliverList} contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.md }}>
+              {deliverItems.length === 0 ? (
+                <Text style={styles.muted}>Tidak ada item.</Text>
+              ) : (
+                deliverItems.map((item) => {
+                  const delivered = Boolean(item.is_delivered);
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => void toggleDeliverModalItem(item)}
+                      disabled={deliverTogglingId === item.id}
+                      style={[styles.deliverRow, delivered && styles.deliverRowOn]}
+                    >
+                      <View style={[styles.cartCheckBox, delivered && styles.cartCheckBoxOn]}>
+                        <Text style={styles.cartCheckMark}>{delivered ? '✓' : ''}</Text>
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[styles.deliverRowName, delivered && styles.cartNameDelivered]} numberOfLines={2}>
+                          {item.product_name || 'Item'}
+                        </Text>
+                        <Text style={styles.meta}>Qty {item.quantity}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })
+              )}
+            </ScrollView>
+            <Pressable onPress={() => setDeliverOpen(false)} style={styles.payBtn}>
+              <Text style={styles.payBtnText}>Selesai</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* Pay modal */}
@@ -1403,6 +1493,31 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cartDeliverProgress: { fontSize: 12, color: colors.slate500, marginBottom: 4 },
+  deliverOpenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.green200,
+    backgroundColor: colors.green50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  deliverOpenLabel: { fontSize: 14, color: colors.green700, ...font('700') },
+  deliverOpenProgress: {
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    fontSize: 12,
+    color: colors.green700,
+    ...font('700'),
+    overflow: 'hidden',
+  },
+  cartDeliveredTag: { fontSize: 11, color: colors.green700, ...font('600'), marginTop: 2 },
   cartCheckBox: {
     width: 22,
     height: 22,
@@ -1421,6 +1536,54 @@ const styles = StyleSheet.create({
   cartCheckMark: { color: colors.white, fontSize: 13, ...font('700'), lineHeight: 15 },
   cartItemCardDelivered: { backgroundColor: '#ecfdf5' },
   cartNameDelivered: { color: colors.slate500, textDecorationLine: 'line-through' },
+  pendingDeliverBtn: {
+    backgroundColor: colors.green50,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.green200,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  pendingDeliverBtnText: { color: colors.green700, fontSize: 12, ...font('600'), textAlign: 'center' },
+  deliverOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(28,20,16,0.45)',
+  },
+  deliverSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius['3xl'],
+    borderTopRightRadius: radius['3xl'],
+    padding: spacing.lg,
+    maxHeight: '88%',
+  },
+  deliverHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, marginBottom: spacing.md },
+  deliverEyebrow: { fontSize: 11, color: colors.green700, ...font('700'), textTransform: 'uppercase' },
+  deliverTitle: { fontSize: 18, color: colors.slate900, ...font('700'), marginTop: 2 },
+  deliverProgress: { fontSize: 12, color: colors.slate500, marginTop: 4 },
+  deliverClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.slate100,
+  },
+  deliverCloseText: { fontSize: 22, color: colors.slate500, lineHeight: 24 },
+  deliverList: { flexGrow: 0, marginBottom: spacing.md },
+  deliverRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.slate50,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  deliverRowOn: { borderColor: colors.green200, backgroundColor: colors.green50 },
+  deliverRowName: { fontSize: 14, color: colors.slate900, ...font('600') },
   tabs: { flexDirection: 'row', backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200 },
   tabsBottom: {
     flexDirection: 'row',

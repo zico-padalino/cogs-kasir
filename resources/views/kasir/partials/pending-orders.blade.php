@@ -59,6 +59,16 @@
                     $itemCount = $pending->items->count();
                     $deliveredCount = $pending->items->where('is_delivered', true)->count();
                     $showDeliverProgress = $itemCount > 0 && ($isOpenBill || $isAwaitingServe);
+                    $canChecklist = $pending->canChecklistDelivered() && $itemCount > 0;
+                    $deliverItems = $canChecklist
+                        ? $pending->items->map(fn ($item) => [
+                            'id' => $item->id,
+                            'name' => $item->product?->name ?? 'Item',
+                            'qty' => (float) $item->quantity,
+                            'is_delivered' => (bool) $item->is_delivered,
+                            'url' => route('kasir.items.delivered', $item),
+                        ])->values()
+                        : collect();
                 @endphp
                 <div @class([
                     'pos-pending-card',
@@ -120,8 +130,19 @@
 
                     <div
                         class="pos-pending-card-actions"
-                        style="--pos-pending-actions: {{ $actionCols }}"
+                        style="--pos-pending-actions: {{ $actionCols + ($canChecklist ? 1 : 0) }}"
                     >
+                        @if ($canChecklist)
+                            <button
+                                type="button"
+                                class="pos-pending-action pos-pending-action-deliver"
+                                data-deliver-open
+                                data-deliver-title="{{ $pending->customer_note ?: $pending->order_number }}"
+                                data-deliver-items='@json($deliverItems)'
+                            >
+                                Ceklis antar
+                            </button>
+                        @endif
                         @if ($isAwaitingServe)
                             <form action="{{ route('kasir.orders.serve', $pending) }}" method="POST" class="pos-pending-action-form">
                                 @csrf

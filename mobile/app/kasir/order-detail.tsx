@@ -3,12 +3,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { kasirApi } from '@/api/kasir';
 import type { OrderItem, PosOrder } from '@/api/types';
 import { asApiError } from '@/auth';
@@ -33,8 +35,10 @@ function formatPaidAt(iso?: string | null): string {
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [order, setOrder] = useState<PosOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deliverOpen, setDeliverOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -110,9 +114,12 @@ export default function OrderDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Item Pesanan</Text>
             {canChecklist && (order.items || []).length > 0 ? (
-              <Text style={styles.progress}>
-                Diantar: {deliveredCount}/{(order.items || []).length}
-              </Text>
+              <Pressable onPress={() => setDeliverOpen(true)} style={styles.deliverOpenBtn}>
+                <Text style={styles.deliverOpenLabel}>Ceklis antar</Text>
+                <Text style={styles.deliverOpenProgress}>
+                  {deliveredCount}/{(order.items || []).length}
+                </Text>
+              </Pressable>
             ) : null}
             {(order.items || []).map((item) => {
               const delivered = Boolean(item.is_delivered);
@@ -121,23 +128,12 @@ export default function OrderDetailScreen() {
                   key={item.id}
                   style={[styles.itemRow, delivered && styles.itemRowDelivered]}
                 >
-                  {canChecklist ? (
-                    <Pressable
-                      onPress={() => void toggleDelivered(item)}
-                      disabled={togglingId === item.id}
-                      style={[styles.checkBox, delivered && styles.checkBoxOn]}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: delivered }}
-                      accessibilityLabel={`Sudah diantar: ${item.product_name || 'item'}`}
-                    >
-                      <Text style={styles.checkMark}>{delivered ? '✓' : ''}</Text>
-                    </Pressable>
-                  ) : null}
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[styles.itemName, delivered && styles.itemNameDelivered]}>
                       {item.product_name}
                     </Text>
                     {item.notes ? <Text style={styles.note}>Catatan: {item.notes}</Text> : null}
+                    {delivered ? <Text style={styles.deliveredTag}>✓ Sudah diantar</Text> : null}
                     <Text style={styles.meta}>
                       Qty {item.quantity} · {formatRupiah(item.unit_price)}
                     </Text>
@@ -200,6 +196,53 @@ export default function OrderDetailScreen() {
           </View>
         </ScrollView>
       )}
+
+      <Modal visible={deliverOpen} animationType="slide" transparent onRequestClose={() => setDeliverOpen(false)}>
+        <View style={styles.deliverOverlay}>
+          <View style={[styles.deliverSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+            <View style={styles.deliverHead}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.deliverEyebrow}>Ceklis antar</Text>
+                <Text style={styles.deliverTitle} numberOfLines={1}>
+                  {order?.customer_note || order?.order_number || 'Pesanan'}
+                </Text>
+                <Text style={styles.deliverProgress}>
+                  Diantar {deliveredCount}/{(order?.items || []).length}
+                </Text>
+              </View>
+              <Pressable onPress={() => setDeliverOpen(false)} style={styles.deliverClose}>
+                <Text style={styles.deliverCloseText}>×</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.md }}>
+              {(order?.items || []).map((item) => {
+                const delivered = Boolean(item.is_delivered);
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => void toggleDelivered(item)}
+                    disabled={togglingId === item.id}
+                    style={[styles.deliverRow, delivered && styles.deliverRowOn]}
+                  >
+                    <View style={[styles.checkBox, delivered && styles.checkBoxOn]}>
+                      <Text style={styles.checkMark}>{delivered ? '✓' : ''}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.itemName, delivered && styles.itemNameDelivered]}>
+                        {item.product_name}
+                      </Text>
+                      <Text style={styles.meta}>Qty {item.quantity}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable onPress={() => setDeliverOpen(false)} style={styles.btn}>
+              <Text style={styles.btnText}>Selesai</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </AppScaffold>
   );
 }
@@ -220,12 +263,32 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: { fontSize: 15, color: colors.slate900, ...font('700'), marginBottom: 4 },
-  progress: { fontSize: 12, color: colors.slate500, marginBottom: 2 },
+  deliverOpenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.green200,
+    backgroundColor: colors.green50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  deliverOpenLabel: { fontSize: 14, color: colors.green700, ...font('700') },
+  deliverOpenProgress: {
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    fontSize: 12,
+    color: colors.green700,
+    ...font('700'),
+    overflow: 'hidden',
+  },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: spacing.sm,
+    gap: spacing.md,
     paddingVertical: spacing.xs,
   },
   itemRowDelivered: {
@@ -233,24 +296,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.xs,
   },
-  checkBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: colors.slate300,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-    backgroundColor: colors.white,
-  },
-  checkBoxOn: {
-    borderColor: colors.brand600,
-    backgroundColor: colors.brand600,
-  },
-  checkMark: { color: colors.white, fontSize: 14, ...font('700'), lineHeight: 16 },
   itemName: { fontSize: 14, color: colors.slate900, ...font('600') },
   itemNameDelivered: { color: colors.slate500, textDecorationLine: 'line-through' },
+  deliveredTag: { fontSize: 11, color: colors.green700, ...font('600') },
   note: { fontSize: 12, color: colors.amber700 },
   meta: { fontSize: 12, color: colors.slate500 },
   lineTotal: { fontSize: 13, color: colors.slate800, ...font('600') },
@@ -277,4 +325,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnText: { color: colors.white, ...font('700') },
+  deliverOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(28,20,16,0.45)',
+  },
+  deliverSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius['3xl'],
+    borderTopRightRadius: radius['3xl'],
+    padding: spacing.lg,
+    maxHeight: '88%',
+  },
+  deliverHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, marginBottom: spacing.md },
+  deliverEyebrow: { fontSize: 11, color: colors.green700, ...font('700'), textTransform: 'uppercase' },
+  deliverTitle: { fontSize: 18, color: colors.slate900, ...font('700'), marginTop: 2 },
+  deliverProgress: { fontSize: 12, color: colors.slate500, marginTop: 4 },
+  deliverClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.slate100,
+  },
+  deliverCloseText: { fontSize: 22, color: colors.slate500, lineHeight: 24 },
+  deliverRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.slate50,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  deliverRowOn: { borderColor: colors.green200, backgroundColor: colors.green50 },
+  checkBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.slate300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  checkBoxOn: { borderColor: colors.brand600, backgroundColor: colors.brand600 },
+  checkMark: { color: colors.white, fontSize: 14, ...font('700'), lineHeight: 16 },
 });

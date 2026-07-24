@@ -164,6 +164,8 @@
 
         @include('kasir.partials.item-modals')
 
+        @include('kasir.partials.deliver-modal')
+
         <div data-kasir-order-pay-slot>
             @include('kasir.partials.pay-modal', ['order' => $order, 'format' => $format])
         </div>

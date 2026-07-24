@@ -307,64 +307,181 @@ function initKasirModals(root) {
     });
 }
 
-function initItemDeliverToggle(root = document) {
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+function initDeliverModal(root = document) {
+    const modal = document.querySelector('[data-kasir-deliver-modal]');
+    if (! modal) {
+        return;
+    }
 
-    const syncProgress = (scope) => {
-        scope.querySelectorAll('[data-deliver-progress]').forEach((wrap) => {
-            const done = wrap.querySelector('[data-deliver-done]');
-            if (! done) {
-                return;
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+    const listEl = modal.querySelector('[data-deliver-modal-list]');
+    const titleEl = modal.querySelector('[data-deliver-modal-title]');
+    const progressEl = modal.querySelector('[data-deliver-modal-progress]');
+    let activeOpenBtn = null;
+    let items = [];
+
+    const setOpen = (open) => {
+        modal.classList.toggle('hidden', ! open);
+        modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+        document.body.classList.toggle('overflow-hidden', open);
+    };
+
+    const syncProgress = () => {
+        const done = items.filter((item) => item.is_delivered).length;
+        const total = items.length;
+        if (progressEl) {
+            progressEl.textContent = `Diantar ${done}/${total}`;
+        }
+        if (activeOpenBtn) {
+            const doneEl = activeOpenBtn.querySelector('[data-deliver-done]');
+            const totalEl = activeOpenBtn.querySelector('[data-deliver-total]');
+            if (doneEl) doneEl.textContent = String(done);
+            if (totalEl) totalEl.textContent = String(total);
+            activeOpenBtn.dataset.deliverItems = JSON.stringify(items);
+        }
+        root.querySelectorAll(`[data-deliver-open]`).forEach((btn) => {
+            if (btn === activeOpenBtn) return;
+            try {
+                const btnItems = JSON.parse(btn.dataset.deliverItems || '[]');
+                if (! Array.isArray(btnItems) || btnItems.length === 0) return;
+                const same = btnItems.some((row) => items.some((item) => item.id === row.id));
+                if (! same) return;
+                const merged = btnItems.map((row) => {
+                    const next = items.find((item) => item.id === row.id);
+                    return next ? { ...row, is_delivered: next.is_delivered } : row;
+                });
+                btn.dataset.deliverItems = JSON.stringify(merged);
+                const d = merged.filter((row) => row.is_delivered).length;
+                const doneNode = btn.querySelector('[data-deliver-done]');
+                const totalNode = btn.querySelector('[data-deliver-total]');
+                if (doneNode) doneNode.textContent = String(d);
+                if (totalNode) totalNode.textContent = String(merged.length);
+            } catch (_) {
+                // ignore
             }
-            const panel = wrap.closest('.pos-receipt, .card, [data-kasir-panel="cart"]') || scope;
-            const checked = panel.querySelectorAll('[data-deliver-toggle]:checked').length;
-            done.textContent = String(checked);
+        });
+        // Mark rows on detail table if present
+        items.forEach((item) => {
+            const row = document.querySelector(`[data-order-item-row][data-item-id="${item.id}"]`);
+            row?.classList.toggle('is-delivered', Boolean(item.is_delivered));
         });
     };
 
-    root.querySelectorAll('[data-deliver-toggle]').forEach((input) => {
-        if (input.dataset.boundDeliver === '1') {
+    const renderList = () => {
+        if (! listEl) return;
+        if (items.length === 0) {
+            listEl.innerHTML = '<p class="pos-deliver-modal-empty">Tidak ada item.</p>';
+            syncProgress();
             return;
         }
-        input.dataset.boundDeliver = '1';
 
-        input.addEventListener('change', async () => {
-            const url = input.getAttribute('data-url');
-            if (! url) {
-                return;
-            }
+        listEl.innerHTML = items.map((item) => `
+            <label class="pos-deliver-modal-row ${item.is_delivered ? 'is-delivered' : ''}" data-deliver-row data-item-id="${item.id}">
+                <input
+                    type="checkbox"
+                    class="pos-deliver-checkbox"
+                    data-deliver-toggle
+                    data-url="${item.url || ''}"
+                    data-item-id="${item.id}"
+                    ${item.is_delivered ? 'checked' : ''}
+                    aria-label="Sudah diantar: ${String(item.name || 'Item').replace(/"/g, '&quot;')}"
+                >
+                <span class="pos-deliver-modal-row-body">
+                    <span class="pos-deliver-modal-row-name">${item.name || 'Item'}</span>
+                    <span class="pos-deliver-modal-row-meta">Qty ${item.qty ?? 1}</span>
+                </span>
+            </label>
+        `).join('');
 
-            const row = input.closest('[data-order-item-row], [data-order-item], .pos-order-item');
-            const next = Boolean(input.checked);
-            input.disabled = true;
+        syncProgress();
 
-            try {
-                const res = await fetch(url, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': csrf || '',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({ is_delivered: next }),
-                });
-                const payload = await res.json().catch(() => ({}));
-                if (! res.ok) {
+        listEl.querySelectorAll('[data-deliver-toggle]').forEach((input) => {
+            input.addEventListener('change', async () => {
+                const url = input.getAttribute('data-url');
+                const itemId = Number(input.getAttribute('data-item-id'));
+                const next = Boolean(input.checked);
+                const row = input.closest('[data-deliver-row]');
+                if (! url) {
                     input.checked = ! next;
-                    window.alert(payload.message || 'Gagal menyimpan ceklis.');
                     return;
                 }
-                row?.classList.toggle('is-delivered', next);
-                syncProgress(root);
-            } catch (_) {
-                input.checked = ! next;
-                window.alert('Gagal menyimpan ceklis.');
-            } finally {
-                input.disabled = false;
+                input.disabled = true;
+                try {
+                    const res = await fetch(url, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': csrf || '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ is_delivered: next }),
+                    });
+                    const payload = await res.json().catch(() => ({}));
+                    if (! res.ok) {
+                        input.checked = ! next;
+                        window.alert(payload.message || 'Gagal menyimpan ceklis.');
+                        return;
+                    }
+                    items = items.map((item) => (
+                        item.id === itemId ? { ...item, is_delivered: next } : item
+                    ));
+                    row?.classList.toggle('is-delivered', next);
+                    syncProgress();
+                    if (payload.data?.status_label) {
+                        const badge = document.querySelector('[data-order-status-badge]');
+                        if (badge) badge.textContent = payload.data.status_label;
+                    }
+                } catch (_) {
+                    input.checked = ! next;
+                    window.alert('Gagal menyimpan ceklis.');
+                } finally {
+                    input.disabled = false;
+                }
+            });
+        });
+    };
+
+    const openWith = (btn) => {
+        activeOpenBtn = btn;
+        try {
+            items = JSON.parse(btn.dataset.deliverItems || '[]');
+            if (! Array.isArray(items)) items = [];
+        } catch (_) {
+            items = [];
+        }
+        if (titleEl) {
+            titleEl.textContent = btn.dataset.deliverTitle || 'Item pesanan';
+        }
+        renderList();
+        setOpen(true);
+    };
+
+    if (! modal.dataset.boundDeliverModal) {
+        modal.dataset.boundDeliverModal = '1';
+        modal.querySelectorAll('[data-kasir-close-deliver]').forEach((el) => {
+            el.addEventListener('click', () => setOpen(false));
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && ! modal.classList.contains('hidden')) {
+                setOpen(false);
             }
         });
+    }
+
+    root.querySelectorAll('[data-deliver-open]').forEach((btn) => {
+        if (btn.dataset.boundDeliverOpen === '1') return;
+        btn.dataset.boundDeliverOpen = '1';
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openWith(btn);
+        });
     });
+}
+
+function initItemDeliverToggle(root = document) {
+    initDeliverModal(root);
 }
 
 export function initKasirPos() {
@@ -1337,7 +1454,10 @@ function initPosCashPayment(root) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', initKasirPos);
+document.addEventListener('DOMContentLoaded', () => {
+    initKasirPos();
+    initDeliverModal(document);
+});
 
 let kasirSetPanel = null;
 
