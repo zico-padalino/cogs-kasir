@@ -157,12 +157,12 @@
 
         <x-table-card title="Daftar Bahan Jadi" :subtitle="$items->count().' item'">
             @if ($items->isNotEmpty())
-                <div class="space-y-3 p-4 sm:p-5">
+                <div class="materials-card-grid">
                     @foreach ($items as $item)
                         <div class="module-item-card material-card">
                             <div class="material-card__top">
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-base font-bold text-slate-900">{{ $item->name }}</p>
+                                    <p class="material-card__title">{{ $item->name }}</p>
                                     <div class="mt-2 flex flex-wrap gap-2">
                                         <span class="module-stat-pill module-stat-pill--stock">
                                             {{ $format::number($item->available_qty) }} {{ $item->unit }}
@@ -197,7 +197,7 @@
                                                     $editOptions = $units::recipeOptions($child?->unit);
                                                     $qtyValue = rtrim(rtrim(number_format($presented['quantity'], 6, '.', ''), '0'), '.') ?: '0';
                                                 @endphp
-                                                <li class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-2.5 sm:flex-row sm:items-center">
+                                                <li class="bj-recipe-item flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
                                                     <div class="min-w-0 flex-1">
                                                         <p class="font-semibold text-slate-900">{{ $child?->name ?? 'Bahan dihapus' }}</p>
                                                         <p class="text-xs text-slate-400">stok: {{ $format::number($bom->quantity) }} {{ $units::label($child?->unit) }}</p>
@@ -286,7 +286,7 @@
                                 </div>
                             </details>
 
-                            <div class="material-card__actions">
+                            <div class="material-card__actions material-card__actions--two">
                                 <details class="material-card__action">
                                     <summary class="btn-outline btn-sm cursor-pointer list-none text-center">Edit / Stok</summary>
                                     <form action="{{ route('bahan-jadi.update', $item) }}" method="POST" class="material-panel">

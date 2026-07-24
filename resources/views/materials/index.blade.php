@@ -48,8 +48,8 @@
 
         <x-table-card :step="2" title="Daftar Bahan Baku" :subtitle="$materials->count() . ' bahan terdaftar'">
             @if ($materials->isNotEmpty())
-                <div class="space-y-3 p-4 sm:p-5" data-materials-list>
-                    <div class="materials-search">
+                <div class="materials-card-grid" data-materials-list>
+                    <div class="materials-search materials-card-grid__full">
                         <input
                             type="search"
                             class="form-input"
@@ -67,7 +67,7 @@
                         >
                             <div class="material-card__top">
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-base font-bold text-slate-900">{{ $material->name }}</p>
+                                    <p class="material-card__title">{{ $material->name }}</p>
                                     <div class="mt-2 flex flex-wrap gap-2">
                                         <span class="module-stat-pill module-stat-pill--stock">
                                             {{ $format::number($material->available_qty) }} {{ $material->unit }}
@@ -219,7 +219,7 @@
                         </div>
                     @endforeach
 
-                    <div class="module-empty hidden !py-8" data-materials-search-empty>
+                    <div class="module-empty materials-card-grid__full hidden !py-8" data-materials-search-empty>
                         <p class="module-empty__title">Tidak ada bahan yang cocok</p>
                         <p class="module-empty__hint">Coba kata kunci lain.</p>
                     </div>
