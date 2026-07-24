@@ -2521,8 +2521,8 @@
     }
 
     .pos-pending-card {
-        @apply inline-flex w-[min(100%,14rem)] shrink-0 flex-col gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-2 text-left text-sm shadow-sm;
-        min-width: min(100%, 10rem);
+        @apply inline-flex w-[min(100%,16rem)] shrink-0 flex-col gap-1.5 rounded-xl border border-amber-300 bg-white px-2.5 py-2.5 text-left text-sm shadow-sm;
+        min-width: min(100%, 12rem);
     }
 
     .pos-pending-card.is-clickable {
@@ -3320,6 +3320,26 @@
 
     .pos-order-item-top {
         @apply flex min-w-0 items-center gap-2;
+    }
+
+    .pos-order-item-deliver {
+        @apply shrink-0 self-center;
+    }
+
+    .pos-order-item.is-delivered {
+        @apply rounded-lg bg-emerald-50/80;
+    }
+
+    .pos-order-item.is-delivered .pos-receipt-line-name {
+        @apply text-slate-500 line-through;
+    }
+
+    .pos-cart-deliver-progress {
+        @apply px-3 pb-1 text-[11px] text-slate-500;
+    }
+
+    .pos-pending-deliver {
+        @apply text-[10px] font-medium text-slate-500;
     }
 
     .pos-order-item-thumb-btn {
@@ -4170,21 +4190,40 @@
         }
 
         .pos-pending-list {
-            @apply mt-0 gap-2 pb-0.5;
+            @apply mt-1.5 flex flex-col gap-2 overflow-x-visible pb-0;
         }
 
-        .pos-pending-card {
-            width: min(88vw, 18rem);
-            min-width: min(88vw, 14rem);
+        .pos-pending-card,
+        .pos-pending-card.is-current,
+        .pos-pending-card.is-open-bill,
+        .pos-pending-card.is-awaiting-serve {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
         }
 
-        .pos-pending-card.is-current {
-            width: min(100%, 18rem);
-            min-width: min(100%, 14rem);
+        .pos-pending-card-actions {
+            grid-template-columns: repeat(var(--pos-pending-actions, 2), minmax(0, 1fr));
+        }
+
+        .pos-pending-card-actions[style*="--pos-pending-actions: 1"] {
+            grid-template-columns: 1fr;
+        }
+
+        .pos-pending-action {
+            @apply min-h-10 px-2.5 text-[11px] leading-snug;
+        }
+
+        .pos-pending-btn-name {
+            @apply text-sm;
+        }
+
+        .pos-pending-amount {
+            @apply text-sm;
         }
 
         .pos-pending-btn {
-            @apply min-w-[7.5rem] px-2 py-1.5 text-xs;
+            @apply min-w-0 w-full px-2 py-1.5 text-xs;
         }
 
         .pos-toolbar {
@@ -4551,15 +4590,15 @@
         }
 
         .pos-pending-list {
-            @apply snap-x snap-mandatory;
+            @apply flex flex-col gap-2 overflow-x-visible;
         }
 
         .pos-pending-btn {
-            @apply min-w-[9.5rem] snap-start;
+            @apply min-w-0 w-full px-2 py-1.5 text-xs;
         }
 
         .pos-pending-card {
-            @apply snap-start;
+            @apply w-full min-w-0 max-w-none;
         }
 
         .pos-add-modal-panel {

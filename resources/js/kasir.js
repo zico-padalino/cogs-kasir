@@ -307,6 +307,66 @@ function initKasirModals(root) {
     });
 }
 
+function initItemDeliverToggle(root = document) {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    const syncProgress = (scope) => {
+        scope.querySelectorAll('[data-deliver-progress]').forEach((wrap) => {
+            const done = wrap.querySelector('[data-deliver-done]');
+            if (! done) {
+                return;
+            }
+            const panel = wrap.closest('.pos-receipt, .card, [data-kasir-panel="cart"]') || scope;
+            const checked = panel.querySelectorAll('[data-deliver-toggle]:checked').length;
+            done.textContent = String(checked);
+        });
+    };
+
+    root.querySelectorAll('[data-deliver-toggle]').forEach((input) => {
+        if (input.dataset.boundDeliver === '1') {
+            return;
+        }
+        input.dataset.boundDeliver = '1';
+
+        input.addEventListener('change', async () => {
+            const url = input.getAttribute('data-url');
+            if (! url) {
+                return;
+            }
+
+            const row = input.closest('[data-order-item-row], [data-order-item], .pos-order-item');
+            const next = Boolean(input.checked);
+            input.disabled = true;
+
+            try {
+                const res = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrf || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ is_delivered: next }),
+                });
+                const payload = await res.json().catch(() => ({}));
+                if (! res.ok) {
+                    input.checked = ! next;
+                    window.alert(payload.message || 'Gagal menyimpan ceklis.');
+                    return;
+                }
+                row?.classList.toggle('is-delivered', next);
+                syncProgress(root);
+            } catch (_) {
+                input.checked = ! next;
+                window.alert('Gagal menyimpan ceklis.');
+            } finally {
+                input.disabled = false;
+            }
+        });
+    });
+}
+
 export function initKasirPos() {
     const root = document.getElementById('kasir-pos');
     if (! root) {
@@ -322,6 +382,7 @@ export function initKasirPos() {
     initPosPayModal(root);
     initPosPendingPanel(root);
     initPosFlash(root);
+    initItemDeliverToggle(root);
 
     const tabs = root.querySelectorAll('[data-kasir-tab]');
     const panels = root.querySelectorAll('[data-kasir-panel]');
@@ -1358,6 +1419,7 @@ function reinitOrderDependentUi(root) {
     initPosCashPayment(root);
     bindOrderActionButtons(root);
     initPosPendingPanel(root);
+    initItemDeliverToggle(root);
 }
 
 export function refreshKasirOrderUi(payload) {

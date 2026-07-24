@@ -52,8 +52,14 @@ export default function OrderDetailScreen() {
     void load();
   }, [load]);
 
-  const canChecklist = order?.status === 'paid' || order?.status === 'served';
-  const canLihatStruk = canChecklist;
+  const canChecklist = Boolean(
+    order?.can_checklist_delivered ||
+      order?.status === 'unpaid' ||
+      order?.is_open_bill ||
+      order?.status === 'paid' ||
+      order?.status === 'served',
+  );
+  const canLihatStruk = order?.status === 'paid' || order?.status === 'served';
   const deliveredCount = useMemo(
     () => (order?.items || []).filter((item) => item.is_delivered).length,
     [order?.items],

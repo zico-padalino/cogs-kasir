@@ -277,6 +277,15 @@ export default function KasirPosScreen() {
     }
   };
 
+  const toggleCartItemDelivered = async (itemId: number, next: boolean) => {
+    try {
+      const res = await kasirApi.setItemDelivered(itemId, next);
+      if (res.data) applyOrder(res.data);
+    } catch (err) {
+      handleApiError(err);
+    }
+  };
+
   const pickProof = async () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
@@ -382,6 +391,10 @@ export default function KasirPosScreen() {
 
   const cartEditable = order?.is_editable !== false;
   const isActiveOpenBill = Boolean(order?.is_open_bill || order?.status === 'unpaid');
+  const canChecklistDelivered = Boolean(
+    order?.can_checklist_delivered || isActiveOpenBill || order?.status === 'paid' || order?.status === 'served',
+  );
+  const cartDeliveredCount = (order?.items || []).filter((item) => item.is_delivered).length;
 
   if (loading && !order) {
     return (
@@ -518,7 +531,7 @@ export default function KasirPosScreen() {
                 {pendingSummary.awaitingServeCount > 0 ? ` · ${pendingSummary.awaitingServeCount} siap antar` : ''}
                 {` · ${formatRupiah(pendingSummary.pendingTotal)}`}
               </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              <View style={styles.pendingList}>
                 {pending.map((p) => {
                   const awaitingServe = p.can_mark_served || p.status === 'paid';
                   const isOpenBill = p.is_open_bill || p.status === 'unpaid';
@@ -533,6 +546,8 @@ export default function KasirPosScreen() {
                     ? `Hapus Open Bill ${p.customer_note || p.order_number}?`
                     : `Hapus pesanan ${p.customer_note || p.order_number}? Pesanan akan dibatalkan.`;
                   const serveConfirm = `Konfirmasi pesanan ${p.customer_note || p.order_number} sudah diantar / selesai?`;
+                  const pendingItemCount = p.items?.length ?? p.item_count ?? 0;
+                  const pendingDelivered = (p.items || []).filter((i) => i.is_delivered).length;
 
                   return (
                     <View
@@ -567,9 +582,12 @@ export default function KasirPosScreen() {
                         }}
                         style={({ pressed }) => [pressed && !(isCurrent && !awaitingServe) && styles.pendingCardPressed]}
                       >
-                        <Text style={styles.pendingNo} numberOfLines={1}>
-                          {p.customer_note || 'Tanpa nama'}
-                        </Text>
+                        <View style={styles.pendingCardTop}>
+                          <Text style={styles.pendingNo} numberOfLines={1}>
+                            {p.customer_note || 'Tanpa nama'}
+                          </Text>
+                          <Text style={styles.pendingAmount}>{formatRupiah(p.total)}</Text>
+                        </View>
                         <Text style={styles.pendingMeta} numberOfLines={1}>
                           #{p.order_number}
                           {p.table?.label ? ` · ${p.table.label}` : ''}
@@ -582,9 +600,12 @@ export default function KasirPosScreen() {
                               : isOpenBill
                                 ? 'Open Bill'
                                 : p.status_label || p.status}
-                          {' · '}
-                          {formatRupiah(p.total)}
                         </Text>
+                        {(isOpenBill || awaitingServe) && pendingItemCount > 0 ? (
+                          <Text style={styles.pendingDeliver}>
+                            Diantar {pendingDelivered}/{pendingItemCount}
+                          </Text>
+                        ) : null}
                       </Pressable>
                       <View style={styles.pendingActions}>
                         {awaitingServe ? (
@@ -605,7 +626,7 @@ export default function KasirPosScreen() {
                                 },
                               ]);
                             }}
-                            style={[styles.pendingLoad, styles.pendingServe]}
+                            style={[styles.pendingLoad, styles.pendingServe, styles.pendingActionFull]}
                           >
                             <Text style={styles.pendingLoadText}>Sudah diantar / selesai</Text>
                           </Pressable>
@@ -628,6 +649,7 @@ export default function KasirPosScreen() {
                                 },
                               ]);
                             }}
+                            style={styles.pendingActionFull}
                           >
                             <Text style={styles.pendingCancel}>{isOpenBill ? 'Hapus Open Bill' : 'Hapus pesanan'}</Text>
                           </Pressable>
@@ -643,7 +665,7 @@ export default function KasirPosScreen() {
                                   handleApiError(err);
                                 }
                               }}
-                              style={styles.pendingLoad}
+                              style={[styles.pendingLoad, styles.pendingActionHalf]}
                             >
                               <Text style={styles.pendingLoadText}>{openLabel}</Text>
                             </Pressable>
@@ -665,6 +687,7 @@ export default function KasirPosScreen() {
                                   },
                                 ]);
                               }}
+                              style={styles.pendingActionHalf}
                             >
                               <Text style={styles.pendingCancel}>{deleteLabel}</Text>
                             </Pressable>
@@ -674,7 +697,7 @@ export default function KasirPosScreen() {
                     </View>
                   );
                 })}
-              </ScrollView>
+              </View>
             </View>
           ) : null}
 
@@ -832,7 +855,7 @@ export default function KasirPosScreen() {
           {isActiveOpenBill ? (
             <View style={styles.openBillHint}>
               <Text style={styles.openBillHintText}>
-                Open Bill aktif — boleh tambah item, lalu simpan lagi atau Bayar.
+                Open Bill aktif — boleh tambah item, ceklis yang sudah diantar, lalu simpan lagi atau Bayar.
               </Text>
             </View>
           ) : null}
@@ -850,47 +873,73 @@ export default function KasirPosScreen() {
                 <Text style={styles.muted}>Pilih menu untuk mulai pesanan</Text>
               </View>
             ) : (
-              (order?.items || []).map((item) => (
-                <View key={item.id} style={styles.cartItemCard}>
-                  {item.product_image_url ? (
-                    <Image source={{ uri: item.product_image_url }} style={styles.cartItemThumb} />
-                  ) : (
-                    <View style={[styles.cartItemThumb, styles.cartItemThumbFallback]}>
-                      <Text style={{ fontSize: 18 }}>☕</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <View style={styles.cartRow1}>
-                      <Text style={styles.cartName} numberOfLines={2}>
-                        {item.product_name}
-                      </Text>
-                      <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
-                    </View>
-                    <Text style={styles.cartUnit}>{formatRupiah(item.unit_price)}</Text>
-                    <View style={styles.cartItemActions}>
-                      {cartEditable ? (
-                        <View style={styles.qtyRow}>
-                          <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
-                            <Text style={styles.qtyBtnText}>−</Text>
-                          </Pressable>
-                          <Text style={styles.qtyVal}>{item.quantity}</Text>
-                          <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
-                            <Text style={styles.qtyBtnText}>+</Text>
-                          </Pressable>
-                        </View>
-                      ) : (
-                        <Text style={styles.qtyVal}>×{item.quantity}</Text>
-                      )}
-                      {cartEditable ? (
-                        <Pressable onPress={() => changeQty(item.id, 0)} style={styles.cartDeleteBtn}>
-                          <Text style={styles.cartDeleteText}>×</Text>
+              <>
+                {canChecklistDelivered ? (
+                  <Text style={styles.cartDeliverProgress}>
+                    Diantar: {cartDeliveredCount}/{(order?.items || []).length}
+                  </Text>
+                ) : null}
+                {(order?.items || []).map((item) => {
+                  const delivered = Boolean(item.is_delivered);
+                  return (
+                    <View
+                      key={item.id}
+                      style={[styles.cartItemCard, delivered && styles.cartItemCardDelivered]}
+                    >
+                      {canChecklistDelivered ? (
+                        <Pressable
+                          onPress={() => void toggleCartItemDelivered(item.id, !delivered)}
+                          style={[styles.cartCheckBox, delivered && styles.cartCheckBoxOn]}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: delivered }}
+                        >
+                          <Text style={styles.cartCheckMark}>{delivered ? '✓' : ''}</Text>
                         </Pressable>
                       ) : null}
+                      {item.product_image_url ? (
+                        <Image source={{ uri: item.product_image_url }} style={styles.cartItemThumb} />
+                      ) : (
+                        <View style={[styles.cartItemThumb, styles.cartItemThumbFallback]}>
+                          <Text style={{ fontSize: 18 }}>☕</Text>
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <View style={styles.cartRow1}>
+                          <Text
+                            style={[styles.cartName, delivered && styles.cartNameDelivered]}
+                            numberOfLines={2}
+                          >
+                            {item.product_name}
+                          </Text>
+                          <Text style={styles.cartPrice}>{formatRupiah(item.line_total)}</Text>
+                        </View>
+                        <Text style={styles.cartUnit}>{formatRupiah(item.unit_price)}</Text>
+                        <View style={styles.cartItemActions}>
+                          {cartEditable ? (
+                            <View style={styles.qtyRow}>
+                              <Pressable onPress={() => changeQty(item.id, item.quantity - 1)} style={styles.qtyBtn}>
+                                <Text style={styles.qtyBtnText}>−</Text>
+                              </Pressable>
+                              <Text style={styles.qtyVal}>{item.quantity}</Text>
+                              <Pressable onPress={() => changeQty(item.id, item.quantity + 1)} style={styles.qtyBtn}>
+                                <Text style={styles.qtyBtnText}>+</Text>
+                              </Pressable>
+                            </View>
+                          ) : (
+                            <Text style={styles.qtyVal}>×{item.quantity}</Text>
+                          )}
+                          {cartEditable ? (
+                            <Pressable onPress={() => changeQty(item.id, 0)} style={styles.cartDeleteBtn}>
+                              <Text style={styles.cartDeleteText}>×</Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                        {item.notes ? <Text style={styles.cartNote}>{item.notes}</Text> : null}
+                      </View>
                     </View>
-                    {item.notes ? <Text style={styles.cartNote}>{item.notes}</Text> : null}
-                  </View>
-                </View>
-              ))
+                  );
+                })}
+              </>
             )}
 
             {(order?.items || []).length > 0 ? (
@@ -1293,21 +1342,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.amber200,
     paddingVertical: spacing.sm,
-    paddingLeft: spacing.lg,
-    gap: 6,
+    paddingHorizontal: spacing.md,
+    gap: 8,
   },
   pendingTitle: { fontSize: 12, color: colors.amber800, ...font('700') },
+  pendingList: { gap: 8 },
   pendingCard: {
     backgroundColor: colors.white,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.amber200,
     padding: spacing.sm,
-    minWidth: 168,
+    width: '100%',
   },
   pendingCardOpenBill: {
-    borderColor: colors.amber500,
-    backgroundColor: colors.amber50,
+    borderColor: '#93c5fd',
+    backgroundColor: '#eff6ff',
   },
   pendingCardAwaitingServe: {
     borderColor: colors.green200,
@@ -1320,13 +1370,57 @@ const styles = StyleSheet.create({
     opacity: 0.92,
     borderColor: colors.brand400,
   },
-  pendingNo: { fontSize: 13, ...font('700'), color: colors.slate900 },
-  pendingMeta: { fontSize: 12, color: colors.slate600 },
-  pendingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
-  pendingLoad: { backgroundColor: colors.brand600, borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 4 },
+  pendingCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  pendingNo: { flex: 1, fontSize: 14, ...font('700'), color: colors.slate900 },
+  pendingAmount: { fontSize: 14, ...font('700'), color: colors.brand700 },
+  pendingMeta: { fontSize: 12, color: colors.slate600, marginTop: 2 },
+  pendingDeliver: { fontSize: 11, color: colors.slate500, marginTop: 4, ...font('500') },
+  pendingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  pendingActionFull: { flexGrow: 1, flexBasis: '100%' },
+  pendingActionHalf: { flexGrow: 1, flexBasis: '45%' },
+  pendingLoad: {
+    backgroundColor: colors.brand600,
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
   pendingServe: { backgroundColor: colors.green600 },
-  pendingLoadText: { color: colors.white, fontSize: 11, ...font('600') },
-  pendingCancel: { color: colors.red600, fontSize: 11, ...font('600'), paddingVertical: 4 },
+  pendingLoadText: { color: colors.white, fontSize: 12, ...font('600'), textAlign: 'center' },
+  pendingCancel: {
+    color: colors.red600,
+    fontSize: 12,
+    ...font('600'),
+    paddingVertical: 8,
+    textAlign: 'center',
+    backgroundColor: '#fee2e2',
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+  },
+  cartDeliverProgress: { fontSize: 12, color: colors.slate500, marginBottom: 4 },
+  cartCheckBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.slate300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    backgroundColor: colors.white,
+  },
+  cartCheckBoxOn: {
+    borderColor: colors.brand600,
+    backgroundColor: colors.brand600,
+  },
+  cartCheckMark: { color: colors.white, fontSize: 13, ...font('700'), lineHeight: 15 },
+  cartItemCardDelivered: { backgroundColor: '#ecfdf5' },
+  cartNameDelivered: { color: colors.slate500, textDecorationLine: 'line-through' },
   tabs: { flexDirection: 'row', backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200 },
   tabsBottom: {
     flexDirection: 'row',

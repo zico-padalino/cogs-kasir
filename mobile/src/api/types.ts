@@ -92,6 +92,7 @@ export type PosOrder = {
   can_checkout?: boolean;
   is_editable?: boolean;
   is_open_bill?: boolean;
+  can_checklist_delivered?: boolean;
   can_mark_served?: boolean;
   is_served?: boolean;
   served_at?: string | null;

@@ -21,7 +21,7 @@
 
     @if ($order->isOpenBill())
         <div class="pos-open-bill-hint">
-            Open Bill aktif — boleh tambah item, lalu tekan <strong>Open Bill</strong> lagi atau <strong>Bayar</strong>.
+            Open Bill aktif — boleh tambah item, ceklis yang sudah diantar, lalu tekan <strong>Open Bill</strong> lagi atau <strong>Bayar</strong>.
         </div>
     @endif
 
@@ -40,12 +40,22 @@
 
     <div class="pos-receipt-body">
         @if ($order->items->isNotEmpty())
+            @if ($order->canChecklistDelivered())
+                @php
+                    $cartDelivered = $order->items->where('is_delivered', true)->count();
+                    $cartItemCount = $order->items->count();
+                @endphp
+                <p class="pos-cart-deliver-progress" data-deliver-progress>
+                    Diantar: <span data-deliver-done>{{ $cartDelivered }}</span>/<span data-deliver-total>{{ $cartItemCount }}</span>
+                </p>
+            @endif
             <div class="pos-receipt-lines">
                 @foreach ($order->items as $item)
                     <x-pos-order-item
                         :item="$item"
                         :format="$format"
                         :editable="$order->isKasirEditable()"
+                        :can-deliver="$order->canChecklistDelivered()"
                         :update-url="route('kasir.items.update', $item)"
                         :destroy-url="route('kasir.items.destroy', $item)"
                     />

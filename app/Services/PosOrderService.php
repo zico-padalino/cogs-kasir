@@ -691,13 +691,13 @@ class PosOrderService
         return $order->fresh(['items.product', 'table']);
     }
 
-    /** Tandai item sudah / belum diantar (setelah bayar). */
+    /** Tandai item sudah / belum diantar (open bill atau setelah bayar). */
     public function setItemDelivered(PosOrderItem $item, bool $delivered): PosOrder
     {
         $order = $item->order;
 
-        if (! $order || ! $order->isSettled()) {
-            throw new RuntimeException('Ceklis antar hanya untuk pesanan yang sudah dibayar.');
+        if (! $order || ! $order->canChecklistDelivered()) {
+            throw new RuntimeException('Ceklis antar hanya untuk Open Bill atau pesanan yang sudah dibayar.');
         }
 
         $item->update([

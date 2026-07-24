@@ -56,6 +56,9 @@
                         ? 'Hapus Open Bill '.($pending->customer_note ?: $pending->order_number).'?'
                         : 'Hapus pesanan online '.($pending->customer_note ?: $pending->order_number).'? Pesanan akan dibatalkan.';
                     $serveConfirm = 'Konfirmasi pesanan '.($pending->customer_note ?: $pending->order_number).' sudah diantar / selesai?';
+                    $itemCount = $pending->items->count();
+                    $deliveredCount = $pending->items->where('is_delivered', true)->count();
+                    $showDeliverProgress = $itemCount > 0 && ($isOpenBill || $isAwaitingServe);
                 @endphp
                 <div @class([
                     'pos-pending-card',
@@ -107,6 +110,12 @@
                             </span>
                             <span class="badge badge-blue pos-pending-status">Sedang dibuka</span>
                         </div>
+                    @endif
+
+                    @if ($showDeliverProgress)
+                        <p class="pos-pending-deliver">
+                            Diantar {{ $deliveredCount }}/{{ $itemCount }}
+                        </p>
                     @endif
 
                     <div

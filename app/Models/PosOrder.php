@@ -153,6 +153,12 @@ class PosOrder extends Model
             && $this->status === PosOrderStatus::Unpaid;
     }
 
+    /** Boleh ceklis item antar: open bill, sudah bayar, atau selesai. */
+    public function canChecklistDelivered(): bool
+    {
+        return $this->isOpenBill() || $this->isSettled();
+    }
+
     /** Sudah bayar, menunggu konfirmasi antar/selesai. */
     public function canMarkServed(): bool
     {

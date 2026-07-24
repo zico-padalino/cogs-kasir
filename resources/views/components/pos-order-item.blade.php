@@ -2,6 +2,7 @@
     'item',
     'format',
     'editable' => false,
+    'canDeliver' => false,
     'updateUrl' => null,
     'destroyUrl' => null,
     'lineClass' => 'pos-receipt-line',
@@ -15,12 +16,26 @@
 @endphp
 
 <div
-    {{ $attributes->merge(['class' => trim($lineClass.' pos-order-item')]) }}
+    {{ $attributes->merge(['class' => trim($lineClass.' pos-order-item'.($item->is_delivered ? ' is-delivered' : ''))]) }}
     data-order-item
     data-kasir-item
     data-item-id="{{ $item->id }}"
+    data-order-item-row
 >
     <div class="pos-order-item-top">
+        @if ($canDeliver)
+            <label class="pos-deliver-check pos-order-item-deliver">
+                <input
+                    type="checkbox"
+                    class="pos-deliver-checkbox"
+                    data-deliver-toggle
+                    data-url="{{ route('kasir.items.delivered', $item) }}"
+                    @checked($item->is_delivered)
+                    aria-label="Sudah diantar: {{ $product->name }}"
+                >
+            </label>
+        @endif
+
         <button
             type="button"
             class="pos-order-item-thumb-btn"

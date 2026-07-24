@@ -5,7 +5,7 @@
 
 @section('content')
     @php
-        $canChecklist = $order->isSettled();
+        $canChecklist = $order->canChecklistDelivered();
         $deliveredCount = $order->items->where('is_delivered', true)->count();
         $itemCount = $order->items->count();
     @endphp
