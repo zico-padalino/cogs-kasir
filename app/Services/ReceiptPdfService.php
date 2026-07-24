@@ -39,57 +39,57 @@ class ReceiptPdfService
         $pdf = new SimplePdf;
 
         $pdf->title($shopName);
-        $pdf->line('Struk Pembayaran', 12, false, 'C');
-        $pdf->spacer(6);
-        $pdf->line($order->order_number, 13, true, 'C');
-        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 11, false, 'C');
+        $pdf->line('Struk Pembayaran', 24, false, 'C');
+        $pdf->spacer(12);
+        $pdf->line($order->order_number, 26, true, 'C');
+        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 22, false, 'C');
 
         if ($order->order_type) {
-            $pdf->line($order->order_type->label(), 11, false, 'C');
+            $pdf->line($order->order_type->label(), 22, false, 'C');
         }
 
         if ($order->table) {
-            $pdf->line('Meja: '.$order->table->label, 11, false, 'C');
+            $pdf->line('Meja: '.$order->table->label, 22, false, 'C');
         }
 
         if ($order->customer_note) {
-            $pdf->line('Pelanggan: '.$order->customer_note, 11, false, 'C');
+            $pdf->line('Pelanggan: '.$order->customer_note, 22, false, 'C');
         }
 
-        $pdf->spacer(6);
+        $pdf->spacer(12);
         $pdf->separator();
 
         foreach ($order->items as $item) {
             $qty = Format::number($item->quantity, 0);
             $name = $item->product?->name ?? 'Item';
-            $pdf->twoColumns($name.' x '.$qty, Format::rupiah($item->line_total), 12);
+            $pdf->twoColumns($name.' x '.$qty, Format::rupiah($item->line_total), 24);
 
             if ($item->notes) {
-                $pdf->line('  Catatan: '.$item->notes, 10, false, 'L');
+                $pdf->line('  Catatan: '.$item->notes, 20, false, 'L');
             }
         }
 
         $pdf->separator();
 
         if ($order->hasDiscount()) {
-            $pdf->twoColumns('Subtotal', Format::rupiah($order->subtotal), 12);
-            $pdf->twoColumns('Diskon', '- '.Format::rupiah($order->discount_amount), 12);
+            $pdf->twoColumns('Subtotal', Format::rupiah($order->subtotal), 24);
+            $pdf->twoColumns('Diskon', '- '.Format::rupiah($order->discount_amount), 24);
         }
 
-        $pdf->twoColumns('TOTAL', Format::rupiah($order->total), 15);
-        $pdf->line('Bayar: '.($order->payment_method?->label() ?? '-'), 11, false, 'L');
+        $pdf->twoColumns('TOTAL', Format::rupiah($order->total), 30);
+        $pdf->line('Bayar: '.($order->payment_method?->label() ?? '-'), 22, false, 'L');
 
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $pdf->line('Diterima: '.Format::rupiah($order->amount_received), 11, false, 'L');
-            $pdf->line('Kembalian: '.Format::rupiah($order->change_amount), 11, false, 'L');
+            $pdf->line('Diterima: '.Format::rupiah($order->amount_received), 22, false, 'L');
+            $pdf->line('Kembalian: '.Format::rupiah($order->change_amount), 22, false, 'L');
         }
 
         if ($order->cashierDisplayName() !== '-') {
-            $pdf->line('Kasir: '.$order->cashierDisplayName(), 11, false, 'L');
+            $pdf->line('Kasir: '.$order->cashierDisplayName(), 22, false, 'L');
         }
 
-        $pdf->spacer(10);
-        $pdf->line('Terima kasih', 12, true, 'C');
+        $pdf->spacer(16);
+        $pdf->line('Terima kasih', 24, true, 'C');
 
         return $pdf->render();
     }
