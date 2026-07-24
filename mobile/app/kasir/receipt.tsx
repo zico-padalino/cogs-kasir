@@ -224,7 +224,7 @@ export default function ReceiptScreen() {
         <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
           <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal'}</Text>
         </Pressable>
-        <Text style={styles.hint}>Sekali klik langsung buka Thermer. Pair printer di Thermer dulu.</Text>
+        <Text style={styles.hint}>Layout sama Cetak PDF. Pair printer di Thermer dulu.</Text>
 
         {pdfUrl ? (
           <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>

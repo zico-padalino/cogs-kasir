@@ -98,7 +98,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Layout sama struk PDF, sedikit lebih besar. Pair printer di Thermer lalu cetak.
+                Cetak Thermal / Bagikan ke Thermer memakai layout yang sama dengan Cetak PDF.
             </p>
             <a
                 href="{{ $pdfRoute }}?print=1"
@@ -289,7 +289,7 @@
                 lines.push(sep);
                 (payload.items || []).forEach(function (item) {
                     lines.push(padColumns(item.name + ' x ' + item.qty, item.total, width));
-                    if (item.notes) lines.push('  ' + item.notes);
+                    if (item.notes) lines.push('  Catatan: ' + item.notes);
                 });
                 lines.push(sep);
                 if (payload.discount) {
@@ -314,7 +314,8 @@
                     window.print();
                     return;
                 }
-                pre.textContent = buildPreviewText(width);
+                var thermal = payload.thermal || {};
+                pre.textContent = thermal.thermer_share_text || buildPreviewText(width);
                 sheet.style.width = selectedPaper() === '80mm' ? '80mm' : '58mm';
                 sheet.classList.remove('hidden');
                 window.print();

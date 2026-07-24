@@ -4,12 +4,9 @@ namespace App\Services;
 
 use App\Models\PosOrder;
 use App\Support\Format;
-use App\Support\PosItemNotes;
 
 /**
- * ESC/POS + Thermer payload.
- * Layout mengikuti ReceiptPdfService, sedikit lebih besar (format 1 = double height).
- * Type 0 = teks (bukan HTML type 4 yang kebesaran).
+ * ESC/POS + Thermer — layout identik dengan ReceiptPdfService (posisi, urutan, teks).
  */
 class EscPosReceiptService
 {
@@ -45,10 +42,9 @@ class EscPosReceiptService
         $binary = $this->build($order, $width);
         $base64 = base64_encode($binary);
 
-        $blocks = $this->pdfLikeBlocks($order, $width);
-        $thermerJson = $this->blocksToThermerJson($blocks);
-        // Share: teks bersih seperti PDF (tanpa tag <BAF> / HTML) agar tidak jelek
-        $shareText = $this->blocksToPlainText($blocks);
+        $lines = $this->receiptLines($order, $width);
+        $thermerJson = $this->linesToThermerJson($lines);
+        $shareText = $this->linesToPlainText($lines);
 
         $playStore = (string) config(
             'pos.thermal.thermer_play_store',
@@ -76,115 +72,133 @@ class EscPosReceiptService
     }
 
     /**
-     * Susunan sama ReceiptPdfService, ukuran sedikit lebih besar dari PDF.
+     * Mirror exact structure of ReceiptPdfService::build().
      *
-     * format: 0 normal · 1 double height (agak besar, mirip PDF diperbesar)
-     *
-     * @return list<array{content: string, bold: int, align: int, format: int}>
+     * @return list<array{kind: string, text?: string, left?: string, right?: string, bold: int, align: int, format: int}>
      */
-    private function pdfLikeBlocks(PosOrder $order, int $width): array
+    private function receiptLines(PosOrder $order, int $width): array
     {
         $order->loadMissing(['items.product', 'table', 'cashier']);
-        $shop = $this->sanitize((string) config('pos.shop_name', 'Coffee & Kitchen'));
         $w = max(24, $width);
-        $blocks = [];
+        $shop = $this->sanitize((string) config('pos.shop_name', 'Coffee & Kitchen'));
+        $lines = [];
 
-        // Nama toko — bold + center + double height (lebih besar dari PDF, tidak double-width)
-        $blocks[] = ['content' => $shop, 'bold' => 1, 'align' => 1, 'format' => 1];
-        $blocks[] = ['content' => 'Struk Pembayaran', 'bold' => 0, 'align' => 1, 'format' => 0];
-        $blocks[] = ['content' => $this->sanitize($order->order_number), 'bold' => 1, 'align' => 1, 'format' => 0];
+        // title — PDF: bold center large
+        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 1);
+        // Struk Pembayaran — PDF: center
+        $lines[] = $this->textLine('Struk Pembayaran', bold: 0, align: 1, format: 0);
+        // spacer
+        $lines[] = $this->blankLine();
+        // order number — PDF: bold center
+        $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 0);
+        // paid_at — PDF: center
+        $lines[] = $this->textLine($order->paid_at?->format('d/m/Y H:i') ?? '-', bold: 0, align: 1, format: 0);
 
-        $meta = [$order->paid_at?->format('d/m/Y H:i') ?? '-'];
         if ($order->order_type) {
-            $meta[] = $this->sanitize($order->order_type->label());
+            $lines[] = $this->textLine($this->sanitize($order->order_type->label()), bold: 0, align: 1, format: 0);
         }
         if ($order->table) {
-            $meta[] = 'Meja: '.$this->sanitize($order->table->label);
+            $lines[] = $this->textLine('Meja: '.$this->sanitize($order->table->label), bold: 0, align: 1, format: 0);
         }
         if ($order->customer_note) {
-            $meta[] = 'Pelanggan: '.$this->sanitize($order->customer_note);
+            $lines[] = $this->textLine('Pelanggan: '.$this->sanitize($order->customer_note), bold: 0, align: 1, format: 0);
         }
-        $blocks[] = [
-            'content' => implode("\n", $meta),
-            'bold' => 0,
-            'align' => 1,
-            'format' => 0,
-        ];
 
-        $blocks[] = ['content' => str_repeat('-', $w), 'bold' => 0, 'align' => 0, 'format' => 0];
+        $lines[] = $this->blankLine();
+        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 0);
 
-        $itemLines = [];
         foreach ($order->items as $item) {
             $qty = Format::number($item->quantity, 0);
             $name = $this->sanitize($item->product?->name ?? 'Item');
-            // Sama PDF: "Nama x qty" .... harga
-            $itemLines[] = $this->columnsText($name.' x '.$qty, Format::rupiah($item->line_total), $w);
+            // PDF: twoColumns("Nama x qty", harga) — left
+            $lines[] = $this->columnsLine($name.' x '.$qty, Format::rupiah($item->line_total), $w, bold: 0, format: 0);
 
-            $noteParts = PosItemNotes::split($item->notes);
-            if ($noteParts['addon_labels'] !== []) {
-                $itemLines[] = '  '.$this->sanitize(implode(' · ', $noteParts['addon_labels']));
-            }
-            if ($noteParts['customer']) {
-                $itemLines[] = '  Catatan: '.$this->sanitize($noteParts['customer']);
-            } elseif ($item->notes && $noteParts['addon_labels'] === []) {
-                $itemLines[] = '  Catatan: '.$this->sanitize((string) $item->notes);
+            if ($item->notes) {
+                // PDF: "  Catatan: {notes}" left — raw notes sama PDF
+                $lines[] = $this->textLine('  Catatan: '.$this->sanitize((string) $item->notes), bold: 0, align: 0, format: 0);
             }
         }
-        $blocks[] = [
-            'content' => implode("\n", $itemLines) ?: '-',
-            'bold' => 0,
-            'align' => 0,
-            'format' => 0,
-        ];
 
-        $blocks[] = ['content' => str_repeat('-', $w), 'bold' => 0, 'align' => 0, 'format' => 0];
+        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 0);
 
-        $totalLines = [];
         if ($order->hasDiscount()) {
-            $totalLines[] = $this->columnsText('Subtotal', Format::rupiah($order->subtotal), $w);
-            $totalLines[] = $this->columnsText('Diskon', '- '.Format::rupiah($order->discount_amount), $w);
+            $lines[] = $this->columnsLine('Subtotal', Format::rupiah($order->subtotal), $w, bold: 0, format: 0);
+            $lines[] = $this->columnsLine('Diskon', '- '.Format::rupiah($order->discount_amount), $w, bold: 0, format: 0);
         }
-        $totalLines[] = $this->columnsText('TOTAL', Format::rupiah($order->total), $w);
-        $blocks[] = [
-            'content' => implode("\n", $totalLines),
-            'bold' => 1,
-            'align' => 0,
-            'format' => 1, // TOTAL sedikit lebih besar dari PDF
-        ];
 
-        $footer = ['Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-')];
+        // TOTAL — PDF: lebih besar + bold, left two-column
+        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $w, bold: 1, format: 1);
+
+        $lines[] = $this->textLine('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), bold: 0, align: 0, format: 0);
+
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $footer[] = 'Diterima: '.Format::rupiah($order->amount_received);
-            $footer[] = 'Kembalian: '.Format::rupiah($order->change_amount);
+            $lines[] = $this->textLine('Diterima: '.Format::rupiah($order->amount_received), bold: 0, align: 0, format: 0);
+            $lines[] = $this->textLine('Kembalian: '.Format::rupiah($order->change_amount), bold: 0, align: 0, format: 0);
         }
+
         if ($order->cashierDisplayName() !== '-') {
-            $footer[] = 'Kasir: '.$this->sanitize($order->cashierDisplayName());
+            $lines[] = $this->textLine('Kasir: '.$this->sanitize($order->cashierDisplayName()), bold: 0, align: 0, format: 0);
         }
-        $blocks[] = [
-            'content' => implode("\n", $footer),
-            'bold' => 0,
-            'align' => 0,
-            'format' => 0,
-        ];
 
-        $blocks[] = ['content' => "\nTerima kasih\n\n", 'bold' => 0, 'align' => 1, 'format' => 0];
+        $lines[] = $this->blankLine();
+        // Terima kasih — PDF: bold center
+        $lines[] = $this->textLine('Terima kasih', bold: 1, align: 1, format: 0);
+        $lines[] = $this->blankLine();
+        $lines[] = $this->blankLine();
 
-        return $blocks;
+        return $lines;
     }
 
     /**
-     * @param  list<array{content: string, bold: int, align: int, format: int}>  $blocks
+     * @return array{kind: string, text: string, bold: int, align: int, format: int}
      */
-    private function blocksToThermerJson(array $blocks): string
+    private function textLine(string $text, int $bold, int $align, int $format): array
+    {
+        return [
+            'kind' => 'text',
+            'text' => $text,
+            'bold' => $bold,
+            'align' => $align,
+            'format' => $format,
+        ];
+    }
+
+    /**
+     * @return array{kind: string, text: string, bold: int, align: int, format: int}
+     */
+    private function blankLine(): array
+    {
+        return $this->textLine(' ', bold: 0, align: 0, format: 0);
+    }
+
+    /**
+     * @return array{kind: string, text: string, bold: int, align: int, format: int}
+     */
+    private function columnsLine(string $left, string $right, int $width, int $bold, int $format): array
+    {
+        return [
+            'kind' => 'columns',
+            'text' => $this->columnsText($left, $right, $width),
+            'bold' => $bold,
+            'align' => 0,
+            'format' => $format,
+        ];
+    }
+
+    /**
+     * @param  list<array{kind: string, text?: string, bold: int, align: int, format: int}>  $lines
+     */
+    private function linesToThermerJson(array $lines): string
     {
         $entries = [];
-        foreach ($blocks as $index => $block) {
-            $entries[(string) $index] = [
+        $i = 0;
+        foreach ($lines as $line) {
+            $entries[(string) $i++] = [
                 'type' => 0,
-                'content' => str_replace("\n", '<br />', $block['content']),
-                'bold' => $block['bold'],
-                'align' => $block['align'],
-                'format' => $block['format'],
+                'content' => $line['text'] ?? ' ',
+                'bold' => $line['bold'],
+                'align' => $line['align'],
+                'format' => $line['format'],
             ];
         }
 
@@ -192,100 +206,59 @@ class EscPosReceiptService
     }
 
     /**
-     * Teks polos untuk "Bagikan ke Thermer" — tampilan seperti struk PDF.
-     *
-     * @param  list<array{content: string, bold: int, align: int, format: int}>  $blocks
+     * @param  list<array{kind: string, text?: string, bold: int, align: int, format: int}>  $lines
      */
-    private function blocksToPlainText(array $blocks): string
+    private function linesToPlainText(array $lines): string
     {
-        $lines = [];
-        foreach ($blocks as $block) {
-            $lines[] = rtrim($block['content'], "\n");
+        $out = [];
+        foreach ($lines as $line) {
+            $text = $line['text'] ?? '';
+            // Spacer PDF → baris kosong (bukan spasi tunggal)
+            if (trim($text) === '') {
+                $out[] = '';
+                continue;
+            }
+            $out[] = $text;
         }
 
-        return implode("\n", $lines)."\n";
+        return implode("\n", $out)."\n";
     }
 
     public function build(PosOrder $order, int $width = self::WIDTH_58): string
     {
-        $order->loadMissing(['items.product', 'table', 'cashier']);
-        $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $w = max(24, $width);
+        $lines = $this->receiptLines($order, $w);
 
-        $out = '';
-        $out .= "\x1B\x40";
-        $out .= "\x1B\x61\x01";
+        $out = "\x1B\x40"; // init
 
-        // Double height saja (bukan double width) — mirip PDF diperbesar
-        $out .= "\x1D\x21\x01";
-        $out .= "\x1B\x45\x01";
-        $out .= $this->line($this->sanitize($shopName), $w);
-        $out .= "\x1B\x45\x00";
-        $out .= "\x1D\x21\x00";
+        foreach ($lines as $line) {
+            $text = $line['text'] ?? ' ';
+            $align = (int) $line['align'];
+            $bold = (int) $line['bold'] === 1;
+            $format = (int) $line['format'];
 
-        $out .= $this->line('Struk Pembayaran', $w);
-        $out .= "\x1B\x45\x01";
-        $out .= $this->line($this->sanitize($order->order_number), $w);
-        $out .= "\x1B\x45\x00";
-        $out .= $this->line($order->paid_at?->format('d/m/Y H:i') ?? '-', $w);
+            // Align: 0 left, 1 center, 2 right
+            $out .= match ($align) {
+                1 => "\x1B\x61\x01",
+                2 => "\x1B\x61\x02",
+                default => "\x1B\x61\x00",
+            };
 
-        if ($order->order_type) {
-            $out .= $this->line($this->sanitize($order->order_type->label()), $w);
-        }
-        if ($order->table) {
-            $out .= $this->line('Meja: '.$this->sanitize($order->table->label), $w);
-        }
-        if ($order->customer_note) {
-            $out .= $this->line('Pelanggan: '.$this->sanitize($order->customer_note), $w);
+            // format 1 = double height (seperti judul/TOTAL PDF yang lebih besar)
+            $out .= $format === 1 ? "\x1D\x21\x01" : "\x1D\x21\x00";
+            $out .= $bold ? "\x1B\x45\x01" : "\x1B\x45\x00";
+
+            if (trim($text) === '') {
+                $out .= "\n";
+            } else {
+                $out .= $this->line($text, $w);
+            }
+
+            $out .= "\x1B\x45\x00";
+            $out .= "\x1D\x21\x00";
         }
 
         $out .= "\x1B\x61\x00";
-        $out .= str_repeat('-', $w)."\n";
-
-        foreach ($order->items as $item) {
-            $qty = Format::number($item->quantity, 0);
-            $name = $this->sanitize($item->product?->name ?? 'Item');
-            $out .= $this->columns($name.' x '.$qty, Format::rupiah($item->line_total), $w);
-
-            $noteParts = PosItemNotes::split($item->notes);
-            if ($noteParts['addon_labels'] !== []) {
-                $out .= $this->line('  '.$this->sanitize(implode(' · ', $noteParts['addon_labels'])), $w);
-            }
-            if ($noteParts['customer']) {
-                $out .= $this->line('  Catatan: '.$this->sanitize($noteParts['customer']), $w);
-            } elseif ($item->notes && $noteParts['addon_labels'] === []) {
-                $out .= $this->line('  Catatan: '.$this->sanitize((string) $item->notes), $w);
-            }
-        }
-
-        $out .= str_repeat('-', $w)."\n";
-
-        if ($order->hasDiscount()) {
-            $out .= $this->columns('Subtotal', Format::rupiah($order->subtotal), $w);
-            $out .= $this->columns('Diskon', '- '.Format::rupiah($order->discount_amount), $w);
-        }
-
-        $out .= "\x1D\x21\x01";
-        $out .= "\x1B\x45\x01";
-        $out .= $this->columns('TOTAL', Format::rupiah($order->total), $w);
-        $out .= "\x1B\x45\x00";
-        $out .= "\x1D\x21\x00";
-
-        $out .= $this->line('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), $w);
-
-        if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $out .= $this->line('Diterima: '.Format::rupiah($order->amount_received), $w);
-            $out .= $this->line('Kembalian: '.Format::rupiah($order->change_amount), $w);
-        }
-
-        if ($order->cashierDisplayName() !== '-') {
-            $out .= $this->line('Kasir: '.$this->sanitize($order->cashierDisplayName()), $w);
-        }
-
-        $out .= "\n";
-        $out .= "\x1B\x61\x01";
-        $out .= $this->line('Terima kasih', $w);
-        $out .= "\n\n\n";
         $out .= "\x1D\x56\x41\x03";
 
         return $out;
@@ -294,11 +267,6 @@ class EscPosReceiptService
     private function line(string $text, int $width): string
     {
         return $this->wrap($text, $width)."\n";
-    }
-
-    private function columns(string $left, string $right, int $width): string
-    {
-        return $this->columnsText($left, $right, $width)."\n";
     }
 
     private function columnsText(string $left, string $right, int $width): string
