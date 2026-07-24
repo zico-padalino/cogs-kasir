@@ -103,56 +103,58 @@
 
                     <aside class="order-panel-cart order-panel" data-order-panel="cart">
                         <div class="order-cart-sticky">
-                            @include('order.partials.order-summary', [
-                                'order' => $order,
-                                'format' => $format,
-                                'editable' => true,
-                            ])
-
                             @if ($order->items->isNotEmpty())
                                 <form action="{{ route('order.menu.submit') }}" method="POST" class="order-checkout-form">
                                     @csrf
 
-                                    <div class="order-checkout-details">
-                                        <p class="order-checkout-title">Sebelum kirim</p>
-                                        <p class="order-checkout-hint">Pilih tipe pesanan dan isi nama — wajib sebelum dikirim ke kasir.</p>
+                                    <div class="order-cart-scroll">
+                                        @include('order.partials.order-summary', [
+                                            'order' => $order,
+                                            'format' => $format,
+                                            'editable' => true,
+                                        ])
 
-                                        <div class="order-type-grid" role="radiogroup" aria-label="Tipe pesanan">
-                                            @foreach ($orderTypes as $orderType)
-                                                <label class="order-type-card {{ $activeType === $orderType->value ? 'is-active' : '' }}">
-                                                    <input
-                                                        type="radio"
-                                                        name="order_type"
-                                                        value="{{ $orderType->value }}"
-                                                        class="sr-only"
-                                                        required
-                                                        @checked(old('order_type', $activeType) === $orderType->value)
-                                                    >
-                                                    <span class="order-type-icon" aria-hidden="true">{{ $orderType->icon() }}</span>
-                                                    <span class="order-type-text">
-                                                        <span class="order-type-name">{{ $orderType->label() }}</span>
-                                                        <span class="order-type-desc">{{ $orderType->hint() }}</span>
-                                                    </span>
-                                                </label>
-                                            @endforeach
+                                        <div class="order-checkout-details">
+                                            <p class="order-checkout-title">Sebelum kirim</p>
+                                            <p class="order-checkout-hint">Pilih tipe pesanan dan isi nama — wajib sebelum dikirim ke kasir.</p>
+
+                                            <div class="order-type-grid" role="radiogroup" aria-label="Tipe pesanan">
+                                                @foreach ($orderTypes as $orderType)
+                                                    <label class="order-type-card {{ $activeType === $orderType->value ? 'is-active' : '' }}">
+                                                        <input
+                                                            type="radio"
+                                                            name="order_type"
+                                                            value="{{ $orderType->value }}"
+                                                            class="sr-only"
+                                                            required
+                                                            @checked(old('order_type', $activeType) === $orderType->value)
+                                                        >
+                                                        <span class="order-type-icon" aria-hidden="true">{{ $orderType->icon() }}</span>
+                                                        <span class="order-type-text">
+                                                            <span class="order-type-name">{{ $orderType->label() }}</span>
+                                                            <span class="order-type-desc">{{ $orderType->hint() }}</span>
+                                                        </span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+
+                                            <label class="order-checkout-label" for="order-customer-note">Nama pemesan</label>
+                                            <input
+                                                id="order-customer-note"
+                                                type="text"
+                                                name="customer_note"
+                                                value="{{ old('customer_note', $order->customer_note) }}"
+                                                maxlength="255"
+                                                class="order-checkout-input"
+                                                placeholder="Contoh: Budi"
+                                                required
+                                                autocomplete="name"
+                                            >
                                         </div>
 
-                                        <label class="order-checkout-label" for="order-customer-note">Nama pemesan</label>
-                                        <input
-                                            id="order-customer-note"
-                                            type="text"
-                                            name="customer_note"
-                                            value="{{ old('customer_note', $order->customer_note) }}"
-                                            maxlength="255"
-                                            class="order-checkout-input"
-                                            placeholder="Contoh: Budi"
-                                            required
-                                            autocomplete="name"
-                                        >
-                                    </div>
-
-                                    <div class="order-submit-note">
-                                        <p>Setelah dikirim, datang ke <strong>kasir</strong> untuk konfirmasi pesanan & pembayaran.</p>
+                                        <div class="order-submit-note">
+                                            <p>Setelah dikirim, datang ke <strong>kasir</strong> untuk konfirmasi pesanan & pembayaran.</p>
+                                        </div>
                                     </div>
 
                                     <div class="order-submit-wrap">
@@ -166,7 +168,14 @@
                                     </div>
                                 </form>
                             @else
-                                <p class="order-cart-hint">Tambah menu dulu, lalu isi tipe & nama sebelum kirim ke kasir.</p>
+                                <div class="order-cart-scroll">
+                                    @include('order.partials.order-summary', [
+                                        'order' => $order,
+                                        'format' => $format,
+                                        'editable' => true,
+                                    ])
+                                    <p class="order-cart-hint">Tambah menu dulu, lalu isi tipe & nama sebelum kirim ke kasir.</p>
+                                </div>
                             @endif
                         </div>
                     </aside>

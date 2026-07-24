@@ -176,7 +176,7 @@ export default function PesanOnlineScreen() {
       </ScrollView>
 
       {totalQty > 0 ? (
-        <View style={[styles.footer, { paddingBottom: Math.max(spacing.md, insets.bottom) }]}>
+          <View style={[styles.footer, { paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md) }]}>
           <View>
             <Text style={styles.footerLabel}>{totalQty} item</Text>
             <Text style={styles.footerTotal}>{formatRupiah(total)}</Text>
