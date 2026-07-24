@@ -147,10 +147,10 @@
                                                 class="btn-sm btn-outline-danger"
                                                 onclick="return confirm({{ json_encode('Hapus harga jual '.$product->name.'? Menu akan hilang dari Kasir.') }})"
                                             >
-                                                Hapus Harga
+                                                Hapus
                                             </button>
                                         @endif
-                                        <button type="submit" class="btn-primary px-5 py-2.5 font-semibold">Simpan Harga</button>
+                                        <button type="submit" class="btn-primary px-5 py-2.5 font-semibold">Simpan</button>
                                     </div>
                                 </div>
                             </form>
