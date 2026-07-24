@@ -165,15 +165,28 @@ function enhanceSelect(select) {
         const query = normalize(search.value);
         list.innerHTML = '';
         visibleItems = [];
+        const seenValues = new Set();
+        let lastGroup = null;
 
-        Array.from(select.options).forEach((option) => {
-            if (! option.value) {
+        const appendOption = (option, groupLabel) => {
+            if (! option.value || seenValues.has(option.value)) {
                 return;
             }
 
             const label = optionLabel(option);
             if (query && ! normalize(label).includes(query)) {
                 return;
+            }
+
+            seenValues.add(option.value);
+
+            if (groupLabel && groupLabel !== lastGroup) {
+                const header = document.createElement('li');
+                header.className = 'searchable-select__group';
+                header.setAttribute('role', 'presentation');
+                header.textContent = groupLabel;
+                list.appendChild(header);
+                lastGroup = groupLabel;
             }
 
             const li = document.createElement('li');
@@ -193,6 +206,21 @@ function enhanceSelect(select) {
 
             list.appendChild(li);
             visibleItems.push(li);
+        };
+
+        Array.from(select.children).forEach((child) => {
+            if (child.tagName === 'OPTGROUP') {
+                Array.from(child.children).forEach((option) => {
+                    if (option.tagName === 'OPTION') {
+                        appendOption(option, child.label || '');
+                    }
+                });
+                return;
+            }
+
+            if (child.tagName === 'OPTION') {
+                appendOption(child, '');
+            }
         });
 
         empty.hidden = visibleItems.length > 0;

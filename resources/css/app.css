@@ -520,6 +520,10 @@
         @apply relative z-20 min-w-0 overflow-visible;
     }
 
+    .recipe-add-form__material-split {
+        @apply grid gap-3;
+    }
+
     .recipe-add-form__qty {
         @apply min-w-0;
     }
@@ -725,6 +729,10 @@
 
     .searchable-select__list {
         @apply m-0 min-h-0 flex-1 list-none overflow-y-auto overscroll-contain p-1;
+    }
+
+    .searchable-select__group {
+        @apply sticky top-0 z-[1] bg-slate-100 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500;
     }
 
     .searchable-select__option {

@@ -76,8 +76,13 @@ class ProductApiController extends Controller
         $allProducts = Product::query()
             ->whereIn('type', $childTypes)
             ->where('is_active', true)
+            ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::RawMaterial->value])
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->unique('id')
+            ->unique(fn (Product $p) => mb_strtolower(trim($p->name)))
+            ->sortBy(fn (Product $p) => mb_strtolower($p->name))
+            ->values();
 
         $materialUnits = $allProducts->mapWithKeys(fn (Product $material) => [
             (string) $material->id => [

@@ -251,56 +251,87 @@
                             data-material-units='@json($materialUnits)'
                         >
                             @csrf
+                            @php
+                                $bomRaw = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::RawMaterial);
+                                $bomJadi = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::SemiFinished);
+                                $oldChildId = old('child_product_id');
+                                $oldIsRaw = $oldChildId && $bomRaw->contains(fn ($p) => (string) $p->id === (string) $oldChildId);
+                                $oldIsJadi = $oldChildId && $bomJadi->contains(fn ($p) => (string) $p->id === (string) $oldChildId);
+                            @endphp
                             <div class="recipe-add-form__material">
-                                <label class="form-label" for="bom_child_product_id">
-                                    @if ($product->type === \App\Enums\ProductType::SemiFinished)
-                                        Pilih bahan baku
-                                    @else
-                                        Pilih bahan / bahan jadi
-                                    @endif
-                                </label>
-                                <select
-                                    id="bom_child_product_id"
-                                    name="child_product_id"
-                                    class="form-input"
-                                    required
-                                    data-bom-material
-                                    data-searchable-select
-                                    data-search-placeholder="{{ $product->type === \App\Enums\ProductType::SemiFinished ? 'Pilih bahan baku...' : 'Pilih bahan atau bahan jadi...' }}"
-                                    data-search-input-placeholder="Cari nama..."
-                                >
-                                    <option value="">
-                                        {{ $product->type === \App\Enums\ProductType::SemiFinished ? 'Pilih bahan baku...' : 'Pilih bahan atau bahan jadi...' }}
-                                    </option>
-                                    @php
-                                        $bomRaw = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::RawMaterial);
-                                        $bomJadi = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::SemiFinished);
-                                    @endphp
-                                    @if ($bomRaw->isNotEmpty())
-                                        <optgroup label="Bahan baku">
-                                            @foreach ($bomRaw as $p)
-                                                <option
-                                                    value="{{ $p->id }}"
-                                                    @selected((string) old('child_product_id') === (string) $p->id)
+                                @if ($product->type === \App\Enums\ProductType::SemiFinished)
+                                    <label class="form-label" for="bom_child_product_id">Pilih bahan baku</label>
+                                    <select
+                                        id="bom_child_product_id"
+                                        name="child_product_id"
+                                        class="form-input"
+                                        required
+                                        data-bom-material
+                                        data-searchable-select
+                                        data-search-placeholder="Pilih bahan baku..."
+                                        data-search-input-placeholder="Cari nama..."
+                                    >
+                                        <option value="">Pilih bahan baku...</option>
+                                        @foreach ($bomRaw as $p)
+                                            <option
+                                                value="{{ $p->id }}"
+                                                @selected((string) $oldChildId === (string) $p->id)
+                                            >
+                                                {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <input type="hidden" name="child_product_id" value="{{ $oldChildId }}" data-bom-child-id>
+                                    <div class="recipe-add-form__material-split">
+                                        @if ($bomRaw->isNotEmpty())
+                                            <div>
+                                                <label class="form-label" for="bom_child_raw">Pilih bahan baku</label>
+                                                <select
+                                                    id="bom_child_raw"
+                                                    class="form-input"
+                                                    data-bom-material
+                                                    data-searchable-select
+                                                    data-search-placeholder="Pilih bahan baku..."
+                                                    data-search-input-placeholder="Cari nama..."
                                                 >
-                                                    {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
-                                                </option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    @if ($product->type !== \App\Enums\ProductType::SemiFinished && $bomJadi->isNotEmpty())
-                                        <optgroup label="Bahan jadi">
-                                            @foreach ($bomJadi as $p)
-                                                <option
-                                                    value="{{ $p->id }}"
-                                                    @selected((string) old('child_product_id') === (string) $p->id)
+                                                    <option value="">Pilih bahan baku...</option>
+                                                    @foreach ($bomRaw as $p)
+                                                        <option
+                                                            value="{{ $p->id }}"
+                                                            @selected($oldIsRaw && (string) $oldChildId === (string) $p->id)
+                                                        >
+                                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        @endif
+                                        @if ($bomJadi->isNotEmpty())
+                                            <div>
+                                                <label class="form-label" for="bom_child_jadi">Pilih bahan jadi</label>
+                                                <select
+                                                    id="bom_child_jadi"
+                                                    class="form-input"
+                                                    data-bom-material
+                                                    data-searchable-select
+                                                    data-search-placeholder="Pilih bahan jadi..."
+                                                    data-search-input-placeholder="Cari nama..."
                                                 >
-                                                    {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
-                                                </option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                </select>
+                                                    <option value="">Pilih bahan jadi...</option>
+                                                    @foreach ($bomJadi as $p)
+                                                        <option
+                                                            value="{{ $p->id }}"
+                                                            @selected($oldIsJadi && (string) $oldChildId === (string) $p->id)
+                                                        >
+                                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                             <div class="recipe-add-form__qty">
                                 <label class="form-label" for="bom_quantity">Jumlah dipakai</label>
@@ -635,7 +666,8 @@
     const form = document.querySelector('[data-bom-form]');
     if (!form) return;
 
-    const materialSelect = form.querySelector('[data-bom-material]');
+    const materialSelects = [...form.querySelectorAll('[data-bom-material]')];
+    const childIdInput = form.querySelector('[data-bom-child-id]');
     const unitSelect = form.querySelector('[data-bom-unit]');
     const submitBtn = form.querySelector('[data-bom-submit]');
     const hint = form.querySelector('[data-bom-unit-hint]');
@@ -652,8 +684,16 @@
         submitBtn.disabled = !enabled;
     };
 
+    const activeMaterialId = () => {
+        if (childIdInput) {
+            return String(childIdInput.value || '');
+        }
+        const selected = materialSelects.find((select) => select.value);
+        return String(selected?.value || '');
+    };
+
     const fillUnits = () => {
-        const id = String(materialSelect.value || '');
+        const id = activeMaterialId();
         const meta = materialUnits[id];
         const previous = unitSelect.value;
         const oldUnit = @json(old('unit'));
@@ -695,7 +735,27 @@
         }
     };
 
-    materialSelect.addEventListener('change', fillUnits);
+    materialSelects.forEach((select) => {
+        select.addEventListener('change', () => {
+            if (childIdInput) {
+                const chosen = String(select.value || '');
+                if (chosen) {
+                    childIdInput.value = chosen;
+                    materialSelects.forEach((other) => {
+                        if (other !== select && other.value) {
+                            other.value = '';
+                            other.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    });
+                } else {
+                    const stillSelected = materialSelects.find((s) => s !== select && s.value);
+                    childIdInput.value = stillSelected ? String(stillSelected.value) : '';
+                }
+            }
+            fillUnits();
+        });
+    });
+
     fillUnits();
 })();
 
