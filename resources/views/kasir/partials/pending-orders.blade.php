@@ -44,6 +44,7 @@
                     $isCurrent = $currentOrderId && (int) $pending->id === (int) $currentOrderId;
                     $isOpenBill = $pending->status === PosOrderStatus::Unpaid;
                     $isAwaitingServe = $pending->status === PosOrderStatus::Paid;
+                    $canOpen = ! $isCurrent && ! $isAwaitingServe;
                     $actionCols = $isAwaitingServe ? 1 : ($isCurrent ? 1 : 2);
                     $openLabel = match (true) {
                         $isOpenBill => 'Buka / Tambah',
@@ -61,22 +62,53 @@
                     'is-current' => $isCurrent,
                     'is-open-bill' => $isOpenBill,
                     'is-awaiting-serve' => $isAwaitingServe,
+                    'is-clickable' => $canOpen || $isAwaitingServe,
                 ])>
-                    <div class="pos-pending-card-head">
-                        <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
-                        <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
-                        <span class="pos-pending-btn-meta">
-                            {{ $pending->order_number }}
-                            @if ($pending->table)
-                                · {{ $pending->table->label }}
-                            @endif
-                        </span>
-                        @if ($isCurrent && ! $isAwaitingServe)
-                            <span class="badge badge-blue pos-pending-status">Sedang dibuka</span>
-                        @else
+                    @if ($canOpen)
+                        <form action="{{ route('kasir.load-order', $pending) }}" method="POST" class="pos-pending-card-hit-form">
+                            @csrf
+                            <button type="submit" class="pos-pending-card-hit" aria-label="{{ $openLabel }}: {{ $pending->customer_note ?: $pending->order_number }}">
+                                <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
+                                <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
+                                <span class="pos-pending-btn-meta">
+                                    {{ $pending->order_number }}
+                                    @if ($pending->table)
+                                        · {{ $pending->table->label }}
+                                    @endif
+                                </span>
+                                <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $pending->status->label() }}</span>
+                            </button>
+                        </form>
+                    @elseif ($isAwaitingServe)
+                        <a
+                            href="{{ route('kasir.orders.show', $pending) }}"
+                            class="pos-pending-card-hit"
+                            aria-label="Lihat detail pesanan {{ $pending->customer_note ?: $pending->order_number }}"
+                        >
+                            <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
+                            <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
+                            <span class="pos-pending-btn-meta">
+                                {{ $pending->order_number }}
+                                @if ($pending->table)
+                                    · {{ $pending->table->label }}
+                                @endif
+                            </span>
                             <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $pending->status->label() }}</span>
-                        @endif
-                    </div>
+                        </a>
+                    @else
+                        <div class="pos-pending-card-head">
+                            <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
+                            <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
+                            <span class="pos-pending-btn-meta">
+                                {{ $pending->order_number }}
+                                @if ($pending->table)
+                                    · {{ $pending->table->label }}
+                                @endif
+                            </span>
+                            <span class="badge badge-blue pos-pending-status">Sedang dibuka</span>
+                        </div>
+                    @endif
+
                     <div
                         class="pos-pending-card-actions"
                         style="--pos-pending-actions: {{ $actionCols }}"

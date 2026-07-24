@@ -2505,6 +2505,22 @@
         min-width: min(100%, 10rem);
     }
 
+    .pos-pending-card.is-clickable {
+        @apply transition hover:border-brand-400 hover:shadow-md;
+    }
+
+    .pos-pending-card-hit-form {
+        @apply min-w-0;
+    }
+
+    .pos-pending-card-hit {
+        @apply grid min-w-0 w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-0.5 rounded-md text-left transition active:scale-[0.99];
+    }
+
+    .pos-pending-card-hit:focus-visible {
+        @apply outline-none ring-2 ring-brand-500/40;
+    }
+
     .pos-pending-card-head {
         @apply grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-0.5;
     }

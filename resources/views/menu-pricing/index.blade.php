@@ -60,7 +60,7 @@
                                   data-pricing-form
                                   data-modal="{{ $belumModal ? 0 : $modal }}"
                                   data-unit="{{ $product->unit }}">
-                                @csrf @method('PUT')
+                                @csrf
                                 <input type="hidden" name="pricing_mode" value="price" data-pricing-mode>
 
                                 <div class="module-pricing-card__head">
@@ -162,7 +162,6 @@
                                     class="hidden"
                                 >
                                     @csrf
-                                    @method('DELETE')
                                 </form>
                             @endif
                         </div>

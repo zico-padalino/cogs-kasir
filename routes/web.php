@@ -190,8 +190,9 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::post('production-orders/{production_order}/complete', [ProductionOrderController::class, 'complete'])->name('production-orders.complete');
 
     Route::get('harga-jual', [MenuPricingController::class, 'index'])->name('menu-pricing.index');
-    Route::put('harga-jual/{product}', [MenuPricingController::class, 'update'])->name('menu-pricing.update');
-    Route::delete('harga-jual/{product}', [MenuPricingController::class, 'destroy'])->name('menu-pricing.destroy');
+    // POST + PUT: beberapa proxy/tunnel menolak PUT mentah; form web memakai POST + _method.
+    Route::match(['put', 'post'], 'harga-jual/{product}', [MenuPricingController::class, 'update'])->name('menu-pricing.update');
+    Route::match(['delete', 'post'], 'harga-jual/{product}/hapus', [MenuPricingController::class, 'destroy'])->name('menu-pricing.destroy');
 
     Route::get('cogs/calculate', fn () => redirect()->route('menu-pricing.index'))->name('cogs.calculate');
     Route::post('cogs/calculate', [CogsController::class, 'process'])->name('cogs.process');

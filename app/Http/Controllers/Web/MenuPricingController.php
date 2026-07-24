@@ -8,7 +8,6 @@ use App\Models\Product;
 use App\Services\ProductHppService;
 use App\Support\Format;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class MenuPricingController extends Controller
 {
@@ -53,19 +52,11 @@ class MenuPricingController extends Controller
         $mode = $validated['pricing_mode'] ?? 'price';
         $sellingPrice = 0.0;
 
-        if ($mode === 'percent') {
-            if ($modal <= 0) {
-                throw ValidationException::withMessages([
-                    'margin_percent' => 'Modal belum terisi. Isi harga jual secara manual, atau lengkapi resep dulu.',
-                ]);
-            }
-
-            if (! array_key_exists('margin_percent', $validated) || $validated['margin_percent'] === null || $validated['margin_percent'] === '') {
-                throw ValidationException::withMessages([
-                    'margin_percent' => 'Isi persen untung.',
-                ]);
-            }
-
+        // Mode persen hanya dipakai jika modal sudah ada; kalau tidak, jatuh ke harga manual (boleh 0).
+        if ($mode === 'percent' && $modal > 0
+            && array_key_exists('margin_percent', $validated)
+            && $validated['margin_percent'] !== null
+            && $validated['margin_percent'] !== '') {
             $percent = min(99.9, max(0, (float) $validated['margin_percent']));
             $sellingPrice = $percent >= 99.9
                 ? round($modal * 1000)

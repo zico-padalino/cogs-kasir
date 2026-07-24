@@ -533,24 +533,48 @@ export default function KasirPosScreen() {
                         isCurrent && styles.pendingCardCurrent,
                       ]}
                     >
-                      <Text style={styles.pendingNo} numberOfLines={1}>
-                        {p.customer_note || 'Tanpa nama'}
-                      </Text>
-                      <Text style={styles.pendingMeta} numberOfLines={1}>
-                        #{p.order_number}
-                        {p.table?.label ? ` · ${p.table.label}` : ''}
-                      </Text>
-                      <Text style={styles.pendingMeta}>
-                        {isCurrent && !awaitingServe
-                          ? 'Sedang dibuka'
-                          : awaitingServe
-                            ? 'Sudah Bayar'
-                            : isOpenBill
-                              ? 'Open Bill'
-                              : p.status_label || p.status}
-                        {' · '}
-                        {formatRupiah(p.total)}
-                      </Text>
+                      <Pressable
+                        disabled={isCurrent && !awaitingServe}
+                        onPress={() => {
+                          if (awaitingServe) {
+                            router.push(`/kasir/order-detail?id=${p.id}` as never);
+                            return;
+                          }
+                          if (isCurrent) {
+                            setTab('cart');
+                            return;
+                          }
+                          void (async () => {
+                            try {
+                              const res = await kasirApi.loadOrder(p.id);
+                              applyOrder(res.data);
+                              setTab('cart');
+                            } catch (err) {
+                              handleApiError(err);
+                            }
+                          })();
+                        }}
+                        style={({ pressed }) => [pressed && !(isCurrent && !awaitingServe) && styles.pendingCardPressed]}
+                      >
+                        <Text style={styles.pendingNo} numberOfLines={1}>
+                          {p.customer_note || 'Tanpa nama'}
+                        </Text>
+                        <Text style={styles.pendingMeta} numberOfLines={1}>
+                          #{p.order_number}
+                          {p.table?.label ? ` · ${p.table.label}` : ''}
+                        </Text>
+                        <Text style={styles.pendingMeta}>
+                          {isCurrent && !awaitingServe
+                            ? 'Sedang dibuka'
+                            : awaitingServe
+                              ? 'Sudah Bayar'
+                              : isOpenBill
+                                ? 'Open Bill'
+                                : p.status_label || p.status}
+                          {' · '}
+                          {formatRupiah(p.total)}
+                        </Text>
+                      </Pressable>
                       <View style={styles.pendingActions}>
                         {awaitingServe ? (
                           <Pressable
@@ -1269,6 +1293,10 @@ const styles = StyleSheet.create({
   },
   pendingCardCurrent: {
     borderColor: colors.brand600,
+  },
+  pendingCardPressed: {
+    opacity: 0.92,
+    borderColor: colors.brand400,
   },
   pendingNo: { fontSize: 13, ...font('700'), color: colors.slate900 },
   pendingMeta: { fontSize: 12, color: colors.slate600 },
