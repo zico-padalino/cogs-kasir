@@ -2707,7 +2707,7 @@
     }
 
     .pos-deliver-modal {
-        @apply fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-4;
+        @apply fixed inset-0 z-[95] flex items-end justify-center p-0 sm:items-center sm:p-4;
     }
 
     .pos-deliver-modal-panel {

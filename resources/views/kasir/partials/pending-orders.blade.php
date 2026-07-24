@@ -140,7 +140,7 @@
                                 class="pos-pending-action pos-pending-action-deliver"
                                 data-deliver-open
                                 data-deliver-title="{{ $pending->customer_note ?: $pending->order_number }}"
-                                data-deliver-items='@json($deliverItems)'
+                                data-deliver-items="{{ e(json_encode($deliverItems)) }}"
                             >
                                 Ceklis antar
                             </button>

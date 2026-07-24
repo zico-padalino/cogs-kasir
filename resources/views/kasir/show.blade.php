@@ -39,7 +39,7 @@
                     class="pos-deliver-open-btn mb-3"
                     data-deliver-open
                     data-deliver-title="{{ $order->customer_note ?: $order->order_number }}"
-                    data-deliver-items='@json($deliverItems)'
+                    data-deliver-items="{{ e(json_encode($deliverItems)) }}"
                 >
                     <span class="pos-deliver-open-btn-label">Ceklis antar</span>
                     <span class="pos-deliver-open-btn-progress" data-deliver-progress>

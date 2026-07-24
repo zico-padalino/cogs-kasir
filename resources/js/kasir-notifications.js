@@ -1,7 +1,7 @@
 /**
  * Notifikasi kasir — polling pesanan online + toast visual + auto load.
  */
-import { refreshKasirOrderUi } from './kasir';
+import { refreshKasirOrderUi, initItemDeliverToggle } from './kasir';
 
 let knownOrderIds = null;
 let isHandlingNewOrder = false;
@@ -51,6 +51,11 @@ function updatePendingPanel(html) {
     }
 
     wrap.innerHTML = html;
+    // Pastikan toggle antrian + ceklis antar tetap hidup setelah HTML diganti polling.
+    const root = document.getElementById('kasir-pos');
+    if (root) {
+        initItemDeliverToggle();
+    }
 }
 
 function flashPendingPanel() {

@@ -307,11 +307,42 @@ function initKasirModals(root) {
     });
 }
 
-function initDeliverModal(root = document) {
+function parseDeliverItems(raw) {
+    if (! raw) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function escapeDeliverHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function initDeliverModal() {
     const modal = document.querySelector('[data-kasir-deliver-modal]');
     if (! modal) {
         return;
     }
+
+    // Pindahkan ke body supaya tidak ketutup overflow POS shell.
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+
+    if (modal.dataset.boundDeliverModal === '1') {
+        return;
+    }
+    modal.dataset.boundDeliverModal = '1';
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const listEl = modal.querySelector('[data-deliver-modal-list]');
@@ -321,9 +352,13 @@ function initDeliverModal(root = document) {
     let items = [];
 
     const setOpen = (open) => {
-        modal.classList.toggle('hidden', ! open);
-        modal.setAttribute('aria-hidden', open ? 'false' : 'true');
-        document.body.classList.toggle('overflow-hidden', open);
+        if (open) {
+            openKasirOverlay(modal);
+            document.body.classList.add('overflow-hidden');
+        } else {
+            closeKasirOverlay(modal);
+            document.body.classList.remove('overflow-hidden');
+        }
     };
 
     const syncProgress = () => {
@@ -339,31 +374,31 @@ function initDeliverModal(root = document) {
             if (totalEl) totalEl.textContent = String(total);
             activeOpenBtn.dataset.deliverItems = JSON.stringify(items);
         }
-        root.querySelectorAll(`[data-deliver-open]`).forEach((btn) => {
+        document.querySelectorAll('[data-deliver-open]').forEach((btn) => {
             if (btn === activeOpenBtn) return;
-            try {
-                const btnItems = JSON.parse(btn.dataset.deliverItems || '[]');
-                if (! Array.isArray(btnItems) || btnItems.length === 0) return;
-                const same = btnItems.some((row) => items.some((item) => item.id === row.id));
-                if (! same) return;
-                const merged = btnItems.map((row) => {
-                    const next = items.find((item) => item.id === row.id);
-                    return next ? { ...row, is_delivered: next.is_delivered } : row;
-                });
-                btn.dataset.deliverItems = JSON.stringify(merged);
-                const d = merged.filter((row) => row.is_delivered).length;
-                const doneNode = btn.querySelector('[data-deliver-done]');
-                const totalNode = btn.querySelector('[data-deliver-total]');
-                if (doneNode) doneNode.textContent = String(d);
-                if (totalNode) totalNode.textContent = String(merged.length);
-            } catch (_) {
-                // ignore
+            const btnItems = parseDeliverItems(btn.dataset.deliverItems);
+            if (btnItems.length === 0) return;
+            const same = btnItems.some((row) => items.some((item) => Number(item.id) === Number(row.id)));
+            if (! same) return;
+            const merged = btnItems.map((row) => {
+                const next = items.find((item) => Number(item.id) === Number(row.id));
+                return next ? { ...row, is_delivered: next.is_delivered } : row;
+            });
+            btn.dataset.deliverItems = JSON.stringify(merged);
+            const d = merged.filter((row) => row.is_delivered).length;
+            const doneNode = btn.querySelector('[data-deliver-done]');
+            const totalNode = btn.querySelector('[data-deliver-total]');
+            if (doneNode) doneNode.textContent = String(d);
+            if (totalNode) totalNode.textContent = String(merged.length);
+            const progressText = btn.closest('.pos-pending-card')?.querySelector('.pos-pending-deliver');
+            if (progressText) {
+                progressText.textContent = `Diantar ${d}/${merged.length}`;
             }
         });
-        // Mark rows on detail table if present
         items.forEach((item) => {
-            const row = document.querySelector(`[data-order-item-row][data-item-id="${item.id}"]`);
-            row?.classList.toggle('is-delivered', Boolean(item.is_delivered));
+            document.querySelectorAll(`[data-order-item-row][data-item-id="${item.id}"]`).forEach((row) => {
+                row.classList.toggle('is-delivered', Boolean(item.is_delivered));
+            });
         });
     };
 
@@ -376,19 +411,19 @@ function initDeliverModal(root = document) {
         }
 
         listEl.innerHTML = items.map((item) => `
-            <label class="pos-deliver-modal-row ${item.is_delivered ? 'is-delivered' : ''}" data-deliver-row data-item-id="${item.id}">
+            <label class="pos-deliver-modal-row ${item.is_delivered ? 'is-delivered' : ''}" data-deliver-row data-item-id="${escapeDeliverHtml(item.id)}">
                 <input
                     type="checkbox"
                     class="pos-deliver-checkbox"
                     data-deliver-toggle
-                    data-url="${item.url || ''}"
-                    data-item-id="${item.id}"
+                    data-url="${escapeDeliverHtml(item.url || '')}"
+                    data-item-id="${escapeDeliverHtml(item.id)}"
                     ${item.is_delivered ? 'checked' : ''}
-                    aria-label="Sudah diantar: ${String(item.name || 'Item').replace(/"/g, '&quot;')}"
+                    aria-label="Sudah diantar: ${escapeDeliverHtml(item.name || 'Item')}"
                 >
                 <span class="pos-deliver-modal-row-body">
-                    <span class="pos-deliver-modal-row-name">${item.name || 'Item'}</span>
-                    <span class="pos-deliver-modal-row-meta">Qty ${item.qty ?? 1}</span>
+                    <span class="pos-deliver-modal-row-name">${escapeDeliverHtml(item.name || 'Item')}</span>
+                    <span class="pos-deliver-modal-row-meta">Qty ${escapeDeliverHtml(item.qty ?? 1)}</span>
                 </span>
             </label>
         `).join('');
@@ -424,7 +459,7 @@ function initDeliverModal(root = document) {
                         return;
                     }
                     items = items.map((item) => (
-                        item.id === itemId ? { ...item, is_delivered: next } : item
+                        Number(item.id) === itemId ? { ...item, is_delivered: next } : item
                     ));
                     row?.classList.toggle('is-delivered', next);
                     syncProgress();
@@ -444,12 +479,7 @@ function initDeliverModal(root = document) {
 
     const openWith = (btn) => {
         activeOpenBtn = btn;
-        try {
-            items = JSON.parse(btn.dataset.deliverItems || '[]');
-            if (! Array.isArray(items)) items = [];
-        } catch (_) {
-            items = [];
-        }
+        items = parseDeliverItems(btn.dataset.deliverItems);
         if (titleEl) {
             titleEl.textContent = btn.dataset.deliverTitle || 'Item pesanan';
         }
@@ -457,31 +487,31 @@ function initDeliverModal(root = document) {
         setOpen(true);
     };
 
-    if (! modal.dataset.boundDeliverModal) {
-        modal.dataset.boundDeliverModal = '1';
-        modal.querySelectorAll('[data-kasir-close-deliver]').forEach((el) => {
-            el.addEventListener('click', () => setOpen(false));
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && ! modal.classList.contains('hidden')) {
-                setOpen(false);
-            }
-        });
-    }
+    modal.querySelectorAll('[data-kasir-close-deliver]').forEach((el) => {
+        el.addEventListener('click', () => setOpen(false));
+    });
 
-    root.querySelectorAll('[data-deliver-open]').forEach((btn) => {
-        if (btn.dataset.boundDeliverOpen === '1') return;
-        btn.dataset.boundDeliverOpen = '1';
-        btn.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            openWith(btn);
-        });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && ! modal.classList.contains('hidden')) {
+            setOpen(false);
+        }
+    });
+
+    // Delegation: tetap jalan setelah polling ganti HTML antrian.
+    document.addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-deliver-open]');
+        if (! btn) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        openWith(btn);
     });
 }
 
-function initItemDeliverToggle(root = document) {
-    initDeliverModal(root);
+export function initItemDeliverToggle() {
+    initDeliverModal();
 }
 
 export function initKasirPos() {
@@ -1103,6 +1133,11 @@ function initPosDiscount(root) {
 }
 
 function initPosPendingPanel(root) {
+    if (root.dataset.boundPendingToggle === '1') {
+        return;
+    }
+    root.dataset.boundPendingToggle = '1';
+
     root.addEventListener('click', (event) => {
         const toggle = event.target.closest('[data-pos-pending-toggle]');
         if (! toggle) {
@@ -1150,9 +1185,10 @@ function closeKasirOverlay(modal) {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
 
-    const anyOpen = document.querySelector('[data-kasir-modal]:not(.hidden), [data-kasir-detail-modal]:not(.hidden), [data-kasir-pay-modal]:not(.hidden), [data-kasir-confirm-modal]:not(.hidden)');
+    const anyOpen = document.querySelector('[data-kasir-modal]:not(.hidden), [data-kasir-detail-modal]:not(.hidden), [data-kasir-pay-modal]:not(.hidden), [data-kasir-confirm-modal]:not(.hidden), [data-kasir-deliver-modal]:not(.hidden)');
     if (! anyOpen) {
         document.body.classList.remove('pos-modal-open');
+        document.body.classList.remove('overflow-hidden');
     }
 }
 
