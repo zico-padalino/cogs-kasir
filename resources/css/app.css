@@ -5175,11 +5175,13 @@
     }
 
     .order-detail-hero {
-        @apply relative aspect-[16/7] overflow-hidden bg-slate-100 sm:aspect-video;
+        @apply relative flex items-center justify-center overflow-hidden bg-slate-100;
+        max-height: min(36vh, 14rem);
     }
 
     .order-detail-image {
-        @apply h-full w-full object-cover;
+        @apply mx-auto block h-auto w-full object-contain;
+        max-height: min(36vh, 14rem);
     }
 
     .order-detail-info {
