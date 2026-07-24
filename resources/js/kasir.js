@@ -696,6 +696,7 @@ export function initKasirPos() {
             event.preventDefault();
             const payModal = root.querySelector('[data-kasir-pay-modal]');
             if (payModal) {
+                preparePosPayModal(payModal, root);
                 openKasirOverlay(payModal);
             }
         });
@@ -1610,16 +1611,25 @@ function bindOrderActionButtons(root) {
     });
 
     root.querySelectorAll('[data-kasir-open-pay]').forEach((btn) => {
+        if (btn.dataset.boundOpenPay === '1') {
+            return;
+        }
+        btn.dataset.boundOpenPay = '1';
         btn.addEventListener('click', (event) => {
             event.preventDefault();
             const payModal = root.querySelector('[data-kasir-pay-modal]');
             if (payModal) {
+                preparePosPayModal(payModal, root);
                 openKasirOverlay(payModal);
             }
         });
     });
 
     root.querySelectorAll('[data-kasir-open-confirm]').forEach((btn) => {
+        if (btn.dataset.boundOpenConfirm === '1') {
+            return;
+        }
+        btn.dataset.boundOpenConfirm = '1';
         btn.addEventListener('click', (event) => {
             event.preventDefault();
             const confirmModal = root.querySelector('[data-kasir-confirm-modal]');
@@ -1628,6 +1638,36 @@ function bindOrderActionButtons(root) {
             }
         });
     });
+}
+
+function preparePosPayModal(payModal, root) {
+    const form = payModal.querySelector('[data-pos-pay-form]');
+    if (! form) {
+        return;
+    }
+
+    const total = parseFloat(
+        form.querySelector('[data-pos-order-total]')?.dataset.posOrderTotal
+        || payModal.querySelector('[data-pos-order-total]')?.dataset.posOrderTotal
+        || root?.dataset?.posTotal
+        || '0',
+    );
+
+    const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
+    const receivedInput = form.querySelector('[data-pos-amount-received]');
+    const receivedValue = form.querySelector('[data-pos-amount-received-value]');
+    const changeAmount = form.querySelector('[data-pos-change-amount]');
+
+    if (method === 'cash' && receivedInput && (! receivedInput.value || receivedInput.value === '0')) {
+        const rounded = Math.round(total);
+        receivedInput.value = formatRupiahInput(String(rounded));
+        if (receivedValue) {
+            receivedValue.value = String(rounded);
+        }
+        if (changeAmount) {
+            changeAmount.textContent = `Rp ${Math.max(0, rounded - Math.round(total)).toLocaleString('id-ID')}`;
+        }
+    }
 }
 
 function reinitOrderDependentUi(root) {

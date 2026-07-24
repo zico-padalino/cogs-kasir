@@ -79,11 +79,37 @@ class Product extends Model
         return $this->hasMany(CogsCalculation::class);
     }
 
-    public function availableQuantity(): float
+    /** Stok fisik di lot (belum dikurangi booking open bill). */
+    public function onHandQuantity(): float
     {
         return (float) $this->inventoryLots()
             ->where('quantity_remaining', '>', 0)
             ->sum('quantity_remaining');
+    }
+
+    /** Qty yang dibooking open bill (tagihan terbuka). */
+    public function reservedQuantity(?int $exceptOrderId = null): float
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('inventory_reservations')) {
+            return 0.0;
+        }
+
+        $query = InventoryReservation::query()->where('product_id', $this->id);
+
+        if ($exceptOrderId) {
+            $query->where('pos_order_id', '!=', $exceptOrderId);
+        }
+
+        return (float) $query->sum('quantity');
+    }
+
+    /**
+     * Stok yang masih bisa dijual / dibooking.
+     * = on-hand − booking open bill (kecuali order yang dikecualikan).
+     */
+    public function availableQuantity(?int $exceptOrderId = null): float
+    {
+        return max(0.0, $this->onHandQuantity() - $this->reservedQuantity($exceptOrderId));
     }
 
     /** Menu dengan lot FG/SF yang pernah ada — stok 0 = Habis di kasir. */

@@ -47,7 +47,15 @@ class InventoryCostService
             return new MaterialConsumptionResult(0, 0);
         }
 
-        $before = $persist && $logAction ? $product->availableQuantity() : null;
+        // Hormati booking open bill: jangan ambil stok yang sudah di-reserve.
+        if ($persist && $product->availableQuantity() + 0.000001 < $quantity) {
+            $shortage = rtrim(rtrim(number_format($quantity - $product->availableQuantity(), 4, '.', ''), '0'), '.') ?: '0';
+            throw new RuntimeException(
+                "Stok {$product->name} tidak cukup (termasuk booking open bill). Kekurangan {$shortage} {$product->unit}."
+            );
+        }
+
+        $before = $persist && $logAction ? $product->onHandQuantity() : null;
 
         $result = match ($product->costing_method) {
             CostingMethod::Fifo => $this->consumeFifo($product, $quantity, $persist),
@@ -56,7 +64,7 @@ class InventoryCostService
         };
 
         if ($persist && $logAction && $before !== null && Schema::hasTable('material_stock_logs')) {
-            $after = round($before - $quantity, 6);
+            $after = round(max(0, $before - $quantity), 6);
             $this->stockLogService->log(
                 action: $logAction,
                 product: $product,

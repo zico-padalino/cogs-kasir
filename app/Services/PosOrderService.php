@@ -26,6 +26,7 @@ class PosOrderService
         private readonly CogsCalculationService $cogsCalculationService,
         private readonly CashLedgerService $cashLedgerService,
         private readonly KasirPushNotifier $kasirPushNotifier,
+        private readonly StockReservationService $stockReservationService,
     ) {}
 
     public function generateOrderNumber(?string $orderDay = null): string
@@ -185,71 +186,80 @@ class PosOrderService
 
     public function addItem(PosOrder $order, Product $product, float $quantity, ?float $unitPrice = null, bool $fromKasir = false, ?string $notes = null, array $addonIds = []): PosOrderItem
     {
-        $this->assertOrderMutable($order, $fromKasir);
+        return DB::transaction(function () use ($order, $product, $quantity, $unitPrice, $fromKasir, $notes, $addonIds) {
+            $this->assertOrderMutable($order, $fromKasir);
 
-        $this->assertSellable($product, $quantity);
+            $this->assertSellable($product, $quantity, forPayment: false, order: $order);
 
-        $addons = collect();
-        if ($addonIds !== []) {
-            $addons = $product->addons()
-                ->active()
-                ->whereIn('id', $addonIds)
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get();
-        }
+            $addons = collect();
+            if ($addonIds !== []) {
+                $addons = $product->addons()
+                    ->active()
+                    ->whereIn('id', $addonIds)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get();
+            }
 
-        $addonExtra = (float) $addons->sum('selling_price');
-        $price = $unitPrice ?? (float) $product->selling_price;
-        if ($price <= 0) {
-            $price = $product->effectiveUnitHpp();
-        }
-        $price = round($price + $addonExtra, 4);
+            $addonExtra = (float) $addons->sum('selling_price');
+            $price = $unitPrice ?? (float) $product->selling_price;
+            if ($price <= 0) {
+                $price = $product->effectiveUnitHpp();
+            }
+            $price = round($price + $addonExtra, 4);
 
-        $addonNote = $addons->isNotEmpty()
-            ? $addons->map(fn ($addon) => '+'.$addon->name)->implode(' ')
-            : '';
-        $mergedNotes = \App\Support\PosItemNotes::merge($notes, $addonNote !== '' ? $addonNote : null);
+            $addonNote = $addons->isNotEmpty()
+                ? $addons->map(fn ($addon) => '+'.$addon->name)->implode(' ')
+                : '';
+            $mergedNotes = \App\Support\PosItemNotes::merge($notes, $addonNote !== '' ? $addonNote : null);
 
-        $item = PosOrderItem::create([
-            'pos_order_id' => $order->id,
-            'product_id' => $product->id,
-            'quantity' => $quantity,
-            'unit_price' => $price,
-            'line_total' => round($quantity * $price, 4),
-            'notes' => $mergedNotes,
-            'addon_ids' => $addons->pluck('id')->values()->all() ?: null,
-        ]);
+            $item = PosOrderItem::create([
+                'pos_order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'unit_price' => $price,
+                'line_total' => round($quantity * $price, 4),
+                'notes' => $mergedNotes,
+                'addon_ids' => $addons->pluck('id')->values()->all() ?: null,
+            ]);
 
-        $this->recalculateTotals($order);
+            $this->recalculateTotals($order);
+            $this->syncOpenBillStock($order);
 
-        return $item->load('product');
+            return $item->load('product');
+        });
     }
 
     public function updateItemQuantity(PosOrderItem $item, float $quantity, bool $fromKasir = false): void
     {
-        $order = $item->order;
+        DB::transaction(function () use ($item, $quantity, $fromKasir) {
+            $order = $item->order;
 
-        $this->assertOrderMutable($order, $fromKasir);
+            $this->assertOrderMutable($order, $fromKasir);
 
-        $this->assertSellable($item->product, $quantity);
+            $this->assertSellable($item->product, $quantity, forPayment: false, order: $order);
 
-        $item->update([
-            'quantity' => $quantity,
-            'line_total' => round($quantity * (float) $item->unit_price, 4),
-        ]);
+            $item->update([
+                'quantity' => $quantity,
+                'line_total' => round($quantity * (float) $item->unit_price, 4),
+            ]);
 
-        $this->recalculateTotals($order);
+            $this->recalculateTotals($order);
+            $this->syncOpenBillStock($order);
+        });
     }
 
     public function removeItem(PosOrderItem $item, bool $fromKasir = false): void
     {
-        $order = $item->order;
+        DB::transaction(function () use ($item, $fromKasir) {
+            $order = $item->order;
 
-        $this->assertOrderMutable($order, $fromKasir);
+            $this->assertOrderMutable($order, $fromKasir);
 
-        $item->delete();
-        $this->recalculateTotals($order);
+            $item->delete();
+            $this->recalculateTotals($order);
+            $this->syncOpenBillStock($order);
+        });
     }
 
     public function submitOnlineOrder(PosOrder $order): PosOrder
@@ -347,7 +357,11 @@ class PosOrderService
         }
 
         foreach ($order->items as $item) {
-            $this->assertSellable($item->product, (float) $item->quantity);
+            if (! $item->product) {
+                throw new RuntimeException('Ada item tanpa produk. Hapus item bermasalah lalu coba bayar lagi.');
+            }
+
+            $this->assertSellable($item->product, (float) $item->quantity, forPayment: true, order: $order);
         }
 
         $total = (float) $order->total;
@@ -373,6 +387,8 @@ class PosOrderService
 
         try {
             $result = DB::transaction(function () use ($order, $paymentMethod, $cashier, $amountReceived, $changeAmount, $proofPath, $attr) {
+                // Lepas booking dulu supaya FIFO/COGS bisa memotong lot fisik.
+                $this->stockReservationService->releaseForOrder($order);
                 $invoiceBase = 'POS-'.$order->order_number;
                 $soldAt = now();
                 $subtotal = (float) $order->subtotal;
@@ -554,7 +570,7 @@ class PosOrderService
     /**
      * Buka / perbarui Open Bill di kasir saja.
      * Jika nama (atau meja) sama dengan Open Bill yang sudah ada, item digabung ke bill itu.
-     * Stok belum dipotong sampai lunas.
+     * Stok langsung dibooking (tidak bisa dijual ke pesanan lain) sampai lunas / dibatalkan.
      *
      * @return array{order: PosOrder, merged: bool}
      */
@@ -592,6 +608,8 @@ class PosOrderService
 
                 $this->recalculateTotals($existing);
 
+                $this->stockReservationService->releaseForOrder($order);
+
                 $order->update([
                     'status' => PosOrderStatus::Cancelled,
                     'subtotal' => 0,
@@ -605,8 +623,11 @@ class PosOrderService
                     'cashier_name' => $attr['cashier_name'] ?? $existing->cashier_name,
                 ]);
 
+                $freshExisting = $existing->fresh(['items.product', 'table']);
+                $this->stockReservationService->syncForOrder($freshExisting);
+
                 return [
-                    'order' => $existing->fresh(['items.product', 'table']),
+                    'order' => $freshExisting->fresh(['items.product', 'table']),
                     'merged' => true,
                 ];
             }
@@ -618,8 +639,11 @@ class PosOrderService
                 'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
             ]);
 
+            $fresh = $order->fresh(['items.product', 'table']);
+            $this->stockReservationService->syncForOrder($fresh);
+
             return [
-                'order' => $order->fresh(['items.product', 'table']),
+                'order' => $fresh->fresh(['items.product', 'table']),
                 'merged' => false,
             ];
         });
@@ -658,7 +682,10 @@ class PosOrderService
             throw new RuntimeException('Pesanan lunas tidak bisa dibatalkan.');
         }
 
-        $order->update(['status' => PosOrderStatus::Cancelled]);
+        DB::transaction(function () use ($order) {
+            $this->stockReservationService->releaseForOrder($order);
+            $order->update(['status' => PosOrderStatus::Cancelled]);
+        });
     }
 
     public function cancelPendingOnlineOrder(PosOrder $order): void
@@ -719,7 +746,13 @@ class PosOrderService
                 Storage::disk('public')->delete($proofPath);
             }
 
-            return $order->fresh(['items.product', 'table', 'cashier']);
+            $fresh = $order->fresh(['items.product', 'table', 'cashier']);
+
+            if ($fresh->isOpenBill()) {
+                $this->stockReservationService->syncForOrder($fresh);
+            }
+
+            return $fresh->fresh(['items.product', 'table', 'cashier']);
         });
     }
 
@@ -842,7 +875,7 @@ class PosOrderService
         throw new RuntimeException('Diskon tidak bisa diubah untuk pesanan ini.');
     }
 
-    private function assertSellable(Product $product, float $quantity): void
+    private function assertSellable(Product $product, float $quantity, bool $forPayment = false, ?PosOrder $order = null): void
     {
         if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             throw new RuntimeException('Produk tidak dijual di kasir.');
@@ -860,13 +893,56 @@ class PosOrderService
             throw new RuntimeException('Harga jual belum diatur.');
         }
 
-        if (! $product->isMenuInStock()) {
+        // Ceklis "Habis" hanya blokir tambah item baru — pelunasan open bill / draft tetap boleh.
+        if (! $forPayment && $product->is_sold_out) {
             throw new RuntimeException($product->name.' sedang habis.');
         }
 
-        if ($product->isMenuStockTracked() && $product->availableQuantity() < $quantity) {
+        // Open bill / pelunasan: abaikan booking milik order ini sendiri.
+        $exceptOrderId = ($order && ($forPayment || $order->isOpenBill())) ? (int) $order->id : null;
+
+        if ($product->isMenuStockTracked() && $product->availableQuantity($exceptOrderId) < $quantity) {
             throw new RuntimeException($product->name.' stok habis / tidak cukup.');
         }
+    }
+
+    private function syncOpenBillStock(PosOrder $order): void
+    {
+        $order->refresh();
+
+        if ($order->isOpenBill()) {
+            $this->stockReservationService->syncForOrder($order);
+        }
+    }
+
+    /** Pastikan open bill lama ikut punya booking stok (mis. setelah migrasi / buka ulang). */
+    public function ensureOpenBillStockBooking(PosOrder $order): void
+    {
+        if ($order->isOpenBill()) {
+            $this->stockReservationService->syncForOrder($order);
+        }
+    }
+
+    /** Booking ulang semua tagihan terbuka yang belum punya reserve (migrasi / data lama). */
+    public function syncMissingOpenBillStockBookings(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('inventory_reservations')) {
+            return;
+        }
+
+        PosOrder::query()
+            ->where('source', PosOrderSource::Kasir)
+            ->where('status', PosOrderStatus::Unpaid)
+            ->whereDoesntHave('inventoryReservations')
+            ->with(['items.product'])
+            ->orderBy('id')
+            ->each(function (PosOrder $order) {
+                try {
+                    $this->stockReservationService->syncForOrder($order);
+                } catch (\RuntimeException) {
+                    // Stok sudah tidak cukup untuk bill lama — error muncul saat buka/update bill.
+                }
+            });
     }
 
     private function assertOrderMutable(PosOrder $order, bool $fromKasir = false): void

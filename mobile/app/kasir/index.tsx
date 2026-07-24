@@ -390,8 +390,8 @@ export default function KasirPosScreen() {
     Alert.alert(
       alreadyOpen ? 'Update tagihan' : 'Simpan dulu',
       alreadyOpen
-        ? 'Simpan perubahan tagihan terbuka?'
-        : 'Simpan dulu (bayar nanti)? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.',
+        ? 'Simpan perubahan tagihan terbuka? Stok tetap dibooking.'
+        : 'Simpan dulu (bayar nanti)? Stok langsung dibooking agar tidak bisa dijual ke pesanan lain.',
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -914,7 +914,7 @@ export default function KasirPosScreen() {
           {isActiveOpenBill ? (
             <View style={styles.openBillHint}>
               <Text style={styles.openBillHintText}>
-                Tagihan terbuka — boleh tambah item. Tekan Ceklis antar untuk tandai yang sudah diantar, lalu simpan atau Bayar.
+                Tagihan terbuka — stok sudah dibooking. Boleh tambah item; tekan Ceklis antar untuk tandai yang sudah diantar, lalu Bayar.
               </Text>
             </View>
           ) : null}

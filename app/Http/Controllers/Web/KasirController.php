@@ -43,6 +43,8 @@ class KasirController extends Controller
 
         $activeOrder->load(['items.product', 'table']);
 
+        $posService->syncMissingOpenBillStockBookings();
+
         $pendingOrders = $posService->waitingOrders();
 
         $products = $posService->sellableProducts();
@@ -176,8 +178,18 @@ class KasirController extends Controller
 
         session(['kasir_order_id' => $order->id]);
 
+        try {
+            $posService->ensureOpenBillStockBooking($order);
+        } catch (\RuntimeException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return redirect()->route('kasir.index')->with('error', $e->getMessage());
+        }
+
         if ($request->expectsJson()) {
-            return response()->json($this->kasirOrderAjaxPayload($order, 'Order #'.$order->order_number.' masuk ke kasir.'));
+            return response()->json($this->kasirOrderAjaxPayload($order->fresh(['items.product', 'table']), 'Order #'.$order->order_number.' masuk ke kasir.'));
         }
 
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dibuka. Lanjut bayar atau tambah item.');

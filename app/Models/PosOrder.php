@@ -68,6 +68,11 @@ class PosOrder extends Model
         return $this->hasMany(PosOrderItem::class);
     }
 
+    public function inventoryReservations(): HasMany
+    {
+        return $this->hasMany(InventoryReservation::class);
+    }
+
     public function cashier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

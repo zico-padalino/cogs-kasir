@@ -45,6 +45,8 @@ class PosController extends Controller
 
         $activeOrder->load(['items.product', 'table']);
 
+        $posService->syncMissingOpenBillStockBookings();
+
         $pendingOrders = $posService->waitingOrders();
 
         $products = $posService->sellableProducts();
@@ -212,6 +214,13 @@ class PosController extends Controller
         }
 
         KasirActiveOrder::set($order);
+
+        try {
+            $posService->ensureOpenBillStockBooking($order);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
         $order->load(['items.product', 'table']);
 
         return response()->json([

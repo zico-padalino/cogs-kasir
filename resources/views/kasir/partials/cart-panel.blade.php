@@ -21,7 +21,7 @@
 
     @if ($order->isOpenBill())
         <div class="pos-open-bill-hint">
-            Tagihan terbuka — boleh tambah item. Stok dipotong saat bayar.
+            Tagihan terbuka — boleh tambah item. Stok sudah dibooking.
         </div>
     @endif
 
@@ -107,7 +107,7 @@
                         <button
                             type="submit"
                             class="pos-hold-submit"
-                            onclick="return confirm({{ json_encode($order->isOpenBill() ? 'Simpan perubahan tagihan terbuka?' : 'Simpan dulu (bayar nanti)? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.') }})"
+                            onclick="return confirm({{ json_encode($order->isOpenBill() ? 'Simpan perubahan tagihan terbuka? Stok tetap dibooking.' : 'Simpan dulu (bayar nanti)? Stok langsung dibooking agar tidak bisa dijual ke pesanan lain.') }})"
                         >
                             {{ $order->isOpenBill() ? 'Update tagihan' : 'Simpan dulu' }}
                         </button>
