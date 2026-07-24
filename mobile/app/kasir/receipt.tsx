@@ -222,9 +222,9 @@ export default function ReceiptScreen() {
         </View>
 
         <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
-          <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal (Thermer)'}</Text>
+          <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal'}</Text>
         </Pressable>
-        <Text style={styles.hint}>Pair printer di Bluetooth, lalu pasang Thermer sebagai jembatan cetak.</Text>
+        <Text style={styles.hint}>Sekali klik langsung buka Thermer. Pair printer di Thermer dulu.</Text>
 
         {pdfUrl ? (
           <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>

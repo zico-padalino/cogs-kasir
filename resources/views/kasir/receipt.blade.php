@@ -85,7 +85,7 @@
 
         <div class="form-actions receipt-actions mt-4 no-print">
             <button type="button" class="btn-primary w-full" data-receipt-thermal-print>
-                Cetak Thermal (Thermer)
+                Cetak Thermal
             </button>
             <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
@@ -98,7 +98,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Android: pasang Thermer, pair printer Bluetooth, lalu cetak.
+                Android: sekali klik langsung buka Thermer. Pair printer di Thermer dulu.
             </p>
             <a
                 href="{{ $pdfRoute }}?print=1"
@@ -347,51 +347,69 @@
                 } catch (e) {}
 
                 var thermal = payload.thermal || {};
-                if (paper !== thermal.paper || !thermal.intent_url) {
+                if (paper !== thermal.paper || !thermal.intent_url || !thermal.thermer_share_text) {
                     thermal = await fetchThermal(paper);
                     payload.thermal = thermal;
                 }
 
-                var intentUrl = thermal.intent_url;
-                var thermerUrl = thermal.thermer_url;
                 var shareText = thermal.thermer_share_text || '';
+                var thermerUrl = thermal.thermer_url || '';
                 var playStore = thermal.thermer_play_store
                     || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
+                function openViaAnchor(url) {
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.rel = 'noopener';
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(function () {
+                        try { document.body.removeChild(a); } catch (e) {}
+                    }, 500);
+                }
+
                 if (isAndroid()) {
-                    if (hintEl) {
-                        hintEl.textContent = 'Membuka Thermer… Pastikan printer sudah di-pair.';
-                    }
-                    // Bangun ulang intent SEND tanpa fallback Play Store
-                    var target = intentUrl;
-                    if (shareText) {
-                        target = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;package=mate.bluetoothprint;S.android.intent.extra.TEXT='
-                            + encodeURIComponent(shareText) + ';end';
-                    }
-                    if (!target) {
+                    if (!shareText && !thermal.intent_url) {
                         if (hintEl) hintEl.textContent = 'Data thermal belum siap.';
                         return;
                     }
-                    window.location.href = target;
+                    if (hintEl) {
+                        hintEl.textContent = 'Membuka Thermer…';
+                    }
+
+                    // Satu klik → Intent SEND langsung ke package Thermer (tanpa Play Store fallback)
+                    var sendIntent = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+                        + 'package=mate.bluetoothprint;'
+                        + 'S.android.intent.extra.TEXT=' + encodeURIComponent(shareText)
+                        + ';end';
+
+                    openViaAnchor(sendIntent);
+
+                    // Cadangan deep link jika Intent diblokir browser
+                    setTimeout(function () {
+                        if (thermerUrl) {
+                            openViaAnchor(thermerUrl);
+                        }
+                    }, 600);
+
                     setTimeout(function () {
                         if (hintEl) {
-                            hintEl.innerHTML = 'Jika share sheet muncul, pilih <strong>Thermer</strong>. '
-                                + 'Kalau belum terpasang: <a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">Play Store</a>.';
+                            hintEl.innerHTML = 'Jika Thermer tidak terbuka, pastikan sudah terpasang. '
+                                + '<a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">Pasang Thermer</a>';
                         }
-                    }, 1800);
+                    }, 2500);
                     return;
                 }
 
                 if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') && thermerUrl) {
-                    if (hintEl) {
-                        hintEl.textContent = 'Membuka Thermer…';
-                    }
-                    window.location.href = thermerUrl;
+                    if (hintEl) hintEl.textContent = 'Membuka Thermer…';
+                    openViaAnchor(thermerUrl);
                     return;
                 }
 
                 if (hintEl) {
-                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome gunakan Thermer.';
+                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome pakai Cetak Thermal.';
                 }
                 printDesktopFallback();
             }

@@ -8,6 +8,10 @@ use App\Support\PosItemNotes;
 
 /**
  * ESC/POS receipt + Thermer (mate.bluetoothprint) payload for Bluetooth thermal printers.
+ *
+ * Thermer Android markup: <BAF>text
+ *   B = bold (0/1), A = align (0 left / 1 center / 2 right),
+ *   F = format (0 normal / 1 double height / 2 double H+W / 3 double width / 4 small)
  */
 class EscPosReceiptService
 {
@@ -50,11 +54,10 @@ class EscPosReceiptService
             'https://play.google.com/store/apps/details?id=mate.bluetoothprint'
         );
 
-        // iOS: custom scheme thermer://?data=JSON
+        // Deep link (iOS + Android jika scheme terdaftar)
         $thermerUrl = 'thermer://?data='.rawurlencode($thermerJson);
 
-        // Android: ACTION_SEND text/plain ke package Thermer (bukan scheme + Play Store fallback).
-        // Fallback ke Play Store justru yang bikin HP terbuka ke store padahal Thermer sudah terpasang.
+        // Android one-tap: ACTION_SEND langsung ke package Thermer — tanpa Play Store fallback.
         $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
             .'package=mate.bluetoothprint;'
             .'S.android.intent.extra.TEXT='.rawurlencode($shareText)
@@ -76,88 +79,103 @@ class EscPosReceiptService
     }
 
     /**
+     * Struk besar: double height/width untuk nama toko, item, dan TOTAL.
+     *
      * @return list<array{content: string, bold: int, align: int, format: int}>
      */
     private function thermerBlocks(PosOrder $order, int $width): array
     {
         $order->loadMissing(['items.product', 'table', 'cashier']);
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
+        // Format 1 = double height → tetap full width. Format 2/3 = double width → setengah kolom.
         $w = max(24, $width);
+        $wWide = max(12, (int) floor($w / 2));
         $blocks = [];
 
-        $blocks[] = ['content' => $this->sanitize($shopName), 'bold' => 1, 'align' => 1, 'format' => 3];
+        // Nama toko — paling besar (double height + width)
         $blocks[] = [
-            'content' => $this->joinLines([
-                'Struk Pembayaran',
-                $this->sanitize($order->order_number),
-                $order->paid_at?->format('d/m/Y H:i') ?? '-',
-                $order->order_type ? $this->sanitize($order->order_type->label()) : null,
-                $order->table ? 'Meja: '.$this->sanitize($order->table->label) : null,
-                $order->customer_note ? 'Pelanggan: '.$this->sanitize($order->customer_note) : null,
-                str_repeat('-', $w),
-            ], "\n"),
-            'bold' => 0,
+            'content' => $this->sanitize($shopName),
+            'bold' => 1,
             'align' => 1,
-            'format' => 0,
+            'format' => 2,
         ];
 
+        // Judul + nomor — double height
+        $blocks[] = [
+            'content' => "STRUK PEMBAYARAN\n".$this->sanitize($order->order_number),
+            'bold' => 1,
+            'align' => 1,
+            'format' => 1,
+        ];
+
+        $meta = [
+            $order->paid_at?->format('d/m/Y H:i') ?? '-',
+            $order->order_type ? $this->sanitize($order->order_type->label()) : null,
+            $order->table ? 'Meja: '.$this->sanitize($order->table->label) : null,
+            $order->customer_note ? 'Pelanggan: '.$this->sanitize($order->customer_note) : null,
+        ];
+        $blocks[] = [
+            'content' => $this->joinLines($meta, "\n")."\n".str_repeat('=', $w),
+            'bold' => 0,
+            'align' => 1,
+            'format' => 1,
+        ];
+
+        // Item — double height agar mudah dibaca
         $itemLines = [];
         foreach ($order->items as $item) {
             $qty = Format::number($item->quantity, 0);
             $name = $this->sanitize($item->product?->name ?? 'Item');
-            $itemLines[] = $this->columnsText($name.' x '.$qty, Format::rupiah($item->line_total), $w);
+            $itemLines[] = $this->columnsText($qty.'x '.$name, Format::rupiah($item->line_total), $w);
 
             $noteParts = PosItemNotes::split($item->notes);
             if ($noteParts['addon_labels'] !== []) {
-                $itemLines[] = '  '.$this->sanitize(implode(' · ', $noteParts['addon_labels']));
+                $itemLines[] = ' + '.$this->sanitize(implode(', ', $noteParts['addon_labels']));
             }
             if ($noteParts['customer']) {
-                $itemLines[] = '  Catatan: '.$this->sanitize($noteParts['customer']);
+                $itemLines[] = ' * '.$this->sanitize($noteParts['customer']);
             }
         }
-        $itemLines[] = str_repeat('-', $w);
         $blocks[] = [
-            'content' => $this->joinLines($itemLines, "\n") ?: '-',
+            'content' => ($this->joinLines($itemLines, "\n") ?: '-')."\n".str_repeat('=', $w),
             'bold' => 0,
             'align' => 0,
-            'format' => 0,
+            'format' => 1,
         ];
 
+        // TOTAL + subtotal — besar (≤7 entry Thermer free)
         $totalLines = [];
         if ($order->hasDiscount()) {
-            $totalLines[] = $this->columnsText('Subtotal', Format::rupiah($order->subtotal), $w);
-            $totalLines[] = $this->columnsText('Diskon', '- '.Format::rupiah($order->discount_amount), $w);
+            $totalLines[] = $this->columnsText('Subtotal', Format::rupiah($order->subtotal), $wWide);
+            $totalLines[] = $this->columnsText('Diskon', '-'.Format::rupiah($order->discount_amount), $wWide);
         }
-        $totalLines[] = $this->columnsText('TOTAL', Format::rupiah($order->total), $w);
+        $totalLines[] = $this->columnsText('TOTAL', Format::rupiah($order->total), $wWide);
         $blocks[] = [
             'content' => $this->joinLines($totalLines, "\n"),
             'bold' => 1,
-            'align' => 0,
-            'format' => 0,
+            'align' => 1,
+            'format' => 2,
         ];
 
-        $footerLines = [
+        $footer = [
             'Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'),
         ];
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $footerLines[] = 'Diterima: '.Format::rupiah($order->amount_received);
-            $footerLines[] = 'Kembalian: '.Format::rupiah($order->change_amount);
+            $footer[] = 'Diterima: '.Format::rupiah($order->amount_received);
+            $footer[] = 'Kembali: '.Format::rupiah($order->change_amount);
         }
         if ($order->cashierDisplayName() !== '-') {
-            $footerLines[] = 'Kasir: '.$this->sanitize($order->cashierDisplayName());
+            $footer[] = 'Kasir: '.$this->sanitize($order->cashierDisplayName());
         }
+        $footer[] = '';
+        $footer[] = 'TERIMA KASIH';
+        $footer[] = '';
+        $footer[] = '';
         $blocks[] = [
-            'content' => $this->joinLines($footerLines, "\n"),
-            'bold' => 0,
-            'align' => 0,
-            'format' => 0,
-        ];
-
-        $blocks[] = [
-            'content' => "Terima kasih\n\n\n",
-            'bold' => 0,
+            'content' => $this->joinLines($footer, "\n"),
+            'bold' => 1,
             'align' => 1,
-            'format' => 0,
+            'format' => 1,
         ];
 
         return $blocks;
@@ -183,8 +201,6 @@ class EscPosReceiptService
     }
 
     /**
-     * Format markup Android Thermer: &lt;BAF&gt;text (Bold, Align, Format).
-     *
      * @param  list<array{content: string, bold: int, align: int, format: int}>  $blocks
      */
     private function blocksToThermerShareText(array $blocks): string
@@ -222,14 +238,21 @@ class EscPosReceiptService
         $order->loadMissing(['items.product', 'table', 'cashier']);
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $w = max(24, $width);
+        $wWide = max(12, (int) floor($w / 2));
 
         $out = '';
         $out .= "\x1B\x40"; // init
         $out .= "\x1B\x61\x01"; // center
-        $out .= "\x1B\x45\x01"; // bold
-        $out .= $this->line($this->sanitize($shopName), $w);
+
+        // Nama toko besar (double W+H)
+        $out .= "\x1D\x21\x11";
+        $out .= "\x1B\x45\x01";
+        $out .= $this->line($this->sanitize($shopName), $wWide);
         $out .= "\x1B\x45\x00";
-        $out .= $this->line('Struk Pembayaran', $w);
+
+        // Judul + nomor (double height)
+        $out .= "\x1D\x21\x01";
+        $out .= $this->line('STRUK PEMBAYARAN', $w);
         $out .= $this->line($this->sanitize($order->order_number), $w);
         $out .= $this->line($order->paid_at?->format('d/m/Y H:i') ?? '-', $w);
 
@@ -244,37 +267,43 @@ class EscPosReceiptService
         }
 
         $out .= "\x1B\x61\x00"; // left
-        $out .= $this->separator($w);
+        $out .= str_repeat('=', $w)."\n";
 
         foreach ($order->items as $item) {
             $qty = Format::number($item->quantity, 0);
             $name = $this->sanitize($item->product?->name ?? 'Item');
-            $out .= $this->columns($name.' x '.$qty, Format::rupiah($item->line_total), $w);
+            $out .= $this->columns($qty.'x '.$name, Format::rupiah($item->line_total), $w);
 
             $noteParts = PosItemNotes::split($item->notes);
             if ($noteParts['addon_labels'] !== []) {
-                $out .= $this->line('  '.$this->sanitize(implode(' · ', $noteParts['addon_labels'])), $w);
+                $out .= $this->line(' + '.$this->sanitize(implode(', ', $noteParts['addon_labels'])), $w);
             }
             if ($noteParts['customer']) {
-                $out .= $this->line('  Catatan: '.$this->sanitize($noteParts['customer']), $w);
+                $out .= $this->line(' * '.$this->sanitize($noteParts['customer']), $w);
             }
         }
 
-        $out .= $this->separator($w);
+        $out .= str_repeat('=', $w)."\n";
 
         if ($order->hasDiscount()) {
             $out .= $this->columns('Subtotal', Format::rupiah($order->subtotal), $w);
-            $out .= $this->columns('Diskon', '- '.Format::rupiah($order->discount_amount), $w);
+            $out .= $this->columns('Diskon', '-'.Format::rupiah($order->discount_amount), $w);
         }
 
+        // TOTAL besar
+        $out .= "\x1B\x61\x01";
+        $out .= "\x1D\x21\x11";
         $out .= "\x1B\x45\x01";
-        $out .= $this->columns('TOTAL', Format::rupiah($order->total), $w);
+        $out .= $this->columns('TOTAL', Format::rupiah($order->total), $wWide);
         $out .= "\x1B\x45\x00";
+        $out .= "\x1D\x21\x01";
+        $out .= "\x1B\x61\x00";
+
         $out .= $this->line('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), $w);
 
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
             $out .= $this->line('Diterima: '.Format::rupiah($order->amount_received), $w);
-            $out .= $this->line('Kembalian: '.Format::rupiah($order->change_amount), $w);
+            $out .= $this->line('Kembali: '.Format::rupiah($order->change_amount), $w);
         }
 
         if ($order->cashierDisplayName() !== '-') {
@@ -283,16 +312,14 @@ class EscPosReceiptService
 
         $out .= "\n";
         $out .= "\x1B\x61\x01";
-        $out .= $this->line('Terima kasih', $w);
+        $out .= "\x1B\x45\x01";
+        $out .= $this->line('TERIMA KASIH', $w);
+        $out .= "\x1B\x45\x00";
+        $out .= "\x1D\x21\x00"; // reset size
         $out .= "\n\n\n";
         $out .= "\x1D\x56\x41\x03"; // partial cut + feed
 
         return $out;
-    }
-
-    private function separator(int $width): string
-    {
-        return str_repeat('-', $width)."\n";
     }
 
     private function line(string $text, int $width): string
@@ -343,7 +370,6 @@ class EscPosReceiptService
         ];
         $text = strtr($text, $map);
 
-        // Thermer mendukung teks multibahasa; tetap jaga karakter aman untuk layout kolom.
         return preg_replace('/[^\x20-\x7E]+/u', '?', $text) ?? $text;
     }
 }

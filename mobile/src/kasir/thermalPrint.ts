@@ -1,4 +1,4 @@
-import { Linking, Platform, Share } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as IntentLauncher from 'expo-intent-launcher';
 
@@ -13,14 +13,13 @@ export type ThermalPayload = {
   thermer_share_text?: string;
   intent_url: string;
   thermer_play_store?: string;
-  /** @deprecated gunakan thermer_url / intent_url */
+  /** @deprecated */
   rawbt_url?: string;
-  /** @deprecated gunakan thermer_play_store */
+  /** @deprecated */
   rawbt_play_store?: string;
 };
 
 const PAPER_KEY = 'pos-thermal-paper';
-const THERMER_PLAY = 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 const THERMER_PACKAGE = 'mate.bluetoothprint';
 
 export async function getThermalPaper(): Promise<ThermalPaper> {
@@ -36,18 +35,8 @@ export async function setThermalPaper(paper: ThermalPaper): Promise<void> {
   await AsyncStorage.setItem(PAPER_KEY, paper);
 }
 
-function buildSendIntentUrl(shareText: string): string {
-  return (
-    'intent:#Intent;action=android.intent.action.SEND;type=text/plain;' +
-    `package=${THERMER_PACKAGE};` +
-    `S.android.intent.extra.TEXT=${encodeURIComponent(shareText)};end`
-  );
-}
-
 /**
- * Cetak struk ke printer Bluetooth lewat Thermer (mate.bluetoothprint).
- * Android: Intent ACTION_SEND native (bukan URL dengan Play Store fallback).
- * iOS: scheme thermer://
+ * Sekali klik → langsung buka Thermer (tanpa Play Store / share sheet).
  */
 export async function printThermalViaThermer(
   thermal: ThermalPayload,
@@ -56,6 +45,7 @@ export async function printThermalViaThermer(
   const thermerUrl = thermal.thermer_url || '';
 
   if (Platform.OS === 'android') {
+    // 1) Native Intent langsung ke package Thermer (paling andal)
     if (shareText) {
       try {
         await IntentLauncher.startActivityAsync('android.intent.action.SEND', {
@@ -64,64 +54,53 @@ export async function printThermalViaThermer(
           extra: {
             'android.intent.extra.TEXT': shareText,
           },
+          flags: 0x10000000, // FLAG_ACTIVITY_NEW_TASK
         });
         return 'opened';
       } catch {
-        // Thermer mungkin tidak resolve package — coba intent URL / share sheet
+        // lanjut
       }
+    }
 
+    // 2) Intent URL ke package Thermer (tanpa browser_fallback_url)
+    if (shareText) {
       try {
-        await Linking.openURL(buildSendIntentUrl(shareText));
+        const url =
+          'intent:#Intent;action=android.intent.action.SEND;type=text/plain;' +
+          `package=${THERMER_PACKAGE};` +
+          `S.android.intent.extra.TEXT=${encodeURIComponent(shareText)};end`;
+        await Linking.openURL(url);
         return 'opened';
       } catch {
-        // lanjut share sheet
+        // lanjut
       }
+    }
 
+    // 3) Deep link thermer://
+    if (thermerUrl) {
       try {
-        await Share.share({ message: shareText, title: 'Cetak Thermal' });
-        return 'opened';
-      } catch {
-        // ignore
-      }
-    } else if (thermal.intent_url) {
-      try {
-        await Linking.openURL(thermal.intent_url);
+        await Linking.openURL(thermerUrl);
         return 'opened';
       } catch {
         // ignore
       }
     }
 
-    // Jangan auto-buka Play Store.
     return 'store';
   }
 
-  // iOS
-  try {
-    if (thermerUrl) {
+  // iOS — deep link
+  if (thermerUrl) {
+    try {
       await Linking.openURL(thermerUrl);
       return 'opened';
-    }
-  } catch {
-    // ignore
-  }
-
-  if (shareText) {
-    try {
-      await Share.share({ message: shareText });
-      return 'opened';
     } catch {
-      // ignore
+      return 'failed';
     }
   }
 
-  try {
-    await Linking.openURL(THERMER_PLAY);
-    return 'store';
-  } catch {
-    return 'failed';
-  }
+  return 'failed';
 }
 
-/** @deprecated alias — pakai printThermalViaThermer */
+/** @deprecated */
 export const printThermalViaRawBt = printThermalViaThermer;
