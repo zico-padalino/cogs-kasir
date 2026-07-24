@@ -125,7 +125,7 @@
                     @endif
 
                     @if ($showDeliverProgress)
-                        <p class="pos-pending-deliver">
+                        <p class="pos-pending-deliver" data-pending-deliver-progress>
                             Diantar {{ $deliveredCount }}/{{ $itemCount }}
                         </p>
                     @endif

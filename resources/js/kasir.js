@@ -431,6 +431,23 @@ function initDeliverModal() {
         }
     };
 
+    const updateCardDeliverProgress = (btn, doneCount, totalCount) => {
+        if (! btn) {
+            return;
+        }
+
+        const doneEl = btn.querySelector('[data-deliver-done]');
+        const totalEl = btn.querySelector('[data-deliver-total]');
+        if (doneEl) doneEl.textContent = String(doneCount);
+        if (totalEl) totalEl.textContent = String(totalCount);
+
+        const card = btn.closest('.pos-pending-card');
+        const progressText = card?.querySelector('[data-pending-deliver-progress], .pos-pending-deliver');
+        if (progressText) {
+            progressText.textContent = `Diantar ${doneCount}/${totalCount}`;
+        }
+    };
+
     const syncProgress = () => {
         const done = items.filter((item) => item.is_delivered).length;
         const total = items.length;
@@ -438,11 +455,18 @@ function initDeliverModal() {
             progressEl.textContent = `Diantar ${done}/${total}`;
         }
         if (activeOpenBtn) {
-            const doneEl = activeOpenBtn.querySelector('[data-deliver-done]');
-            const totalEl = activeOpenBtn.querySelector('[data-deliver-total]');
-            if (doneEl) doneEl.textContent = String(done);
-            if (totalEl) totalEl.textContent = String(total);
+            // Tombol bisa sudah diganti polling — cari ulang di DOM.
+            if (! document.body.contains(activeOpenBtn)) {
+                const match = [...document.querySelectorAll('[data-deliver-open]')].find((btn) => {
+                    const btnItems = readDeliverItemsFromButton(btn);
+                    return btnItems.some((row) => items.some((item) => Number(item.id) === Number(row.id)));
+                });
+                if (match) {
+                    activeOpenBtn = match;
+                }
+            }
             writeDeliverItemsToButton(activeOpenBtn, items);
+            updateCardDeliverProgress(activeOpenBtn, done, total);
         }
         document.querySelectorAll('[data-deliver-open]').forEach((btn) => {
             if (btn === activeOpenBtn) return;
@@ -456,14 +480,7 @@ function initDeliverModal() {
             });
             writeDeliverItemsToButton(btn, merged);
             const d = merged.filter((row) => row.is_delivered).length;
-            const doneNode = btn.querySelector('[data-deliver-done]');
-            const totalNode = btn.querySelector('[data-deliver-total]');
-            if (doneNode) doneNode.textContent = String(d);
-            if (totalNode) totalNode.textContent = String(merged.length);
-            const progressText = btn.closest('.pos-pending-card')?.querySelector('.pos-pending-deliver');
-            if (progressText) {
-                progressText.textContent = `Diantar ${d}/${merged.length}`;
-            }
+            updateCardDeliverProgress(btn, d, merged.length);
         });
         items.forEach((item) => {
             document.querySelectorAll(`[data-order-item-row][data-item-id="${item.id}"]`).forEach((row) => {
