@@ -36,4 +36,21 @@ function initMaterialsListSearch() {
     searchInput.addEventListener('input', apply);
 }
 
-document.addEventListener('DOMContentLoaded', initMaterialsListSearch);
+function initDetailsCancel() {
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-details-cancel]');
+        if (! button) {
+            return;
+        }
+
+        const details = button.closest('details');
+        if (details) {
+            details.open = false;
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMaterialsListSearch();
+    initDetailsCancel();
+});

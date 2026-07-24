@@ -114,7 +114,10 @@
                                             :stock-unit-label="$material->unit"
                                         />
 
-                                        <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan Baku</button>
+                                        <div class="material-panel__actions">
+                                            <button type="button" class="btn-outline w-full py-3 font-semibold" data-details-cancel>Batal</button>
+                                            <button type="submit" class="btn-primary w-full py-3 font-semibold">Simpan Bahan Baku</button>
+                                        </div>
                                     </form>
                                 </details>
 

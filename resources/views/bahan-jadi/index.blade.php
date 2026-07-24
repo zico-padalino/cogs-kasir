@@ -302,7 +302,10 @@
                                         />
                                         <p class="form-hint">Isi pembelian di bawah hanya jika menambah stok.</p>
                                         <x-material-purchase-fields />
-                                        <button type="submit" class="btn-primary w-full">Simpan</button>
+                                        <div class="material-panel__actions">
+                                            <button type="button" class="btn-outline w-full" data-details-cancel>Batal</button>
+                                            <button type="submit" class="btn-primary w-full">Simpan</button>
+                                        </div>
                                     </form>
                                 </details>
 
