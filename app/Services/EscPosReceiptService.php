@@ -45,6 +45,7 @@ class EscPosReceiptService
         $lines = $this->receiptLines($order, $width);
         $thermerJson = $this->linesToThermerJson($lines);
         $shareText = $this->linesToPlainText($lines);
+        $bafText = $this->linesToBafText($lines);
 
         $playStore = (string) config(
             'pos.thermal.thermer_play_store',
@@ -52,8 +53,9 @@ class EscPosReceiptService
         );
 
         $thermerUrl = 'thermer://?data='.rawurlencode($thermerJson);
+        // Intent SEND tanpa package — pakai BAF agar ukuran besar ikut terbaca Thermer
         $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
-            .'S.android.intent.extra.TEXT='.rawurlencode($shareText)
+            .'S.android.intent.extra.TEXT='.rawurlencode($bafText)
             .';end;';
 
         return [
@@ -63,6 +65,7 @@ class EscPosReceiptService
             'width' => $width,
             'thermer_json' => $thermerJson,
             'thermer_share_text' => $shareText,
+            'thermer_baf_text' => $bafText,
             'thermer_url' => $thermerUrl,
             'intent_url' => $intentUrl,
             'thermer_play_store' => $playStore,
@@ -72,77 +75,73 @@ class EscPosReceiptService
     }
 
     /**
-     * Mirror exact structure of ReceiptPdfService::build().
+     * Mirror ReceiptPdfService — ukuran 2× dari sebelumnya.
+     * format: 0 normal · 1 double height · 2 double height+width
      *
-     * @return list<array{kind: string, text?: string, left?: string, right?: string, bold: int, align: int, format: int}>
+     * @return list<array{kind: string, text?: string, bold: int, align: int, format: int}>
      */
     private function receiptLines(PosOrder $order, int $width): array
     {
         $order->loadMissing(['items.product', 'table', 'cashier']);
         $w = max(24, $width);
+        $wWide = max(12, (int) floor($w / 2)); // kolom untuk format 2 (double width)
         $shop = $this->sanitize((string) config('pos.shop_name', 'Coffee & Kitchen'));
         $lines = [];
 
-        // title — PDF: bold center large
-        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 1);
-        // Struk Pembayaran — PDF: center
-        $lines[] = $this->textLine('Struk Pembayaran', bold: 0, align: 1, format: 0);
-        // spacer
+        // Nama toko — 2× (double H+W)
+        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 2);
+        // Judul & meta — double height
+        $lines[] = $this->textLine('Struk Pembayaran', bold: 0, align: 1, format: 1);
         $lines[] = $this->blankLine();
-        // order number — PDF: bold center
-        $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 0);
-        // paid_at — PDF: center
-        $lines[] = $this->textLine($order->paid_at?->format('d/m/Y H:i') ?? '-', bold: 0, align: 1, format: 0);
+        $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 1);
+        $lines[] = $this->textLine($order->paid_at?->format('d/m/Y H:i') ?? '-', bold: 0, align: 1, format: 1);
 
         if ($order->order_type) {
-            $lines[] = $this->textLine($this->sanitize($order->order_type->label()), bold: 0, align: 1, format: 0);
+            $lines[] = $this->textLine($this->sanitize($order->order_type->label()), bold: 0, align: 1, format: 1);
         }
         if ($order->table) {
-            $lines[] = $this->textLine('Meja: '.$this->sanitize($order->table->label), bold: 0, align: 1, format: 0);
+            $lines[] = $this->textLine('Meja: '.$this->sanitize($order->table->label), bold: 0, align: 1, format: 1);
         }
         if ($order->customer_note) {
-            $lines[] = $this->textLine('Pelanggan: '.$this->sanitize($order->customer_note), bold: 0, align: 1, format: 0);
+            $lines[] = $this->textLine('Pelanggan: '.$this->sanitize($order->customer_note), bold: 0, align: 1, format: 1);
         }
 
         $lines[] = $this->blankLine();
-        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 0);
+        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 1);
 
         foreach ($order->items as $item) {
             $qty = Format::number($item->quantity, 0);
             $name = $this->sanitize($item->product?->name ?? 'Item');
-            // PDF: twoColumns("Nama x qty", harga) — left
-            $lines[] = $this->columnsLine($name.' x '.$qty, Format::rupiah($item->line_total), $w, bold: 0, format: 0);
+            $lines[] = $this->columnsLine($name.' x '.$qty, Format::rupiah($item->line_total), $w, bold: 0, format: 1);
 
             if ($item->notes) {
-                // PDF: "  Catatan: {notes}" left — raw notes sama PDF
-                $lines[] = $this->textLine('  Catatan: '.$this->sanitize((string) $item->notes), bold: 0, align: 0, format: 0);
+                $lines[] = $this->textLine('  Catatan: '.$this->sanitize((string) $item->notes), bold: 0, align: 0, format: 1);
             }
         }
 
-        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 0);
+        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 1);
 
         if ($order->hasDiscount()) {
-            $lines[] = $this->columnsLine('Subtotal', Format::rupiah($order->subtotal), $w, bold: 0, format: 0);
-            $lines[] = $this->columnsLine('Diskon', '- '.Format::rupiah($order->discount_amount), $w, bold: 0, format: 0);
+            $lines[] = $this->columnsLine('Subtotal', Format::rupiah($order->subtotal), $w, bold: 0, format: 1);
+            $lines[] = $this->columnsLine('Diskon', '- '.Format::rupiah($order->discount_amount), $w, bold: 0, format: 1);
         }
 
-        // TOTAL — PDF: lebih besar + bold, left two-column
-        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $w, bold: 1, format: 1);
+        // TOTAL — 2× (double H+W)
+        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $wWide, bold: 1, format: 2);
 
-        $lines[] = $this->textLine('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), bold: 0, align: 0, format: 0);
+        $lines[] = $this->textLine('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), bold: 0, align: 0, format: 1);
 
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $lines[] = $this->textLine('Diterima: '.Format::rupiah($order->amount_received), bold: 0, align: 0, format: 0);
-            $lines[] = $this->textLine('Kembalian: '.Format::rupiah($order->change_amount), bold: 0, align: 0, format: 0);
+            $lines[] = $this->textLine('Diterima: '.Format::rupiah($order->amount_received), bold: 0, align: 0, format: 1);
+            $lines[] = $this->textLine('Kembalian: '.Format::rupiah($order->change_amount), bold: 0, align: 0, format: 1);
         }
 
         if ($order->cashierDisplayName() !== '-') {
-            $lines[] = $this->textLine('Kasir: '.$this->sanitize($order->cashierDisplayName()), bold: 0, align: 0, format: 0);
+            $lines[] = $this->textLine('Kasir: '.$this->sanitize($order->cashierDisplayName()), bold: 0, align: 0, format: 1);
         }
 
         $lines[] = $this->blankLine();
-        // Terima kasih — PDF: bold center
-        $lines[] = $this->textLine('Terima kasih', bold: 1, align: 1, format: 0);
+        $lines[] = $this->textLine('Terima kasih', bold: 1, align: 1, format: 1);
         $lines[] = $this->blankLine();
         $lines[] = $this->blankLine();
 
@@ -213,7 +212,6 @@ class EscPosReceiptService
         $out = [];
         foreach ($lines as $line) {
             $text = $line['text'] ?? '';
-            // Spacer PDF → baris kosong (bukan spasi tunggal)
             if (trim($text) === '') {
                 $out[] = '';
                 continue;
@@ -224,12 +222,36 @@ class EscPosReceiptService
         return implode("\n", $out)."\n";
     }
 
+    /**
+     * Markup <BAF> untuk Intent SEND ke Thermer (ukuran ikut format).
+     *
+     * @param  list<array{kind: string, text?: string, bold: int, align: int, format: int}>  $lines
+     */
+    private function linesToBafText(array $lines): string
+    {
+        $out = '';
+        foreach ($lines as $line) {
+            $text = $line['text'] ?? ' ';
+            $tag = '<'.$line['bold'].$line['align'].$line['format'].'>';
+            if (trim($text) === '') {
+                $out .= $tag."\n";
+                continue;
+            }
+            $out .= $tag.$text;
+            if (! str_ends_with($text, "\n")) {
+                $out .= "\n";
+            }
+        }
+
+        return $out;
+    }
+
     public function build(PosOrder $order, int $width = self::WIDTH_58): string
     {
         $w = max(24, $width);
         $lines = $this->receiptLines($order, $w);
 
-        $out = "\x1B\x40"; // init
+        $out = "\x1B\x40";
 
         foreach ($lines as $line) {
             $text = $line['text'] ?? ' ';
@@ -237,21 +259,26 @@ class EscPosReceiptService
             $bold = (int) $line['bold'] === 1;
             $format = (int) $line['format'];
 
-            // Align: 0 left, 1 center, 2 right
             $out .= match ($align) {
                 1 => "\x1B\x61\x01",
                 2 => "\x1B\x61\x02",
                 default => "\x1B\x61\x00",
             };
 
-            // format 1 = double height (seperti judul/TOTAL PDF yang lebih besar)
-            $out .= $format === 1 ? "\x1D\x21\x01" : "\x1D\x21\x00";
+            // 0 normal · 1 double H · 2 double H+W · 3 double W
+            $out .= match ($format) {
+                1 => "\x1D\x21\x01",
+                2 => "\x1D\x21\x11",
+                3 => "\x1D\x21\x10",
+                default => "\x1D\x21\x00",
+            };
             $out .= $bold ? "\x1B\x45\x01" : "\x1B\x45\x00";
 
             if (trim($text) === '') {
                 $out .= "\n";
             } else {
-                $out .= $this->line($text, $w);
+                $colWidth = $format >= 2 ? max(12, (int) floor($w / 2)) : $w;
+                $out .= $this->line($text, $colWidth);
             }
 
             $out .= "\x1B\x45\x00";

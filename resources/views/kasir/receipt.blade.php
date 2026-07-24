@@ -98,7 +98,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Cetak Thermal / Bagikan ke Thermer memakai layout yang sama dengan Cetak PDF.
+                Sekali klik Cetak Thermal → langsung buka Thermer & cetak. Ukuran 2× lebih besar.
             </p>
             <a
                 href="{{ $pdfRoute }}?print=1"
@@ -384,26 +384,21 @@
                     }
                     if (hintEl) hintEl.textContent = 'Membuka Thermer…';
 
-                    // Deep link thermer:// saja — JANGAN intent+package (itu yang buka Play Store).
+                    // Deep link thermer:// — JANGAN intent+package (itu yang buka Play Store).
                     if (thermerUrl) {
                         openThermerDeepLink(thermerUrl);
-                    } else if (navigator.share && shareText) {
-                        navigator.share({ title: 'Cetak Thermal', text: shareText }).catch(function () {});
                     }
 
                     setTimeout(function () {
                         if (!hintEl) return;
-                        hintEl.innerHTML = 'Thermer harus terbuka otomatis. Jika tidak: di Thermer pastikan printer sudah dipilih, '
-                            + 'lalu klik lagi. '
-                            + (shareText
-                                ? '<button type="button" class="underline text-brand-700" data-thermal-share>Bagikan ke Thermer</button> · '
-                                : '')
+                        hintEl.innerHTML = 'Thermer harus terbuka & mencetak otomatis. Jika tidak: pastikan printer sudah dipilih di Thermer, '
+                            + 'lalu klik <button type="button" class="underline text-brand-700" data-thermal-retry>Cetak lagi</button>. '
                             + '<a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">Install Thermer</a>';
 
-                        var shareBtn = hintEl.querySelector('[data-thermal-share]');
-                        if (shareBtn && shareText && navigator.share) {
-                            shareBtn.addEventListener('click', function () {
-                                navigator.share({ title: 'Cetak Thermal', text: shareText }).catch(function () {});
+                        var retryBtn = hintEl.querySelector('[data-thermal-retry]');
+                        if (retryBtn) {
+                            retryBtn.addEventListener('click', function () {
+                                printThermal();
                             });
                         }
                     }, 2000);

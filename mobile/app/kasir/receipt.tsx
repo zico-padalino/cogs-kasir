@@ -100,7 +100,7 @@ export default function ReceiptScreen() {
       if (result === 'store') {
         Alert.alert(
           'Thermer tidak terbuka',
-          'Pastikan Thermer terpasang. Kalau sudah, coba cetak lagi — atau bagikan teks struk ke Thermer dari share sheet.',
+          'Pastikan Thermer terpasang dan printer sudah dipilih di dalam Thermer, lalu coba cetak lagi.',
           [
             { text: 'Batal', style: 'cancel' },
             {
@@ -114,7 +114,7 @@ export default function ReceiptScreen() {
           ],
         );
       } else if (result === 'failed') {
-        Alert.alert('Gagal cetak', 'Tidak bisa membuka Thermer. Coba lagi atau bagikan ke Thermer manual.');
+        Alert.alert('Gagal cetak', 'Tidak bisa membuka Thermer. Pastikan aplikasi Thermer terpasang.');
       }
     } finally {
       setPrinting(false);

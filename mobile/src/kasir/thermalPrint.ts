@@ -1,4 +1,4 @@
-import { Linking, Platform, Share } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as IntentLauncher from 'expo-intent-launcher';
 
@@ -11,6 +11,7 @@ export type ThermalPayload = {
   thermer_url?: string;
   thermer_json?: string;
   thermer_share_text?: string;
+  thermer_baf_text?: string;
   intent_url: string;
   thermer_play_store?: string;
   rawbt_url?: string;
@@ -34,52 +35,39 @@ export async function setThermalPaper(paper: ThermalPaper): Promise<void> {
 }
 
 /**
- * Buka Thermer langsung. Tidak pernah auto-buka Play Store.
+ * Langsung buka Thermer untuk cetak (bukan share sheet).
  */
 export async function printThermalViaThermer(
   thermal: ThermalPayload,
 ): Promise<'opened' | 'store' | 'failed'> {
-  const shareText = thermal.thermer_share_text || '';
+  const bafText = thermal.thermer_baf_text || '';
   const thermerUrl =
     thermal.thermer_url ||
     (thermal.thermer_json ? `thermer://?data=${encodeURIComponent(thermal.thermer_json)}` : '');
 
   if (Platform.OS === 'android') {
-    // 1) Deep link thermer:// (HTML type 4 — struk besar)
+    // 1) Deep link thermer:// — data JSON type 0 (ukuran besar)
     if (thermerUrl) {
       try {
-        const can = await Linking.canOpenURL(thermerUrl).catch(() => true);
-        if (can !== false) {
-          await Linking.openURL(thermerUrl);
-          return 'opened';
-        }
+        await Linking.openURL(thermerUrl);
+        return 'opened';
       } catch {
         // lanjut
       }
     }
 
-    // 2) Native SEND ke package Thermer (markup <BAF> besar)
-    if (shareText) {
+    // 2) Intent SEND langsung ke package Thermer (BAF besar) — bukan share sheet
+    if (bafText) {
       try {
         await IntentLauncher.startActivityAsync('android.intent.action.SEND', {
           type: 'text/plain',
           packageName: THERMER_PACKAGE,
-          extra: { 'android.intent.extra.TEXT': shareText },
+          extra: { 'android.intent.extra.TEXT': bafText },
           flags: 0x10000000,
         });
         return 'opened';
       } catch {
         // lanjut
-      }
-    }
-
-    // 3) Share sheet — user pilih Thermer (tidak ke Play Store)
-    if (shareText) {
-      try {
-        await Share.share({ message: shareText, title: 'Cetak Thermal' });
-        return 'opened';
-      } catch {
-        // ignore
       }
     }
 
