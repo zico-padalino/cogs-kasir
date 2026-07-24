@@ -652,6 +652,7 @@ class KasirController extends Controller
             'format' => Format::class,
             'pdfUrl' => $pdf['url'],
             'pdfRoute' => route('kasir.receipt.pdf', $order),
+            'thermalPrintRoute' => route('kasir.receipt.thermal-print', $order),
             'thermalRoute' => route('kasir.receipt.thermal', $order),
             'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             'waMessage' => $receiptPdf->whatsappMessage($order, $pdf['url']),
@@ -703,6 +704,22 @@ class KasirController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
             'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function receiptThermalPrint(PosOrder $order, EscPosReceiptService $escPos)
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            return redirect()->route('kasir.index');
+        }
+
+        $paper = request()->query('paper');
+        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
+
+        return view('kasir.thermal-print', [
+            'order' => $order,
+            'thermal' => $thermal,
+            'autoPrint' => request()->boolean('print', true),
         ]);
     }
 

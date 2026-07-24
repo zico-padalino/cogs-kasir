@@ -84,9 +84,14 @@
         </div>
 
         <div class="form-actions receipt-actions mt-4 no-print">
-            <button type="button" class="btn-primary w-full" data-receipt-thermal-print>
-                Cetak Thermal
-            </button>
+            {{-- Sama pola Cetak PDF: link target=_blank + ?print=1 --}}
+            <a
+                href="{{ route('kasir.receipt.thermal-print', $order) }}?paper=58mm&print=1"
+                target="_blank"
+                rel="noopener"
+                class="btn-primary w-full text-center"
+                data-receipt-thermal-print
+            >Cetak Thermal</a>
             <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                     <input type="radio" name="thermal-paper" value="58mm" data-thermal-paper checked class="accent-brand-600">
@@ -98,7 +103,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Sekali klik Cetak Thermal → langsung buka Thermer & cetak. Ukuran 2× lebih besar.
+                Sama seperti Cetak PDF: klik sekali, tab baru membuka Thermer.
             </p>
             <a
                 href="{{ $pdfRoute }}?print=1"
@@ -146,6 +151,7 @@
             'thermal' => $thermal,
             'thermalRoute' => $thermalRoute ?? null,
             'thermalJsonRoute' => $thermalJsonRoute ?? null,
+            'thermalPrintRoute' => $thermalPrintRoute ?? null,
             'orderNumber' => $order->order_number,
             'shopName' => $shopName,
             'items' => $order->items->map(function ($item) use ($format) {
@@ -201,14 +207,13 @@
             var errorEl = document.querySelector('[data-receipt-wa-error]');
             var payloadEl = document.getElementById('receipt-wa-payload');
             var thermalBtn = document.querySelector('[data-receipt-thermal-print]');
-            var hintEl = document.querySelector('[data-thermal-hint]');
             var paperRadios = document.querySelectorAll('[data-thermal-paper]');
 
             if (!payloadEl) {
                 return;
             }
 
-            var payload = { message: '', thermal: {} };
+            var payload = { message: '' };
             try {
                 Object.assign(payload, JSON.parse(payloadEl.textContent || '{}'));
             } catch (e) {
@@ -216,6 +221,22 @@
             }
 
             var PAPER_KEY = 'pos-thermal-paper';
+            var thermalPrintBase = payload.thermalPrintRoute || (thermalBtn && thermalBtn.getAttribute('href')) || '';
+
+            function selectedPaper() {
+                var checked = document.querySelector('[data-thermal-paper]:checked');
+                return checked ? checked.value : '58mm';
+            }
+
+            function syncThermalLink() {
+                if (!thermalBtn || !thermalPrintBase) {
+                    return;
+                }
+                var paper = selectedPaper();
+                var base = String(thermalPrintBase).split('?')[0];
+                thermalBtn.setAttribute('href', base + '?paper=' + encodeURIComponent(paper) + '&print=1');
+            }
+
             try {
                 var savedPaper = localStorage.getItem(PAPER_KEY);
                 if (savedPaper === '58mm' || savedPaper === '80mm') {
@@ -225,22 +246,16 @@
                 }
             } catch (e) {}
 
-            function selectedPaper() {
-                var checked = document.querySelector('[data-thermal-paper]:checked');
-                return checked ? checked.value : '58mm';
-            }
+            syncThermalLink();
 
             paperRadios.forEach(function (radio) {
                 radio.addEventListener('change', function () {
                     try {
                         localStorage.setItem(PAPER_KEY, selectedPaper());
                     } catch (e) {}
+                    syncThermalLink();
                 });
             });
-
-            function isAndroid() {
-                return /Android/i.test(navigator.userAgent || '');
-            }
 
             function showError(text) {
                 if (!errorEl) {
@@ -263,164 +278,6 @@
             function openWhatsApp(phone, message) {
                 var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
                 window.open(url, '_blank', 'noopener');
-            }
-
-            function padColumns(left, right, width) {
-                left = String(left || '');
-                right = String(right || '');
-                var maxLeft = Math.max(1, width - right.length - 1);
-                if (left.length > maxLeft) {
-                    left = left.slice(0, Math.max(1, maxLeft - 1)) + '.';
-                }
-                var pad = Math.max(1, width - left.length - right.length);
-                return left + ' '.repeat(pad) + right;
-            }
-
-            function buildPreviewText(width) {
-                var lines = [];
-                var sep = '-'.repeat(width);
-                lines.push(payload.shopName || '');
-                lines.push('Struk Pembayaran');
-                lines.push(payload.orderNumber || '');
-                lines.push(payload.paidAt || '');
-                if (payload.orderType) lines.push(payload.orderType);
-                if (payload.table) lines.push('Meja: ' + payload.table);
-                if (payload.customer) lines.push('Pelanggan: ' + payload.customer);
-                lines.push(sep);
-                (payload.items || []).forEach(function (item) {
-                    lines.push(padColumns(item.name + ' x ' + item.qty, item.total, width));
-                    if (item.notes) lines.push('  Catatan: ' + item.notes);
-                });
-                lines.push(sep);
-                if (payload.discount) {
-                    lines.push(padColumns('Subtotal', payload.subtotal, width));
-                    lines.push(padColumns('Diskon', '- ' + payload.discount, width));
-                }
-                lines.push(padColumns('TOTAL', payload.total, width));
-                if (payload.payment) lines.push('Bayar: ' + payload.payment);
-                if (payload.received) lines.push('Diterima: ' + payload.received);
-                if (payload.change) lines.push('Kembalian: ' + payload.change);
-                if (payload.cashier && payload.cashier !== '-') lines.push('Kasir: ' + payload.cashier);
-                lines.push('');
-                lines.push('Terima kasih');
-                return lines.join('\n');
-            }
-
-            function printDesktopFallback() {
-                var width = selectedPaper() === '80mm' ? 48 : 32;
-                var pre = document.getElementById('thermal-print-pre');
-                var sheet = document.getElementById('thermal-print-sheet');
-                if (!pre || !sheet) {
-                    window.print();
-                    return;
-                }
-                var thermal = payload.thermal || {};
-                pre.textContent = thermal.thermer_share_text || buildPreviewText(width);
-                sheet.style.width = selectedPaper() === '80mm' ? '80mm' : '58mm';
-                sheet.classList.remove('hidden');
-                window.print();
-                setTimeout(function () {
-                    sheet.classList.add('hidden');
-                }, 500);
-            }
-
-            async function fetchThermal(paper) {
-                var jsonBase = payload.thermalJsonRoute || '';
-                if (!jsonBase) {
-                    return payload.thermal || {};
-                }
-                try {
-                    var res = await fetch(jsonBase + '?paper=' + encodeURIComponent(paper), {
-                        credentials: 'same-origin',
-                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    if (res.ok) {
-                        return await res.json();
-                    }
-                } catch (e) {}
-                return payload.thermal || {};
-            }
-
-            async function printThermal() {
-                var paper = selectedPaper();
-                try {
-                    localStorage.setItem(PAPER_KEY, paper);
-                } catch (e) {}
-
-                var thermal = payload.thermal || {};
-                if (paper !== thermal.paper || !thermal.thermer_url) {
-                    thermal = await fetchThermal(paper);
-                    payload.thermal = thermal;
-                }
-
-                var shareText = thermal.thermer_share_text || '';
-                var thermerUrl = thermal.thermer_url || '';
-                if (!thermerUrl && thermal.thermer_json) {
-                    thermerUrl = 'thermer://?data=' + encodeURIComponent(thermal.thermer_json);
-                }
-                var playStore = thermal.thermer_play_store
-                    || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
-
-                function openThermerDeepLink(url) {
-                    // Jangan pakai intent+package — Chrome akan lempar ke Play Store jika gagal.
-                    var iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = url;
-                    document.body.appendChild(iframe);
-                    setTimeout(function () {
-                        try { document.body.removeChild(iframe); } catch (e) {}
-                    }, 1500);
-
-                    // Trigger juga via location (beberapa browser butuh ini)
-                    try {
-                        window.location.href = url;
-                    } catch (e) {}
-                }
-
-                if (isAndroid()) {
-                    if (!thermerUrl && !shareText) {
-                        if (hintEl) hintEl.textContent = 'Data thermal belum siap.';
-                        return;
-                    }
-                    if (hintEl) hintEl.textContent = 'Membuka Thermer…';
-
-                    // Deep link thermer:// — JANGAN intent+package (itu yang buka Play Store).
-                    if (thermerUrl) {
-                        openThermerDeepLink(thermerUrl);
-                    }
-
-                    setTimeout(function () {
-                        if (!hintEl) return;
-                        hintEl.innerHTML = 'Thermer harus terbuka & mencetak otomatis. Jika tidak: pastikan printer sudah dipilih di Thermer, '
-                            + 'lalu klik <button type="button" class="underline text-brand-700" data-thermal-retry>Cetak lagi</button>. '
-                            + '<a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">Install Thermer</a>';
-
-                        var retryBtn = hintEl.querySelector('[data-thermal-retry]');
-                        if (retryBtn) {
-                            retryBtn.addEventListener('click', function () {
-                                printThermal();
-                            });
-                        }
-                    }, 2000);
-                    return;
-                }
-
-                if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') && thermerUrl) {
-                    if (hintEl) hintEl.textContent = 'Membuka Thermer…';
-                    openThermerDeepLink(thermerUrl);
-                    return;
-                }
-
-                if (hintEl) {
-                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome pakai Cetak Thermal.';
-                }
-                printDesktopFallback();
-            }
-
-            if (thermalBtn) {
-                thermalBtn.addEventListener('click', function () {
-                    printThermal();
-                });
             }
 
             if (openBtn && panel && phoneInput && sendBtn) {
