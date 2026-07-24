@@ -103,16 +103,8 @@ export async function updateProduct(
 export async function deleteProduct(id: number): Promise<void> {
   const db = await getCogsDb();
 
-  const cogsRow = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) AS count FROM cogs_calculations WHERE product_id = ?',
-    id,
-  );
-
-  if ((cogsRow?.count ?? 0) > 0) {
-    throw new Error('Produk sudah punya riwayat COGS, tidak bisa dihapus.');
-  }
-
   await db.withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync('DELETE FROM cogs_calculations WHERE product_id = ?', id);
     await txn.runAsync(
       'DELETE FROM bill_of_materials WHERE parent_product_id = ? OR child_product_id = ?',
       id,

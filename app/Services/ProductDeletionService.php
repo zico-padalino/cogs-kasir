@@ -13,10 +13,6 @@ class ProductDeletionService
 {
     public function canDelete(Product $product): ?string
     {
-        if ($product->cogsCalculations()->exists()) {
-            return 'Produk memiliki riwayat COGS. Hapus riwayat COGS dulu atau gunakan Reset Data.';
-        }
-
         if ($product->productionOrders()->where('status', 'completed')->exists()) {
             return 'Produk sudah pernah diproduksi (order selesai). Gunakan Reset Data untuk menghapus semua.';
         }
@@ -58,6 +54,7 @@ class ProductDeletionService
                 ->whereHas('productionOrder', fn ($q) => $q->whereIn('status', ['draft', 'in_progress']))
                 ->delete();
 
+            $product->cogsCalculations()->delete();
             $product->salesTransactions()->delete();
             $product->delete();
         });
