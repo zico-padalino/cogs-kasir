@@ -35,6 +35,8 @@ import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupia
 type TabKey = 'menu' | 'cart';
 type PayMethod = 'cash' | 'qris' | 'transfer';
 
+const QRIS_IMAGE = require('../../assets/qris.jpeg');
+
 const PRODUCT_GAP = spacing.sm;
 const PRODUCT_PAD = spacing.md;
 
@@ -1076,6 +1078,17 @@ export default function KasirPosScreen() {
                 </>
               ) : (
                 <>
+                  {payMethod === 'qris' ? (
+                    <>
+                      <Text style={styles.sectionLabel}>Scan QRIS</Text>
+                      <View style={styles.qrisFrame}>
+                        <Image source={QRIS_IMAGE} style={styles.qrisImage} resizeMode="contain" />
+                      </View>
+                      <Text style={styles.muted}>
+                        Minta pelanggan scan kode di atas, lalu unggah bukti pembayaran.
+                      </Text>
+                    </>
+                  ) : null}
                   <Text style={styles.sectionLabel}>Bukti pembayaran</Text>
                   <Pressable onPress={pickProof} style={styles.outlineBtn}>
                     <Text style={styles.outlineBtnText}>{proofUri ? 'Ganti foto' : 'Ambil foto'}</Text>
@@ -1520,6 +1533,18 @@ const styles = StyleSheet.create({
   discountTabOn: { backgroundColor: colors.brand100 },
   discountTabText: { ...font('600'), color: colors.slate700 },
   sectionLabel: { fontSize: 13, color: colors.slate700, ...font('600') },
+  qrisFrame: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  qrisImage: {
+    width: '100%',
+    height: 320,
+  },
   input: {
     minHeight: 44,
     borderRadius: radius.md,

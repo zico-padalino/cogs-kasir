@@ -66,6 +66,19 @@
                     </p>
                 </div>
 
+                <div class="pos-qris-panel hidden" data-pos-qris-panel>
+                    <p class="pos-pay-label">Scan QRIS</p>
+                    <div class="pos-qris-frame">
+                        <img
+                            src="{{ asset('qris.jpeg') }}"
+                            alt="Kode QRIS Kedai Tjoan"
+                            class="pos-qris-image"
+                            data-pos-qris-image
+                        >
+                    </div>
+                    <p class="pos-qris-hint">Minta pelanggan scan kode di atas, lalu unggah bukti pembayaran.</p>
+                </div>
+
                 <div class="pos-proof-panel hidden" data-pos-proof-panel>
                     <label class="pos-pay-label" for="pos-payment-proof">Foto bukti pembayaran</label>
                     <label class="pos-proof-drop" for="pos-payment-proof">

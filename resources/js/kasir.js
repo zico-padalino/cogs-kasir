@@ -1040,6 +1040,7 @@ function initPosCashPayment(root) {
         };
 
         const proofPanel = form.querySelector('[data-pos-proof-panel]');
+        const qrisPanel = form.querySelector('[data-pos-qris-panel]');
         const proofInput = form.querySelector('[data-pos-payment-proof]');
         const proofPreview = form.querySelector('[data-pos-proof-preview]');
         const proofPreviewImage = form.querySelector('[data-pos-proof-preview-image]');
@@ -1095,11 +1096,14 @@ function initPosCashPayment(root) {
         const syncPaymentMethod = () => {
             const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
             const isCash = method === 'cash';
+            const isQris = method === 'qris';
             const needsProof = method === 'qris' || method === 'transfer';
 
             cashPanel?.classList.toggle('hidden', ! isCash);
+            qrisPanel?.classList.toggle('hidden', ! isQris);
             proofPanel?.classList.toggle('hidden', ! needsProof);
             form.classList.toggle('is-cash-pay', isCash);
+            form.classList.toggle('is-qris-pay', isQris);
             form.classList.toggle('is-noncash-pay', needsProof);
 
             if (proofInput) {

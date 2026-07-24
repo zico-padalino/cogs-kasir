@@ -2956,6 +2956,22 @@
         @apply mt-3;
     }
 
+    .pos-qris-panel {
+        @apply mt-3 space-y-2;
+    }
+
+    .pos-qris-frame {
+        @apply overflow-hidden rounded-xl border border-slate-200 bg-white;
+    }
+
+    .pos-qris-image {
+        @apply mx-auto block h-auto w-full max-h-[min(52vh,420px)] object-contain;
+    }
+
+    .pos-qris-hint {
+        @apply text-[11px] leading-snug text-slate-500;
+    }
+
     .pos-proof-panel {
         @apply mt-3 space-y-2;
     }
