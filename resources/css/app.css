@@ -1886,6 +1886,49 @@
         @apply mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
     }
 
+    /* Struk pembayaran: jangan ketutup banner PWA / home indicator di HP */
+    body.is-receipt-page .pwa-install,
+    body.is-receipt-page .pwa-install-ios {
+        @apply bottom-auto z-[25];
+        top: max(3.25rem, calc(env(safe-area-inset-top, 0px) + 3.25rem));
+        padding-bottom: 0;
+        padding-top: 0;
+    }
+
+    .receipt-page {
+        @apply w-full;
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .receipt-actions {
+        @apply w-full flex-col gap-2 sm:flex-col;
+    }
+
+    .receipt-actions > .btn-primary,
+    .receipt-actions > .btn-secondary,
+    .receipt-actions > .btn-outline,
+    .receipt-actions > a {
+        @apply w-full justify-center sm:w-full;
+    }
+
+    @media (max-width: 767px) {
+        .app-scroll.receipt-scroll {
+            padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .receipt-page {
+            padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .receipt-actions {
+            @apply flex-col;
+        }
+
+        .receipt-wa-panel {
+            margin-bottom: 0.5rem;
+        }
+    }
+
     .hero-stat {
         @apply rounded-xl border-2 border-brand-200 bg-brand-50 p-4 text-center sm:p-6;
     }

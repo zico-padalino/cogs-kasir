@@ -2,6 +2,8 @@
 
 @section('title', 'Struk')
 @section('heading', 'Struk Pembayaran')
+@section('body_class', 'is-receipt-page')
+@section('main_class', 'px-4 py-4 sm:px-6 sm:py-6 receipt-scroll')
 
 @section('content')
     @php
@@ -9,7 +11,7 @@
         $thermal = $thermal ?? [];
     @endphp
 
-    <div class="mx-auto max-w-md px-1">
+    <div class="receipt-page mx-auto max-w-md px-1">
         <div class="card border-2 border-dashed border-slate-300 bg-white text-center" id="receipt">
             <p class="text-xs uppercase tracking-widest text-slate-500">Struk Pembayaran</p>
             <h1 class="mt-2 text-xl font-bold">{{ $shopName }}</h1>
@@ -81,7 +83,7 @@
             <p class="mt-4 text-xs text-slate-400">Biaya pokok tercatat otomatis</p>
         </div>
 
-        <div class="form-actions mt-4 no-print">
+        <div class="form-actions receipt-actions mt-4 no-print">
             <button type="button" class="btn-primary w-full" data-receipt-thermal-print>
                 Cetak Thermal (Ainuo)
             </button>
