@@ -37,7 +37,7 @@ const NAV: Record<Role, NavItem[]> = {
   kasir: [
     { label: 'Point of Sale', icon: '🛒', route: '/kasir' },
     { label: 'Riwayat Pesanan', icon: '📋', route: '/kasir/orders', match: ['/kasir/orders', '/kasir/order-detail', '/kasir/receipt'] },
-    { label: 'Meja QR', icon: '🪑', route: '/kasir/tables' },
+    { label: 'Meja & Barcode', icon: '🪑', route: '/kasir/tables', match: ['/kasir/tables', '/kasir/barcode'] },
     { label: 'Kelola Menu', icon: '🍽️', route: '/kasir/menu', match: ['/kasir/menu', '/kasir/menu-edit'] },
     { label: 'Atur Kategori', icon: '🏷️', route: '/kasir/categories' },
     { label: 'Pembukuan', icon: '📒', route: '/kasir/pembukuan' },
@@ -123,7 +123,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { user, logout, pin, lockPinSession } = useAuth();
+  const { user, logout, pin, lockPinSession, switchModule } = useAuth();
   const header = BRAND_HEADER[moduleType];
   const [shopName, setShopName] = useState(header.title);
   const [shopLogo, setShopLogo] = useState<string | null>(null);
@@ -146,6 +146,29 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
     if (pathname !== route) {
       router.replace(route as never);
     }
+  };
+
+  const handleSwitchModule = () => {
+    if (!user) return;
+    const other: Role | null =
+      moduleType === 'kasir' && user.has_cogs ? 'cogs' : moduleType === 'cogs' && user.has_kasir ? 'kasir' : null;
+    if (!other) {
+      Alert.alert('Modul', 'Akun ini hanya punya satu modul.');
+      return;
+    }
+    onNavigate?.();
+    Alert.alert('Ganti Modul', `Pindah ke modul ${ROLE_META[other].label}?`, [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Pindah',
+        onPress: () => {
+          void (async () => {
+            await switchModule(other);
+            router.replace(ROLE_META[other].homeRoute as never);
+          })();
+        },
+      },
+    ]);
   };
 
   const handleLock = () => {
@@ -177,6 +200,9 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
 
   const operatorName = pin?.operator_name || user?.name || 'Pengguna';
   const hasOperatorPin = Boolean(pin?.operator_name);
+  const canSwitchModule = Boolean(
+    user && ((user.has_kasir && user.has_cogs) || (moduleType === 'kasir' && user.has_cogs) || (moduleType === 'cogs' && user.has_kasir)),
+  );
 
   return (
     <View style={[styles.sidebarInner, compact && styles.sidebarInnerCompact, { paddingTop: insets.top + spacing.md }]}>
@@ -239,6 +265,22 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
             </Text>
           ) : null}
         </View>
+
+        {canSwitchModule ? (
+          <Pressable onPress={handleSwitchModule} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>⇄  Ganti Modul</Text>
+          </Pressable>
+        ) : null}
+
+        <Pressable
+          onPress={() => {
+            onNavigate?.();
+            router.push('/ubah-password' as never);
+          }}
+          style={styles.logoutBtn}
+        >
+          <Text style={styles.logoutText}>🔑  Ubah Password</Text>
+        </Pressable>
 
         {moduleType === 'kasir' ? (
           <Pressable

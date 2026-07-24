@@ -357,12 +357,23 @@ export default function KasirPosScreen() {
       setProofUri(null);
       setAmountReceived('');
       if (res.stock_out_message) {
-        Alert.alert('Stok habis', res.stock_out_message, [
-          {
-            text: 'OK',
-            onPress: () => router.push(`/kasir/receipt?id=${res.data.id}` as never),
-          },
-        ]);
+        const list = (res.stock_out || [])
+          .map((item) => `• ${item.name} (${item.type_label})`)
+          .join('\n');
+        Alert.alert(
+          'Stok habis',
+          list ? `${res.stock_out_message}\n\n${list}` : res.stock_out_message,
+          [
+            {
+              text: 'Kelola Menu',
+              onPress: () => router.push('/kasir/menu' as never),
+            },
+            {
+              text: 'Ke Struk',
+              onPress: () => router.push(`/kasir/receipt?id=${res.data.id}` as never),
+            },
+          ],
+        );
         return;
       }
       router.push(`/kasir/receipt?id=${res.data.id}` as never);
@@ -377,21 +388,21 @@ export default function KasirPosScreen() {
     if (!order || order.source !== 'kasir') return;
     const alreadyOpen = order.is_open_bill || order.status === 'unpaid';
     Alert.alert(
-      'Open Bill',
+      alreadyOpen ? 'Update tagihan' : 'Simpan dulu',
       alreadyOpen
-        ? 'Simpan perubahan Open Bill?'
-        : 'Simpan sebagai Open Bill? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.',
+        ? 'Simpan perubahan tagihan terbuka?'
+        : 'Simpan dulu (bayar nanti)? Bisa dibuka lagi untuk tambah item. Stok belum dipotong.',
       [
         { text: 'Batal', style: 'cancel' },
         {
-          text: 'Simpan',
+          text: alreadyOpen ? 'Update tagihan' : 'Simpan dulu',
           onPress: async () => {
             setHolding(true);
             try {
               const res = await kasirApi.openBill();
               applyOrder(res.data.active_order);
               await refresh();
-              Alert.alert('Disimpan', res.message || 'Open Bill disimpan.');
+              Alert.alert('Disimpan', res.message || 'Tagihan disimpan.');
             } catch (err) {
               handleApiError(err);
             } finally {
@@ -401,6 +412,27 @@ export default function KasirPosScreen() {
         },
       ],
     );
+  };
+
+  const cancelActiveOrder = () => {
+    if (!order || order.is_editable === false || itemCount === 0) return;
+    Alert.alert('Batalkan pesanan?', 'Pesanan aktif akan dibatalkan.', [
+      { text: 'Tidak', style: 'cancel' },
+      {
+        text: 'Batal pesanan',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const res = await kasirApi.cancelOrder();
+            applyOrder(res.data);
+            setTab('menu');
+            await refresh();
+          } catch (err) {
+            handleApiError(err);
+          }
+        },
+      },
+    ]);
   };
 
   const cashChange = useMemo(() => {
@@ -501,6 +533,12 @@ export default function KasirPosScreen() {
             </View>
 
             <View style={{ flex: 1 }} />
+
+            {cartEditable && itemCount > 0 ? (
+              <Pressable onPress={cancelActiveOrder} style={styles.cancelOrderBtn}>
+                <Text style={styles.cancelOrderBtnText}>Batal</Text>
+              </Pressable>
+            ) : null}
 
             <Pressable onPress={newOrder} style={styles.newOrderBtn}>
               <Text style={styles.newOrderBtnText}>+ Pesanan Baru</Text>
@@ -828,32 +866,15 @@ export default function KasirPosScreen() {
             />
           </View>
 
-          {itemCount > 0 && order?.can_checkout !== false ? (
+          {itemCount > 0 ? (
             <View style={[styles.checkoutDock, { paddingBottom: spacing.sm }]}>
               <View>
-                <Text style={styles.dockMeta}>{itemCount} item</Text>
+                <Text style={styles.dockMeta}>{itemCount} item di keranjang</Text>
                 <Text style={styles.dockTotal}>{formatRupiah(total)}</Text>
               </View>
-              <View style={styles.payActions}>
-                {order?.source === 'kasir' ? (
-                  <Pressable onPress={submitOpenBill} disabled={holding} style={styles.holdBtn}>
-                    <Text style={styles.holdBtnText}>
-                      {holding ? '…' : isActiveOpenBill ? 'Simpan Open Bill' : 'Open Bill'}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  onPress={() => {
-                    setPayMethod('cash');
-                    setAmountReceived(formatRupiahInput(Math.ceil(total)));
-                    setProofUri(null);
-                    setPayOpen(true);
-                  }}
-                  style={styles.payBtn}
-                >
-                  <Text style={styles.payBtnText}>Bayar</Text>
-                </Pressable>
-              </View>
+              <Pressable onPress={() => setTab('cart')} style={styles.payBtn}>
+                <Text style={styles.payBtnText}>Lihat pesanan</Text>
+              </Pressable>
             </View>
           ) : null}
         </View>
@@ -893,7 +914,7 @@ export default function KasirPosScreen() {
           {isActiveOpenBill ? (
             <View style={styles.openBillHint}>
               <Text style={styles.openBillHintText}>
-                Open Bill aktif — boleh tambah item. Tekan Ceklis antar untuk tandai yang sudah diantar, lalu simpan atau Bayar.
+                Tagihan terbuka — boleh tambah item. Tekan Ceklis antar untuk tandai yang sudah diantar, lalu simpan atau Bayar.
               </Text>
             </View>
           ) : null}
@@ -1033,7 +1054,7 @@ export default function KasirPosScreen() {
                 {order?.source === 'kasir' ? (
                   <Pressable onPress={submitOpenBill} disabled={holding} style={styles.holdBtn}>
                     <Text style={styles.holdBtnText}>
-                      {holding ? '…' : isActiveOpenBill ? 'Simpan Open Bill' : 'Open Bill'}
+                      {holding ? '…' : isActiveOpenBill ? 'Update tagihan' : 'Simpan dulu'}
                     </Text>
                   </Pressable>
                 ) : null}
@@ -1170,7 +1191,7 @@ export default function KasirPosScreen() {
                         <Text style={[styles.deliverRowName, delivered && styles.cartNameDelivered]} numberOfLines={2}>
                           {item.product_name || 'Item'}
                         </Text>
-                        <Text style={styles.meta}>Qty {item.quantity}</Text>
+                        <Text style={styles.muted}>Qty {item.quantity}</Text>
                       </View>
                     </Pressable>
                   );
@@ -1241,7 +1262,14 @@ export default function KasirPosScreen() {
                   <Pressable onPress={pickProof} style={styles.outlineBtn}>
                     <Text style={styles.outlineBtnText}>{proofUri ? 'Ganti foto' : 'Ambil foto'}</Text>
                   </Pressable>
-                  {proofUri ? <Text style={styles.muted}>Foto terpilih</Text> : null}
+                  {proofUri ? (
+                    <View style={styles.proofPreviewWrap}>
+                      <Image source={{ uri: proofUri }} style={styles.proofPreview} resizeMode="cover" />
+                      <Pressable onPress={() => setProofUri(null)} style={styles.proofClear}>
+                        <Text style={styles.proofClearText}>Hapus foto</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </>
               )}
               <Pressable onPress={submitPay} disabled={paying} style={[styles.payBtn, { marginTop: spacing.lg }]}>
@@ -1387,6 +1415,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   newOrderBtnText: { color: colors.espresso, fontSize: 12, ...font('700') },
+  cancelOrderBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    backgroundColor: colors.rose600,
+  },
+  cancelOrderBtnText: { color: colors.white, fontSize: 12, ...font('700') },
+  proofPreviewWrap: { marginTop: spacing.sm, gap: spacing.sm },
+  proofPreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: radius.md,
+    backgroundColor: colors.slate100,
+  },
+  proofClear: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.sm,
+    backgroundColor: colors.red50,
+  },
+  proofClearText: { color: colors.red600, fontSize: 12, ...font('600') },
   orderTypeBar: {
     flexDirection: 'row',
     alignItems: 'center',

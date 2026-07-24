@@ -41,6 +41,7 @@ type AuthContextValue = {
   pin: PinStatus | null;
   setPin: (pin: PinStatus | null) => void;
   lockPinSession: () => void;
+  switchModule: (module: Role) => Promise<void>;
   login: (input: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
@@ -174,6 +175,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPin(null);
   }, [persist]);
 
+  const switchModule = useCallback(
+    async (module: Role) => {
+      if (!user) return;
+      const next = resolveActiveModule(user, module);
+      try {
+        await authApi.switchModule(next);
+      } catch {
+        // local switch tetap jalan jika endpoint gagal
+      }
+      setActiveModule(next);
+      await persist(user, next);
+    },
+    [persist, user],
+  );
+
   const value = useMemo(
     () => ({
       user,
@@ -182,11 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       pin,
       setPin,
       lockPinSession,
+      switchModule,
       login,
       logout,
       refreshMe,
     }),
-    [user, activeModule, loading, pin, lockPinSession, login, logout, refreshMe],
+    [user, activeModule, loading, pin, lockPinSession, switchModule, login, logout, refreshMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -65,7 +65,7 @@ export default function OrderDetailScreen() {
       order?.status === 'served',
   );
   const canLihatStruk = order?.status === 'paid' || order?.status === 'served';
-  const canEditPaid = Boolean(order?.can_reopen_for_edit) || canLihatStruk;
+  const canEditPaid = Boolean(order?.can_reopen_for_edit);
   const deliveredCount = useMemo(
     () => (order?.items || []).filter((item) => item.is_delivered).length,
     [order?.items],

@@ -35,7 +35,7 @@ function canShowStruk(status?: string | null): boolean {
 }
 
 function canEditPaid(order: PosOrder): boolean {
-  return Boolean(order.can_reopen_for_edit) || canShowStruk(order.status);
+  return Boolean(order.can_reopen_for_edit);
 }
 
 type OrdersMeta = {
