@@ -3659,16 +3659,23 @@
             display: none !important;
         }
 
+        /*
+         * Tab Pesanan: flex column (bukan fixed) agar dock Bayar
+         * tidak ketutup tab bawah / chrome Safari.
+         */
         body.is-kasir-pos.is-mobile-cart-tab .app-shell,
         body.is-kasir-pos.is-mobile-cart-tab .app-frame,
         body.is-kasir-pos.is-mobile-cart-tab .app-content,
         body.is-kasir-pos.is-mobile-cart-tab .app-scroll.pos-main-wrap,
         body.is-kasir-pos.is-mobile-cart-tab .pos-shell,
         body.is-kasir-pos.is-mobile-cart-tab .pos-body {
-            display: block !important;
+            display: flex !important;
+            flex-direction: column;
+            flex: 1 1 auto;
             min-height: 0;
-            height: auto;
-            overflow: visible;
+            height: 100%;
+            max-height: 100%;
+            overflow: hidden;
             padding: 0 !important;
             margin: 0 !important;
             background: transparent;
@@ -3676,10 +3683,15 @@
 
         body.is-kasir-pos.is-mobile-cart-tab .pos-order-panel.kasir-panel-cart,
         body.is-kasir-pos.is-mobile-cart-tab .pos-order-panel.kasir-panel-cart.flex {
-            position: fixed !important;
-            inset: 0 0 calc(3.75rem + env(safe-area-inset-bottom, 0px)) 0;
-            z-index: 45;
+            position: relative !important;
+            inset: auto !important;
+            top: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            left: auto !important;
+            z-index: 1;
             display: flex !important;
+            flex: 1 1 auto;
             flex-direction: column;
             width: 100% !important;
             max-width: none !important;
@@ -3693,18 +3705,19 @@
             display: flex;
             flex: 1 1 auto;
             min-height: 0;
-            height: 100%;
+            height: auto;
             flex-direction: column;
             background: #efe8de;
         }
 
         body.is-kasir-pos.is-mobile-cart-tab .pos-view-tabs {
-            position: fixed !important;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 50;
+            position: relative !important;
+            left: auto;
+            right: auto;
+            bottom: auto;
+            z-index: 2;
             display: grid !important;
+            flex-shrink: 0;
             grid-template-columns: 1fr 1fr;
             gap: 0.35rem;
             margin: 0;
@@ -3883,6 +3896,8 @@
             border-top: 0;
             background: #1c1410;
             padding: 0.85rem 1rem;
+            /* Safe area sudah di tab bawah — jangan dobel */
+            padding-bottom: 0.85rem;
             box-shadow: none;
         }
 
@@ -4216,6 +4231,13 @@
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
         }
 
+        /* Tab Pesanan: safe area di tabs, bukan di dock Bayar */
+        body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-pay,
+        body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-confirm,
+        body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-foot {
+            padding-bottom: 0.85rem;
+        }
+
         .pos-receipt-pay-totals {
             @apply mb-2;
         }
@@ -4475,6 +4497,7 @@
         body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-confirm,
         body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-foot {
             padding: 0.65rem 0.85rem;
+            padding-bottom: 0.65rem;
         }
 
         .pos-receipt-pay .pos-receipt-grand,
@@ -5650,6 +5673,12 @@
         html.is-pwa-standalone .pos-receipt-pay,
         html.is-pwa-standalone .pos-receipt-confirm {
             padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+        }
+
+        html.is-pwa-standalone body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-pay,
+        html.is-pwa-standalone body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-confirm,
+        html.is-pwa-standalone body.is-kasir-pos.is-mobile-cart-tab .pos-receipt-foot {
+            padding-bottom: 0.85rem;
         }
 
         html.is-pwa-standalone .pwa-install,

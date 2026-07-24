@@ -682,7 +682,8 @@ export default function KasirPosScreen() {
               contentContainerStyle={[
                 styles.productListContent,
                 {
-                  paddingBottom: 72 + (itemCount > 0 ? 88 : 24) + insets.bottom,
+                  /* Dock Bayar di dalam mainCol (di atas tab) — cukup ruang dock saja */
+                  paddingBottom: itemCount > 0 ? 100 : 24,
                 },
               ]}
               columnWrapperStyle={productCols > 1 ? styles.productRow : undefined}
@@ -887,7 +888,7 @@ export default function KasirPosScreen() {
             ) : null}
           </ScrollView>
 
-          <View style={[styles.cartFooter, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+          <View style={[styles.cartFooter, { paddingBottom: spacing.md }]}>
             <View style={styles.totalRow}>
               <Text style={styles.muted}>Subtotal</Text>
               <Text style={styles.cartFooterAmount}>{formatRupiah(order?.subtotal ?? 0)}</Text>
@@ -1082,7 +1083,7 @@ const styles = StyleSheet.create({
   shell: { flex: 1, minWidth: 0 },
   shellWithSidebar: { flexDirection: 'row' },
   posBody: { flex: 1, minWidth: 0, flexDirection: 'column', backgroundColor: '#f6f1ea' },
-  mainCol: { flex: 1, minWidth: 0, backgroundColor: '#f6f1ea' },
+  mainCol: { flex: 1, minWidth: 0, backgroundColor: '#f6f1ea', position: 'relative' },
   cartCol: {
     flex: 1,
     backgroundColor: colors.white,
