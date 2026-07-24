@@ -23,7 +23,7 @@ class KasirPin
 
     public static function idleMinutes(): int
     {
-        return max(1, (int) config('pos.kasir_pin_ttl_minutes', 10));
+        return max(1, (int) config('pos.kasir_pin_ttl_minutes', 15));
     }
 
     public static function usesCache(): bool

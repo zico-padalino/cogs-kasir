@@ -50,7 +50,7 @@ return [
     'default_user_password' => env('DEFAULT_USER_PASSWORD', 'password'),
 
     /** Berapa menit sesi PIN kasir berlaku sebelum harus dimasukkan lagi. */
-    'kasir_pin_ttl_minutes' => (int) env('KASIR_PIN_TTL_MINUTES', 10),
+    'kasir_pin_ttl_minutes' => (int) env('KASIR_PIN_TTL_MINUTES', 15),
 
     /**
      * Thermal printer (Ainuo / ESC/POS via RawBT di Android).

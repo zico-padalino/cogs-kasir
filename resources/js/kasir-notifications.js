@@ -385,7 +385,7 @@ function schedulePinExpiryRedirect(shell, remainingSeconds, serverNow, expiresAt
 }
 
 function resetLocalIdleTimer(shell) {
-    const ttlMinutes = Math.max(1, parseInt(shell.dataset.kasirPinTtlMinutes || '10', 10));
+    const ttlMinutes = Math.max(1, parseInt(shell.dataset.kasirPinTtlMinutes || '15', 10));
     schedulePinExpiryRedirect(shell, ttlMinutes * 60);
 }
 

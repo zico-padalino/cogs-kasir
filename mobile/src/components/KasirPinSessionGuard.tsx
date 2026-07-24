@@ -21,7 +21,7 @@ export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchInFlight = useRef(false);
   const lastTouchAt = useRef(0);
-  const ttlMinutes = useRef(10);
+  const ttlMinutes = useRef(15);
 
   const onPinPage = pathname.includes('/kasir/pin');
   const onUbahPin = pathname.includes('/kasir/ubah-pin');
