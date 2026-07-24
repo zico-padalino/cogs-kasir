@@ -64,4 +64,10 @@
             Halaman ini berubah otomatis setelah kasir menerima dan menyelesaikan pembayaran.
         </p>
     </div>
+
+    @include('order.partials.new-order-button', [
+        'label' => 'Buat pesanan baru',
+        'hint' => 'Ingin pesan lagi? Pesanan ini tetap menunggu di kasir.',
+        'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap diproses kasir.',
+    ])
 </section>

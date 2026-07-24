@@ -64,4 +64,10 @@
             Halaman ini berubah otomatis setelah pesanan diantar / ditandai selesai.
         </p>
     </div>
+
+    @include('order.partials.new-order-button', [
+        'label' => 'Buat pesanan baru',
+        'hint' => 'Ingin pesan lagi sambil menunggu? Pesanan yang sudah dibayar tetap diproses.',
+        'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap menunggu diantar.',
+    ])
 </section>

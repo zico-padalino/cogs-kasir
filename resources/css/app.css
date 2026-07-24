@@ -5352,7 +5352,15 @@
     }
 
     .order-new-order-wrap {
-        @apply max-w-xl pt-2;
+        @apply mx-auto w-full max-w-xl space-y-2 pt-3;
+    }
+
+    .order-new-order-hint {
+        @apply text-center text-xs leading-relaxed text-slate-500;
+    }
+
+    .order-new-order-btn {
+        @apply min-h-12 text-base font-semibold;
     }
 
     .order-table-picks {

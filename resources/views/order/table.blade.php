@@ -71,10 +71,11 @@
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
 
-                <form action="{{ route('order.menu.new') }}" method="POST" class="order-new-order-wrap">
-                    @csrf
-                    <button type="submit" class="btn-secondary w-full">+ Pesan Baru</button>
-                </form>
+                @include('order.partials.new-order-button', [
+                    'label' => '+ Pesan baru',
+                    'hint' => 'Terima kasih! Tap di bawah untuk mulai pesanan baru.',
+                    'confirm' => 'Mulai pesanan baru?',
+                ])
             @else
                 <div class="order-view-tabs lg:hidden" role="tablist">
                     <button type="button" class="order-view-tab is-active" data-order-tab="menu" role="tab" aria-selected="true">
