@@ -13,12 +13,17 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Penjualan {{ $today['label'] }}</h2>
-                <p class="mt-1 text-sm text-slate-500">Omzet kasir, modal terjual, dan laba kotor.</p>
+                <p class="mt-1 text-sm text-slate-500">Omzet sebelum/setelah diskon, modal terjual, dan laba kotor.</p>
             </div>
         </div>
 
-        <div class="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-stat-card label="Omzet" :value="$format::rupiah($today['omzet'])" color="green" />
+        <div class="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <x-stat-card label="Omzet sebelum diskon" :value="$format::rupiah($today['omzet_kotor'] ?? $today['omzet'])" color="slate" />
+            <x-stat-card label="Total diskon" :value="$format::rupiah($today['diskon_total'] ?? 0)" color="amber" />
+            <x-stat-card label="Omzet bersih" :value="$format::rupiah($today['omzet'])" color="green" />
+        </div>
+
+        <div class="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <x-stat-card label="Transaksi" :value="$format::number($today['count'], 0)" color="brand" />
             <x-stat-card label="Modal Terjual" :value="$format::rupiah($today['modal'])" color="slate" />
             <x-stat-card
@@ -43,6 +48,12 @@
             <div class="card">
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Omzet {{ $month['label'] }}</p>
                 <p class="mt-2 text-xl font-bold text-slate-900">{{ $format::rupiah($month['omzet']) }}</p>
+                <p class="mt-1 text-sm text-slate-500">
+                    Sebelum diskon {{ $format::rupiah($month['omzet_kotor'] ?? $month['omzet']) }}
+                    @if (($month['diskon_total'] ?? 0) > 0)
+                        · diskon {{ $format::rupiah($month['diskon_total']) }}
+                    @endif
+                </p>
                 <p class="mt-1 text-sm text-slate-500">
                     {{ $format::number($month['count'], 0) }} transaksi
                     · laba {{ $format::rupiah($month['laba']) }}

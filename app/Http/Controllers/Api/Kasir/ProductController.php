@@ -11,6 +11,7 @@ use App\Models\MenuCategory;
 use App\Models\Product;
 use App\Services\ProductHppService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -81,6 +82,27 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => 'Menu "'.$product->name.'" diperbarui.',
+            'data' => new MenuProductResource($product),
+        ]);
+    }
+
+    public function toggleSoldOut(Request $request, Product $product): JsonResponse
+    {
+        $this->assertSellable($product);
+
+        $validated = $request->validate([
+            'is_sold_out' => ['required', 'boolean'],
+        ]);
+
+        $product->update([
+            'is_sold_out' => (bool) $validated['is_sold_out'],
+        ]);
+        $product->load('addons');
+
+        return response()->json([
+            'message' => $product->is_sold_out
+                ? 'Menu "'.$product->name.'" ditandai habis.'
+                : 'Menu "'.$product->name.'" tersedia lagi.',
             'data' => new MenuProductResource($product),
         ]);
     }

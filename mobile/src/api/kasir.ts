@@ -189,6 +189,9 @@ export const kasirApi = {
   loadOrder(orderId: number) {
     return apiRequest<Envelope<PosOrder>>(`/kasir/orders/${orderId}/load`, { method: 'POST' });
   },
+  editPaidOrder(orderId: number) {
+    return apiRequest<Envelope<PosOrder>>(`/kasir/orders/${orderId}/edit`, { method: 'POST' });
+  },
   confirmOrder(orderId: number) {
     return apiRequest<Envelope<PosOrder>>(`/kasir/orders/${orderId}/confirm`, { method: 'POST' });
   },
@@ -278,6 +281,12 @@ export const kasirApi = {
     return apiRequest<Envelope<MenuProduct>>(`/kasir/products/${productId}`, {
       method: 'POST',
       formData,
+    });
+  },
+  toggleSoldOut(productId: number, isSoldOut: boolean) {
+    return apiRequest<Envelope<MenuProduct>>(`/kasir/products/${productId}/sold-out`, {
+      method: 'PATCH',
+      body: { is_sold_out: isSoldOut },
     });
   },
   categories() {

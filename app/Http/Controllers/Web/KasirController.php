@@ -183,6 +183,31 @@ class KasirController extends Controller
         return redirect()->route('kasir.index')->with('success', 'Order #'.$order->order_number.' dibuka. Lanjut bayar atau tambah item.');
     }
 
+    public function editPaidOrder(Request $request, PosOrder $order, PosOrderService $posService)
+    {
+        try {
+            $order = $posService->reopenForEdit($order);
+        } catch (\RuntimeException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        session(['kasir_order_id' => $order->id]);
+
+        if ($request->expectsJson()) {
+            return response()->json($this->kasirOrderAjaxPayload(
+                $order,
+                'Pembayaran dibatalkan. Order #'.$order->order_number.' dibuka untuk diedit. Bayar lagi setelah koreksi.',
+            ));
+        }
+
+        return redirect()->route('kasir.index')
+            ->with('success', 'Pembayaran dibatalkan. Order #'.$order->order_number.' dibuka untuk diedit. Bayar lagi setelah koreksi.');
+    }
+
     public function openBill(PosOrderService $posService)
     {
         $order = $this->activeKasirOrder();

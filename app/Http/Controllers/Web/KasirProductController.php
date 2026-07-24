@@ -9,6 +9,7 @@ use App\Models\MenuCategory;
 use App\Models\Product;
 use App\Services\ProductHppService;
 use App\Support\Format;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -71,6 +72,38 @@ class KasirProductController extends Controller
         return redirect()
             ->route('kasir.products.edit', $product)
             ->with('success', 'Menu "'.$product->name.'" diperbarui.');
+    }
+
+    public function toggleSoldOut(Request $request, Product $product)
+    {
+        $this->assertSellable($product);
+
+        $validated = $request->validate([
+            'is_sold_out' => ['required', 'boolean'],
+        ]);
+
+        $product->update([
+            'is_sold_out' => (bool) $validated['is_sold_out'],
+        ]);
+
+        $message = $product->is_sold_out
+            ? 'Menu "'.$product->name.'" ditandai habis.'
+            : 'Menu "'.$product->name.'" tersedia lagi.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'data' => [
+                    'id' => $product->id,
+                    'is_sold_out' => (bool) $product->is_sold_out,
+                    'sold_out_manual' => (bool) $product->is_sold_out,
+                    'in_stock' => $product->isMenuInStock(),
+                    'can_add' => (float) $product->selling_price > 0 && $product->isMenuInStock(),
+                ],
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     private function assertSellable(Product $product): void

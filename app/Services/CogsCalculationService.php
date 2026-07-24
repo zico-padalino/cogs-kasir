@@ -232,6 +232,47 @@ class CogsCalculationService
         });
     }
 
+    public function reverseSaleCogs(SalesTransaction $sale): void
+    {
+        DB::transaction(function () use ($sale) {
+            $calculations = CogsCalculation::query()
+                ->where('reference_type', SalesTransaction::class)
+                ->where('reference_id', $sale->id)
+                ->lockForUpdate()
+                ->get();
+
+            $note = 'Batal penjualan '.$sale->invoice_number;
+
+            foreach ($calculations as $calculation) {
+                foreach ($calculation->breakdown['consumption_details'] ?? [] as $detail) {
+                    $productId = (int) ($detail['product_id'] ?? 0);
+                    $qty = (float) ($detail['quantity'] ?? 0);
+                    if ($productId <= 0 || $qty <= 0) {
+                        continue;
+                    }
+
+                    $product = Product::query()->find($productId);
+                    if (! $product) {
+                        continue;
+                    }
+
+                    $cost = (float) ($detail['cost'] ?? 0);
+                    $unitCost = $qty > 0 ? ($cost / $qty) : 0.0;
+
+                    $this->inventoryCostService->restoreConsumedStock(
+                        product: $product,
+                        quantity: $qty,
+                        unitCost: $unitCost,
+                        lotConsumptions: is_array($detail['lots'] ?? null) ? $detail['lots'] : [],
+                        note: $note,
+                    );
+                }
+
+                $calculation->delete();
+            }
+        });
+    }
+
     public function recordProductionCogs(ProductionOrder $order): CogsCalculation
     {
         $result = $this->calculateProductionCogs($order);

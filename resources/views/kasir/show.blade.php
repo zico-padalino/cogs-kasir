@@ -123,9 +123,17 @@
                     @endif
                     <p class="text-lg font-bold">Total bayar: {{ $format::rupiah($order->total) }}</p>
                 </div>
-                @if (in_array($order->status->value, ['paid', 'served'], true))
-                    <a href="{{ route('kasir.receipt', $order) }}" class="btn-primary w-full sm:w-auto">Lihat Struk</a>
-                @endif
+                <div class="mt-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    @if ($order->canReopenForEdit())
+                        <form method="POST" action="{{ route('kasir.orders.edit', $order) }}" onsubmit="return confirm('Pembayaran akan dibatalkan, stok dikembalikan, lalu pesanan dibuka di kasir untuk diedit. Lanjutkan?');">
+                            @csrf
+                            <button type="submit" class="btn-outline w-full sm:w-auto">Edit Pesanan</button>
+                        </form>
+                    @endif
+                    @if (in_array($order->status->value, ['paid', 'served'], true))
+                        <a href="{{ route('kasir.receipt', $order) }}" class="btn-primary w-full sm:w-auto">Lihat Struk</a>
+                    @endif
+                </div>
             </x-slot:footer>
         </x-table-card>
 

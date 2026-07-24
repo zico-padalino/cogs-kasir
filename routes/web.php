@@ -125,6 +125,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::patch('/discount', [KasirController::class, 'updateDiscount'])->name('discount.update');
         Route::post('/cancel-order', [KasirController::class, 'cancelOrder'])->name('order.cancel');
         Route::post('/load-order/{order}', [KasirController::class, 'loadOrder'])->name('load-order');
+        Route::post('/orders/{order}/edit', [KasirController::class, 'editPaidOrder'])->name('orders.edit');
         Route::post('/orders/{order}/confirm', [KasirController::class, 'confirmOrder'])->name('orders.confirm');
         Route::post('/orders/{order}/serve', [KasirController::class, 'markServed'])->name('orders.serve');
         Route::post('/orders/{order}/cancel', [KasirController::class, 'cancelPendingOrder'])->name('orders.cancel');
@@ -135,6 +136,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::get('/products', [KasirProductController::class, 'index'])->name('products.index');
         Route::get('/products/{product}/edit', [KasirProductController::class, 'edit'])->name('products.edit');
         Route::put('/products/{product}', [KasirProductController::class, 'update'])->name('products.update');
+        Route::patch('/products/{product}/sold-out', [KasirProductController::class, 'toggleSoldOut'])->name('products.sold-out');
         Route::get('/menu-categories', [MenuCategoryController::class, 'index'])->name('menu-categories.index');
         Route::post('/menu-categories', [MenuCategoryController::class, 'store'])->name('menu-categories.store');
         Route::delete('/menu-categories/{menuCategory}', [MenuCategoryController::class, 'destroy'])->name('menu-categories.destroy');

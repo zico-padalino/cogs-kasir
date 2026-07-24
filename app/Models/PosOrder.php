@@ -175,6 +175,12 @@ class PosOrder extends Model
         return in_array($this->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true);
     }
 
+    /** Pesanan lunas yang boleh dibuka ulang untuk dikoreksi di kasir. */
+    public function canReopenForEdit(): bool
+    {
+        return $this->isSettled();
+    }
+
     public function paymentProofUrl(): ?string
     {
         if (! filled($this->payment_proof_path)) {

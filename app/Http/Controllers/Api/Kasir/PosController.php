@@ -220,6 +220,23 @@ class PosController extends Controller
         ]);
     }
 
+    public function editPaidOrder(PosOrder $order, PosOrderService $posService): JsonResponse
+    {
+        try {
+            $order = $posService->reopenForEdit($order);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        KasirActiveOrder::set($order);
+        $order->load(['items.product', 'table']);
+
+        return response()->json([
+            'message' => 'Pembayaran dibatalkan. Order #'.$order->order_number.' dibuka untuk diedit. Bayar lagi setelah koreksi.',
+            'data' => new PosOrderResource($order),
+        ]);
+    }
+
     public function confirmOrder(PosOrder $order, PosOrderService $posService): JsonResponse
     {
         try {

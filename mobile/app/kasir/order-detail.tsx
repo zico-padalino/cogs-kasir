@@ -40,6 +40,7 @@ export default function OrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [deliverOpen, setDeliverOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -64,6 +65,7 @@ export default function OrderDetailScreen() {
       order?.status === 'served',
   );
   const canLihatStruk = order?.status === 'paid' || order?.status === 'served';
+  const canEditPaid = Boolean(order?.can_reopen_for_edit) || canLihatStruk;
   const deliveredCount = useMemo(
     () => (order?.items || []).filter((item) => item.is_delivered).length,
     [order?.items],
@@ -81,6 +83,34 @@ export default function OrderDetailScreen() {
     } finally {
       setTogglingId(null);
     }
+  };
+
+  const editPaid = () => {
+    if (!order || editing) return;
+    Alert.alert(
+      'Edit pesanan?',
+      'Pembayaran akan dibatalkan, stok dikembalikan, lalu pesanan dibuka di kasir untuk diedit.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Edit',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setEditing(true);
+              try {
+                await kasirApi.editPaidOrder(order.id);
+                router.push('/kasir' as never);
+              } catch (e) {
+                Alert.alert('Gagal', asApiError(e).message || 'Tidak bisa membuka pesanan.');
+              } finally {
+                setEditing(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -159,6 +189,11 @@ export default function OrderDetailScreen() {
               <Text style={styles.totalLabel}>Total bayar</Text>
               <Text style={styles.total}>{formatRupiah(order.total)}</Text>
             </View>
+            {canEditPaid ? (
+              <Pressable onPress={editPaid} disabled={editing} style={styles.btnOutline}>
+                <Text style={styles.btnOutlineText}>{editing ? 'Membuka…' : 'Edit Pesanan'}</Text>
+              </Pressable>
+            ) : null}
             {canLihatStruk ? (
               <Pressable
                 onPress={() => router.push(`/kasir/receipt?id=${order.id}&from=history` as never)}
@@ -325,6 +360,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnText: { color: colors.white, ...font('700') },
+  btnOutline: {
+    marginTop: spacing.sm,
+    minHeight: 48,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate300,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnOutlineText: { color: colors.brand700, ...font('700') },
   deliverOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

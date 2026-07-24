@@ -180,7 +180,21 @@ class InventoryCostService
         $unitCost = $this->getWeightedAverageCost($product);
 
         if ($persist) {
-            $this->consumeFifo($product, $quantity, true);
+            $fifo = $this->consumeFifo($product, $quantity, true);
+
+            return new MaterialConsumptionResult(
+                totalCost: $quantity * $unitCost,
+                averageUnitCost: $unitCost,
+                lotConsumptions: array_map(
+                    static fn (array $row) => [
+                        ...$row,
+                        'method' => 'weighted_average',
+                        'unit_cost' => $unitCost,
+                        'cost' => round(((float) $row['quantity']) * $unitCost, 4),
+                    ],
+                    $fifo->lotConsumptions,
+                ),
+            );
         }
 
         return new MaterialConsumptionResult(
@@ -202,7 +216,21 @@ class InventoryCostService
         $unitCost = $product->effectiveUnitHpp();
 
         if ($persist) {
-            $this->consumeFifo($product, $quantity, true);
+            $fifo = $this->consumeFifo($product, $quantity, true);
+
+            return new MaterialConsumptionResult(
+                totalCost: $quantity * $unitCost,
+                averageUnitCost: $unitCost,
+                lotConsumptions: array_map(
+                    static fn (array $row) => [
+                        ...$row,
+                        'method' => 'standard',
+                        'unit_cost' => $unitCost,
+                        'cost' => round(((float) $row['quantity']) * $unitCost, 4),
+                    ],
+                    $fifo->lotConsumptions,
+                ),
+            );
         }
 
         return new MaterialConsumptionResult(
@@ -217,5 +245,71 @@ class InventoryCostService
                 ],
             ],
         );
+    }
+
+    /**
+     * Kembalikan stok yang sebelumnya dikonsumsi penjualan (dari detail COGS).
+     *
+     * @param  list<array<string, mixed>>  $lotConsumptions
+     */
+    public function restoreConsumedStock(
+        Product $product,
+        float $quantity,
+        float $unitCost,
+        array $lotConsumptions = [],
+        ?string $note = null,
+    ): void {
+        if ($quantity <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($product, $quantity, $unitCost, $lotConsumptions, $note) {
+            $before = $product->availableQuantity();
+            $restored = 0.0;
+            $restoredViaLots = false;
+
+            foreach ($lotConsumptions as $row) {
+                $lotId = (int) ($row['lot_id'] ?? 0);
+                $qty = (float) ($row['quantity'] ?? 0);
+                if ($lotId <= 0 || $qty <= 0) {
+                    continue;
+                }
+
+                $lot = InventoryLot::query()->lockForUpdate()->find($lotId);
+                if ($lot && (int) $lot->product_id === (int) $product->id) {
+                    $lot->quantity_remaining = round((float) $lot->quantity_remaining + $qty, 6);
+                    $lot->save();
+                    $restored += $qty;
+                    $restoredViaLots = true;
+
+                    continue;
+                }
+
+                $this->receiveStock(
+                    $product,
+                    $qty,
+                    (float) ($row['unit_cost'] ?? $unitCost),
+                    is_string($row['lot_number'] ?? null) ? $row['lot_number'] : null,
+                );
+                $restored += $qty;
+                $restoredViaLots = true;
+            }
+
+            if (! $restoredViaLots) {
+                $this->receiveStock($product, $quantity, max(0, $unitCost));
+                $restored = $quantity;
+            }
+
+            if (Schema::hasTable('material_stock_logs')) {
+                $this->stockLogService->log(
+                    action: 'sale_void',
+                    product: $product,
+                    quantityBefore: $before,
+                    quantityAfter: round($before + $restored, 6),
+                    unitCost: $unitCost,
+                    note: $note,
+                );
+            }
+        });
     }
 }

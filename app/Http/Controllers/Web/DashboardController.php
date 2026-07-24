@@ -38,6 +38,8 @@ class DashboardController extends Controller
     /**
      * @return array{
      *     omzet: float,
+     *     omzet_kotor: float,
+     *     diskon_total: float,
      *     count: int,
      *     average: float,
      *     modal: float,
@@ -51,9 +53,11 @@ class DashboardController extends Controller
         $orders = PosOrder::query()
             ->whereIn('status', [PosOrderStatus::Paid, PosOrderStatus::Served])
             ->whereBetween('paid_at', [$start, $end])
-            ->get(['id', 'total']);
+            ->get(['id', 'total', 'subtotal', 'discount_amount']);
 
         $omzet = round((float) $orders->sum('total'), 4);
+        $omzetKotor = round((float) $orders->sum('subtotal'), 4);
+        $diskonTotal = round((float) $orders->sum('discount_amount'), 4);
         $count = $orders->count();
 
         $saleIds = SalesTransaction::query()
@@ -74,6 +78,8 @@ class DashboardController extends Controller
 
         return [
             'omzet' => $omzet,
+            'omzet_kotor' => $omzetKotor,
+            'diskon_total' => $diskonTotal,
             'count' => $count,
             'average' => $count > 0 ? round($omzet / $count, 4) : 0.0,
             'modal' => $modal,

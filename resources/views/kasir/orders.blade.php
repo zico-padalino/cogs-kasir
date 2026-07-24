@@ -34,6 +34,12 @@
                         </div>
                         <div class="orders-mobile-card-actions">
                             <a href="{{ route('kasir.orders.show', $order) }}" class="btn-sm btn-ghost text-brand-700">Detail</a>
+                            @if ($order->canReopenForEdit())
+                                <form method="POST" action="{{ route('kasir.orders.edit', $order) }}" class="inline" onsubmit="return confirm('Pembayaran akan dibatalkan, stok dikembalikan, lalu pesanan dibuka di kasir untuk diedit. Lanjutkan?');">
+                                    @csrf
+                                    <button type="submit" class="btn-sm btn-outline">Edit</button>
+                                </form>
+                            @endif
                             @if (in_array($order->status->value, ['paid', 'served'], true))
                                 <a href="{{ route('kasir.receipt', $order) }}" class="btn-sm btn-outline">Struk</a>
                             @endif
@@ -82,6 +88,12 @@
                                 <td class="col-actions">
                                     <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
                                         <a href="{{ route('kasir.orders.show', $order) }}" class="btn-sm btn-ghost text-brand-700">Detail</a>
+                                        @if ($order->canReopenForEdit())
+                                            <form method="POST" action="{{ route('kasir.orders.edit', $order) }}" onsubmit="return confirm('Pembayaran akan dibatalkan, stok dikembalikan, lalu pesanan dibuka di kasir untuk diedit. Lanjutkan?');">
+                                                @csrf
+                                                <button type="submit" class="btn-sm btn-outline">Edit</button>
+                                            </form>
+                                        @endif
                                         @if (in_array($order->status->value, ['paid', 'served'], true))
                                             <a href="{{ route('kasir.receipt', $order) }}" class="btn-sm btn-outline">Struk</a>
                                         @endif

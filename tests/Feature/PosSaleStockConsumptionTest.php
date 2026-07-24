@@ -72,6 +72,24 @@ class PosSaleStockConsumptionTest extends TestCase
                 $table->decimal('change_amount', 15, 4)->nullable();
             });
         }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'served_at')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->timestamp('served_at')->nullable();
+            });
+        }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'payment_method')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->string('payment_method')->nullable();
+            });
+        }
+
+        if (Schema::hasTable('pos_orders') && ! Schema::hasColumn('pos_orders', 'paid_at')) {
+            Schema::table('pos_orders', function ($table) {
+                $table->timestamp('paid_at')->nullable();
+            });
+        }
     }
 
     public function test_record_sale_cogs_consumes_finished_goods_stock(): void
@@ -346,5 +364,90 @@ class PosSaleStockConsumptionTest extends TestCase
         $this->assertStringContainsString('Roti Habis', $result['stock_out_message']);
         $this->assertStringContainsString('Tepung Habis', $result['stock_out_message']);
         $this->assertCount(2, $result['stock_out']);
+    }
+
+    public function test_reopen_for_edit_restores_stock_and_reopens_order(): void
+    {
+        $flour = Product::create([
+            'sku' => 'RM-FLOUR-EDIT',
+            'name' => 'Tepung Edit',
+            'type' => ProductType::RawMaterial,
+            'unit' => 'g',
+            'costing_method' => CostingMethod::Fifo,
+            'standard_cost' => 10,
+            'is_active' => true,
+        ]);
+
+        $menu = Product::create([
+            'sku' => 'FG-EDIT',
+            'name' => 'Roti Edit',
+            'type' => ProductType::FinishedGood,
+            'unit' => 'pcs',
+            'selling_price' => 15000,
+            'costing_method' => CostingMethod::WeightedAverage,
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        app(InventoryCostService::class)->receiveStock($flour, 200, 10);
+
+        BillOfMaterial::create([
+            'parent_product_id' => $menu->id,
+            'child_product_id' => $flour->id,
+            'quantity' => 100,
+            'scrap_percentage' => 0,
+            'sequence' => 1,
+        ]);
+
+        $kasir = User::factory()->kasir()->create();
+
+        $order = PosOrder::create([
+            'order_number' => 'TRX-TEST-EDIT-001',
+            'order_day' => now()->toDateString(),
+            'source' => PosOrderSource::Kasir,
+            'order_type' => PosOrderType::Takeaway,
+            'status' => PosOrderStatus::Open,
+            'user_id' => $kasir->id,
+            'subtotal' => 15000,
+            'total' => 15000,
+        ]);
+
+        PosOrderItem::create([
+            'pos_order_id' => $order->id,
+            'product_id' => $menu->id,
+            'quantity' => 1,
+            'unit_price' => 15000,
+            'line_total' => 15000,
+        ]);
+
+        $service = app(PosOrderService::class);
+
+        $service->payOrder(
+            $order->fresh('items.product'),
+            PaymentMethod::Qris,
+            $kasir,
+            null,
+            UploadedFile::fake()->image('bukti-edit.jpg'),
+        );
+
+        $this->assertEquals(100, $flour->fresh()->availableQuantity());
+        $this->assertDatabaseHas('pos_orders', [
+            'id' => $order->id,
+            'status' => 'paid',
+        ]);
+        $this->assertDatabaseHas('sales_transactions', [
+            'pos_order_id' => $order->id,
+        ]);
+
+        $reopened = $service->reopenForEdit($order->fresh());
+
+        $this->assertEquals(PosOrderStatus::Unpaid, $reopened->status);
+        $this->assertNull($reopened->payment_method);
+        $this->assertNull($reopened->paid_at);
+        $this->assertEquals(200, $flour->fresh()->availableQuantity());
+        $this->assertDatabaseMissing('sales_transactions', [
+            'pos_order_id' => $order->id,
+        ]);
+        $this->assertTrue($reopened->isKasirEditable());
     }
 }

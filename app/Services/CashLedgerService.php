@@ -101,10 +101,7 @@ class CashLedgerService
         }
 
         DB::transaction(function () use ($order, $cashier, $saleAmount, $changeAmount, $occurredAt) {
-            CashLedgerEntry::query()
-                ->where('pos_order_id', $order->id)
-                ->whereIn('type', [CashLedgerType::SaleIn->value, CashLedgerType::ChangeOut->value])
-                ->delete();
+            $this->clearOrderSaleEntries($order);
 
             $this->createEntry(
                 CashLedgerType::SaleIn,
@@ -126,6 +123,18 @@ class CashLedgerService
                 );
             }
         });
+    }
+
+    public function clearOrderSaleEntries(PosOrder $order): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('cash_ledger_entries')) {
+            return;
+        }
+
+        CashLedgerEntry::query()
+            ->where('pos_order_id', $order->id)
+            ->whereIn('type', [CashLedgerType::SaleIn->value, CashLedgerType::ChangeOut->value])
+            ->delete();
     }
 
     private function addManual(

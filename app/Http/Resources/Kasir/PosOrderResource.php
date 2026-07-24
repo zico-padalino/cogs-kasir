@@ -40,6 +40,7 @@ class PosOrderResource extends JsonResource
             'item_count' => $this->whenLoaded('items', fn () => $this->items->count(), $this->items()->count()),
             'can_checkout' => $this->canCheckoutAtKasir(),
             'is_editable' => $this->isKasirEditable(),
+            'can_reopen_for_edit' => $this->canReopenForEdit(),
             'is_open_bill' => $this->isOpenBill(),
             'can_checklist_delivered' => $this->canChecklistDelivered(),
             'can_mark_served' => $this->canMarkServed(),

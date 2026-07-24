@@ -22,6 +22,7 @@ class MenuProductResource extends JsonResource
             'image_url' => $this->imageUrl(),
             'image_path' => $this->image_path,
             'is_active' => (bool) $this->is_active,
+            'sold_out_manual' => (bool) $this->is_sold_out,
             'stock_qty' => round($this->availableQuantity(), 4),
             'stock_tracked' => $this->isMenuStockTracked(),
             'in_stock' => $this->isMenuInStock(),

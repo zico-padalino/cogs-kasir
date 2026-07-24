@@ -25,6 +25,7 @@ class Product extends Model
         'image_path',
         'is_active',
         'is_menu_item',
+        'is_sold_out',
         'hpp_updated_at',
     ];
 
@@ -38,6 +39,7 @@ class Product extends Model
             'selling_price' => 'decimal:4',
             'is_active' => 'boolean',
             'is_menu_item' => 'boolean',
+            'is_sold_out' => 'boolean',
             'hpp_updated_at' => 'datetime',
         ];
     }
@@ -94,6 +96,11 @@ class Product extends Model
     {
         if (! $this->is_menu_item) {
             return true;
+        }
+
+        // Ceklis "Habis" dari Kelola Menu (manual).
+        if ($this->is_sold_out) {
+            return false;
         }
 
         if (! $this->isMenuStockTracked()) {

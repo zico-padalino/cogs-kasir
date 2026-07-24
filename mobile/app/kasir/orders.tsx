@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import type { PosOrder } from '@/api/types';
+import { asApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
@@ -30,6 +32,10 @@ function formatOrderTime(iso?: string | null): string {
 
 function canShowStruk(status?: string | null): boolean {
   return status === 'paid' || status === 'served';
+}
+
+function canEditPaid(order: PosOrder): boolean {
+  return Boolean(order.can_reopen_for_edit) || canShowStruk(order.status);
 }
 
 type OrdersMeta = {
@@ -75,6 +81,30 @@ export default function OrdersScreen() {
 
   const openStruk = (order: PosOrder) => {
     router.push(`/kasir/receipt?id=${order.id}&from=history` as never);
+  };
+
+  const editPaid = (order: PosOrder) => {
+    Alert.alert(
+      'Edit pesanan?',
+      'Pembayaran akan dibatalkan, stok dikembalikan, lalu pesanan dibuka di kasir untuk diedit.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Edit',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await kasirApi.editPaidOrder(order.id);
+                router.push('/kasir' as never);
+              } catch (e) {
+                Alert.alert('Gagal', asApiError(e).message || 'Tidak bisa membuka pesanan.');
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -129,6 +159,11 @@ export default function OrdersScreen() {
                 <Pressable onPress={() => openDetail(item)} style={styles.actionGhost}>
                   <Text style={styles.actionGhostText}>Detail</Text>
                 </Pressable>
+                {canEditPaid(item) ? (
+                  <Pressable onPress={() => editPaid(item)} style={styles.actionOutline}>
+                    <Text style={styles.actionOutlineText}>Edit</Text>
+                  </Pressable>
+                ) : null}
                 {canShowStruk(item.status) ? (
                   <Pressable onPress={() => openStruk(item)} style={styles.actionOutline}>
                     <Text style={styles.actionOutlineText}>Struk</Text>

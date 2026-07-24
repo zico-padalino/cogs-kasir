@@ -44,6 +44,7 @@ export type MenuProduct = {
   in_stock?: boolean;
   can_add?: boolean;
   is_sold_out?: boolean;
+  sold_out_manual?: boolean;
   addons?: ProductAddon[];
   gross_margin?: number;
   margin_percent?: number;
@@ -91,6 +92,7 @@ export type PosOrder = {
   item_count?: number;
   can_checkout?: boolean;
   is_editable?: boolean;
+  can_reopen_for_edit?: boolean;
   is_open_bill?: boolean;
   can_checklist_delivered?: boolean;
   can_mark_served?: boolean;

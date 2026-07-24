@@ -676,6 +676,53 @@ class PosOrderService
         $this->cancelOrder($order);
     }
 
+    /**
+     * Batalkan pelunasan (stok + COGS + kas), buka ulang pesanan agar bisa diedit lalu dibayar lagi.
+     */
+    public function reopenForEdit(PosOrder $order): PosOrder
+    {
+        if (! $order->canReopenForEdit()) {
+            throw new RuntimeException('Hanya pesanan yang sudah dibayar yang bisa diedit ulang.');
+        }
+
+        return DB::transaction(function () use ($order) {
+            $order = PosOrder::query()->lockForUpdate()->findOrFail($order->id);
+            $order->load(['salesTransactions.product']);
+
+            if (! $order->canReopenForEdit()) {
+                throw new RuntimeException('Hanya pesanan yang sudah dibayar yang bisa diedit ulang.');
+            }
+
+            foreach ($order->salesTransactions as $sale) {
+                $this->cogsCalculationService->reverseSaleCogs($sale);
+                $sale->delete();
+            }
+
+            $this->cashLedgerService->clearOrderSaleEntries($order);
+
+            $proofPath = $order->payment_proof_path;
+            $nextStatus = $order->source === PosOrderSource::Online
+                ? PosOrderStatus::Confirmed
+                : PosOrderStatus::Unpaid;
+
+            $order->update([
+                'status' => $nextStatus,
+                'payment_method' => null,
+                'payment_proof_path' => null,
+                'paid_at' => null,
+                'served_at' => null,
+                'amount_received' => null,
+                'change_amount' => null,
+            ]);
+
+            if ($proofPath) {
+                Storage::disk('public')->delete($proofPath);
+            }
+
+            return $order->fresh(['items.product', 'table', 'cashier']);
+        });
+    }
+
     /** Konfirmasi pesanan sudah diantar / selesai (setelah bayar). */
     public function markServed(PosOrder $order): PosOrder
     {
@@ -811,6 +858,10 @@ class PosOrderService
 
         if ((float) $product->selling_price <= 0) {
             throw new RuntimeException('Harga jual belum diatur.');
+        }
+
+        if (! $product->isMenuInStock()) {
+            throw new RuntimeException($product->name.' sedang habis.');
         }
 
         if ($product->isMenuStockTracked() && $product->availableQuantity() < $quantity) {

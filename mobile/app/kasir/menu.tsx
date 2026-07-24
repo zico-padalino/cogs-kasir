@@ -28,6 +28,8 @@ export default function MenuAdminScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -55,6 +57,21 @@ export default function MenuAdminScreen() {
     }
   }, []);
 
+  const toggleSoldOut = async (item: MenuProduct) => {
+    const next = !(item.sold_out_manual ?? item.is_sold_out ?? false);
+    setTogglingId(item.id);
+    try {
+      const res = await kasirApi.toggleSoldOut(item.id, next);
+      setProducts((prev) =>
+        prev.map((row) => (row.id === item.id ? { ...row, ...res.data } : row)),
+      );
+    } catch {
+      // PIN_LOCKED → redirect global
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       void refresh();
@@ -81,7 +98,7 @@ export default function MenuAdminScreen() {
       <View style={styles.body}>
         <View style={styles.toolbar}>
           <Text style={styles.countHint}>
-            {products.length} item menu · harga diatur di modul Hitung Biaya
+            {products.length} item · centang Habis agar tidak bisa dipesan
           </Text>
           <TextInput
             value={search}
@@ -139,16 +156,17 @@ export default function MenuAdminScreen() {
               const cat = item.menu_category || 'lainnya';
               const catLabel = labels[cat] || cat;
               const price = item.selling_price || 0;
+              const manualSoldOut = Boolean(item.sold_out_manual ?? false);
+              const soldOut = Boolean(item.is_sold_out);
+              const busy = togglingId === item.id;
 
               return (
-                <Pressable
-                  onPress={() => router.push(`/kasir/menu-edit?id=${item.id}` as never)}
-                  style={styles.card}
-                >
+                <View style={[styles.card, soldOut && styles.cardSoldOut]}>
                   <Image source={{ uri: item.image_url }} style={styles.thumb} />
                   <View style={styles.cardBody}>
                     <Text style={styles.name} numberOfLines={2}>
                       {item.name}
+                      {soldOut ? ' · Habis' : ''}
                     </Text>
                     <Text style={styles.meta} numberOfLines={1}>
                       {[item.sku, catLabel].filter(Boolean).join(' · ')}
@@ -162,10 +180,24 @@ export default function MenuAdminScreen() {
                       {price > 0 ? formatRupiah(price) : 'Harga belum diatur'}
                     </Text>
                   </View>
-                  <View style={styles.editBtn}>
-                    <Text style={styles.editBtnText}>Atur</Text>
+                  <View style={styles.actions}>
+                    <Pressable
+                      onPress={() => void toggleSoldOut(item)}
+                      disabled={busy}
+                      style={[styles.soldOutBtn, manualSoldOut && styles.soldOutBtnOn]}
+                    >
+                      <Text style={[styles.soldOutBtnText, manualSoldOut && styles.soldOutBtnTextOn]}>
+                        {busy ? '…' : manualSoldOut ? '✓ Habis' : 'Habis'}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => router.push(`/kasir/menu-edit?id=${item.id}` as never)}
+                      style={styles.editBtn}
+                    >
+                      <Text style={styles.editBtnText}>Atur</Text>
+                    </Pressable>
                   </View>
-                </Pressable>
+                </View>
               );
             }}
           />
@@ -242,6 +274,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     ...shadow.sm,
   },
+  cardSoldOut: {
+    borderColor: '#fecdd3',
+    backgroundColor: '#fff1f2',
+  },
   thumb: {
     width: 72,
     height: 72,
@@ -257,14 +293,32 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: colors.slate500, marginTop: 2 },
   desc: { fontSize: 12, color: colors.slate600, marginTop: 4, lineHeight: 17 },
   price: { fontSize: 14, color: colors.brand700, ...font('700'), marginTop: 6 },
-  editBtn: {
+  actions: {
     alignSelf: 'center',
     flexShrink: 0,
+    gap: 8,
+    minWidth: 72,
+  },
+  soldOutBtn: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  soldOutBtnOn: {
+    borderColor: '#e11d48',
+    backgroundColor: '#e11d48',
+  },
+  soldOutBtnText: { color: '#9f1239', fontSize: 12, ...font('700') },
+  soldOutBtnTextOn: { color: colors.white },
+  editBtn: {
     borderRadius: radius.md,
     backgroundColor: colors.brand600,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    minWidth: 56,
     alignItems: 'center',
   },
   editBtnText: { color: colors.white, fontSize: 13, ...font('700') },

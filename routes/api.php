@@ -88,6 +88,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('orders/discount', [PosController::class, 'updateDiscount'])->name('orders.discount');
                 Route::post('orders/cancel', [PosController::class, 'cancelOrder'])->name('orders.cancel-active');
                 Route::post('orders/{order}/load', [PosController::class, 'loadOrder'])->name('orders.load');
+                Route::post('orders/{order}/edit', [PosController::class, 'editPaidOrder'])->name('orders.edit');
                 Route::post('orders/{order}/confirm', [PosController::class, 'confirmOrder'])->name('orders.confirm');
                 Route::post('orders/{order}/serve', [PosController::class, 'markServed'])->name('orders.serve');
                 Route::post('orders/{order}/cancel', [PosController::class, 'cancelPendingOrder'])->name('orders.cancel');
@@ -112,6 +113,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('products/{product}', [KasirProductController::class, 'show'])->name('products.show');
                 Route::put('products/{product}', [KasirProductController::class, 'update'])->name('products.update');
                 Route::post('products/{product}', [KasirProductController::class, 'update'])->name('products.update.post');
+                Route::patch('products/{product}/sold-out', [KasirProductController::class, 'toggleSoldOut'])->name('products.sold-out');
 
                 Route::get('menu-categories', [KasirMenuCategoryController::class, 'index'])->name('menu-categories.index');
                 Route::post('menu-categories', [KasirMenuCategoryController::class, 'store'])->name('menu-categories.store');
