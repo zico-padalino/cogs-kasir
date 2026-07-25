@@ -53,10 +53,20 @@ class EscPosReceiptService
         );
 
         $thermerUrl = 'thermer://?data='.rawurlencode($thermerJson);
+        // URL terlalu panjang di struk banyak item → sering terpotong & jadi garbage di printer.
+        if (strlen($thermerUrl) > 1800) {
+            $thermerUrl = '';
+        }
+
         // Intent SEND tanpa package — pakai BAF agar ukuran besar ikut terbaca Thermer
         $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
             .'S.android.intent.extra.TEXT='.rawurlencode($bafText)
             .';end;';
+        if (strlen($intentUrl) > 1800) {
+            $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+                .'S.android.intent.extra.TEXT='.rawurlencode($shareText)
+                .';end;';
+        }
 
         return [
             'binary' => $binary,
@@ -84,13 +94,12 @@ class EscPosReceiptService
     {
         $order->loadMissing(['items.product', 'table', 'cashier']);
         $w = max(24, $width);
-        $wWide = max(12, (int) floor($w / 2)); // kolom untuk format 2 (double width)
         $shop = $this->sanitize((string) config('pos.shop_name', 'Coffee & Kitchen'));
         $lines = [];
 
-        // Hanya header & TOTAL yang diperbesar — baris isi normal
-        // (format besar di semua baris sering bikin garbage di struk panjang).
-        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 2);
+        // Hindari double-size di struk panjang (sering bikin garbage di POS-58).
+        // Bold saja untuk penekanan.
+        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 0);
         $lines[] = $this->textLine('Struk Pembayaran', bold: 0, align: 1, format: 0);
         $lines[] = $this->blankLine();
         $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 0);
@@ -140,9 +149,7 @@ class EscPosReceiptService
             $lines[] = $this->columnsLine('Diskon', '- '.Format::rupiah($order->discount_amount), $w, bold: 0, format: 0);
         }
 
-        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $wWide, bold: 1, format: 2);
-        // Reset eksplisit setelah baris besar (cegah overlap/garbage di printer murah).
-        $lines[] = $this->textLine(' ', bold: 0, align: 0, format: 0);
+        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $w, bold: 1, format: 0);
 
         $lines[] = $this->textLine('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), bold: 0, align: 0, format: 0);
 
