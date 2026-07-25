@@ -13,6 +13,7 @@ use App\Models\PosOrderItem;
 use App\Models\Product;
 use App\Models\SalesTransaction;
 use App\Models\User;
+use App\Support\KitchenBoardCache;
 use App\Support\PosDiscount;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -473,6 +474,7 @@ class PosOrderService
             $this->kasirPushNotifier->notifyStockOut($result['stock_out'], $result['order']);
         }
 
+        KitchenBoardCache::forget();
         $this->kasirPushNotifier->notifyKitchenOrder($result['order']);
 
         return $result;
@@ -654,6 +656,7 @@ class PosOrderService
         });
 
         $this->kasirPushNotifier->notifyKitchenOrder($result['order']);
+        KitchenBoardCache::forget();
 
         return $result;
     }
@@ -777,6 +780,8 @@ class PosOrderService
             'served_at' => now(),
         ]);
 
+        KitchenBoardCache::forget();
+
         return $order->fresh(['items.product', 'table']);
     }
 
@@ -800,6 +805,8 @@ class PosOrderService
                 return $this->markServed($order->fresh());
             }
         }
+
+        KitchenBoardCache::forget();
 
         return $order->fresh(['items.product', 'table']);
     }
@@ -833,19 +840,44 @@ class PosOrderService
     public function kitchenOrders()
     {
         $categories = $this->kitchenCategories();
+        $since = now()->subDays(2)->startOfDay();
 
         return PosOrder::query()
-            ->with(['table', 'items.product'])
+            ->with([
+                'table:id,table_number,label',
+                'items' => function ($query) use ($categories) {
+                    $query->select([
+                        'id',
+                        'pos_order_id',
+                        'product_id',
+                        'quantity',
+                        'unit_price',
+                        'line_total',
+                        'notes',
+                        'addon_ids',
+                        'is_delivered',
+                        'delivered_at',
+                    ])->whereHas('product', function ($product) use ($categories) {
+                        $product->whereIn('menu_category', $categories);
+                    });
+                },
+                'items.product:id,name,menu_category,image_path',
+            ])
             ->where(function ($query) {
                 $query->where(function ($openBill) {
                     $openBill->where('source', PosOrderSource::Kasir)
                         ->where('status', PosOrderStatus::Unpaid);
                 })->orWhere('status', PosOrderStatus::Paid);
             })
+            ->where(function ($query) use ($since) {
+                $query->where('order_day', '>=', $since->toDateString())
+                    ->orWhere('updated_at', '>=', $since);
+            })
             ->whereHas('items.product', function ($query) use ($categories) {
                 $query->whereIn('menu_category', $categories);
             })
             ->orderByRaw('COALESCE(paid_at, confirmed_at, updated_at, created_at) asc')
+            ->limit(40)
             ->get()
             ->map(function (PosOrder $order) use ($categories) {
                 $kitchenItems = $order->items

@@ -7,6 +7,7 @@ use App\Enums\PosOrderSource;
 use App\Enums\PosOrderStatus;
 use App\Enums\PosOrderType;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Kasir\KitchenTicketResource;
 use App\Http\Resources\Kasir\MenuProductResource;
 use App\Http\Resources\Kasir\PosOrderResource;
 use App\Models\PosOrder;
@@ -17,6 +18,7 @@ use App\Services\EscPosReceiptService;
 use App\Services\ReceiptPdfService;
 use App\Support\KasirActiveOrder;
 use App\Support\KasirPin;
+use App\Support\KitchenBoardCache;
 use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -103,15 +105,15 @@ class PosController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
-        $kitchenOrders = $posService->kitchenOrders();
+        $board = KitchenBoardCache::remember('api', function () use ($posService) {
+            $kitchenOrders = $posService->kitchenOrders();
 
-        return response()->json([
-            'data' => array_merge([
+            return [
                 'count' => $kitchenOrders->count(),
-                'order_ids' => $kitchenOrders->pluck('id')->values(),
-                'notify_order_ids' => $kitchenOrders->pluck('id')->values(),
+                'order_ids' => $kitchenOrders->pluck('id')->values()->all(),
+                'notify_order_ids' => $kitchenOrders->pluck('id')->values()->all(),
                 'latest_order_id' => $kitchenOrders->last()?->id ?? $kitchenOrders->first()?->id,
-                'orders' => PosOrderResource::collection($kitchenOrders),
+                'orders' => KitchenTicketResource::collection($kitchenOrders)->resolve(),
                 'fingerprint' => $kitchenOrders
                     ->map(function (PosOrder $order) {
                         $done = $order->items->where('is_delivered', true)->count();
@@ -119,8 +121,12 @@ class PosController extends Controller
                         return $order->id.':'.$order->status->value.':'.$done.':'.$order->items->count();
                     })
                     ->implode('|'),
-            ], $pinStatus),
-        ]);
+            ];
+        });
+
+        return response()->json([
+            'data' => array_merge($board, $pinStatus),
+        ])->header('Cache-Control', 'private, max-age=2');
     }
 
     public function newOrder(PosOrderService $posService): JsonResponse

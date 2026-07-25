@@ -15,6 +15,7 @@ use App\Services\EscPosReceiptService;
 use App\Services\ReceiptPdfService;
 use App\Support\Format;
 use App\Support\KasirPin;
+use App\Support\KitchenBoardCache;
 use App\Support\PosMenu;
 use App\Support\SessionPressure;
 use Illuminate\Http\Request;
@@ -108,15 +109,20 @@ class KasirController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
-        $kitchenOrders = $posService->kitchenOrders();
-        $format = Format::class;
+        $board = KitchenBoardCache::remember('web', function () use ($posService) {
+            $kitchenOrders = $posService->kitchenOrders();
+            $format = Format::class;
 
-        return response()->json(array_merge([
-            'count' => $kitchenOrders->count(),
-            'order_ids' => $kitchenOrders->pluck('id')->values(),
-            'fingerprint' => $this->kitchenFingerprint($kitchenOrders),
-            'html' => view('kasir.partials.dapur-tickets', compact('kitchenOrders', 'format'))->render(),
-        ], $pinStatus));
+            return [
+                'count' => $kitchenOrders->count(),
+                'order_ids' => $kitchenOrders->pluck('id')->values()->all(),
+                'fingerprint' => $this->kitchenFingerprint($kitchenOrders),
+                'html' => view('kasir.partials.dapur-tickets', compact('kitchenOrders', 'format'))->render(),
+            ];
+        });
+
+        return response()->json(array_merge($board, $pinStatus))
+            ->header('Cache-Control', 'private, max-age=2');
     }
 
     /** @param \Illuminate\Support\Collection<int, PosOrder> $orders */
