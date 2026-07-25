@@ -2,15 +2,6 @@
     $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
     $isKitchen = ($variant ?? 'customer') === 'kitchen';
     $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
-    $paper = \App\Support\ShopSettings::normalizeReceiptPaper($paper ?? config('pos.thermal.paper', '58mm'));
-    $sheetWidth = $paper === '80mm' ? '80mm' : '58mm';
-    $pageSize = match ($paper) {
-        '80mm' => '80mm auto',
-        '58x210mm' => '58mm 210mm',
-        default => '58mm auto',
-    };
-    $fontBase = $paper === '80mm' ? '11px' : '10px';
-    $fontShop = $paper === '80mm' ? '16px' : '14px';
 
     // Karakter aneh sering bikin driver thermal corrupt di struk panjang.
     $clean = static function (?string $text): string {
@@ -41,23 +32,39 @@
             padding: 16px;
         }
         .sheet {
-            width: {{ $sheetWidth }};
+            width: 58mm;
             max-width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 8px 5px 14px;
-            font-size: {{ $fontBase }};
-            line-height: 1.3;
+            padding: 6px 4px 12px;
+            font-size: 11px;
+            line-height: 1.35;
         }
         .center { text-align: center; }
-        .shop { font-size: {{ $fontShop }}; font-weight: 700; margin-bottom: 2px; }
-        .eyebrow { font-size: {{ $fontBase }}; font-weight: 400; margin-bottom: 6px; }
-        .order-no { font-size: calc({{ $fontBase }} + 1px); font-weight: 700; }
-        .meta { margin-top: 1px; font-size: {{ $fontBase }}; font-weight: 400; }
+        .shop {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            letter-spacing: -0.02em;
+        }
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 400;
+            margin-bottom: 6px;
+        }
+        .order-no {
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .meta {
+            margin-top: 1px;
+            font-size: 11px;
+            font-weight: 400;
+        }
         .sep {
             border: 0;
             border-top: 1px solid #000;
-            margin: 7px 0;
+            margin: 8px 0;
             height: 0;
         }
         table.lines {
@@ -68,7 +75,7 @@
         table.lines td {
             vertical-align: top;
             padding: 2px 0;
-            font-size: {{ $fontBase }};
+            font-size: 11px;
             font-weight: 400;
             color: #000;
         }
@@ -86,7 +93,7 @@
         }
         table.lines tr.total td {
             font-weight: 700;
-            font-size: calc({{ $fontBase }} + 1px);
+            font-size: 12px;
             padding-top: 4px;
         }
         table.lines td.check {
@@ -102,24 +109,28 @@
             vertical-align: middle;
         }
         .note {
-            font-size: calc({{ $fontBase }} - 1px);
+            font-size: 10px;
             font-weight: 400;
-            margin: 0 0 2px 0;
+            margin: 0;
+            padding-left: 2px;
             color: #000;
         }
         .pay-meta {
-            margin-top: 4px;
-            font-size: {{ $fontBase }};
+            margin-top: 3px;
+            font-size: 11px;
             font-weight: 400;
             text-align: left;
         }
         .footer {
-            margin-top: 10px;
+            margin-top: 12px;
             text-align: center;
             font-weight: 700;
-            font-size: calc({{ $fontBase }} + 1px);
+            font-size: 12px;
         }
-        .footer.muted { font-weight: 400; font-size: calc({{ $fontBase }} - 1px); }
+        .footer.muted {
+            font-weight: 400;
+            font-size: 10px;
+        }
         .hint {
             max-width: 280px;
             margin: 12px auto 0;
@@ -140,14 +151,14 @@
         }
         @media print {
             @page {
-                size: {{ $pageSize }};
+                size: 58mm auto;
                 margin: 2mm;
             }
             html, body {
                 background: #fff !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                width: {{ $sheetWidth }} !important;
+                width: 58mm !important;
                 height: auto !important;
                 overflow: visible !important;
             }
@@ -264,7 +275,6 @@
 
     <script>
         window.addEventListener('load', function () {
-            // Tunggu layout selesai supaya struk panjang tidak corrupt saat print.
             setTimeout(function () { window.print(); }, 400);
         });
     </script>

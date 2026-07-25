@@ -16,10 +16,16 @@ class EscPosReceiptService
 
     public function widthChars(?string $paper = null): int
     {
-        $paper = $paper ?: (string) config('pos.thermal.paper', '58mm');
-        $width = \App\Support\ShopSettings::receiptPaperWidth($paper);
+        $paper = $this->normalizePaper($paper);
 
-        return $width === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
+        return $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
+    }
+
+    private function normalizePaper(?string $paper): string
+    {
+        $paper = strtolower(trim((string) ($paper ?: config('pos.thermal.paper', '58mm'))));
+
+        return $paper === '80mm' ? '80mm' : '58mm';
     }
 
     /**
@@ -38,11 +44,8 @@ class EscPosReceiptService
      */
     public function payload(PosOrder $order, ?string $paper = null): array
     {
-        $paper = \App\Support\ShopSettings::normalizeReceiptPaper(
-            $paper ?: (string) config('pos.thermal.paper', '58mm')
-        );
-        $widthKey = \App\Support\ShopSettings::receiptPaperWidth($paper);
-        $width = $widthKey === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
+        $paper = $this->normalizePaper($paper);
+        $width = $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
         $binary = $this->build($order, $width);
         $base64 = base64_encode($binary);
 
@@ -128,17 +131,17 @@ class EscPosReceiptService
             $lines[] = $this->columnsLine($name.' x '.$qty, Format::rupiah($item->line_total), $w, bold: 0, format: 0);
 
             $noteParts = \App\Support\PosItemNotes::split($item->notes);
-            if ($noteParts['customer']) {
+            foreach ($noteParts['addon_labels'] as $label) {
                 $lines[] = $this->textLine(
-                    '  Catatan: '.$this->sanitize($noteParts['customer']),
+                    '  '.$this->sanitize($label),
                     bold: 0,
                     align: 0,
                     format: 0,
                 );
             }
-            foreach ($noteParts['addon_labels'] as $label) {
+            if ($noteParts['customer']) {
                 $lines[] = $this->textLine(
-                    '  '.$this->sanitize($label),
+                    '  Catatan: '.$this->sanitize($noteParts['customer']),
                     bold: 0,
                     align: 0,
                     format: 0,

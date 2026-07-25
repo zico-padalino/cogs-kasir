@@ -750,9 +750,6 @@ class KasirController extends Controller
         }
 
         $order->load(['items.product', 'table', 'cashier']);
-        $paper = \App\Support\ShopSettings::normalizeReceiptPaper(
-            request('paper') ?: (string) config('pos.thermal.paper', '58mm')
-        );
 
         return response()
             ->view('kasir.receipt-print', [
@@ -760,7 +757,6 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'customer',
                 'title' => 'Cetak Pesanan',
-                'paper' => $paper,
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }
@@ -788,9 +784,6 @@ class KasirController extends Controller
         }
 
         $order->load(['items.product', 'table', 'cashier']);
-        $paper = \App\Support\ShopSettings::normalizeReceiptPaper(
-            request('paper') ?: (string) config('pos.thermal.paper', '58mm')
-        );
 
         return response()
             ->view('kasir.receipt-print', [
@@ -798,7 +791,6 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'kitchen',
                 'title' => 'Cetak Dapur',
-                'paper' => $paper,
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }

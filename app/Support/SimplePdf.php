@@ -172,7 +172,8 @@ final class SimplePdf
 
         foreach ($leftLines as $index => $leftLine) {
             $textY = $y - $size;
-            $this->writeText($stream, $leftLine, $this->margin, $textY, $size, false);
+            $leftBold = strtoupper(trim($left)) === 'TOTAL';
+            $this->writeText($stream, $leftLine, $this->margin, $textY, $size, $leftBold);
 
             if ($index === 0 && $right !== '') {
                 $this->writeText(

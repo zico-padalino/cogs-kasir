@@ -178,12 +178,12 @@ class ReceiptPdfService
     {
         $parts = \App\Support\PosItemNotes::split($notes);
 
-        if ($parts['customer']) {
-            $pdf->line('  Catatan: '.$parts['customer'], 24, false, 'L');
-        }
-
         foreach ($parts['addon_labels'] as $label) {
             $pdf->line('  '.$label, 24, false, 'L');
+        }
+
+        if ($parts['customer']) {
+            $pdf->line('  Catatan: '.$parts['customer'], 24, false, 'L');
         }
     }
 }

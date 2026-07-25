@@ -68,7 +68,7 @@ return [
      * paper: 58mm (32 kolom) atau 80mm (48 kolom).
      */
     'thermal' => [
-        // 58mm | 80mm | 58x210mm — bisa diubah dari Kasir → Pengaturan Struk
+        // 58mm | 80mm — untuk Thermer / ESC/POS
         'paper' => env('POS_THERMAL_PAPER', '58mm'),
         'thermer_play_store' => 'https://play.google.com/store/apps/details?id=mate.bluetoothprint',
         // Alias lama (kompatibilitas).
