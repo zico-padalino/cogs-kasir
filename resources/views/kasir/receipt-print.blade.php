@@ -24,7 +24,6 @@
             margin: 0;
             font-family: inherit;
             font-size: 12px;
-            font-weight: 400;
             line-height: 1.35;
             white-space: pre-wrap;
             word-break: break-word;

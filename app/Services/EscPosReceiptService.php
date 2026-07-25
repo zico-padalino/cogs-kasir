@@ -84,14 +84,16 @@ class EscPosReceiptService
     {
         $order->loadMissing(['items.product', 'table', 'cashier']);
         $w = max(24, $width);
+        $wWide = max(12, (int) floor($w / 2)); // kolom untuk format 2 (double width)
         $shop = $this->sanitize((string) config('pos.shop_name', 'Coffee & Kitchen'));
         $lines = [];
 
-        // Semua teks normal (tanpa bold / double-size) agar rata di printer thermal.
-        $lines[] = $this->textLine($shop, bold: 0, align: 1, format: 0);
+        // Hanya header & TOTAL yang diperbesar — baris isi normal
+        // (format besar di semua baris sering bikin garbage di struk panjang).
+        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 2);
         $lines[] = $this->textLine('Struk Pembayaran', bold: 0, align: 1, format: 0);
         $lines[] = $this->blankLine();
-        $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 0, align: 1, format: 0);
+        $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 0);
         $lines[] = $this->textLine($order->paid_at?->format('d/m/Y H:i') ?? '-', bold: 0, align: 1, format: 0);
 
         if ($order->order_type) {
@@ -138,7 +140,9 @@ class EscPosReceiptService
             $lines[] = $this->columnsLine('Diskon', '- '.Format::rupiah($order->discount_amount), $w, bold: 0, format: 0);
         }
 
-        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $w, bold: 0, format: 0);
+        $lines[] = $this->columnsLine('TOTAL', Format::rupiah($order->total), $wWide, bold: 1, format: 2);
+        // Reset eksplisit setelah baris besar (cegah overlap/garbage di printer murah).
+        $lines[] = $this->textLine(' ', bold: 0, align: 0, format: 0);
 
         $lines[] = $this->textLine('Bayar: '.$this->sanitize($order->payment_method?->label() ?? '-'), bold: 0, align: 0, format: 0);
 
@@ -152,7 +156,7 @@ class EscPosReceiptService
         }
 
         $lines[] = $this->blankLine();
-        $lines[] = $this->textLine('Terima kasih', bold: 0, align: 1, format: 0);
+        $lines[] = $this->textLine('Terima kasih', bold: 1, align: 1, format: 0);
         $lines[] = $this->blankLine();
         $lines[] = $this->blankLine();
 
@@ -267,6 +271,8 @@ class EscPosReceiptService
         foreach ($lines as $line) {
             $text = $line['text'] ?? ' ';
             $align = (int) $line['align'];
+            $bold = (int) $line['bold'] === 1;
+            $format = (int) $line['format'];
 
             $out .= match ($align) {
                 1 => "\x1B\x61\x01",
@@ -274,16 +280,23 @@ class EscPosReceiptService
                 default => "\x1B\x61\x00",
             };
 
-            // Selalu normal (tanpa bold / double-size) agar ketebalan rata.
-            $out .= "\x1D\x21\x00";
-            $out .= "\x1B\x45\x00";
+            // 0 normal · 1 double H · 2 double H+W · 3 double W
+            $out .= match ($format) {
+                1 => "\x1D\x21\x01",
+                2 => "\x1D\x21\x11",
+                3 => "\x1D\x21\x10",
+                default => "\x1D\x21\x00",
+            };
+            $out .= $bold ? "\x1B\x45\x01" : "\x1B\x45\x00";
 
             if (trim($text) === '') {
                 $out .= "\n";
             } else {
-                $out .= $this->line($text, $w);
+                $colWidth = $format >= 2 ? max(12, (int) floor($w / 2)) : $w;
+                $out .= $this->line($text, $colWidth);
             }
 
+            // Selalu reset bold + ukuran setelah tiap baris (cegah overlap di struk panjang).
             $out .= "\x1B\x45\x00";
             $out .= "\x1D\x21\x00";
             $out .= "\x1B\x61\x00";

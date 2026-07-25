@@ -38,22 +38,22 @@ class ReceiptPdfService
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $pdf = new SimplePdf;
 
-        $pdf->line($shopName, 28, false, 'C');
+        $pdf->title($shopName);
         $pdf->line('Struk Pembayaran', 28, false, 'C');
         $pdf->spacer(12);
-        $pdf->line($order->order_number, 28, false, 'C');
-        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 28, false, 'C');
+        $pdf->line($order->order_number, 30, true, 'C');
+        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 26, false, 'C');
 
         if ($order->order_type) {
-            $pdf->line($order->order_type->label(), 28, false, 'C');
+            $pdf->line($order->order_type->label(), 26, false, 'C');
         }
 
         if ($order->table) {
-            $pdf->line('Meja: '.$order->table->label, 28, false, 'C');
+            $pdf->line('Meja: '.$order->table->label, 26, false, 'C');
         }
 
         if ($order->customer_note) {
-            $pdf->line('Pelanggan: '.$order->customer_note, 28, false, 'C');
+            $pdf->line('Pelanggan: '.$order->customer_note, 26, false, 'C');
         }
 
         $pdf->spacer(12);
@@ -73,20 +73,20 @@ class ReceiptPdfService
             $pdf->twoColumns('Diskon', '- '.Format::rupiah($order->discount_amount), 28);
         }
 
-        $pdf->twoColumns('TOTAL', Format::rupiah($order->total), 28);
-        $pdf->line('Bayar: '.($order->payment_method?->label() ?? '-'), 28, false, 'L');
+        $pdf->twoColumns('TOTAL', Format::rupiah($order->total), 34);
+        $pdf->line('Bayar: '.($order->payment_method?->label() ?? '-'), 26, false, 'L');
 
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $pdf->line('Diterima: '.Format::rupiah($order->amount_received), 28, false, 'L');
-            $pdf->line('Kembalian: '.Format::rupiah($order->change_amount), 28, false, 'L');
+            $pdf->line('Diterima: '.Format::rupiah($order->amount_received), 26, false, 'L');
+            $pdf->line('Kembalian: '.Format::rupiah($order->change_amount), 26, false, 'L');
         }
 
         if ($order->cashierDisplayName() !== '-') {
-            $pdf->line('Kasir: '.$order->cashierDisplayName(), 28, false, 'L');
+            $pdf->line('Kasir: '.$order->cashierDisplayName(), 26, false, 'L');
         }
 
         $pdf->spacer(16);
-        $pdf->line('Terima kasih', 28, false, 'C');
+        $pdf->line('Terima kasih', 28, true, 'C');
 
         return $pdf->render();
     }
@@ -118,22 +118,22 @@ class ReceiptPdfService
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $pdf = new SimplePdf;
 
-        $pdf->line($shopName, 28, false, 'C');
-        $pdf->line('Struk Dapur', 28, false, 'C');
+        $pdf->title($shopName);
+        $pdf->line('Struk Dapur', 28, true, 'C');
         $pdf->spacer(12);
-        $pdf->line($order->order_number, 28, false, 'C');
-        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'), 28, false, 'C');
+        $pdf->line($order->order_number, 30, true, 'C');
+        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'), 26, false, 'C');
 
         if ($order->order_type) {
-            $pdf->line($order->order_type->label(), 28, false, 'C');
+            $pdf->line($order->order_type->label(), 26, false, 'C');
         }
 
         if ($order->table) {
-            $pdf->line('Meja: '.$order->table->label, 28, false, 'C');
+            $pdf->line('Meja: '.$order->table->label, 26, false, 'C');
         }
 
         if ($order->customer_note) {
-            $pdf->line('Pelanggan: '.$order->customer_note, 28, false, 'C');
+            $pdf->line('Pelanggan: '.$order->customer_note, 26, false, 'C');
         }
 
         $pdf->spacer(12);
@@ -149,11 +149,11 @@ class ReceiptPdfService
         $pdf->separator();
 
         if ($order->cashierDisplayName() !== '-') {
-            $pdf->line('Kasir: '.$order->cashierDisplayName(), 28, false, 'L');
+            $pdf->line('Kasir: '.$order->cashierDisplayName(), 26, false, 'L');
         }
 
         $pdf->spacer(12);
-        $pdf->line('Ceklis item yang sudah selesai', 28, false, 'C');
+        $pdf->line('Ceklis item yang sudah selesai', 22, false, 'C');
 
         return $pdf->render();
     }
@@ -178,11 +178,11 @@ class ReceiptPdfService
         $parts = \App\Support\PosItemNotes::split($notes);
 
         if ($parts['customer']) {
-            $pdf->line('  Catatan: '.$parts['customer'], 28, false, 'L');
+            $pdf->line('  Catatan: '.$parts['customer'], 24, false, 'L');
         }
 
         foreach ($parts['addon_labels'] as $label) {
-            $pdf->line('  '.$label, 28, false, 'L');
+            $pdf->line('  '.$label, 24, false, 'L');
         }
     }
 }
