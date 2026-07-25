@@ -643,6 +643,7 @@ class KasirController extends Controller
 
         $order->load(['items.product', 'table', 'cashier']);
         $pdf = $receiptPdf->store($order);
+        $kitchenPdf = $receiptPdf->storeKitchen($order);
         $thermal = $escPos->payload($order);
 
         return view('kasir.receipt', [
@@ -650,6 +651,7 @@ class KasirController extends Controller
             'format' => Format::class,
             'pdfUrl' => $pdf['url'],
             'pdfRoute' => route('kasir.receipt.pdf', $order),
+            'kitchenPdfRoute' => route('kasir.receipt.kitchen', $order),
             'thermalRoute' => route('kasir.receipt.thermal', $order),
             'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             'waMessage' => $receiptPdf->whatsappMessage($order, $pdf['url']),
@@ -685,6 +687,22 @@ class KasirController extends Controller
         ]);
     }
 
+    public function receiptKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->storeKitchen($order);
+        $inline = request()->boolean('print', true);
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
     /**
      * Public signed PDF for WhatsApp / share links (no login required).
      */
@@ -695,6 +713,22 @@ class KasirController extends Controller
         }
 
         $pdf = $receiptPdf->store($order);
+        $inline = request()->boolean('print', true);
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function publicKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->storeKitchen($order);
         $inline = request()->boolean('print', true);
 
         return response($pdf['binary'], 200, [

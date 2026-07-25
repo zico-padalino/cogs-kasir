@@ -79,6 +79,9 @@ Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order
 Route::get('/struk/{order}/pdf', [KasirController::class, 'publicReceiptPdf'])
     ->middleware('signed')
     ->name('receipts.public');
+Route::get('/struk/{order}/dapur', [KasirController::class, 'publicKitchenPdf'])
+    ->middleware('signed')
+    ->name('receipts.kitchen');
 
 Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
     ->name('pwa.manifest')
@@ -149,6 +152,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/open-bill', [KasirController::class, 'openBill'])->name('open-bill');
         Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
         Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
+        Route::get('/receipt/{order}/dapur', [KasirController::class, 'receiptKitchenPdf'])->name('receipt.kitchen');
         Route::get('/receipt/{order}/thermal', [KasirController::class, 'receiptThermal'])->name('receipt.thermal');
         Route::get('/receipt/{order}/thermal-json', [KasirController::class, 'receiptThermalJson'])->name('receipt.thermal-json');
         Route::post('/waste', [KasirWebWasteController::class, 'store'])->name('waste.store');

@@ -517,6 +517,7 @@ class PosController extends Controller
 
         $order->load(['items.product', 'table', 'cashier']);
         $pdf = $receiptPdf->store($order);
+        $kitchenPdf = $receiptPdf->storeKitchen($order);
         $paper = request()->query('paper');
         $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
 
@@ -524,6 +525,7 @@ class PosController extends Controller
             'data' => [
                 'order' => new PosOrderResource($order),
                 'pdf_url' => $pdf['url'],
+                'kitchen_pdf_url' => $kitchenPdf['url'],
                 'wa_message' => $receiptPdf->whatsappMessage($order, $pdf['url']),
                 'shop_name' => config('pos.shop_name'),
                 'thermal' => [
@@ -552,6 +554,22 @@ class PosController extends Controller
 
         $pdf = $receiptPdf->store($order);
         $inline = request()->boolean('print');
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function receiptKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): \Symfony\Component\HttpFoundation\Response
+    {
+        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->storeKitchen($order);
+        $inline = request()->boolean('print', true);
 
         return response($pdf['binary'], 200, [
             'Content-Type' => 'application/pdf',

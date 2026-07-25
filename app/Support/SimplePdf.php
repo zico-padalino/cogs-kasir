@@ -16,6 +16,8 @@ final class SimplePdf
 
     private float $columnGap = 12;
 
+    private float $checkboxGap = 14;
+
     public function title(string $text): self
     {
         $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => 40.0, 'bold' => true, 'align' => 'C'];
@@ -51,6 +53,14 @@ final class SimplePdf
         return $this;
     }
 
+    /** Baris item dengan kotak ceklis di kanan (struk dapur). */
+    public function checkItem(string $text, float $size = 28): self
+    {
+        $this->ops[] = ['type' => 'check', 'text' => $text, 'size' => $size];
+
+        return $this;
+    }
+
     public function render(): string
     {
         $contentHeight = $this->margin;
@@ -59,6 +69,7 @@ final class SimplePdf
                 'spacer' => $op['amount'] ?? 12,
                 'separator' => 18,
                 'columns' => $this->columnsHeight($op),
+                'check' => $this->checkHeight($op),
                 default => $this->textHeight($op),
             };
         }
@@ -82,6 +93,11 @@ final class SimplePdf
 
             if ($op['type'] === 'columns') {
                 $y = $this->drawColumns($stream, $op, $y);
+                continue;
+            }
+
+            if ($op['type'] === 'check') {
+                $y = $this->drawCheckItem($stream, $op, $y);
                 continue;
             }
 
@@ -188,6 +204,67 @@ final class SimplePdf
         $lines = max(1, count($this->wrapText($left, $maxLeft, $size)));
 
         return $lines * ($size + 8);
+    }
+
+    /**
+     * @param  array{type:string,text?:string,size?:float}  $op
+     * @param  list<string>  $stream
+     */
+    private function drawCheckItem(array &$stream, array $op, float $y): float
+    {
+        $size = $op['size'] ?? 28;
+        $text = (string) ($op['text'] ?? '');
+        $box = $this->checkboxSize($size);
+        $maxLeft = max(20.0, $this->pageWidth - (2 * $this->margin) - $box - $this->checkboxGap);
+        $lines = $this->wrapText($text, $maxLeft, $size);
+
+        foreach ($lines as $index => $line) {
+            $textY = $y - $size;
+            $this->writeText($stream, $line, $this->margin, $textY, $size, false);
+
+            if ($index === 0) {
+                $this->drawCheckbox($stream, $this->pageWidth - $this->margin, $textY, $size);
+            }
+
+            $y -= ($size + 8);
+        }
+
+        return $y;
+    }
+
+    /**
+     * @param  array{type:string,text?:string,size?:float}  $op
+     */
+    private function checkHeight(array $op): float
+    {
+        $size = $op['size'] ?? 28;
+        $text = (string) ($op['text'] ?? '');
+        $box = $this->checkboxSize($size);
+        $maxLeft = max(20.0, $this->pageWidth - (2 * $this->margin) - $box - $this->checkboxGap);
+        $lines = max(1, count($this->wrapText($text, $maxLeft, $size)));
+
+        return $lines * ($size + 8);
+    }
+
+    private function checkboxSize(float $size): float
+    {
+        return min($size * 0.85, 24.0);
+    }
+
+    /** @param list<string> $stream */
+    private function drawCheckbox(array &$stream, float $right, float $baselineY, float $size): void
+    {
+        $box = $this->checkboxSize($size);
+        $x = $right - $box;
+        $y = $baselineY + (($size - $box) * 0.25);
+
+        $stream[] = '2 w';
+        $stream[] = sprintf('%.2F %.2F m', $x, $y);
+        $stream[] = sprintf('%.2F %.2F l', $x + $box, $y);
+        $stream[] = sprintf('%.2F %.2F l', $x + $box, $y + $box);
+        $stream[] = sprintf('%.2F %.2F l', $x, $y + $box);
+        $stream[] = 'h S';
+        $stream[] = '1 w';
     }
 
     /**

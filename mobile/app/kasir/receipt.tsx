@@ -45,6 +45,7 @@ export default function ReceiptScreen() {
   const fromHistory = from === 'history';
   const [order, setOrder] = useState<PosOrder | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [kitchenPdfUrl, setKitchenPdfUrl] = useState<string | null>(null);
   const [waMessage, setWaMessage] = useState('');
   const [shopName, setShopName] = useState('');
   const [thermal, setThermal] = useState<ThermalPayload | null>(null);
@@ -60,6 +61,7 @@ export default function ReceiptScreen() {
     const res = await kasirApi.receipt(Number(id), paperSize);
     setOrder(res.data.order);
     setPdfUrl(res.data.pdf_url);
+    setKitchenPdfUrl(res.data.kitchen_pdf_url ?? null);
     setWaMessage(res.data.wa_message);
     setShopName(res.data.shop_name);
     setThermal(res.data.thermal ?? null);
@@ -224,11 +226,17 @@ export default function ReceiptScreen() {
         <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
           <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal'}</Text>
         </Pressable>
-        <Text style={styles.hint}>Layout sama Cetak PDF. Pair printer di Thermer dulu.</Text>
+        <Text style={styles.hint}>Layout sama Cetak Pesanan. Pair printer di Thermer dulu.</Text>
 
         {pdfUrl ? (
           <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>
-            <Text style={styles.outlineText}>Cetak PDF</Text>
+            <Text style={styles.outlineText}>Cetak Pesanan</Text>
+          </Pressable>
+        ) : null}
+
+        {kitchenPdfUrl ? (
+          <Pressable onPress={() => Linking.openURL(kitchenPdfUrl)} style={styles.outlineBtn}>
+            <Text style={styles.outlineText}>Cetak Dapur</Text>
           </Pressable>
         ) : null}
 

@@ -106,7 +106,14 @@
                 rel="noopener"
                 class="btn-secondary w-full"
                 data-receipt-print
-            >Cetak PDF</a>
+            >Cetak Pesanan</a>
+            <a
+                href="{{ $kitchenPdfRoute }}?print=1"
+                target="_blank"
+                rel="noopener"
+                class="btn-secondary w-full"
+                data-receipt-kitchen-print
+            >Cetak Dapur</a>
             <button type="button" class="btn-secondary w-full" data-receipt-wa-open>
                 Kirim WhatsApp
             </button>

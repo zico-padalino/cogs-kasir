@@ -232,6 +232,7 @@ export const kasirApi = {
       Envelope<{
         order: PosOrder;
         pdf_url: string;
+        kitchen_pdf_url?: string;
         wa_message: string;
         shop_name: string;
         thermal?: {

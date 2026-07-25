@@ -94,6 +94,76 @@ class ReceiptPdfService
         return $pdf->render();
     }
 
+    /**
+     * @return array{binary: string, filename: string, path: string, url: string}
+     */
+    public function storeKitchen(PosOrder $order): array
+    {
+        $order->loadMissing(['items.product', 'table', 'cashier']);
+
+        $safe = preg_replace('/[^A-Za-z0-9_-]+/', '-', $order->order_number) ?: 'struk';
+        $filename = 'dapur-'.$safe.'.pdf';
+        $path = 'receipts/'.$filename;
+        $binary = $this->buildKitchen($order);
+
+        Storage::disk('public')->put($path, $binary);
+
+        return [
+            'binary' => $binary,
+            'filename' => $filename,
+            'path' => $path,
+            'url' => URL::signedRoute('receipts.kitchen', ['order' => $order]),
+        ];
+    }
+
+    public function buildKitchen(PosOrder $order): string
+    {
+        $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
+        $pdf = new SimplePdf;
+
+        $pdf->title($shopName);
+        $pdf->line('Struk Dapur', 28, true, 'C');
+        $pdf->spacer(12);
+        $pdf->line($order->order_number, 30, true, 'C');
+        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'), 26, false, 'C');
+
+        if ($order->order_type) {
+            $pdf->line($order->order_type->label(), 26, false, 'C');
+        }
+
+        if ($order->table) {
+            $pdf->line('Meja: '.$order->table->label, 26, false, 'C');
+        }
+
+        if ($order->customer_note) {
+            $pdf->line('Pelanggan: '.$order->customer_note, 26, false, 'C');
+        }
+
+        $pdf->spacer(12);
+        $pdf->separator();
+
+        foreach ($order->items as $item) {
+            $qty = Format::number($item->quantity, 0);
+            $name = $item->product?->name ?? 'Item';
+            $pdf->checkItem($name.' x '.$qty, 28);
+
+            if ($item->notes) {
+                $pdf->line('  Catatan: '.$item->notes, 24, false, 'L');
+            }
+        }
+
+        $pdf->separator();
+
+        if ($order->cashierDisplayName() !== '-') {
+            $pdf->line('Kasir: '.$order->cashierDisplayName(), 26, false, 'L');
+        }
+
+        $pdf->spacer(12);
+        $pdf->line('Ceklis item yang sudah selesai', 22, false, 'C');
+
+        return $pdf->render();
+    }
+
     public function whatsappMessage(PosOrder $order, string $pdfUrl): string
     {
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
