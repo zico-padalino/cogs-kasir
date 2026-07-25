@@ -86,6 +86,44 @@ class KasirController extends Controller
         ], KasirPin::statusPayload()));
     }
 
+    public function dapur(PosOrderService $posService)
+    {
+        $kitchenOrders = $posService->kitchenOrders();
+
+        return view('kasir.dapur', [
+            'kitchenOrders' => $kitchenOrders,
+            'format' => Format::class,
+            'shopName' => config('pos.shop_name'),
+            'pollInterval' => (int) config('pos.notifications.poll_interval_seconds', 5),
+            'kitchenFingerprint' => $this->kitchenFingerprint($kitchenOrders),
+        ]);
+    }
+
+    public function dapurPoll(PosOrderService $posService)
+    {
+        $kitchenOrders = $posService->kitchenOrders();
+        $format = Format::class;
+
+        return response()->json(array_merge([
+            'count' => $kitchenOrders->count(),
+            'order_ids' => $kitchenOrders->pluck('id')->values(),
+            'fingerprint' => $this->kitchenFingerprint($kitchenOrders),
+            'html' => view('kasir.partials.dapur-tickets', compact('kitchenOrders', 'format'))->render(),
+        ], KasirPin::statusPayload()));
+    }
+
+    /** @param \Illuminate\Support\Collection<int, PosOrder> $orders */
+    private function kitchenFingerprint($orders): string
+    {
+        return $orders
+            ->map(function (PosOrder $order) {
+                $done = $order->items->where('is_delivered', true)->count();
+
+                return $order->id.':'.$order->status->value.':'.$done.':'.$order->items->count();
+            })
+            ->implode('|');
+    }
+
     public function orders()
     {
         $orders = PosOrder::with(['table', 'items.product', 'cashier'])

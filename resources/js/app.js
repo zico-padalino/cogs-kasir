@@ -2,6 +2,7 @@ import './rupiah';
 import './mobile';
 import './pwa-install';
 import './kasir';
+import './dapur';
 import './kasir-menu-admin';
 import './kasir-product-edit';
 import './kasir-notifications';

@@ -65,6 +65,11 @@
                         <span class="app-sidebar-link-icon">🛒</span>
                         Point of Sale
                     </a>
+                    <a href="{{ route('kasir.dapur') }}"
+                       class="app-sidebar-link {{ request()->routeIs('kasir.dapur*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">🍳</span>
+                        Dapur
+                    </a>
                     <a href="{{ route('kasir.orders') }}"
                        class="app-sidebar-link {{ request()->routeIs('kasir.orders*') ? 'is-active' : '' }}">
                         <span class="app-sidebar-link-icon">📋</span>

@@ -818,6 +818,26 @@ class PosOrderService
             ->get();
     }
 
+    /**
+     * Antrian dapur: open bill + sudah bayar (belum selesai diantar).
+     *
+     * @return Collection<int, PosOrder>
+     */
+    public function kitchenOrders()
+    {
+        return PosOrder::query()
+            ->with(['table', 'items.product'])
+            ->where(function ($query) {
+                $query->where(function ($openBill) {
+                    $openBill->where('source', PosOrderSource::Kasir)
+                        ->where('status', PosOrderStatus::Unpaid);
+                })->orWhere('status', PosOrderStatus::Paid);
+            })
+            ->whereHas('items')
+            ->orderByRaw('COALESCE(paid_at, confirmed_at, updated_at, created_at) asc')
+            ->get();
+    }
+
     /** @return Collection<int, Product> */
     public function sellableProducts(): Collection
     {

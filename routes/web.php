@@ -118,6 +118,8 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
 
     Route::middleware('kasir.pin')->group(function () {
         Route::get('/', [KasirController::class, 'index'])->name('index');
+        Route::get('/dapur', [KasirController::class, 'dapur'])->name('dapur');
+        Route::get('/dapur/poll', [KasirController::class, 'dapurPoll'])->name('dapur.poll');
         Route::get('/orders', [KasirController::class, 'orders'])->name('orders');
         Route::get('/orders/{order}', [KasirController::class, 'showOrder'])->name('orders.show');
         Route::get('/tables', [KasirController::class, 'tables'])->name('tables');
