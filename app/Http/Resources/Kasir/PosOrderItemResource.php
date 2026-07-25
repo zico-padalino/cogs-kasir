@@ -16,6 +16,7 @@ class PosOrderItemResource extends JsonResource
             'product_id' => $this->product_id,
             'product_name' => $this->product?->name,
             'product_image_url' => $this->product?->imageUrl(),
+            'menu_category' => $this->product?->menu_category,
             'quantity' => (float) $this->quantity,
             'unit_price' => (float) $this->unit_price,
             'line_total' => (float) $this->line_total,

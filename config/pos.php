@@ -14,6 +14,12 @@ return [
         'lainnya' => 'Lainnya',
     ],
 
+    /** Kategori yang muncul di layar dapur + suara AI dapur. */
+    'kitchen_categories' => [
+        'makanan',
+        'snack',
+    ],
+
     'product_presets' => [
         'images/products/bread-loaf.svg' => 'Roti Tawar',
         'images/products/bread-pack.svg' => 'Roti Pack',
@@ -24,7 +30,8 @@ return [
     ],
 
     'notifications' => [
-        'poll_interval_seconds' => (int) env('POS_POLL_INTERVAL', 5),
+        // Shared hosting: interval pendek mudah kena 503 (entry process penuh).
+        'poll_interval_seconds' => max(10, (int) env('POS_POLL_INTERVAL', 15)),
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
     ],
 

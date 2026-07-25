@@ -36,16 +36,25 @@ class KasirPushNotifier
         );
     }
 
-    /** Notifikasi layar dapur — suara AI membacakan nama menu. */
+    /** Notifikasi layar dapur — suara AI membacakan nama menu (makanan/snack saja). */
     public function notifyKitchenOrder(PosOrder $order): void
     {
         $order->loadMissing(['items.product', 'table']);
 
-        if ($order->items->isEmpty()) {
+        $categories = config('pos.kitchen_categories', ['makanan', 'snack']);
+        if (! is_array($categories) || $categories === []) {
+            $categories = ['makanan', 'snack'];
+        }
+
+        $kitchenItems = $order->items
+            ->filter(fn ($item) => in_array($item->product?->menu_category, $categories, true))
+            ->values();
+
+        if ($kitchenItems->isEmpty()) {
             return;
         }
 
-        $menuParts = $order->items
+        $menuParts = $kitchenItems
             ->map(function ($item) {
                 $qty = (float) $item->quantity;
                 $qtyLabel = abs($qty - round($qty)) < 0.001

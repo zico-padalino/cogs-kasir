@@ -55,6 +55,7 @@ export type OrderItem = {
   product_id: number;
   product_name?: string | null;
   product_image_url?: string | null;
+  menu_category?: string | null;
   quantity: number;
   unit_price: number;
   line_total: number;

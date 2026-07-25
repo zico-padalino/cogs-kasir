@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\PosOrderSource;
+use App\Enums\PosOrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\PosOrder;
 use App\Models\PosOrderItem;
 use App\Services\PosOrderService;
 use App\Support\Format;
+use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -20,9 +24,12 @@ class TableOrderController extends Controller
         $order = $this->currentOrder($posService);
         $order->load(['items.product', 'table']);
 
+        // Setelah dikirim ke kasir, tidak perlu load katalog menu (berat + sering reload dari poll).
+        $needsMenu = $order->status === PosOrderStatus::Open;
+
         return view('order.table', [
             'order' => $order,
-            'products' => $posService->sellableProducts(),
+            'products' => $needsMenu ? $posService->sellableProducts() : collect(),
             'format' => Format::class,
         ]);
     }
@@ -169,25 +176,54 @@ class TableOrderController extends Controller
 
     public function status(PosOrderService $posService): JsonResponse
     {
-        $order = $this->currentOrder($posService);
+        // Poll ringan: baca session sekali, lepas lock, jangan create order baru.
+        $orderId = session(self::SESSION_KEY);
+        SessionPressure::releaseEarly();
+
+        $order = null;
+        if (is_numeric($orderId)) {
+            $order = PosOrder::query()
+                ->select(['id', 'order_number', 'customer_note', 'total', 'status', 'source'])
+                ->whereKey((int) $orderId)
+                ->where('source', PosOrderSource::Online)
+                ->first();
+        }
+
+        if (! $order) {
+            return response()->json([
+                'status' => 'missing',
+                'order_number' => null,
+                'customer_note' => null,
+                'total' => 0,
+                'is_submitted' => false,
+                'is_confirmed' => false,
+                'is_paid' => false,
+                'is_served' => false,
+            ]);
+        }
+
+        $status = $order->status->value;
 
         return response()->json([
-            'status' => $order->status->value,
+            'status' => $status,
             'order_number' => $order->order_number,
             'customer_note' => $order->customer_note,
             'total' => (float) $order->total,
-            'is_submitted' => $order->status->value === 'submitted',
-            'is_confirmed' => $order->status->value === 'confirmed',
-            'is_paid' => $order->status->value === 'paid',
-            'is_served' => $order->status->value === 'served',
+            'is_submitted' => $status === 'submitted',
+            'is_confirmed' => $status === 'confirmed',
+            'is_paid' => $status === 'paid',
+            'is_served' => $status === 'served',
         ]);
     }
 
-    private function currentOrder(PosOrderService $posService): \App\Models\PosOrder
+    private function currentOrder(PosOrderService $posService): PosOrder
     {
         $orderId = session(self::SESSION_KEY);
         $order = $posService->resolveOnlineOrder(is_numeric($orderId) ? (int) $orderId : null);
-        session([self::SESSION_KEY => $order->id]);
+
+        if ((int) session(self::SESSION_KEY) !== (int) $order->id) {
+            session([self::SESSION_KEY => $order->id]);
+        }
 
         return $order;
     }

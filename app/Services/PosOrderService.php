@@ -826,11 +826,14 @@ class PosOrderService
 
     /**
      * Antrian dapur: open bill + sudah bayar (belum selesai diantar).
+     * Hanya item kategori dapur (default: makanan, snack).
      *
      * @return Collection<int, PosOrder>
      */
     public function kitchenOrders()
     {
+        $categories = $this->kitchenCategories();
+
         return PosOrder::query()
             ->with(['table', 'items.product'])
             ->where(function ($query) {
@@ -839,19 +842,54 @@ class PosOrderService
                         ->where('status', PosOrderStatus::Unpaid);
                 })->orWhere('status', PosOrderStatus::Paid);
             })
-            ->whereHas('items')
+            ->whereHas('items.product', function ($query) use ($categories) {
+                $query->whereIn('menu_category', $categories);
+            })
             ->orderByRaw('COALESCE(paid_at, confirmed_at, updated_at, created_at) asc')
-            ->get();
+            ->get()
+            ->map(function (PosOrder $order) use ($categories) {
+                $kitchenItems = $order->items
+                    ->filter(fn ($item) => in_array($item->product?->menu_category, $categories, true))
+                    ->values();
+                $order->setRelation('items', $kitchenItems);
+
+                return $order;
+            })
+            ->filter(fn (PosOrder $order) => $order->items->isNotEmpty())
+            ->values();
+    }
+
+    /** @return list<string> */
+    public function kitchenCategories(): array
+    {
+        $categories = config('pos.kitchen_categories', ['makanan', 'snack']);
+
+        return array_values(array_filter(
+            is_array($categories) ? $categories : ['makanan', 'snack'],
+            fn ($slug) => is_string($slug) && $slug !== '',
+        ));
+    }
+
+    public function isKitchenProductCategory(?string $category): bool
+    {
+        return in_array($category, $this->kitchenCategories(), true);
     }
 
     /** @return Collection<int, Product> */
     public function sellableProducts(): Collection
     {
-        return Product::sellable()
-            ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
-            ->orderBy('menu_category')
-            ->orderBy('name')
-            ->get();
+        /** @var Collection<int, Product> $products */
+        $products = \Illuminate\Support\Facades\Cache::remember(
+            'pos.sellable_products.v1',
+            now()->addSeconds(45),
+            fn () => Product::sellable()
+                ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
+                ->orderBy('menu_category')
+                ->orderBy('name')
+                ->get(),
+        );
+
+        return $products;
     }
 
     /** @return list<string> */

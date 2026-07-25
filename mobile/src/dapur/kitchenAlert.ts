@@ -9,6 +9,17 @@ import * as Haptics from 'expo-haptics';
 
 export { warmupOrderSpeech, stopOrderAnnouncement, announceSpeakText };
 
+/** Samakan config backend pos.kitchen_categories. */
+const KITCHEN_CATEGORIES = new Set(['makanan', 'snack']);
+
+function isKitchenItem(item: OrderItem): boolean {
+  return KITCHEN_CATEGORIES.has((item.menu_category || '').trim());
+}
+
+function kitchenItems(order: PosOrder): OrderItem[] {
+  return (order.items || []).filter(isKitchenItem);
+}
+
 function formatQty(qty: number): string {
   if (!Number.isFinite(qty)) {
     return '1';
@@ -25,7 +36,7 @@ function itemSpeakLabel(item: OrderItem): string {
 }
 
 function menuSpeakList(order: PosOrder): string {
-  const items = order.items || [];
+  const items = kitchenItems(order);
   if (items.length === 0) {
     return '';
   }
@@ -75,14 +86,15 @@ export function buildKitchenOrderAlert(orders: PosOrder[]): OrderAlertPayload {
   };
 }
 
-/** TTS dapur — baca nama menu (+ getar). */
+/** TTS dapur — baca nama menu makanan/snack (+ getar). */
 export async function announceKitchenOrders(orders: PosOrder[]): Promise<OrderAlertPayload | null> {
-  if (orders.length === 0) {
+  const withKitchen = orders.filter((order) => kitchenItems(order).length > 0);
+  if (withKitchen.length === 0) {
     return null;
   }
 
-  const alert = buildKitchenOrderAlert(orders);
-  const dedupeKey = `kitchen-${orders[0]?.id ?? alert.speakText}`;
+  const alert = buildKitchenOrderAlert(withKitchen);
+  const dedupeKey = `kitchen-${withKitchen[0]?.id ?? alert.speakText}`;
 
   try {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
