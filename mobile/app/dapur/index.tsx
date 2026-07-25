@@ -107,7 +107,7 @@ export default function DapurBoardScreen() {
     void load();
     const timer = setInterval(() => {
       void load({ soft: true });
-    }, 20000);
+    }, 30000);
     return () => clearInterval(timer);
   }, [load]);
 

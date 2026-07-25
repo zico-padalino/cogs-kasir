@@ -23,3 +23,11 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# DomaiNesia PageSpeed/Speed Booster sering menaikkan Number of Processes → 503.
+<IfModule mod_pagespeed.c>
+    ModPagespeed off
+</IfModule>
+<IfModule pagespeed_module>
+    ModPagespeed off
+</IfModule>

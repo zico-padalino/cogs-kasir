@@ -30,9 +30,9 @@ return [
     ],
 
     'notifications' => [
-        // Shared hosting: interval pendek mudah kena 503 (entry process penuh).
-        // Default 20s; floor 15s. Override lewat POS_POLL_INTERVAL di .env hosting.
-        'poll_interval_seconds' => max(15, (int) env('POS_POLL_INTERVAL', 20)),
+        // Shared hosting DomaiNesia: proses PHP max 100 — poll agresif = 503.
+        // Default 30s; floor 20s. Set POS_POLL_INTERVAL di .env hosting.
+        'poll_interval_seconds' => max(20, (int) env('POS_POLL_INTERVAL', 30)),
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
     ],
 

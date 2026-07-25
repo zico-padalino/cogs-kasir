@@ -4,7 +4,7 @@ import { kasirApi } from '@/api/kasir';
 import { announceNewOrders } from '@/kasir/orderAlert';
 import { takeNewPendingIds } from '@/kasir/pendingOrderTracker';
 
-const POLL_MS = 20_000;
+const POLL_MS = 30_000;
 
 export type KasirOrderAlertState = {
   title: string;

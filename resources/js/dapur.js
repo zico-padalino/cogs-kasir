@@ -263,7 +263,7 @@ function initDapurBoard() {
         return;
     }
 
-    let intervalSec = Math.max(15, Number(root.getAttribute('data-dapur-poll-interval') || 20));
+    let intervalSec = Math.max(20, Number(root.getAttribute('data-dapur-poll-interval') || 30));
     let timer = null;
 
     updateClocks(document);
@@ -295,9 +295,9 @@ function initDapurBoard() {
         await touchPin(root);
 
         if (root.dataset.dapurLastPollOk === '0') {
-            intervalSec = Math.min(60, Math.round(intervalSec * 1.5));
+            intervalSec = Math.min(120, Math.round(intervalSec * 2));
         } else {
-            intervalSec = Math.max(15, Number(root.getAttribute('data-dapur-poll-interval') || 20));
+            intervalSec = Math.max(20, Number(root.getAttribute('data-dapur-poll-interval') || 30));
         }
 
         schedule();
@@ -305,7 +305,7 @@ function initDapurBoard() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            intervalSec = Math.max(15, Number(root.getAttribute('data-dapur-poll-interval') || 20));
+            intervalSec = Math.max(20, Number(root.getAttribute('data-dapur-poll-interval') || 30));
             tick();
         }
     });

@@ -6,8 +6,8 @@ import { announceNewOrders } from '@/kasir/orderAlert';
 import { takeNewPendingIds } from '@/kasir/pendingOrderTracker';
 
 /** Shared hosting: 4s terlalu agresif → 503 entry process. Push menutupi jeda. */
-const POLL_MS = 20_000;
-const BACKOFF_MS = 45_000;
+const POLL_MS = 30_000;
+const BACKOFF_MS = 60_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

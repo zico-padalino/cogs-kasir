@@ -992,6 +992,17 @@ class PosOrderService
             return;
         }
 
+        // Throttle: hindari kerja berat berulang saat banyak tab buka /kasir (Number of Processes).
+        $lock = storage_path('framework/cache/.openbill-sync');
+        $dir = dirname($lock);
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        if (is_file($lock) && filemtime($lock) > time() - 90) {
+            return;
+        }
+        @touch($lock);
+
         PosOrder::query()
             ->where('source', PosOrderSource::Kasir)
             ->where('status', PosOrderStatus::Unpaid)
