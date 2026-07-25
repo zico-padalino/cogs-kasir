@@ -39,11 +39,30 @@ class PinController extends Controller
     /** Perpanjang sesi PIN karena ada aktivitas di app (idle timer). */
     public function touch(): JsonResponse
     {
+        SessionPressure::releaseEarly();
+
+        $userId = auth()->id() ?: 0;
+        $throttleKey = 'kasir_pin_touch_throttle:'.$userId;
+
+        try {
+            $store = \Illuminate\Support\Facades\Cache::store('file');
+            if ($store->has($throttleKey)) {
+                return response()->json([
+                    'data' => array_merge(KasirPin::statusPayload(), [
+                        'ttl_minutes' => KasirPin::idleMinutes(),
+                        'touch_throttled' => true,
+                    ]),
+                ])->header('Cache-Control', 'private, max-age=10');
+            }
+            $store->put($throttleKey, 1, 90);
+        } catch (\Throwable) {
+            // lanjut touch normal
+        }
+
         KasirPin::touch();
         $payload = array_merge(KasirPin::statusPayload(), [
             'ttl_minutes' => KasirPin::idleMinutes(),
         ]);
-        SessionPressure::releaseEarly();
 
         return response()->json([
             'data' => $payload,

@@ -81,7 +81,7 @@ class PosController extends Controller
         SessionPressure::releaseEarly();
 
         // Hemat proses hosting: APK kasir tetap hit endpoint, tapi tanpa query berat.
-        if (! config('pos.notifications.kasir_poll_enabled', true)) {
+        if (! config('pos.notifications.kasir_poll_enabled', false)) {
             return response()->json([
                 'data' => array_merge([
                     'count' => 0,
@@ -91,10 +91,10 @@ class PosController extends Controller
                     'has_pending' => false,
                     'latest_order_id' => null,
                     'orders' => [],
-                    'active_order_id' => KasirActiveOrder::getId(),
+                    'active_order_id' => null,
                     'poll_disabled' => true,
                 ], $pinStatus),
-            ])->header('Cache-Control', 'private, max-age=5');
+            ])->header('Cache-Control', 'private, max-age=30');
         }
 
         $pendingOrders = $posService->waitingOrders();
@@ -157,7 +157,7 @@ class PosController extends Controller
 
         return response()->json([
             'data' => array_merge($board, $pinStatus),
-        ])->header('Cache-Control', 'private, max-age=2');
+        ])->header('Cache-Control', 'private, max-age=15');
     }
 
     public function newOrder(PosOrderService $posService): JsonResponse

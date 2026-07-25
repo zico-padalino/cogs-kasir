@@ -31,11 +31,11 @@ return [
 
     'notifications' => [
         // Shared hosting DomaiNesia: proses PHP max 100 — poll agresif = 503.
-        // Default 30s; floor 20s. Set POS_POLL_INTERVAL di .env hosting.
-        'poll_interval_seconds' => max(20, (int) env('POS_POLL_INTERVAL', 30)),
+        // Default 45s; floor 30s. Set POS_POLL_INTERVAL di .env hosting.
+        'poll_interval_seconds' => max(30, (int) env('POS_POLL_INTERVAL', 45)),
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
-        // API APK saja. Web kasir/dapur tidak memakai flag ini.
-        'kasir_poll_enabled' => filter_var(env('KASIR_POLL_ENABLED', true), FILTER_VALIDATE_BOOL),
+        // API APK saja. Default kasir poll OFF agar proses tidak mentok 100.
+        'kasir_poll_enabled' => filter_var(env('KASIR_POLL_ENABLED', false), FILTER_VALIDATE_BOOL),
         'dapur_poll_enabled' => filter_var(env('DAPUR_POLL_ENABLED', true), FILTER_VALIDATE_BOOL),
     ],
 

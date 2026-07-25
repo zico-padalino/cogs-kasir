@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
  */
 final class KitchenBoardCache
 {
-    private const TTL_SECONDS = 20;
+    private const TTL_SECONDS = 45;
 
     /** @param  callable(): array<string, mixed>  $callback */
     public static function remember(string $channel, callable $callback): array

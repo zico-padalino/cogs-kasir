@@ -108,6 +108,13 @@ class KasirPin
 
     public static function operatorName(): string
     {
+        if (self::usesCache()) {
+            $payload = self::cachePayload();
+            if (! empty($payload['employee_name'])) {
+                return (string) $payload['employee_name'];
+            }
+        }
+
         return self::operatorEmployee()?->name
             ?? self::operator()?->name
             ?? auth()->user()?->name
@@ -234,6 +241,7 @@ class KasirPin
             if ($key) {
                 self::store()->put($key, [
                     'employee_id' => (int) $operator->id,
+                    'employee_name' => (string) $operator->name,
                     'verified_at' => $now,
                     'expires_at' => $expiresAt,
                 ], now()->addMinutes(self::idleMinutes() + 1));
@@ -272,6 +280,7 @@ class KasirPin
 
             self::store()->put($key, [
                 'employee_id' => (int) $payload['employee_id'],
+                'employee_name' => (string) ($payload['employee_name'] ?? self::operatorName()),
                 'verified_at' => (int) ($payload['verified_at'] ?? $now),
                 'expires_at' => $expiresAt,
             ], now()->addMinutes(self::idleMinutes() + 1));
