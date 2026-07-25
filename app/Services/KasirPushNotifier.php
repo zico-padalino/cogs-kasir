@@ -36,6 +36,57 @@ class KasirPushNotifier
         );
     }
 
+    /** Notifikasi layar dapur — suara AI membacakan nama menu. */
+    public function notifyKitchenOrder(PosOrder $order): void
+    {
+        $order->loadMissing(['items.product', 'table']);
+
+        if ($order->items->isEmpty()) {
+            return;
+        }
+
+        $menuParts = $order->items
+            ->map(function ($item) {
+                $qty = (float) $item->quantity;
+                $qtyLabel = abs($qty - round($qty)) < 0.001
+                    ? (string) (int) round($qty)
+                    : rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.');
+                $name = trim((string) ($item->product?->name ?? 'Item'));
+
+                return $qtyLabel.' '.$name;
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($menuParts === []) {
+            return;
+        }
+
+        $menuList = implode(', ', $menuParts);
+        $where = $order->table?->label
+            ? 'Meja '.$order->table->label
+            : (trim((string) $order->customer_note) ?: null);
+
+        $title = 'Pesanan dapur baru';
+        $body = ($where ? $where.' · ' : '').$menuList;
+        $speakText = 'Pesanan dapur: '.$menuList.'.';
+
+        $this->dispatch(
+            title: $title,
+            body: $body,
+            data: [
+                'type' => 'kitchen_order',
+                'order_id' => (string) $order->id,
+                'order_number' => (string) $order->order_number,
+                'customer_name' => trim((string) ($order->customer_note ?: '')),
+                'menu_names' => $menuList,
+                'speak_text' => $speakText,
+            ],
+            wakeWeb: false,
+        );
+    }
+
     /**
      * @param  list<array{id: int, name: string, type: string, type_label: string, sku?: string|null}>  $items
      */

@@ -26,7 +26,11 @@ export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
   const onPinPage = pathname.includes('/kasir/pin');
   const onUbahPin = pathname.includes('/kasir/ubah-pin');
   const onAttendance = pathname.includes('/kasir/attendance');
-  const guardActive = activeModule === 'kasir' && !onPinPage && !onUbahPin && !onAttendance;
+  const guardActive =
+    (activeModule === 'kasir' || activeModule === 'dapur') &&
+    !onPinPage &&
+    !onUbahPin &&
+    !onAttendance;
 
   const goToPin = () => {
     lockPinSession();

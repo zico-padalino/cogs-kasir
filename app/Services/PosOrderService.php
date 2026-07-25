@@ -473,6 +473,8 @@ class PosOrderService
             $this->kasirPushNotifier->notifyStockOut($result['stock_out'], $result['order']);
         }
 
+        $this->kasirPushNotifier->notifyKitchenOrder($result['order']);
+
         return $result;
     }
 
@@ -599,7 +601,7 @@ class PosOrderService
 
         $attr = $attribution ?? [];
 
-        return DB::transaction(function () use ($order, $attr) {
+        $result = DB::transaction(function () use ($order, $attr) {
             $existing = $order->status === PosOrderStatus::Open
                 ? $this->findMatchingOpenBill($order)
                 : null;
@@ -650,6 +652,10 @@ class PosOrderService
                 'merged' => false,
             ];
         });
+
+        $this->kasirPushNotifier->notifyKitchenOrder($result['order']);
+
+        return $result;
     }
 
     /** Cari Open Bill kasir yang cocok (nama sama, atau meja sama jika tanpa nama). */

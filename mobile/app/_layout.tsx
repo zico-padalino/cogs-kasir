@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, ROLE_META, useAuth } from '@/auth';
+import { DapurOrderAlertGuard } from '@/components/DapurOrderAlertGuard';
 import { KasirOrderAlertGuard } from '@/components/KasirOrderAlertGuard';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
 import { KasirPushKeepAlive } from '@/components/KasirPushKeepAlive';
@@ -28,9 +29,7 @@ import { applyGlobalFont } from '@/theme/applyGlobalFont';
 
 applyGlobalFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
-// Background task sedini mungkin (HP terkunci / app di-swipe tutup).
 void setupKasirPushRuntime();
-// Siapkan engine TTS lebih awal agar suara AI tidak sering kosong di call pertama.
 void warmupOrderSpeech();
 
 const PUBLIC_SEGMENTS = new Set(['login', 'pesan-online']);
@@ -46,11 +45,15 @@ function RootNavigator() {
       if (!user?.has_kasir) {
         return;
       }
+      if (activeModule === 'dapur') {
+        router.push((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+        return;
+      }
       router.push((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
     });
 
     return () => sub.remove();
-  }, [user?.has_kasir, pin?.unlocked, router]);
+  }, [user?.has_kasir, pin?.unlocked, router, activeModule]);
 
   useEffect(() => {
     if (loading) {
@@ -71,6 +74,8 @@ function RootNavigator() {
     if (first === undefined || first === 'login') {
       if (activeModule === 'kasir') {
         router.replace((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
+      } else if (activeModule === 'dapur') {
+        router.replace((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
       } else {
         router.replace(ROLE_META.cogs.homeRoute);
       }
@@ -78,14 +83,29 @@ function RootNavigator() {
     }
 
     if (activeModule === 'kasir') {
-      if (first === 'cogs') {
+      if (first === 'cogs' || first === 'dapur') {
         router.replace((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
         return;
       }
       if (first === 'kasir' && second !== 'pin' && second !== 'attendance' && second !== 'ubah-pin' && !pin?.unlocked) {
         router.replace('/kasir/pin' as never);
       }
-    } else if (first === 'kasir') {
+    } else if (activeModule === 'dapur') {
+      if (first === 'cogs') {
+        router.replace((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+        return;
+      }
+      if (first === 'kasir' && second === 'pin') {
+        return;
+      }
+      if (first === 'kasir' && second !== 'ubah-pin' && second !== 'attendance') {
+        // dari dapur ke kasir via menu "Ke Kasir" sudah switchModule; biarkan.
+        return;
+      }
+      if (first === 'dapur' && !pin?.unlocked) {
+        router.replace('/kasir/pin' as never);
+      }
+    } else if (first === 'kasir' || first === 'dapur') {
       router.replace('/cogs');
     }
   }, [user, activeModule, loading, segments, router, pin?.unlocked]);
@@ -93,13 +113,15 @@ function RootNavigator() {
   return (
     <KasirPinSessionGuard>
       <KasirOrderAlertGuard>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.slate100 },
-            animation: 'slide_from_right',
-          }}
-        />
+        <DapurOrderAlertGuard>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.slate100 },
+              animation: 'slide_from_right',
+            }}
+          />
+        </DapurOrderAlertGuard>
       </KasirOrderAlertGuard>
     </KasirPinSessionGuard>
   );
@@ -123,7 +145,6 @@ export default function RootLayout() {
     }
   }, [fontsReady]);
 
-  // Selalu wrap AuthProvider agar route (termasuk index) tidak pernah di luar context.
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />

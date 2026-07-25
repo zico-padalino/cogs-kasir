@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+﻿import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,6 +19,10 @@ import {
   isKasirListenModeRunning,
   startKasirListenMode,
 } from '@/kasir/kasirListenMode';
+import {
+  isDapurListenModeRunning,
+  startDapurListenMode,
+} from '@/dapur/dapurListenMode';
 import { registerKasirPushToken } from '@/kasir/pushNotifications';
 import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
@@ -29,9 +33,9 @@ type ShopInfo = {
   initial: string;
 };
 
-/** Samakan UI/UX dengan web kasir/pin-unlock (tanpa pindah modul → Ubah PIN). */
+/** Samakan UI/UX dengan web kasir/pin-unlock (tanpa pindah modul â†’ Ubah PIN). */
 export default function PinUnlockScreen() {
-  const { setPin, logout, user } = useAuth();
+  const { setPin, logout, user, activeModule } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [shop, setShop] = useState<ShopInfo>({
@@ -46,13 +50,21 @@ export default function PinUnlockScreen() {
   const submittingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const homeAfterPin = activeModule === 'dapur' ? '/dapur' : '/kasir';
+
   useEffect(() => {
     // Push + mode suara tetap aktif di belakang layar (tanpa status debug di UI).
     void registerKasirPushToken();
     if (Platform.OS === 'android') {
-      void startKasirListenMode().then(async (ok) => {
-        if (!ok) await isKasirListenModeRunning();
-      });
+      if (activeModule === 'dapur') {
+        void startDapurListenMode().then(async (ok) => {
+          if (!ok) await isDapurListenModeRunning();
+        });
+      } else {
+        void startKasirListenMode().then(async (ok) => {
+          if (!ok) await isKasirListenModeRunning();
+        });
+      }
     }
 
     authApi
@@ -73,7 +85,7 @@ export default function PinUnlockScreen() {
       .then((res) => {
         if (res.data.unlocked) {
           setPin(res.data);
-          router.replace('/kasir');
+          router.replace(homeAfterPin as never);
         }
       })
       .catch((err) => {
@@ -88,7 +100,7 @@ export default function PinUnlockScreen() {
       clearTimeout(t);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [router, setPin]);
+  }, [router, setPin, homeAfterPin, activeModule]);
 
   const unlock = useCallback(
     async (value: string) => {
@@ -102,7 +114,7 @@ export default function PinUnlockScreen() {
       try {
         const res = await pinApi.unlock(digits);
         setPin(res.data);
-        router.replace('/kasir');
+        router.replace(homeAfterPin as never);
       } catch (err) {
         const apiErr = asApiError(err);
         const fieldError = (apiErr.payload as { errors?: { pin?: string[] } } | undefined)?.errors
@@ -115,7 +127,7 @@ export default function PinUnlockScreen() {
         setSubmitting(false);
       }
     },
-    [router, setPin],
+    [router, setPin, homeAfterPin],
   );
 
   const scheduleUnlock = useCallback(
@@ -125,7 +137,7 @@ export default function PinUnlockScreen() {
         debounceRef.current = null;
       }
 
-      // sama seperti web: 6 digit langsung submit, 4–5 digit tunggu 450ms
+      // sama seperti web: 6 digit langsung submit, 4â€“5 digit tunggu 450ms
       if (digits.length === 6) {
         void unlock(digits);
         return;
@@ -196,7 +208,7 @@ export default function PinUnlockScreen() {
             </View>
           ) : null}
 
-          <Text style={styles.label}>PIN pegawai (4–6 digit)</Text>
+          <Text style={styles.label}>PIN pegawai (4â€“6 digit)</Text>
           <TextInput
             ref={inputRef}
             value={pin}
@@ -207,12 +219,12 @@ export default function PinUnlockScreen() {
             maxLength={6}
             editable={!submitting}
             style={styles.input}
-            placeholder="••••"
+            placeholder="â€¢â€¢â€¢â€¢"
             placeholderTextColor={colors.slate400}
             returnKeyType="done"
             textContentType="oneTimeCode"
           />
-          <Text style={styles.hint}>Isi PIN — otomatis masuk tanpa klik tombol</Text>
+          <Text style={styles.hint}>Isi PIN â€” otomatis masuk tanpa klik tombol</Text>
 
           <Pressable
             onPress={onSubmit}
@@ -236,7 +248,7 @@ export default function PinUnlockScreen() {
                 Stasiun aktif: <Text style={styles.metaStrong}>{user.name}</Text>
               </Text>
             ) : null}
-            <Text style={styles.metaMuted}>PIN dibuat di Admin → Data Karyawan</Text>
+            <Text style={styles.metaMuted}>PIN dibuat di Admin â†’ Data Karyawan</Text>
           </View>
 
           <View style={styles.actionsWrap}>

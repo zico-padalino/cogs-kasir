@@ -94,6 +94,28 @@ class PosController extends Controller
         ]);
     }
 
+    public function dapurPoll(PosOrderService $posService): JsonResponse
+    {
+        $kitchenOrders = $posService->kitchenOrders();
+
+        return response()->json([
+            'data' => array_merge([
+                'count' => $kitchenOrders->count(),
+                'order_ids' => $kitchenOrders->pluck('id')->values(),
+                'notify_order_ids' => $kitchenOrders->pluck('id')->values(),
+                'latest_order_id' => $kitchenOrders->last()?->id ?? $kitchenOrders->first()?->id,
+                'orders' => PosOrderResource::collection($kitchenOrders),
+                'fingerprint' => $kitchenOrders
+                    ->map(function (PosOrder $order) {
+                        $done = $order->items->where('is_delivered', true)->count();
+
+                        return $order->id.':'.$order->status->value.':'.$done.':'.$order->items->count();
+                    })
+                    ->implode('|'),
+            ], KasirPin::statusPayload()),
+        ]);
+    }
+
     public function newOrder(PosOrderService $posService): JsonResponse
     {
         $order = $posService->createKasirOrder($this->cashier(), $this->cashierAttribution());

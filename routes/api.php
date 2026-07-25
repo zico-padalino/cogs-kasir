@@ -77,6 +77,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('pin/status', [PinController::class, 'status'])->name('pin.status');
             Route::post('pin/touch', [PinController::class, 'touch'])->name('pin.touch');
             Route::get('pending-orders/poll', [PosController::class, 'pendingPoll'])->name('pending.poll');
+            Route::get('dapur/poll', [PosController::class, 'dapurPoll'])->name('dapur.poll');
             Route::post('push-token', [PushTokenController::class, 'store'])->name('push-token.store');
             Route::delete('push-token', [PushTokenController::class, 'destroy'])->name('push-token.destroy');
             Route::post('push-token/test', [PushTokenController::class, 'test'])->name('push-token.test');

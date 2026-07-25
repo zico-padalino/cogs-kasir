@@ -13,15 +13,20 @@ import { authApi } from '@/api/kasir';
 import { getToken, isPinSessionError, setPinLockedListener, setToken } from '@/api/client';
 import type { ApiError, AuthUser, PinStatus } from '@/api/types';
 import { resetPendingTracker } from '@/kasir/pendingOrderTracker';
+import { resetKitchenTracker } from '@/dapur/kitchenOrderTracker';
 import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNotifications';
 
-export type Role = 'cogs' | 'kasir';
+export type Role = 'cogs' | 'kasir' | 'dapur';
 
 export type { AuthUser };
 
-export const ROLE_META: Record<Role, { label: string; description: string; homeRoute: '/cogs' | '/kasir' }> = {
+export const ROLE_META: Record<
+  Role,
+  { label: string; description: string; homeRoute: '/cogs' | '/kasir' | '/dapur' }
+> = {
   cogs: { label: 'COGS', description: 'Perhitungan biaya produk & produksi', homeRoute: '/cogs' },
   kasir: { label: 'Kasir', description: 'Penjualan & transaksi kasir', homeRoute: '/kasir' },
+  dapur: { label: 'Dapur', description: 'Antrian pesanan & suara menu', homeRoute: '/dapur' },
 };
 
 const USER_KEY = 'auth_user_v2';
@@ -61,6 +66,9 @@ function preferredModule(user: AuthUser): Role {
 }
 
 function resolveActiveModule(user: AuthUser, preferred?: Role | null): Role {
+  if (preferred === 'dapur' && user.has_kasir) {
+    return 'dapur';
+  }
   if (preferred === 'kasir' && user.has_kasir) {
     return 'kasir';
   }
@@ -170,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setToken(null);
     await persist(null, null);
     resetPendingTracker();
+    resetKitchenTracker();
     setUser(null);
     setActiveModule(null);
     setPin(null);
@@ -179,8 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (module: Role) => {
       if (!user) return;
       const next = resolveActiveModule(user, module);
+      // Backend hanya kenal kasir/cogs/admin — dapur = akses kasir di sisi server.
+      const apiModule = next === 'dapur' ? 'kasir' : next;
       try {
-        await authApi.switchModule(next);
+        await authApi.switchModule(apiModule);
       } catch {
         // local switch tetap jalan jika endpoint gagal
       }

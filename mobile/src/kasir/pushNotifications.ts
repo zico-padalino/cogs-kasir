@@ -18,6 +18,7 @@ type PushData = {
   customer_name?: string;
   speak_text?: string;
   product_names?: string;
+  menu_names?: string;
 };
 
 Notifications.setNotificationHandler({
@@ -31,9 +32,29 @@ Notifications.setNotificationHandler({
   }),
 });
 
+async function currentAuthModule(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem('auth_module');
+  } catch {
+    return null;
+  }
+}
+
+/** Dapur hanya TTS kitchen_order; kasir TTS new_order/stock_out. */
+async function shouldSpeakPushType(type: string | undefined): Promise<boolean> {
+  const module = await currentAuthModule();
+  if (type === 'kitchen_order') {
+    return module === 'dapur';
+  }
+  if (type === 'new_order' || type === 'stock_out' || !type) {
+    return module !== 'dapur';
+  }
+  return false;
+}
+
 function pushPayloadFromNotification(
   notification: Notifications.Notification,
-): { speakText: string; dedupeKey: string } | null {
+): { speakText: string; dedupeKey: string; type?: string } | null {
   const content = notification.request.content;
   const data = (content.data || {}) as PushData;
 
@@ -48,6 +69,22 @@ function pushPayloadFromNotification(
     return {
       speakText,
       dedupeKey: `stock-out-${String(data.order_id ?? data.product_names ?? speakText)}`,
+      type: 'stock_out',
+    };
+  }
+
+  if (data.type === 'kitchen_order') {
+    const speakText =
+      (typeof data.speak_text === 'string' && data.speak_text.trim()) ||
+      (typeof data.menu_names === 'string' && data.menu_names.trim()
+        ? `Pesanan dapur: ${data.menu_names.trim()}.`
+        : '') ||
+      (content.body ? `Pesanan dapur. ${content.body}` : 'Pesanan dapur baru.');
+
+    return {
+      speakText,
+      dedupeKey: `kitchen-${String(data.order_id ?? speakText)}`,
+      type: 'kitchen_order',
     };
   }
 
@@ -64,12 +101,15 @@ function pushPayloadFromNotification(
 
   const dedupeKey = String(data.order_id ?? speakText);
 
-  return { speakText, dedupeKey };
+  return { speakText, dedupeKey, type: 'new_order' };
 }
 
 async function speakFromNotification(notification: Notifications.Notification): Promise<void> {
   const payload = pushPayloadFromNotification(notification);
   if (!payload) {
+    return;
+  }
+  if (!(await shouldSpeakPushType(payload.type))) {
     return;
   }
   // Beri jeda singkat agar bunyi notifikasi tidak merebut audio focus dari TTS.
@@ -93,17 +133,34 @@ if (!TaskManager.isTaskDefined(BACKGROUND_NOTIFICATION_TASK)) {
       }
 
       const raw = (data as { data?: PushData } | undefined)?.data;
-      if (raw?.speak_text || raw?.customer_name || raw?.type === 'new_order' || raw?.type === 'stock_out') {
+      if (
+        raw?.speak_text ||
+        raw?.customer_name ||
+        raw?.menu_names ||
+        raw?.type === 'new_order' ||
+        raw?.type === 'stock_out' ||
+        raw?.type === 'kitchen_order'
+      ) {
+        if (!(await shouldSpeakPushType(raw.type || 'new_order'))) {
+          return;
+        }
         const speakText =
           raw.speak_text ||
           (raw.type === 'stock_out'
             ? raw.product_names
               ? `Stok habis: ${raw.product_names}.`
               : 'Stok habis.'
-            : raw.customer_name
-              ? `Pesanan baru masuk, atas nama ${raw.customer_name}.`
-              : 'Pesanan baru masuk.');
-        await announceSpeakText(speakText, String(raw.order_id ?? speakText));
+            : raw.type === 'kitchen_order'
+              ? raw.menu_names
+                ? `Pesanan dapur: ${raw.menu_names}.`
+                : 'Pesanan dapur baru.'
+              : raw.customer_name
+                ? `Pesanan baru masuk, atas nama ${raw.customer_name}.`
+                : 'Pesanan baru masuk.');
+        await announceSpeakText(
+          speakText,
+          String(raw.order_id ?? (raw.type === 'kitchen_order' ? `kitchen-${speakText}` : speakText)),
+        );
       }
     } catch {
       // Notifikasi sistem tetap tampil meski TTS background gagal

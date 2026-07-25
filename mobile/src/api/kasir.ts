@@ -174,6 +174,20 @@ export const kasirApi = {
       >
     >('/kasir/pending-orders/poll');
   },
+  dapurPoll() {
+    return apiRequest<
+      Envelope<
+        PinStatus & {
+          count: number;
+          order_ids: number[];
+          notify_order_ids?: number[];
+          latest_order_id?: number | null;
+          orders: PosOrder[];
+          fingerprint?: string;
+        }
+      >
+    >('/kasir/dapur/poll');
+  },
   newOrder() {
     return apiRequest<Envelope<PosOrder>>('/kasir/orders/new', { method: 'POST' });
   },

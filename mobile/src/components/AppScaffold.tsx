@@ -36,6 +36,7 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   kasir: [
     { label: 'Point of Sale', icon: '🛒', route: '/kasir' },
+    { label: 'Dapur', icon: '🍳', route: '/dapur' },
     { label: 'Riwayat Pesanan', icon: '📋', route: '/kasir/orders', match: ['/kasir/orders', '/kasir/order-detail', '/kasir/receipt'] },
     { label: 'Meja & Barcode', icon: '🪑', route: '/kasir/tables', match: ['/kasir/tables', '/kasir/barcode'] },
     { label: 'Kelola Menu', icon: '🍽️', route: '/kasir/menu', match: ['/kasir/menu', '/kasir/menu-edit'] },
@@ -43,17 +44,24 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Pembukuan', icon: '📒', route: '/kasir/pembukuan' },
     { label: 'Kas Tunai', icon: '💵', route: '/kasir/kas-tunai' },
   ],
+  dapur: [
+    { label: 'Antrian Dapur', icon: '🍳', route: '/dapur' },
+    { label: 'Ke Kasir', icon: '🛒', route: '/kasir' },
+  ],
 };
 
 const BRAND_HEADER: Record<Role, { badge: string; title: string; subtitle: string }> = {
   cogs: { badge: 'C', title: 'COGS Sederhana', subtitle: 'Hitung biaya produk' },
   kasir: { badge: 'K', title: 'Coffee & Kitchen', subtitle: 'Modul Kasir' },
+  dapur: { badge: 'D', title: 'Coffee & Kitchen', subtitle: 'Modul Dapur' },
 };
 
 function isActive(item: NavItem, pathname: string): boolean {
   const targets = item.match ?? [item.route];
   return targets.some((target) =>
-    target === '/cogs' || target === '/kasir' ? pathname === target : pathname.startsWith(target),
+    target === '/cogs' || target === '/kasir' || target === '/dapur'
+      ? pathname === target
+      : pathname.startsWith(target),
   );
 }
 
@@ -130,7 +138,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
   const [shopInitial, setShopInitial] = useState(header.badge);
 
   useEffect(() => {
-    if (moduleType !== 'kasir') return;
+    if (moduleType !== 'kasir' && moduleType !== 'dapur') return;
     authApi
       .shop()
       .then((res) => {
@@ -143,6 +151,18 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
 
   const go = (route: string) => {
     onNavigate?.();
+    if (route === '/dapur') {
+      void switchModule('dapur').then(() => {
+        router.replace('/dapur' as never);
+      });
+      return;
+    }
+    if (route === '/kasir' && moduleType === 'dapur') {
+      void switchModule('kasir').then(() => {
+        router.replace('/kasir' as never);
+      });
+      return;
+    }
     if (pathname !== route) {
       router.replace(route as never);
     }
@@ -150,25 +170,25 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
 
   const handleSwitchModule = () => {
     if (!user) return;
-    const other: Role | null =
-      moduleType === 'kasir' && user.has_cogs ? 'cogs' : moduleType === 'cogs' && user.has_kasir ? 'kasir' : null;
-    if (!other) {
+    const options: Role[] = [];
+    if (moduleType !== 'kasir' && user.has_kasir) options.push('kasir');
+    if (moduleType !== 'dapur' && user.has_kasir) options.push('dapur');
+    if (moduleType !== 'cogs' && user.has_cogs) options.push('cogs');
+    if (options.length === 0) {
       Alert.alert('Modul', 'Akun ini hanya punya satu modul.');
       return;
     }
     onNavigate?.();
-    Alert.alert('Ganti Modul', `Pindah ke modul ${ROLE_META[other].label}?`, [
-      { text: 'Batal', style: 'cancel' },
-      {
-        text: 'Pindah',
-        onPress: () => {
-          void (async () => {
-            await switchModule(other);
-            router.replace(ROLE_META[other].homeRoute as never);
-          })();
-        },
+    const buttons = options.map((other) => ({
+      text: ROLE_META[other].label,
+      onPress: () => {
+        void (async () => {
+          await switchModule(other);
+          router.replace(ROLE_META[other].homeRoute as never);
+        })();
       },
-    ]);
+    }));
+    Alert.alert('Ganti Modul', 'Pilih modul tujuan:', [...buttons, { text: 'Batal', style: 'cancel' as const }]);
   };
 
   const handleLock = () => {
@@ -201,7 +221,9 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
   const operatorName = pin?.operator_name || user?.name || 'Pengguna';
   const hasOperatorPin = Boolean(pin?.operator_name);
   const canSwitchModule = Boolean(
-    user && ((user.has_kasir && user.has_cogs) || (moduleType === 'kasir' && user.has_cogs) || (moduleType === 'cogs' && user.has_kasir)),
+    user &&
+      ((user.has_kasir && user.has_cogs) ||
+        (user.has_kasir && (moduleType === 'kasir' || moduleType === 'dapur' || moduleType === 'cogs'))),
   );
 
   return (
@@ -211,12 +233,14 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
           <Image source={{ uri: shopLogo }} style={styles.brandLogo} />
         ) : (
           <View style={styles.brandBadge}>
-            <Text style={styles.brandBadgeText}>{moduleType === 'kasir' ? shopInitial : header.badge}</Text>
+            <Text style={styles.brandBadgeText}>
+              {moduleType === 'kasir' || moduleType === 'dapur' ? shopInitial : header.badge}
+            </Text>
           </View>
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.brandTitle} numberOfLines={1}>
-            {moduleType === 'kasir' ? shopName : header.title}
+            {moduleType === 'kasir' || moduleType === 'dapur' ? shopName : header.title}
           </Text>
           <Text style={styles.brandSubtitle}>{header.subtitle}</Text>
         </View>
@@ -257,9 +281,13 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
               ? hasOperatorPin
                 ? 'Kasir bertugas · PIN aktif'
                 : 'Modul Kasir'
+              : moduleType === 'dapur'
+                ? hasOperatorPin
+                  ? 'Dapur · PIN aktif'
+                  : 'Modul Dapur'
               : ROLE_META[moduleType].label}
           </Text>
-          {moduleType === 'kasir' && hasOperatorPin && user?.name ? (
+          {(moduleType === 'kasir' || moduleType === 'dapur') && hasOperatorPin && user?.name ? (
             <Text style={styles.userHint} numberOfLines={1}>
               Stasiun: {user.name}
             </Text>
@@ -282,7 +310,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
           <Text style={styles.logoutText}>🔑  Ubah Password</Text>
         </Pressable>
 
-        {moduleType === 'kasir' ? (
+        {moduleType === 'kasir' || moduleType === 'dapur' ? (
           <Pressable
             onPress={() => {
               onNavigate?.();
@@ -294,7 +322,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
           </Pressable>
         ) : null}
 
-        {moduleType === 'kasir' ? (
+        {moduleType === 'kasir' || moduleType === 'dapur' ? (
           <Pressable onPress={handleLock} style={styles.logoutBtn}>
             <Text style={styles.logoutText}>🔒  Kunci Kasir</Text>
           </Pressable>
