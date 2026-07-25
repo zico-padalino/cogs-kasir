@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Kasir;
 
 use App\Http\Controllers\Controller;
 use App\Support\KasirPin;
+use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -12,20 +13,26 @@ class PinController extends Controller
 {
     public function show(): JsonResponse
     {
+        $payload = array_merge(KasirPin::statusPayload(), [
+            'ttl_minutes' => KasirPin::idleMinutes(),
+            'shop_name' => config('pos.shop_name'),
+        ]);
+        SessionPressure::releaseEarly();
+
         return response()->json([
-            'data' => array_merge(KasirPin::statusPayload(), [
-                'ttl_minutes' => KasirPin::idleMinutes(),
-                'shop_name' => config('pos.shop_name'),
-            ]),
+            'data' => $payload,
         ]);
     }
 
     public function status(): JsonResponse
     {
+        $payload = array_merge(KasirPin::statusPayload(), [
+            'ttl_minutes' => KasirPin::idleMinutes(),
+        ]);
+        SessionPressure::releaseEarly();
+
         return response()->json([
-            'data' => array_merge(KasirPin::statusPayload(), [
-                'ttl_minutes' => KasirPin::idleMinutes(),
-            ]),
+            'data' => $payload,
         ]);
     }
 
@@ -33,11 +40,13 @@ class PinController extends Controller
     public function touch(): JsonResponse
     {
         KasirPin::touch();
+        $payload = array_merge(KasirPin::statusPayload(), [
+            'ttl_minutes' => KasirPin::idleMinutes(),
+        ]);
+        SessionPressure::releaseEarly();
 
         return response()->json([
-            'data' => array_merge(KasirPin::statusPayload(), [
-                'ttl_minutes' => KasirPin::idleMinutes(),
-            ]),
+            'data' => $payload,
         ]);
     }
 

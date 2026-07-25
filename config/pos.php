@@ -31,7 +31,8 @@ return [
 
     'notifications' => [
         // Shared hosting: interval pendek mudah kena 503 (entry process penuh).
-        'poll_interval_seconds' => max(10, (int) env('POS_POLL_INTERVAL', 15)),
+        // Default 20s; floor 15s. Override lewat POS_POLL_INTERVAL di .env hosting.
+        'poll_interval_seconds' => max(15, (int) env('POS_POLL_INTERVAL', 20)),
         'auto_load_new_order' => filter_var(env('POS_AUTO_LOAD_ORDER', true), FILTER_VALIDATE_BOOL),
     ],
 

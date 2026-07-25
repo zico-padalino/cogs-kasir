@@ -66,7 +66,7 @@ class PosController extends Controller
                 ])->values(),
                 'pending_orders' => PosOrderResource::collection($pendingOrders),
                 'shop_name' => config('pos.shop_name'),
-                'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 15),
+                'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 20),
                 'auto_load_new_order' => (bool) config('pos.notifications.auto_load_new_order', true),
                 'pin' => KasirPin::statusPayload(),
             ],

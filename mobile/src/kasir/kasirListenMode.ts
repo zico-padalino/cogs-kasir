@@ -1,24 +1,33 @@
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import BackgroundService from 'react-native-background-actions';
 import { kasirApi } from '@/api/kasir';
 import { getToken } from '@/api/client';
 import { announceNewOrders } from '@/kasir/orderAlert';
 import { takeNewPendingIds } from '@/kasir/pendingOrderTracker';
 
-const POLL_MS = 4000;
+/** Shared hosting: 4s terlalu agresif → 503 entry process. Push menutupi jeda. */
+const POLL_MS = 20_000;
+const BACKOFF_MS = 45_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
- * Loop foreground: poll pesanan + TTS meskipun user keluar dari app.
- * Android menampilkan notifikasi tetap "Kasir siap terima pesanan".
+ * Loop background: poll pesanan + TTS saat app tidak aktif.
+ * Saat foreground, poll digantikan layar/guard supaya tidak dobel.
  */
 async function listenTask(): Promise<void> {
   await new Promise<void>(async (resolve) => {
     while (BackgroundService.isRunning()) {
+      let nextSleep = POLL_MS;
       try {
+        // App terbuka → biarkan useKasirOrderAlerts / layar kasir yang poll.
+        if (AppState.currentState === 'active') {
+          await sleep(POLL_MS);
+          continue;
+        }
+
         const token = await getToken();
         if (token) {
           const res = await kasirApi.poll();
@@ -38,10 +47,11 @@ async function listenTask(): Promise<void> {
           }
         }
       } catch {
-        // jaringan / PIN — lanjut loop
+        // 503 / jaringan — jeda lebih lama supaya tidak membanjiri hosting.
+        nextSleep = BACKOFF_MS;
       }
 
-      await sleep(POLL_MS);
+      await sleep(nextSleep);
     }
     resolve();
   });
@@ -73,7 +83,7 @@ export async function isKasirListenModeRunning(): Promise<boolean> {
   }
 }
 
-/** Mulai mode dengar (foreground). Wajib untuk suara AI di luar app. */
+/** Mulai mode dengar (foreground service). Wajib untuk suara AI di luar app. */
 export async function startKasirListenMode(): Promise<boolean> {
   if (Platform.OS !== 'android') {
     return false;

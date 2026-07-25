@@ -356,8 +356,8 @@ function initOrderKasirConfirmation() {
     const initialStatus = section.dataset.orderInitialStatus || '';
     // Shared hosting: jangan poll 5 detik — mudah kena 503 (entry process penuh).
     const baseIntervalSec = Math.max(
-        12,
-        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 15),
+        15,
+        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 20),
     );
     let intervalSec = baseIntervalSec;
     let inFlight = false;

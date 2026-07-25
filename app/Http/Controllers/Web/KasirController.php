@@ -98,7 +98,7 @@ class KasirController extends Controller
             'kitchenOrders' => $kitchenOrders,
             'format' => Format::class,
             'shopName' => config('pos.shop_name'),
-            'pollInterval' => (int) config('pos.notifications.poll_interval_seconds', 15),
+            'pollInterval' => (int) config('pos.notifications.poll_interval_seconds', 20),
             'kitchenFingerprint' => $this->kitchenFingerprint($kitchenOrders),
         ]);
     }

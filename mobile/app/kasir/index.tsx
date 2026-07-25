@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { kasirApi, pinApi } from '@/api/kasir';
+import { kasirApi } from '@/api/kasir';
 import type { MenuProduct, OrderItem, PosOrder, PosOrder as Order } from '@/api/types';
 import { asApiError, useAuth } from '@/auth';
 import {
@@ -72,7 +72,7 @@ export default function KasirPosScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [pending, setPending] = useState<PosOrder[]>([]);
   const [shopName, setShopName] = useState('Kasir');
-  const [pollMs, setPollMs] = useState(15000);
+  const [pollMs, setPollMs] = useState(20000);
 
   const [addProduct, setAddProduct] = useState<MenuProduct | null>(null);
   const [qty, setQty] = useState(1);
@@ -130,7 +130,7 @@ export default function KasirPosScreen() {
       applyOrder(data.order);
       setPending(data.pending_orders || []);
       setShopName(data.shop_name);
-      setPollMs(Math.max(10, data.poll_interval_seconds || 15) * 1000);
+      setPollMs(Math.max(15, data.poll_interval_seconds || 20) * 1000);
       setPin(data.pin);
       // Seed agar pesanan lama tidak dibunyikan saat buka POS.
       seedPendingIds((data.pending_orders || []).map((o) => o.id));
@@ -189,21 +189,6 @@ export default function KasirPosScreen() {
 
     return () => clearInterval(timer);
   }, [pollMs, router, setPin]);
-
-  useEffect(() => {
-    const statusTimer = setInterval(async () => {
-      try {
-        const res = await pinApi.status();
-        setPin(res.data);
-        if (!res.data.unlocked) {
-          router.replace('/kasir/pin' as never);
-        }
-      } catch {
-        // ignore
-      }
-    }, 20000);
-    return () => clearInterval(statusTimer);
-  }, [router, setPin]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();

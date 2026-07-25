@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -70,6 +70,7 @@ export default function DapurBoardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyItemId, setBusyItemId] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(0);
+  const lastPinTouchAt = useRef(0);
 
   const load = useCallback(async (opts?: { soft?: boolean }) => {
     if (!opts?.soft) {
@@ -88,7 +89,12 @@ export default function DapurBoardScreen() {
           operator_name: res.data.operator_name ?? null,
         });
       }
-      void pinApi.touch().catch(() => {});
+      // Jangan touch setiap poll — bikin request ekstra & 503 di shared hosting.
+      const now = Date.now();
+      if (now - lastPinTouchAt.current >= 60_000) {
+        lastPinTouchAt.current = now;
+        void pinApi.touch().catch(() => {});
+      }
     } catch (err) {
       reportApiError(err, 'Gagal memuat dapur');
     } finally {
@@ -101,7 +107,7 @@ export default function DapurBoardScreen() {
     void load();
     const timer = setInterval(() => {
       void load({ soft: true });
-    }, 15000);
+    }, 20000);
     return () => clearInterval(timer);
   }, [load]);
 

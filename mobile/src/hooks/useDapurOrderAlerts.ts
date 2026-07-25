@@ -4,7 +4,7 @@ import { kasirApi } from '@/api/kasir';
 import { announceKitchenOrders } from '@/dapur/kitchenAlert';
 import { takeNewKitchenIds } from '@/dapur/kitchenOrderTracker';
 
-const POLL_MS = 15_000;
+const POLL_MS = 20_000;
 
 export type DapurOrderAlertState = {
   title: string;

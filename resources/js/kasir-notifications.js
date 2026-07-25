@@ -535,7 +535,7 @@ function initKasirNotifications() {
     }
 
     const pollUrl = shell.dataset.kasirPollUrl;
-    let intervalSeconds = Math.max(12, parseInt(shell.dataset.kasirPollInterval || '15', 10));
+    let intervalSeconds = Math.max(15, parseInt(shell.dataset.kasirPollInterval || '20', 10));
     const pinPollOnly = isPinPollOnly(shell);
     let pollTimer = null;
     let pollInFlight = false;
@@ -583,7 +583,7 @@ function initKasirNotifications() {
         pollInFlight = true;
         pollPendingOrders(pollUrl, shell)
             .then(() => {
-                intervalSeconds = Math.max(12, parseInt(shell.dataset.kasirPollInterval || '15', 10));
+                intervalSeconds = Math.max(15, parseInt(shell.dataset.kasirPollInterval || '20', 10));
             })
             .catch((err) => {
                 const status = err?.status;
@@ -601,7 +601,7 @@ function initKasirNotifications() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && ! isHandlingNewOrder) {
-            intervalSeconds = Math.max(12, parseInt(shell.dataset.kasirPollInterval || '15', 10));
+            intervalSeconds = Math.max(15, parseInt(shell.dataset.kasirPollInterval || '20', 10));
             runPoll();
             if (! pinPollOnly) {
                 pollPinStatus(shell);

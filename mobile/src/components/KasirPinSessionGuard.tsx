@@ -154,7 +154,7 @@ export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
     void syncStatus();
     pollTimer.current = setInterval(() => {
       void syncStatus();
-    }, 30_000);
+    }, 45_000);
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {

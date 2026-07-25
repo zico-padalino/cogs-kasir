@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Kasir;
 
 use App\Http\Controllers\Controller;
 use App\Support\KasirPin;
+use App\Support\SessionPressure;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,28 +28,36 @@ class KasirPinController extends Controller
 
     public function status(): \Illuminate\Http\JsonResponse
     {
-        return response()->json(array_merge(KasirPin::statusPayload(), [
+        $payload = array_merge(KasirPin::statusPayload(), [
             'redirect' => route('kasir.pin.unlock'),
             'ttl_minutes' => KasirPin::idleMinutes(),
-        ]));
+        ]);
+        SessionPressure::releaseEarly();
+
+        return response()->json($payload);
     }
 
     /** Perpanjang sesi PIN karena ada aktivitas (sentuhan layar / input). */
     public function touch(): \Illuminate\Http\JsonResponse
     {
         if (! KasirPin::isUnlocked()) {
-            return response()->json(array_merge(KasirPin::statusPayload(), [
+            $payload = array_merge(KasirPin::statusPayload(), [
                 'redirect' => route('kasir.pin.unlock'),
                 'ttl_minutes' => KasirPin::idleMinutes(),
-            ]), 423);
+            ]);
+            SessionPressure::releaseEarly();
+
+            return response()->json($payload, 423);
         }
 
         KasirPin::touch();
-
-        return response()->json(array_merge(KasirPin::statusPayload(), [
+        $payload = array_merge(KasirPin::statusPayload(), [
             'redirect' => route('kasir.pin.unlock'),
             'ttl_minutes' => KasirPin::idleMinutes(),
-        ]));
+        ]);
+        SessionPressure::releaseEarly();
+
+        return response()->json($payload);
     }
 
     public function unlock(Request $request): RedirectResponse

@@ -36,6 +36,7 @@ class EnsureAttendanceChecked
             'pwa.*',
             'kasir.pin.status',
             'kasir.pending.poll',
+            'kasir.dapur.poll',
         )) {
             return $next($request);
         }
