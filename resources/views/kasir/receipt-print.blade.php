@@ -131,6 +131,35 @@
             font-weight: 400;
             font-size: 10px;
         }
+        /* Struk dapur: font lebih besar agar mudah dibaca di dapur */
+        .sheet.is-kitchen {
+            font-size: 14px;
+            line-height: 1.4;
+            padding: 8px 5px 14px;
+        }
+        .sheet.is-kitchen .shop { font-size: 18px; }
+        .sheet.is-kitchen .eyebrow { font-size: 13px; margin-bottom: 8px; }
+        .sheet.is-kitchen .order-no { font-size: 15px; }
+        .sheet.is-kitchen .meta { font-size: 13px; }
+        .sheet.is-kitchen .sep { margin: 10px 0; }
+        .sheet.is-kitchen table.lines td {
+            font-size: 14px;
+            padding: 4px 0;
+            font-weight: 700;
+        }
+        .sheet.is-kitchen table.lines td.check { width: 18px; }
+        .sheet.is-kitchen .box {
+            width: 12px;
+            height: 12px;
+            border-width: 2px;
+        }
+        .sheet.is-kitchen .note {
+            font-size: 13px;
+            font-weight: 400;
+            padding-left: 4px;
+        }
+        .sheet.is-kitchen .pay-meta { font-size: 13px; }
+        .sheet.is-kitchen .footer.muted { font-size: 12px; }
         .hint {
             max-width: 280px;
             margin: 12px auto 0;
@@ -178,7 +207,7 @@
 </head>
 <body>
 
-    <div class="sheet">
+    <div class="sheet{{ $isKitchen ? ' is-kitchen' : '' }}">
         <div class="center">
             <div class="shop">{{ $clean($shopName) }}</div>
             <div class="eyebrow">{{ $isKitchen ? 'Struk Dapur' : 'Struk Pembayaran' }}</div>
