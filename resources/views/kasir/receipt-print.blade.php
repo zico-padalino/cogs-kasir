@@ -5,83 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} — {{ $order->order_number }}</title>
     <style>
-        /* Layout mengikuti ReceiptPdfService / SimplePdf — jangan diubah. */
+        /* Plain monospace — aman untuk printer thermal (hindari flex/CSS rumit). */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            color: #111;
+            font-family: "Courier New", Courier, monospace;
+            color: #000;
             background: #e8e8e8;
             padding: 16px;
         }
         .sheet {
-            width: 58mm;
+            width: 48ch;
             max-width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 8px 6px 16px;
+            padding: 10px 8px 16px;
+        }
+        pre.receipt {
+            margin: 0;
+            font-family: inherit;
             font-size: 12px;
+            font-weight: 400;
             line-height: 1.35;
-        }
-        .center { text-align: center; }
-        .shop {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-        .eyebrow {
-            font-size: 11px;
-            margin-bottom: 8px;
-        }
-        .mono { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
-        .meta { margin-top: 2px; font-size: 11px; }
-        .sep {
-            border: 0;
-            border-top: 1px solid #222;
-            margin: 8px 0;
-        }
-        .row {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            margin: 3px 0;
-            align-items: flex-start;
-        }
-        .row .left { flex: 1; min-width: 0; word-break: break-word; }
-        .row .right { flex-shrink: 0; white-space: nowrap; font-weight: 600; }
-        .note {
-            font-size: 10px;
-            color: #444;
-            margin: 0 0 4px 4px;
-        }
-        .total-row {
-            font-size: 14px;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-        .check {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 1.5px solid #111;
-            margin-right: 6px;
-            vertical-align: -1px;
-            flex-shrink: 0;
-        }
-        .item-check {
-            display: flex;
-            align-items: flex-start;
-            gap: 4px;
-            margin: 5px 0;
-        }
-        .footer {
-            margin-top: 12px;
-            text-align: center;
-            font-weight: 700;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #000;
         }
         .hint {
-            max-width: 280px;
+            max-width: 320px;
             margin: 12px auto 0;
             text-align: center;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
             color: #555;
         }
@@ -96,7 +49,6 @@
             cursor: pointer;
         }
         @media print {
-            /* Destination & paper size: default device (laptop/HP). */
             @page { margin: 4mm; }
             html, body {
                 background: #fff !important;
@@ -104,121 +56,126 @@
                 margin: 0 !important;
             }
             .sheet {
-                width: 58mm;
-                margin: 0 auto;
-                padding: 0 1mm 4mm;
-                box-shadow: none;
+                width: 100%;
+                max-width: none;
+                margin: 0;
+                padding: 0;
+            }
+            pre.receipt {
+                font-size: 11px;
+                line-height: 1.3;
             }
             .no-print { display: none !important; }
         }
     </style>
 </head>
 <body>
-    @php
-        $shopName = config('pos.shop_name', 'Coffee & Kitchen');
-        $isKitchen = ($variant ?? 'customer') === 'kitchen';
-        $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
-    @endphp
+@php
+    use App\Support\Format;
+    use App\Support\PosItemNotes;
 
-    <div class="sheet" id="receipt-sheet">
-        <div class="center">
-            <div class="shop">{{ $shopName }}</div>
-            <div class="eyebrow">{{ $isKitchen ? 'Struk Dapur' : 'Struk Pembayaran' }}</div>
-            <div class="mono">{{ $order->order_number }}</div>
-            <div class="meta">{{ $paidAt }}</div>
-            @if ($order->order_type)
-                <div class="meta">{{ $order->order_type->label() }}</div>
-            @endif
-            @if ($order->table)
-                <div class="meta">Meja: {{ $order->table->label }}</div>
-            @endif
-            @if ($order->customer_note)
-                <div class="meta">Pelanggan: {{ $order->customer_note }}</div>
-            @endif
-        </div>
+    $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
+    $isKitchen = ($variant ?? 'customer') === 'kitchen';
+    $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
+    $width = 32;
 
-        <hr class="sep">
+    $pad = static function (string $left, string $right, int $w) {
+        $left = preg_replace('/\s+/u', ' ', trim($left)) ?? $left;
+        $right = trim($right);
+        $maxLeft = max(1, $w - mb_strlen($right) - 1);
+        if (mb_strlen($left) > $maxLeft) {
+            $left = mb_substr($left, 0, max(1, $maxLeft - 1)).'.';
+        }
+        $padLen = max(1, $w - mb_strlen($left) - mb_strlen($right));
 
-        @foreach ($order->items as $item)
-            @php
-                $qty = $format::number($item->quantity, 0);
-                $name = $item->product?->name ?? 'Item';
-                $noteParts = \App\Support\PosItemNotes::split($item->notes);
-            @endphp
+        return $left.str_repeat(' ', $padLen).$right;
+    };
 
-            @if ($isKitchen)
-                <div class="item-check">
-                    <span class="check" aria-hidden="true"></span>
-                    <div class="left">
-                        <div><strong>{{ $name }} x {{ $qty }}</strong></div>
-                        @foreach ($noteParts['addon_labels'] as $label)
-                            <div class="note">{{ $label }}</div>
-                        @endforeach
-                        @if ($noteParts['customer'])
-                            <div class="note">Catatan: {{ $noteParts['customer'] }}</div>
-                        @endif
-                    </div>
-                </div>
-            @else
-                <div class="row">
-                    <span class="left">{{ $name }} x {{ $qty }}</span>
-                    <span class="right">{{ $format::rupiah($item->line_total) }}</span>
-                </div>
-                @foreach ($noteParts['addon_labels'] as $label)
-                    <div class="note">{{ $label }}</div>
-                @endforeach
-                @if ($noteParts['customer'])
-                    <div class="note">Catatan: {{ $noteParts['customer'] }}</div>
-                @endif
-            @endif
-        @endforeach
+    $center = static function (string $text, int $w) {
+        $text = trim($text);
+        $len = mb_strlen($text);
+        if ($len >= $w) {
+            return mb_substr($text, 0, $w);
+        }
+        $left = (int) floor(($w - $len) / 2);
 
-        <hr class="sep">
+        return str_repeat(' ', $left).$text;
+    };
 
-        @if (! $isKitchen)
-            @if ($order->hasDiscount())
-                <div class="row">
-                    <span class="left">Subtotal</span>
-                    <span class="right">{{ $format::rupiah($order->subtotal) }}</span>
-                </div>
-                <div class="row">
-                    <span class="left">Diskon</span>
-                    <span class="right">- {{ $format::rupiah($order->discount_amount) }}</span>
-                </div>
-            @endif
-            <div class="row total-row">
-                <span class="left">TOTAL</span>
-                <span class="right">{{ $format::rupiah($order->total) }}</span>
-            </div>
-            <div class="meta" style="margin-top:6px">Bayar: {{ $order->payment_method?->label() ?? '-' }}</div>
-            @if ($order->payment_method?->value === 'cash' && $order->amount_received)
-                <div class="meta">Diterima: {{ $format::rupiah($order->amount_received) }}</div>
-                <div class="meta">Kembalian: {{ $format::rupiah($order->change_amount) }}</div>
-            @endif
-        @endif
+    $lines = [];
+    $lines[] = $center($shopName, $width);
+    $lines[] = $center($isKitchen ? 'Struk Dapur' : 'Struk Pembayaran', $width);
+    $lines[] = $center($order->order_number, $width);
+    $lines[] = $center($paidAt, $width);
+    if ($order->order_type) {
+        $lines[] = $center($order->order_type->label(), $width);
+    }
+    if ($order->table) {
+        $lines[] = $center('Meja: '.$order->table->label, $width);
+    }
+    if ($order->customer_note) {
+        $lines[] = $center('Pelanggan: '.$order->customer_note, $width);
+    }
+    $lines[] = str_repeat('-', $width);
 
-        @if ($order->cashierDisplayName() !== '-')
-            <div class="meta" style="margin-top:4px">Kasir: {{ $order->cashierDisplayName() }}</div>
-        @endif
+    foreach ($order->items as $item) {
+        $qty = Format::number($item->quantity, 0);
+        $name = $item->product?->name ?? 'Item';
+        $noteParts = PosItemNotes::split($item->notes);
 
-        @if ($isKitchen)
-            <div class="footer" style="font-weight:400;font-size:10px">Ceklis item yang sudah selesai</div>
-        @else
-            <div class="footer">Terima kasih</div>
-        @endif
+        if ($isKitchen) {
+            $lines[] = '[ ] '.$name.' x '.$qty;
+        } else {
+            $lines[] = $pad($name.' x '.$qty, Format::rupiah($item->line_total), $width);
+        }
+
+        foreach ($noteParts['addon_labels'] as $label) {
+            $lines[] = '  '.$label;
+        }
+        if ($noteParts['customer']) {
+            $lines[] = '  Catatan: '.$noteParts['customer'];
+        }
+    }
+
+    $lines[] = str_repeat('-', $width);
+
+    if (! $isKitchen) {
+        if ($order->hasDiscount()) {
+            $lines[] = $pad('Subtotal', Format::rupiah($order->subtotal), $width);
+            $lines[] = $pad('Diskon', '- '.Format::rupiah($order->discount_amount), $width);
+        }
+        $lines[] = $pad('TOTAL', Format::rupiah($order->total), $width);
+        $lines[] = 'Bayar: '.($order->payment_method?->label() ?? '-');
+        if ($order->payment_method?->value === 'cash' && $order->amount_received) {
+            $lines[] = 'Diterima: '.Format::rupiah($order->amount_received);
+            $lines[] = 'Kembalian: '.Format::rupiah($order->change_amount);
+        }
+    }
+
+    if ($order->cashierDisplayName() !== '-') {
+        $lines[] = 'Kasir: '.$order->cashierDisplayName();
+    }
+
+    $lines[] = '';
+    $lines[] = $center($isKitchen ? 'Ceklis item selesai' : 'Terima kasih', $width);
+    $lines[] = '';
+
+    $receiptText = implode("\n", $lines);
+@endphp
+
+    <div class="sheet">
+        <pre class="receipt">{{ $receiptText }}</pre>
     </div>
 
     <div class="hint no-print">
-        Pilih printer & kertas di perangkat ini, lalu cetak.
+        Pilih printer &amp; kertas di perangkat ini, lalu cetak.
         <br>
         <button type="button" onclick="window.print()">Cetak lagi</button>
     </div>
 
     <script>
         window.addEventListener('load', function () {
-            setTimeout(function () {
-                window.print();
-            }, 250);
+            setTimeout(function () { window.print(); }, 250);
         });
     </script>
 </body>
