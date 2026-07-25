@@ -17,23 +17,23 @@
             padding: 16px;
         }
         .sheet {
-            width: 72mm;
+            width: 58mm;
             max-width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 10px 8px 18px;
-            font-size: 12px;
-            line-height: 1.4;
+            padding: 8px 5px 14px;
+            font-size: 10px;
+            line-height: 1.3;
         }
         .center { text-align: center; }
-        .shop { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
-        .eyebrow { font-size: 12px; font-weight: 400; margin-bottom: 8px; }
-        .order-no { font-size: 13px; font-weight: 700; }
-        .meta { margin-top: 2px; font-size: 12px; font-weight: 400; }
+        .shop { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+        .eyebrow { font-size: 10px; font-weight: 400; margin-bottom: 6px; }
+        .order-no { font-size: 11px; font-weight: 700; }
+        .meta { margin-top: 1px; font-size: 10px; font-weight: 400; }
         .sep {
             border: 0;
             border-top: 1px solid #000;
-            margin: 10px 0;
+            margin: 7px 0;
             height: 0;
         }
         table.lines {
@@ -43,8 +43,8 @@
         }
         table.lines td {
             vertical-align: top;
-            padding: 3px 0;
-            font-size: 12px;
+            padding: 2px 0;
+            font-size: 10px;
             font-weight: 400;
             color: #000;
         }
@@ -62,40 +62,40 @@
         }
         table.lines tr.total td {
             font-weight: 700;
-            font-size: 14px;
-            padding-top: 5px;
+            font-size: 11px;
+            padding-top: 4px;
         }
         table.lines td.check {
-            width: 16px;
+            width: 14px;
             text-align: right;
             font-weight: 400;
         }
         .box {
             display: inline-block;
-            width: 11px;
-            height: 11px;
+            width: 9px;
+            height: 9px;
             border: 1.5px solid #000;
             vertical-align: middle;
         }
         .note {
-            font-size: 11px;
+            font-size: 9px;
             font-weight: 400;
-            margin: 0 0 3px 0;
+            margin: 0 0 2px 0;
             color: #000;
         }
         .pay-meta {
-            margin-top: 5px;
-            font-size: 12px;
+            margin-top: 4px;
+            font-size: 10px;
             font-weight: 400;
             text-align: left;
         }
         .footer {
-            margin-top: 14px;
+            margin-top: 10px;
             text-align: center;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 11px;
         }
-        .footer.muted { font-weight: 400; font-size: 11px; }
+        .footer.muted { font-weight: 400; font-size: 9px; }
         .hint {
             max-width: 280px;
             margin: 12px auto 0;
@@ -115,25 +115,26 @@
             cursor: pointer;
         }
         @media print {
-            /* Satu gulungan kontinu — hindari pecah halaman A4 yang bikin garbage. */
+            /* Sesuai kertas thermal 58 x 210mm */
             @page {
-                size: auto;
-                margin: 3mm;
+                size: 58mm 210mm;
+                margin: 2mm;
             }
             html, body {
                 background: #fff !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                width: auto !important;
+                width: 58mm !important;
                 height: auto !important;
                 overflow: visible !important;
             }
             .sheet {
-                width: 72mm;
+                width: 54mm;
                 max-width: 100%;
                 margin: 0 auto;
                 padding: 0;
                 box-shadow: none;
+                font-size: 10px;
             }
             table.lines, table.lines tr, table.lines td {
                 page-break-inside: avoid;
