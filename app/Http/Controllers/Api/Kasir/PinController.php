@@ -61,7 +61,7 @@ class PinController extends Controller
         KasirPin::unlock($operator);
 
         return response()->json([
-            'message' => 'Kasir dibuka oleh '.$operator->name.'. Sesi PIN '.KasirPin::idleMinutes().' menit.',
+            'message' => 'Kasir dibuka oleh '.$operator->name.'.',
             'data' => array_merge(KasirPin::statusPayload(), [
                 'ttl_minutes' => KasirPin::idleMinutes(),
                 'operator' => [

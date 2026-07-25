@@ -74,7 +74,7 @@ class KasirPinController extends Controller
 
         return redirect()
             ->to($intended)
-            ->with('success', 'Kasir dibuka oleh '.$operator->name.'. Sesi PIN '.KasirPin::idleMinutes().' menit.');
+            ->with('success', 'Kasir dibuka oleh '.$operator->name.'.');
     }
 
     public function lock(Request $request): RedirectResponse

@@ -37,6 +37,6 @@ class EnsureKasirPinUnlocked
 
         return redirect()
             ->guest(route('kasir.pin.unlock'))
-            ->with('error', 'Sesi PIN habis ('.KasirPin::idleMinutes().' menit). Masukkan PIN lagi.');
+            ->with('error', 'Sesi PIN habis. Masukkan PIN lagi.');
     }
 }
