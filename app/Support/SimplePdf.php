@@ -14,6 +14,8 @@ final class SimplePdf
 
     private int $margin = 24;
 
+    private float $columnGap = 12;
+
     public function title(string $text): self
     {
         $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => 36.0, 'bold' => true, 'align' => 'C'];
@@ -56,8 +58,8 @@ final class SimplePdf
             $contentHeight += match ($op['type']) {
                 'spacer' => $op['amount'] ?? 12,
                 'separator' => 18,
-                'columns' => ($op['size'] ?? 24) + 8,
-                default => ($op['size'] ?? 24) + 8,
+                'columns' => $this->columnsHeight($op),
+                default => $this->textHeight($op),
             };
         }
         $contentHeight += $this->margin;
@@ -79,14 +81,7 @@ final class SimplePdf
             }
 
             if ($op['type'] === 'columns') {
-                $size = $op['size'] ?? 24;
-                $textY = $y - $size;
-                $left = (string) ($op['left'] ?? '');
-                $right = (string) ($op['right'] ?? '');
-                $this->writeText($stream, $left, $this->margin, $textY, $size, false);
-                $rightWidth = $this->textWidth($right, $size);
-                $this->writeText($stream, $right, $this->pageWidth - $this->margin - $rightWidth, $textY, $size, true);
-                $y -= ($size + 8);
+                $y = $this->drawColumns($stream, $op, $y);
                 continue;
             }
 
@@ -94,15 +89,20 @@ final class SimplePdf
             $bold = (bool) ($op['bold'] ?? false);
             $align = $op['align'] ?? 'L';
             $text = (string) ($op['text'] ?? '');
-            $textY = $y - $size;
-            $width = $this->textWidth($text, $size);
-            $x = match ($align) {
-                'C' => ($this->pageWidth - $width) / 2,
-                'R' => $this->pageWidth - $this->margin - $width,
-                default => $this->margin,
-            };
-            $this->writeText($stream, $text, $x, $textY, $size, $bold);
-            $y -= ($size + 8);
+            $maxWidth = $this->pageWidth - (2 * $this->margin);
+            $lines = $this->wrapText($text, $maxWidth, $size);
+
+            foreach ($lines as $line) {
+                $textY = $y - $size;
+                $width = $this->textWidth($line, $size);
+                $x = match ($align) {
+                    'C' => ($this->pageWidth - $width) / 2,
+                    'R' => $this->pageWidth - $this->margin - $width,
+                    default => $this->margin,
+                };
+                $this->writeText($stream, $line, $x, $textY, $size, $bold);
+                $y -= ($size + 8);
+            }
         }
 
         $content = implode("\n", $stream)."\n";
@@ -139,6 +139,142 @@ final class SimplePdf
         $pdf .= "startxref\n{$xref}\n%%EOF";
 
         return $pdf;
+    }
+
+    /**
+     * @param  array{type:string,left?:string,right?:string,size?:float}  $op
+     * @param  list<string>  $stream
+     */
+    private function drawColumns(array &$stream, array $op, float $y): float
+    {
+        $size = $op['size'] ?? 24;
+        $left = (string) ($op['left'] ?? '');
+        $right = (string) ($op['right'] ?? '');
+        $rightWidth = $this->textWidth($right, $size);
+        $maxLeft = max(20.0, $this->pageWidth - (2 * $this->margin) - $rightWidth - $this->columnGap);
+        $leftLines = $this->wrapText($left, $maxLeft, $size);
+
+        foreach ($leftLines as $index => $leftLine) {
+            $textY = $y - $size;
+            $this->writeText($stream, $leftLine, $this->margin, $textY, $size, false);
+
+            if ($index === 0 && $right !== '') {
+                $this->writeText(
+                    $stream,
+                    $right,
+                    $this->pageWidth - $this->margin - $rightWidth,
+                    $textY,
+                    $size,
+                    true,
+                );
+            }
+
+            $y -= ($size + 8);
+        }
+
+        return $y;
+    }
+
+    /**
+     * @param  array{type:string,left?:string,right?:string,size?:float}  $op
+     */
+    private function columnsHeight(array $op): float
+    {
+        $size = $op['size'] ?? 24;
+        $left = (string) ($op['left'] ?? '');
+        $right = (string) ($op['right'] ?? '');
+        $rightWidth = $this->textWidth($right, $size);
+        $maxLeft = max(20.0, $this->pageWidth - (2 * $this->margin) - $rightWidth - $this->columnGap);
+        $lines = max(1, count($this->wrapText($left, $maxLeft, $size)));
+
+        return $lines * ($size + 8);
+    }
+
+    /**
+     * @param  array{type:string,text?:string,size?:float}  $op
+     */
+    private function textHeight(array $op): float
+    {
+        $size = $op['size'] ?? 24;
+        $text = (string) ($op['text'] ?? '');
+        $maxWidth = $this->pageWidth - (2 * $this->margin);
+        $lines = max(1, count($this->wrapText($text, $maxWidth, $size)));
+
+        return $lines * ($size + 8);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function wrapText(string $text, float $maxWidth, float $size): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return [''];
+        }
+
+        if ($this->textWidth($text, $size) <= $maxWidth) {
+            return [$text];
+        }
+
+        $words = preg_split('/\s+/u', $text) ?: [$text];
+        $lines = [];
+        $current = '';
+
+        foreach ($words as $word) {
+            $candidate = $current === '' ? $word : $current.' '.$word;
+
+            if ($this->textWidth($candidate, $size) <= $maxWidth) {
+                $current = $candidate;
+                continue;
+            }
+
+            if ($current !== '') {
+                $lines[] = $current;
+                $current = '';
+            }
+
+            if ($this->textWidth($word, $size) <= $maxWidth) {
+                $current = $word;
+                continue;
+            }
+
+            foreach ($this->chunkByWidth($word, $maxWidth, $size) as $chunk) {
+                $lines[] = $chunk;
+            }
+        }
+
+        if ($current !== '') {
+            $lines[] = $current;
+        }
+
+        return $lines !== [] ? $lines : [''];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function chunkByWidth(string $text, float $maxWidth, float $size): array
+    {
+        $chars = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: str_split($text);
+        $chunks = [];
+        $current = '';
+
+        foreach ($chars as $char) {
+            $candidate = $current.$char;
+            if ($current !== '' && $this->textWidth($candidate, $size) > $maxWidth) {
+                $chunks[] = $current;
+                $current = $char;
+                continue;
+            }
+            $current = $candidate;
+        }
+
+        if ($current !== '') {
+            $chunks[] = $current;
+        }
+
+        return $chunks !== [] ? $chunks : [$text];
     }
 
     /** @param list<string> $stream */
