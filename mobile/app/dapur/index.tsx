@@ -192,87 +192,98 @@ export default function DapurBoardScreen() {
               </Text>
             </View>
           ) : (
-            orders.map((order) => {
-              const items = order.items || [];
-              const done = items.filter((i) => i.is_delivered).length;
-              const elapsed = elapsedLabel(startedAt(order));
-              void nowTick;
-              const isBill = order.status === 'unpaid' || order.is_open_bill;
-              return (
-                <View
-                  key={order.id}
-                  style={[styles.ticket, isBill ? styles.ticketBill : styles.ticketPaid]}
-                >
-                  <View style={styles.ticketHead}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.orderNumber}>{order.order_number}</Text>
-                      <Text style={styles.customer} numberOfLines={1}>
-                        {order.customer_note?.trim() || 'Tanpa nama'}
-                      </Text>
+            <View style={styles.grid}>
+              {orders.map((order) => {
+                const items = order.items || [];
+                const done = items.filter((i) => i.is_delivered).length;
+                const elapsed = elapsedLabel(startedAt(order));
+                void nowTick;
+                const isBill = order.status === 'unpaid' || order.is_open_bill;
+                return (
+                  <View
+                    key={order.id}
+                    style={[styles.ticket, isBill ? styles.ticketBill : styles.ticketPaid]}
+                  >
+                    <View style={styles.ticketHead}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.orderNumber} numberOfLines={1}>
+                          {order.order_number}
+                        </Text>
+                        <Text style={styles.customer} numberOfLines={1}>
+                          {order.customer_note?.trim() || 'Tanpa nama'}
+                        </Text>
+                      </View>
+                      <View style={styles.headSide}>
+                        <Text style={styles.elapsed}>{elapsed}</Text>
+                        <Text style={[styles.badge, isBill ? styles.badgeBill : styles.badgePaid]}>
+                          {isBill ? 'Open' : 'Bayar'}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.headSide}>
-                      <Text style={styles.elapsed}>{elapsed}</Text>
-                      <Text style={[styles.badge, isBill ? styles.badgeBill : styles.badgePaid]}>
-                        {isBill ? 'Tagihan terbuka' : 'Sudah bayar'}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={styles.chips}>
-                    {order.order_type_label ? (
+                    <View style={styles.chips}>
+                      {order.order_type_label ? (
+                        <Text style={styles.chip} numberOfLines={1}>
+                          {order.order_type_icon || ''} {order.order_type_label}
+                        </Text>
+                      ) : null}
+                      {order.table?.label ? (
+                        <Text style={[styles.chip, styles.chipTable]} numberOfLines={1}>
+                          🪑 {order.table.label}
+                        </Text>
+                      ) : null}
                       <Text style={styles.chip}>
-                        {order.order_type_icon || ''} {order.order_type_label}
+                        {done}/{items.length} siap
                       </Text>
-                    ) : null}
-                    {order.table?.label ? (
-                      <Text style={[styles.chip, styles.chipTable]}>🪑 {order.table.label}</Text>
-                    ) : null}
-                    <Text style={styles.chip}>
-                      {done}/{items.length} siap
-                    </Text>
-                  </View>
+                    </View>
 
-                  <View style={styles.items}>
-                    {items.map((item) => {
-                      const notes = splitNotes(item.notes);
-                      const doneItem = !!item.is_delivered;
-                      return (
-                        <Pressable
-                          key={item.id}
-                          style={[styles.itemRow, doneItem && styles.itemDone]}
-                          onPress={() => void toggleItem(item)}
-                          disabled={busyItemId === item.id || !order.can_checklist_delivered}
-                        >
-                          <View style={[styles.check, doneItem && styles.checkOn]}>
-                            <Text style={styles.checkText}>{doneItem ? '✓' : ''}</Text>
-                          </View>
-                          <Text style={styles.qty}>{formatQty(item.quantity)}×</Text>
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={[styles.itemName, doneItem && styles.itemNameDone]}>
-                              {item.product_name || 'Item'}
-                            </Text>
-                            {notes.customer ? (
-                              <Text style={styles.itemNote}>{notes.customer}</Text>
-                            ) : null}
-                            {notes.addons.map((addon) => (
-                              <Text key={addon} style={styles.itemAddon}>
-                                {addon}
+                    <View style={styles.items}>
+                      {items.map((item) => {
+                        const notes = splitNotes(item.notes);
+                        const doneItem = !!item.is_delivered;
+                        return (
+                          <Pressable
+                            key={item.id}
+                            style={[styles.itemRow, doneItem && styles.itemDone]}
+                            onPress={() => void toggleItem(item)}
+                            disabled={busyItemId === item.id || !order.can_checklist_delivered}
+                          >
+                            <View style={[styles.check, doneItem && styles.checkOn]}>
+                              <Text style={styles.checkText}>{doneItem ? '✓' : ''}</Text>
+                            </View>
+                            <Text style={styles.qty}>{formatQty(item.quantity)}×</Text>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <Text
+                                style={[styles.itemName, doneItem && styles.itemNameDone]}
+                                numberOfLines={2}
+                              >
+                                {item.product_name || 'Item'}
                               </Text>
-                            ))}
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
+                              {notes.customer ? (
+                                <Text style={styles.itemNote} numberOfLines={2}>
+                                  {notes.customer}
+                                </Text>
+                              ) : null}
+                              {notes.addons.map((addon) => (
+                                <Text key={addon} style={styles.itemAddon} numberOfLines={1}>
+                                  {addon}
+                                </Text>
+                              ))}
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
 
-                  {order.can_mark_served ? (
-                    <Pressable style={styles.serveBtn} onPress={() => markServed(order)}>
-                      <Text style={styles.serveText}>Tandai selesai</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              );
-            })
+                    {order.can_mark_served ? (
+                      <Pressable style={styles.serveBtn} onPress={() => markServed(order)}>
+                        <Text style={styles.serveText}>Tandai selesai</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
           )}
         </ScrollView>
       )}
@@ -297,7 +308,13 @@ const styles = StyleSheet.create({
   countText: { color: colors.white, fontSize: 12, ...font('700') },
   hint: { color: colors.slate500, fontSize: 12, ...font('500') },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { paddingHorizontal: spacing.lg, gap: spacing.md },
+  list: { paddingHorizontal: spacing.md, gap: spacing.md },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.sm,
+  },
   empty: {
     marginTop: 48,
     borderWidth: 1,
@@ -318,8 +335,9 @@ const styles = StyleSheet.create({
     ...font('400'),
   },
   ticket: {
+    width: '48.5%',
     backgroundColor: colors.white,
-    borderRadius: radius['3xl'],
+    borderRadius: radius['2xl'],
     borderWidth: 1,
     borderColor: colors.brand100,
     overflow: 'hidden',
@@ -329,22 +347,22 @@ const styles = StyleSheet.create({
   ticketPaid: { borderLeftColor: colors.brand600 },
   ticketHead: {
     flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: '#faf7f2',
     borderBottomWidth: 1,
     borderBottomColor: colors.slate100,
   },
-  orderNumber: { fontSize: 20, color: colors.espresso, ...fontDisplay('700') },
-  customer: { marginTop: 2, fontSize: 13, color: colors.slate600, ...font('600') },
+  orderNumber: { fontSize: 15, color: colors.espresso, ...fontDisplay('700') },
+  customer: { marginTop: 2, fontSize: 12, color: colors.slate600, ...font('600') },
   headSide: { alignItems: 'flex-end', gap: 4 },
-  elapsed: { fontSize: 18, color: colors.espresso, ...font('700') },
+  elapsed: { fontSize: 14, color: colors.espresso, ...font('700') },
   badge: {
     borderRadius: radius.full,
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    fontSize: 10,
+    fontSize: 9,
     overflow: 'hidden',
     textTransform: 'uppercase',
     ...font('700'),
@@ -354,25 +372,26 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
   },
   chip: {
     backgroundColor: colors.slate100,
     color: colors.slate700,
     borderRadius: radius.md,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 11,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    fontSize: 10,
     overflow: 'hidden',
+    maxWidth: '100%',
     ...font('600'),
   },
   chipTable: { backgroundColor: colors.brand50, color: colors.brand800 },
-  items: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, gap: 2 },
+  items: { paddingHorizontal: spacing.xs, paddingVertical: spacing.sm, gap: 4 },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
@@ -380,40 +399,38 @@ const styles = StyleSheet.create({
   },
   itemDone: { opacity: 0.72 },
   check: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.lg,
-    borderWidth: 2,
+    width: 44,
+    height: 44,
+    borderRadius: radius.xl,
+    borderWidth: 2.5,
     borderColor: colors.brand300,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 1,
   },
   checkOn: {
     borderColor: colors.green600,
     backgroundColor: colors.green600,
   },
-  checkText: { color: colors.white, fontSize: 14, ...font('700') },
+  checkText: { color: colors.white, fontSize: 22, ...font('700') },
   qty: {
-    minWidth: 36,
-    marginTop: 2,
-    fontSize: 16,
+    minWidth: 28,
+    fontSize: 14,
     color: colors.espresso,
     ...font('700'),
   },
-  itemName: { fontSize: 16, color: colors.slate900, ...font('700') },
+  itemName: { fontSize: 14, color: colors.slate900, ...font('700') },
   itemNameDone: { color: colors.slate400, textDecorationLine: 'line-through' },
-  itemNote: { marginTop: 2, fontSize: 13, color: colors.amber800, ...font('600') },
-  itemAddon: { marginTop: 1, fontSize: 12, color: colors.slate500, ...font('500') },
+  itemNote: { marginTop: 2, fontSize: 11, color: colors.amber800, ...font('600') },
+  itemAddon: { marginTop: 1, fontSize: 11, color: colors.slate500, ...font('500') },
   serveBtn: {
-    margin: spacing.md,
-    marginTop: spacing.sm,
+    margin: spacing.sm,
+    marginTop: spacing.xs,
     backgroundColor: colors.brand600,
     borderRadius: radius.xl,
-    minHeight: 44,
+    minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  serveText: { color: colors.white, fontSize: 14, ...font('700') },
+  serveText: { color: colors.white, fontSize: 13, ...font('700') },
 });
