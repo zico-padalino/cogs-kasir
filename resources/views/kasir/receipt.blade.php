@@ -87,16 +87,24 @@
             <button type="button" class="btn-primary w-full" data-receipt-thermal-print>
                 Cetak Thermal
             </button>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-3 gap-2">
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                    <input type="radio" name="thermal-paper" value="58mm" data-thermal-paper checked class="accent-brand-600">
+                    <input type="radio" name="thermal-paper" value="58mm" data-thermal-paper @checked(($thermal['paper'] ?? '58mm') === '58mm') class="accent-brand-600">
                     58mm
                 </label>
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                    <input type="radio" name="thermal-paper" value="80mm" data-thermal-paper class="accent-brand-600">
+                    <input type="radio" name="thermal-paper" value="80mm" data-thermal-paper @checked(($thermal['paper'] ?? '') === '80mm') class="accent-brand-600">
                     80mm
                 </label>
+                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                    <input type="radio" name="thermal-paper" value="58x210mm" data-thermal-paper @checked(($thermal['paper'] ?? '') === '58x210mm') class="accent-brand-600">
+                    58×210
+                </label>
             </div>
+            <p class="text-xs text-slate-500">
+                Default toko: <strong>{{ \App\Support\ShopSettings::receiptPaperLabel() }}</strong>
+                · <a href="{{ route('kasir.settings.edit') }}" class="text-brand-700 underline">Ubah di Pengaturan Struk</a>
+            </p>
             <p class="text-xs text-slate-500" data-thermal-hint>
                 Sekali klik Cetak Thermal → langsung buka Thermer & cetak. Ukuran 2× lebih besar.
             </p>
@@ -225,7 +233,7 @@
             var PAPER_KEY = 'pos-thermal-paper';
             try {
                 var savedPaper = localStorage.getItem(PAPER_KEY);
-                if (savedPaper === '58mm' || savedPaper === '80mm') {
+                if (savedPaper === '58mm' || savedPaper === '80mm' || savedPaper === '58x210mm') {
                     paperRadios.forEach(function (r) {
                         r.checked = r.value === savedPaper;
                     });
@@ -314,7 +322,8 @@
             }
 
             function printDesktopFallback() {
-                var width = selectedPaper() === '80mm' ? 48 : 32;
+                var paper = selectedPaper();
+                var width = paper === '80mm' ? 48 : 32;
                 var pre = document.getElementById('thermal-print-pre');
                 var sheet = document.getElementById('thermal-print-sheet');
                 if (!pre || !sheet) {
@@ -323,7 +332,7 @@
                 }
                 var thermal = payload.thermal || {};
                 pre.textContent = thermal.thermer_share_text || buildPreviewText(width);
-                sheet.style.width = selectedPaper() === '80mm' ? '80mm' : '58mm';
+                sheet.style.width = paper === '80mm' ? '80mm' : '58mm';
                 sheet.classList.remove('hidden');
                 window.print();
                 setTimeout(function () {

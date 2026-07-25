@@ -24,6 +24,7 @@ use App\Http\Controllers\Web\Kasir\WasteController as KasirWebWasteController;
 use App\Http\Controllers\Web\KasirController;
 use App\Http\Controllers\Web\KasirPushController;
 use App\Http\Controllers\Web\KasirProductController;
+use App\Http\Controllers\Web\KasirSettingsController;
 use App\Http\Controllers\Web\MenuCategoryController;
 use App\Http\Controllers\Web\OverheadRateController;
 use App\Http\Controllers\Web\KasTunaiController;
@@ -150,6 +151,8 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::get('/kas-tunai', [KasTunaiController::class, 'index'])->name('kas-tunai.index');
         Route::post('/kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
         Route::post('/kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
+        Route::get('/settings', [KasirSettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [KasirSettingsController::class, 'update'])->name('settings.update');
         Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
         Route::post('/open-bill', [KasirController::class, 'openBill'])->name('open-bill');
         Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');

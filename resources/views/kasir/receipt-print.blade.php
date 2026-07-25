@@ -1,3 +1,31 @@
+@php
+    $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
+    $isKitchen = ($variant ?? 'customer') === 'kitchen';
+    $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
+    $paper = \App\Support\ShopSettings::normalizeReceiptPaper($paper ?? config('pos.thermal.paper', '58mm'));
+    $sheetWidth = $paper === '80mm' ? '80mm' : '58mm';
+    $pageSize = match ($paper) {
+        '80mm' => '80mm auto',
+        '58x210mm' => '58mm 210mm',
+        default => '58mm auto',
+    };
+    $fontBase = $paper === '80mm' ? '11px' : '10px';
+    $fontShop = $paper === '80mm' ? '16px' : '14px';
+
+    // Karakter aneh sering bikin driver thermal corrupt di struk panjang.
+    $clean = static function (?string $text): string {
+        $text = (string) ($text ?? '');
+        $map = [
+            '‘' => "'", '’' => "'", '“' => '"', '”' => '"',
+            '–' => '-', '—' => '-', '×' => 'x', '…' => '...',
+            '·' => '-', '•' => '-', '●' => '-', ' ' => ' ',
+        ];
+        $text = strtr($text, $map);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return trim($text);
+    };
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,10 +33,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} — {{ $order->order_number }}</title>
     <style>
-        /*
-         * Desain seperti struk PDF, tapi TANPA flex/gap.
-         * Printer thermal (POS-58) sering corrupt struk panjang kalau pakai flex.
-         */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: Helvetica, Arial, sans-serif;
@@ -17,19 +41,19 @@
             padding: 16px;
         }
         .sheet {
-            width: 58mm;
+            width: {{ $sheetWidth }};
             max-width: 100%;
             margin: 0 auto;
             background: #fff;
             padding: 8px 5px 14px;
-            font-size: 10px;
+            font-size: {{ $fontBase }};
             line-height: 1.3;
         }
         .center { text-align: center; }
-        .shop { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-        .eyebrow { font-size: 10px; font-weight: 400; margin-bottom: 6px; }
-        .order-no { font-size: 11px; font-weight: 700; }
-        .meta { margin-top: 1px; font-size: 10px; font-weight: 400; }
+        .shop { font-size: {{ $fontShop }}; font-weight: 700; margin-bottom: 2px; }
+        .eyebrow { font-size: {{ $fontBase }}; font-weight: 400; margin-bottom: 6px; }
+        .order-no { font-size: calc({{ $fontBase }} + 1px); font-weight: 700; }
+        .meta { margin-top: 1px; font-size: {{ $fontBase }}; font-weight: 400; }
         .sep {
             border: 0;
             border-top: 1px solid #000;
@@ -44,7 +68,7 @@
         table.lines td {
             vertical-align: top;
             padding: 2px 0;
-            font-size: 10px;
+            font-size: {{ $fontBase }};
             font-weight: 400;
             color: #000;
         }
@@ -62,7 +86,7 @@
         }
         table.lines tr.total td {
             font-weight: 700;
-            font-size: 11px;
+            font-size: calc({{ $fontBase }} + 1px);
             padding-top: 4px;
         }
         table.lines td.check {
@@ -78,14 +102,14 @@
             vertical-align: middle;
         }
         .note {
-            font-size: 9px;
+            font-size: calc({{ $fontBase }} - 1px);
             font-weight: 400;
             margin: 0 0 2px 0;
             color: #000;
         }
         .pay-meta {
             margin-top: 4px;
-            font-size: 10px;
+            font-size: {{ $fontBase }};
             font-weight: 400;
             text-align: left;
         }
@@ -93,9 +117,9 @@
             margin-top: 10px;
             text-align: center;
             font-weight: 700;
-            font-size: 11px;
+            font-size: calc({{ $fontBase }} + 1px);
         }
-        .footer.muted { font-weight: 400; font-size: 9px; }
+        .footer.muted { font-weight: 400; font-size: calc({{ $fontBase }} - 1px); }
         .hint {
             max-width: 280px;
             margin: 12px auto 0;
@@ -115,26 +139,24 @@
             cursor: pointer;
         }
         @media print {
-            /* Sesuai kertas thermal 58 x 210mm */
             @page {
-                size: 58mm 210mm;
+                size: {{ $pageSize }};
                 margin: 2mm;
             }
             html, body {
                 background: #fff !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                width: 58mm !important;
+                width: {{ $sheetWidth }} !important;
                 height: auto !important;
                 overflow: visible !important;
             }
             .sheet {
-                width: 54mm;
+                width: 100%;
                 max-width: 100%;
-                margin: 0 auto;
+                margin: 0;
                 padding: 0;
                 box-shadow: none;
-                font-size: 10px;
             }
             table.lines, table.lines tr, table.lines td {
                 page-break-inside: avoid;
@@ -144,25 +166,6 @@
     </style>
 </head>
 <body>
-@php
-    $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
-    $isKitchen = ($variant ?? 'customer') === 'kitchen';
-    $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
-
-    // Karakter aneh sering bikin driver thermal corrupt di struk panjang.
-    $clean = static function (?string $text): string {
-        $text = (string) ($text ?? '');
-        $map = [
-            '‘' => "'", '’' => "'", '“' => '"', '”' => '"',
-            '–' => '-', '—' => '-', '×' => 'x', '…' => '...',
-            '·' => '-', '•' => '-', '●' => '-', ' ' => ' ',
-        ];
-        $text = strtr($text, $map);
-        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
-
-        return trim($text);
-    };
-@endphp
 
     <div class="sheet">
         <div class="center">

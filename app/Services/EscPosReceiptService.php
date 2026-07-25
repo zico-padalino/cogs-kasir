@@ -17,8 +17,9 @@ class EscPosReceiptService
     public function widthChars(?string $paper = null): int
     {
         $paper = $paper ?: (string) config('pos.thermal.paper', '58mm');
+        $width = \App\Support\ShopSettings::receiptPaperWidth($paper);
 
-        return $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
+        return $width === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
     }
 
     /**
@@ -37,8 +38,11 @@ class EscPosReceiptService
      */
     public function payload(PosOrder $order, ?string $paper = null): array
     {
-        $paper = $paper === '80mm' ? '80mm' : '58mm';
-        $width = $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
+        $paper = \App\Support\ShopSettings::normalizeReceiptPaper(
+            $paper ?: (string) config('pos.thermal.paper', '58mm')
+        );
+        $widthKey = \App\Support\ShopSettings::receiptPaperWidth($paper);
+        $width = $widthKey === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
         $binary = $this->build($order, $width);
         $base64 = base64_encode($binary);
 

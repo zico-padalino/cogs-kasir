@@ -100,6 +100,11 @@
                         <span class="app-sidebar-link-icon">💵</span>
                         Kas Tunai
                     </a>
+                    <a href="{{ route('kasir.settings.edit') }}"
+                       class="app-sidebar-link {{ request()->routeIs('kasir.settings*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">⚙️</span>
+                        Pengaturan Struk
+                    </a>
                     @if (auth()->user()->accessibleModules() !== [] && count(auth()->user()->accessibleModules()) > 1)
                         <a href="{{ route('hub') }}" class="app-sidebar-link">
                             <span class="app-sidebar-link-icon">↔</span>

@@ -13,12 +13,13 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v6';
+    public const CACHE_KEY = 'shop_settings.v7';
 
     public const KEYS = [
         'shop_name',
         'shop_title',
         'logo_path',
+        'receipt_paper',
         'attendance_enabled',
         'attendance_clock_in',
         'attendance_clock_out',
@@ -30,12 +31,19 @@ class ShopSettings
         'attendance_required_employee_ids',
     ];
 
+    /** @return list<string> */
+    public static function receiptPaperOptions(): array
+    {
+        return ['58mm', '80mm', '58x210mm'];
+    }
+
     public static function defaults(): array
     {
         return [
             'shop_name' => (string) config('pos.shop_name', 'Coffee & Kitchen'),
             'shop_title' => (string) config('pos.shop_title', 'Menu & pesanan dari HP'),
             'logo_path' => null,
+            'receipt_paper' => (string) config('pos.thermal.paper', '58mm'),
             'attendance_enabled' => '1',
             'attendance_clock_in' => '08:00',
             'attendance_clock_out' => '17:00',
@@ -109,12 +117,38 @@ class ShopSettings
     public static function applyToConfig(): void
     {
         $settings = self::all();
+        $paper = self::normalizeReceiptPaper((string) ($settings['receipt_paper'] ?? '58mm'));
 
         config([
             'pos.shop_name' => $settings['shop_name'],
             'pos.shop_title' => $settings['shop_title'],
             'pos.logo_path' => $settings['logo_path'],
+            'pos.thermal.paper' => $paper,
         ]);
+    }
+
+    public static function normalizeReceiptPaper(?string $paper): string
+    {
+        $paper = strtolower(trim((string) $paper));
+
+        return in_array($paper, self::receiptPaperOptions(), true) ? $paper : '58mm';
+    }
+
+    /** Lebar ESC/POS: 58x210mm = 58mm (32 kolom), 80mm = 48 kolom. */
+    public static function receiptPaperWidth(?string $paper = null): string
+    {
+        $paper = self::normalizeReceiptPaper($paper ?? (string) self::get('receipt_paper', '58mm'));
+
+        return $paper === '80mm' ? '80mm' : '58mm';
+    }
+
+    public static function receiptPaperLabel(?string $paper = null): string
+    {
+        return match (self::normalizeReceiptPaper($paper ?? (string) self::get('receipt_paper', '58mm'))) {
+            '80mm' => '80mm',
+            '58x210mm' => '58 × 210mm',
+            default => '58mm',
+        };
     }
 
     public static function logoUrl(?string $path = null): ?string
