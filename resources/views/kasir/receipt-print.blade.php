@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} — {{ $order->order_number }}</title>
     <style>
+        /* Layout mengikuti ReceiptPdfService / SimplePdf — jangan diubah. */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -13,12 +14,13 @@
             padding: 16px;
         }
         .sheet {
-            width: min(100%, 80mm);
+            width: 58mm;
+            max-width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 10px 8px 16px;
-            font-size: 13px;
-            line-height: 1.4;
+            padding: 8px 6px 16px;
+            font-size: 12px;
+            line-height: 1.35;
         }
         .center { text-align: center; }
         .shop {
@@ -77,7 +79,7 @@
             font-weight: 700;
         }
         .hint {
-            max-width: 320px;
+            max-width: 280px;
             margin: 12px auto 0;
             text-align: center;
             font-size: 12px;
@@ -94,21 +96,17 @@
             cursor: pointer;
         }
         @media print {
-            /* Biarkan destination & paper size mengikuti printer di laptop/HP. */
-            @page {
-                margin: 8mm;
-            }
+            /* Destination & paper size: default device (laptop/HP). */
+            @page { margin: 4mm; }
             html, body {
                 background: #fff !important;
                 padding: 0 !important;
                 margin: 0 !important;
-                width: auto;
             }
             .sheet {
-                width: 100%;
-                max-width: none;
-                margin: 0;
-                padding: 0;
+                width: 58mm;
+                margin: 0 auto;
+                padding: 0 1mm 4mm;
                 box-shadow: none;
             }
             .no-print { display: none !important; }
@@ -211,14 +209,13 @@
     </div>
 
     <div class="hint no-print">
-        Pilih printer & ukuran kertas yang tersedia di perangkat ini, lalu cetak.
+        Pilih printer & kertas di perangkat ini, lalu cetak.
         <br>
         <button type="button" onclick="window.print()">Cetak lagi</button>
     </div>
 
     <script>
         window.addEventListener('load', function () {
-            // Sedikit delay agar layout sempat render sebelum dialog print.
             setTimeout(function () {
                 window.print();
             }, 250);
