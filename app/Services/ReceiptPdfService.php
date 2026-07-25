@@ -118,8 +118,9 @@ class ReceiptPdfService
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $pdf = new SimplePdf;
 
+        // Header sama gaya struk pembayaran.
         $pdf->title($shopName);
-        $pdf->line('Struk Dapur', 28, true, 'C');
+        $pdf->line('Struk Dapur', 28, false, 'C');
         $pdf->spacer(12);
         $pdf->line($order->order_number, 30, true, 'C');
         $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'), 26, false, 'C');
@@ -152,8 +153,8 @@ class ReceiptPdfService
             $pdf->line('Kasir: '.$order->cashierDisplayName(), 26, false, 'L');
         }
 
-        $pdf->spacer(12);
-        $pdf->line('Ceklis item yang sudah selesai', 22, false, 'C');
+        $pdf->spacer(16);
+        $pdf->line('Ceklis item yang sudah selesai', 26, false, 'C');
 
         return $pdf->render();
     }
