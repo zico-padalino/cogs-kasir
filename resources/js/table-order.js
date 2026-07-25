@@ -354,8 +354,32 @@ function initOrderKasirConfirmation() {
     }
 
     const initialStatus = section.dataset.orderInitialStatus || '';
+    // Shared hosting: jangan poll 5 detik — mudah kena 503 (entry process penuh).
+    const baseIntervalSec = Math.max(
+        12,
+        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 15),
+    );
+    let intervalSec = baseIntervalSec;
+    let inFlight = false;
+    let timer = null;
+    let stopped = false;
+
+    const schedule = () => {
+        if (stopped) {
+            return;
+        }
+        if (timer) {
+            window.clearTimeout(timer);
+        }
+        timer = window.setTimeout(tick, intervalSec * 1000);
+    };
 
     const poll = async () => {
+        if (inFlight || stopped) {
+            return;
+        }
+        inFlight = true;
+
         try {
             const response = await fetch(statusUrl, {
                 headers: {
@@ -364,20 +388,41 @@ function initOrderKasirConfirmation() {
                 },
             });
 
-            if (! response.ok) {
+            if (response.status === 503 || response.status === 429 || !response.ok) {
+                intervalSec = Math.min(60, Math.round(intervalSec * 1.5));
                 return;
             }
 
+            intervalSec = baseIntervalSec;
             const data = await response.json();
 
             if (data.is_served || data.is_paid || (initialStatus && data.status !== initialStatus)) {
+                stopped = true;
                 window.location.reload();
             }
         } catch {
-            // ignore transient network errors
+            intervalSec = Math.min(60, Math.round(intervalSec * 1.5));
+        } finally {
+            inFlight = false;
         }
     };
 
-    window.setInterval(poll, 5000);
-    poll();
+    const tick = async () => {
+        if (document.visibilityState === 'hidden') {
+            schedule();
+            return;
+        }
+
+        await poll();
+        schedule();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && !stopped) {
+            intervalSec = baseIntervalSec;
+            tick();
+        }
+    });
+
+    tick();
 }

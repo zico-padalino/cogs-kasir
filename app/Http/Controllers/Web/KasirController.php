@@ -16,6 +16,7 @@ use App\Services\ReceiptPdfService;
 use App\Support\Format;
 use App\Support\KasirPin;
 use App\Support\PosMenu;
+use App\Support\SessionPressure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -64,6 +65,9 @@ class KasirController extends Controller
 
     public function pendingOrdersPoll(PosOrderService $posService)
     {
+        $pinStatus = KasirPin::statusPayload();
+        SessionPressure::releaseEarly();
+
         $pendingOrders = $posService->waitingOrders();
 
         $format = Format::class;
@@ -83,7 +87,7 @@ class KasirController extends Controller
             'html' => $pendingOrders->isNotEmpty()
                 ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
                 : '',
-        ], KasirPin::statusPayload()));
+        ], $pinStatus));
     }
 
     public function dapur(PosOrderService $posService)
@@ -94,13 +98,16 @@ class KasirController extends Controller
             'kitchenOrders' => $kitchenOrders,
             'format' => Format::class,
             'shopName' => config('pos.shop_name'),
-            'pollInterval' => (int) config('pos.notifications.poll_interval_seconds', 5),
+            'pollInterval' => (int) config('pos.notifications.poll_interval_seconds', 15),
             'kitchenFingerprint' => $this->kitchenFingerprint($kitchenOrders),
         ]);
     }
 
     public function dapurPoll(PosOrderService $posService)
     {
+        $pinStatus = KasirPin::statusPayload();
+        SessionPressure::releaseEarly();
+
         $kitchenOrders = $posService->kitchenOrders();
         $format = Format::class;
 
@@ -109,7 +116,7 @@ class KasirController extends Controller
             'order_ids' => $kitchenOrders->pluck('id')->values(),
             'fingerprint' => $this->kitchenFingerprint($kitchenOrders),
             'html' => view('kasir.partials.dapur-tickets', compact('kitchenOrders', 'format'))->render(),
-        ], KasirPin::statusPayload()));
+        ], $pinStatus));
     }
 
     /** @param \Illuminate\Support\Collection<int, PosOrder> $orders */

@@ -247,7 +247,9 @@ async function pollPendingOrders(pollUrl, shell) {
     }
 
     if (! response.ok) {
-        return;
+        const error = new Error(`poll_failed_${response.status}`);
+        error.status = response.status;
+        throw error;
     }
 
     const data = await response.json();
@@ -533,8 +535,10 @@ function initKasirNotifications() {
     }
 
     const pollUrl = shell.dataset.kasirPollUrl;
-    const intervalSeconds = Math.max(5, parseInt(shell.dataset.kasirPollInterval || '5', 10));
+    let intervalSeconds = Math.max(12, parseInt(shell.dataset.kasirPollInterval || '15', 10));
     const pinPollOnly = isPinPollOnly(shell);
+    let pollTimer = null;
+    let pollInFlight = false;
 
     if (! pinPollOnly) {
         openCartTabFromQuery();
@@ -546,30 +550,62 @@ function initKasirNotifications() {
         if (pinStatusTimer) {
             window.clearInterval(pinStatusTimer);
         }
-        pinStatusTimer = window.setInterval(() => pollPinStatus(shell), 20_000);
+        pinStatusTimer = window.setInterval(() => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+            pollPinStatus(shell);
+        }, 30_000);
     }
 
     if (! pollUrl) {
         return;
     }
 
+    const schedulePoll = () => {
+        if (pollTimer) {
+            window.clearTimeout(pollTimer);
+        }
+        pollTimer = window.setTimeout(runPoll, intervalSeconds * 1000);
+    };
+
     const runPoll = () => {
-        if (isHandlingNewOrder) {
+        if (isHandlingNewOrder || pollInFlight) {
+            schedulePoll();
             return;
         }
 
-        pollPendingOrders(pollUrl, shell).catch(() => {
-            //
-        });
+        if (document.visibilityState === 'hidden') {
+            schedulePoll();
+            return;
+        }
+
+        pollInFlight = true;
+        pollPendingOrders(pollUrl, shell)
+            .then(() => {
+                intervalSeconds = Math.max(12, parseInt(shell.dataset.kasirPollInterval || '15', 10));
+            })
+            .catch((err) => {
+                const status = err?.status;
+                if (status === 503 || status === 429 || (status >= 500)) {
+                    intervalSeconds = Math.min(60, Math.round(intervalSeconds * 1.5));
+                }
+            })
+            .finally(() => {
+                pollInFlight = false;
+                schedulePoll();
+            });
     };
 
     runPoll();
-    window.setInterval(runPoll, intervalSeconds * 1000);
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && ! isHandlingNewOrder) {
+            intervalSeconds = Math.max(12, parseInt(shell.dataset.kasirPollInterval || '15', 10));
             runPoll();
-            pollPinStatus(shell);
+            if (! pinPollOnly) {
+                pollPinStatus(shell);
+            }
         }
     });
 }

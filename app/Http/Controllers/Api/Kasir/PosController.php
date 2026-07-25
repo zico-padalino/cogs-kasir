@@ -17,6 +17,7 @@ use App\Services\EscPosReceiptService;
 use App\Services\ReceiptPdfService;
 use App\Support\KasirActiveOrder;
 use App\Support\KasirPin;
+use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -65,7 +66,7 @@ class PosController extends Controller
                 ])->values(),
                 'pending_orders' => PosOrderResource::collection($pendingOrders),
                 'shop_name' => config('pos.shop_name'),
-                'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 5),
+                'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 15),
                 'auto_load_new_order' => (bool) config('pos.notifications.auto_load_new_order', true),
                 'pin' => KasirPin::statusPayload(),
             ],
@@ -74,6 +75,9 @@ class PosController extends Controller
 
     public function pendingPoll(PosOrderService $posService): JsonResponse
     {
+        $pinStatus = KasirPin::statusPayload();
+        SessionPressure::releaseEarly();
+
         $pendingOrders = $posService->waitingOrders();
 
         return response()->json([
@@ -90,12 +94,15 @@ class PosController extends Controller
                 'latest_order_id' => $pendingOrders->first()?->id,
                 'orders' => PosOrderResource::collection($pendingOrders),
                 'active_order_id' => KasirActiveOrder::getId(),
-            ], KasirPin::statusPayload()),
+            ], $pinStatus),
         ]);
     }
 
     public function dapurPoll(PosOrderService $posService): JsonResponse
     {
+        $pinStatus = KasirPin::statusPayload();
+        SessionPressure::releaseEarly();
+
         $kitchenOrders = $posService->kitchenOrders();
 
         return response()->json([
@@ -112,7 +119,7 @@ class PosController extends Controller
                         return $order->id.':'.$order->status->value.':'.$done.':'.$order->items->count();
                     })
                     ->implode('|'),
-            ], KasirPin::statusPayload()),
+            ], $pinStatus),
         ]);
     }
 

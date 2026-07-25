@@ -3,6 +3,8 @@
  */
 
 let lastLocalEditAt = 0;
+let lastPinTouchAt = 0;
+const PIN_TOUCH_THROTTLE_MS = 60_000;
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -86,6 +88,12 @@ async function touchPin(root) {
     if (!url) {
         return;
     }
+
+    const now = Date.now();
+    if (now - lastPinTouchAt < PIN_TOUCH_THROTTLE_MS) {
+        return;
+    }
+    lastPinTouchAt = now;
 
     try {
         await fetch(url, {

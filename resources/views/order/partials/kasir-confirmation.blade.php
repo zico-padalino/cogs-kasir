@@ -6,6 +6,7 @@
     data-order-waiting-kasir
     data-order-initial-status="submitted"
     data-order-status-url="{{ route('order.menu.status') }}"
+    data-order-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 15) }}"
 >
     <div class="order-kasir-confirmation-hero">
         <div class="order-kasir-confirmation-icon" aria-hidden="true">🏪</div>

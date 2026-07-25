@@ -72,7 +72,7 @@ export default function KasirPosScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [pending, setPending] = useState<PosOrder[]>([]);
   const [shopName, setShopName] = useState('Kasir');
-  const [pollMs, setPollMs] = useState(5000);
+  const [pollMs, setPollMs] = useState(15000);
 
   const [addProduct, setAddProduct] = useState<MenuProduct | null>(null);
   const [qty, setQty] = useState(1);
@@ -130,7 +130,7 @@ export default function KasirPosScreen() {
       applyOrder(data.order);
       setPending(data.pending_orders || []);
       setShopName(data.shop_name);
-      setPollMs((data.poll_interval_seconds || 5) * 1000);
+      setPollMs(Math.max(10, data.poll_interval_seconds || 15) * 1000);
       setPin(data.pin);
       // Seed agar pesanan lama tidak dibunyikan saat buka POS.
       seedPendingIds((data.pending_orders || []).map((o) => o.id));
