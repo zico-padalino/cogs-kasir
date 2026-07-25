@@ -18,7 +18,7 @@ final class SimplePdf
 
     public function title(string $text): self
     {
-        $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => 36.0, 'bold' => true, 'align' => 'C'];
+        $this->ops[] = ['type' => 'text', 'text' => $text, 'size' => 40.0, 'bold' => true, 'align' => 'C'];
 
         return $this;
     }
