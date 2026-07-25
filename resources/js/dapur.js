@@ -209,9 +209,11 @@ async function pollBoard(root) {
         }
 
         if (!res.ok) {
+            root.dataset.dapurLastPollOk = '0';
             return;
         }
 
+        root.dataset.dapurLastPollOk = '1';
         const payload = await res.json();
 
         if (payload.unlocked === false) {
@@ -241,7 +243,7 @@ async function pollBoard(root) {
             countEl.textContent = `${n} pesanan`;
         }
     } catch {
-        // keep previous board on network blip
+        root.dataset.dapurLastPollOk = '0';
     } finally {
         root.dataset.dapurPolling = '0';
     }
@@ -253,7 +255,8 @@ function initDapurBoard() {
         return;
     }
 
-    const intervalSec = Math.max(3, Number(root.getAttribute('data-dapur-poll-interval') || 5));
+    let intervalSec = Math.max(12, Number(root.getAttribute('data-dapur-poll-interval') || 15));
+    let timer = null;
 
     updateClocks(document);
     window.setInterval(() => updateClocks(document), 1000);
@@ -267,13 +270,39 @@ function initDapurBoard() {
         toggleItem(button);
     });
 
-    const tick = () => {
-        pollBoard(root);
-        touchPin(root);
+    const schedule = () => {
+        if (timer) {
+            window.clearTimeout(timer);
+        }
+        timer = window.setTimeout(tick, intervalSec * 1000);
     };
 
+    const tick = async () => {
+        if (document.visibilityState === 'hidden') {
+            schedule();
+            return;
+        }
+
+        await pollBoard(root);
+        await touchPin(root);
+
+        if (root.dataset.dapurLastPollOk === '0') {
+            intervalSec = Math.min(60, Math.round(intervalSec * 1.5));
+        } else {
+            intervalSec = Math.max(12, Number(root.getAttribute('data-dapur-poll-interval') || 15));
+        }
+
+        schedule();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            intervalSec = Math.max(12, Number(root.getAttribute('data-dapur-poll-interval') || 15));
+            tick();
+        }
+    });
+
     tick();
-    window.setInterval(tick, intervalSec * 1000);
 }
 
 document.addEventListener('DOMContentLoaded', initDapurBoard);

@@ -174,7 +174,7 @@ class TableOrderController extends Controller
             ->with('success', 'Pesanan terkirim. Silakan ke kasir untuk konfirmasi dan pembayaran.');
     }
 
-    public function status(PosOrderService $posService): JsonResponse
+    public function status(): JsonResponse
     {
         // Poll ringan: baca session sekali, lepas lock, jangan create order baru.
         $orderId = session(self::SESSION_KEY);
