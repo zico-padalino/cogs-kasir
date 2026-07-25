@@ -80,6 +80,23 @@ class PosController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
+        // Hemat proses hosting: APK kasir tetap hit endpoint, tapi tanpa query berat.
+        if (! config('pos.notifications.kasir_poll_enabled', true)) {
+            return response()->json([
+                'data' => array_merge([
+                    'count' => 0,
+                    'total' => 0,
+                    'order_ids' => [],
+                    'notify_order_ids' => [],
+                    'has_pending' => false,
+                    'latest_order_id' => null,
+                    'orders' => [],
+                    'active_order_id' => KasirActiveOrder::getId(),
+                    'poll_disabled' => true,
+                ], $pinStatus),
+            ])->header('Cache-Control', 'private, max-age=5');
+        }
+
         $pendingOrders = $posService->waitingOrders();
 
         return response()->json([
@@ -104,6 +121,20 @@ class PosController extends Controller
     {
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
+
+        if (! config('pos.notifications.dapur_poll_enabled', true)) {
+            return response()->json([
+                'data' => array_merge([
+                    'count' => 0,
+                    'order_ids' => [],
+                    'notify_order_ids' => [],
+                    'latest_order_id' => null,
+                    'orders' => [],
+                    'fingerprint' => '',
+                    'poll_disabled' => true,
+                ], $pinStatus),
+            ])->header('Cache-Control', 'private, max-age=5');
+        }
 
         $board = KitchenBoardCache::remember('api', function () use ($posService) {
             $kitchenOrders = $posService->kitchenOrders();

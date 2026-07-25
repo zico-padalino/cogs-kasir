@@ -22,6 +22,9 @@ class KasirPushNotifier
         $body = "Atas nama {$customer}".($orderType ? " · {$orderType}" : '');
         $speakText = "Pesanan baru masuk, atas nama {$customer}.";
 
+        // Poll API kasir APK mati → jangan kirim FCM/Expo, tapi push web tetap hidup.
+        $toMobile = (bool) config('pos.notifications.kasir_poll_enabled', true);
+
         $this->dispatch(
             title: $title,
             body: $body,
@@ -33,12 +36,17 @@ class KasirPushNotifier
                 'speak_text' => $speakText,
             ],
             wakeWeb: true,
+            toMobile: $toMobile,
         );
     }
 
     /** Notifikasi layar dapur — suara AI membacakan nama menu (makanan/snack saja). */
     public function notifyKitchenOrder(PosOrder $order): void
     {
+        if (! config('pos.notifications.dapur_poll_enabled', true)) {
+            return;
+        }
+
         $order->loadMissing(['items.product', 'table']);
 
         $categories = config('pos.kitchen_categories', ['makanan', 'snack']);
@@ -93,6 +101,7 @@ class KasirPushNotifier
                 'speak_text' => $speakText,
             ],
             wakeWeb: false,
+            toMobile: true,
         );
     }
 
@@ -127,44 +136,52 @@ class KasirPushNotifier
                 'speak_text' => $speakText,
             ],
             wakeWeb: true,
+            toMobile: (bool) config('pos.notifications.kasir_poll_enabled', true),
         );
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    private function dispatch(string $title, string $body, array $data, bool $wakeWeb = false): void
-    {
+    private function dispatch(
+        string $title,
+        string $body,
+        array $data,
+        bool $wakeWeb = false,
+        bool $toMobile = true,
+    ): void {
         if (! config('pos.push.enabled', true)) {
             return;
         }
 
         try {
-            $fcmTokens = DevicePushToken::query()
-                ->where('platform', DevicePushToken::PLATFORM_FCM)
-                ->pluck('token')
-                ->all();
+            if ($toMobile) {
+                $fcmTokens = DevicePushToken::query()
+                    ->where('platform', DevicePushToken::PLATFORM_FCM)
+                    ->pluck('token')
+                    ->all();
 
-            if ($fcmTokens !== []) {
-                $fcmSend = $this->fcmPushService->send($fcmTokens, $title, $body, $data);
-                if (! ($fcmSend['ok'] ?? false)) {
-                    Log::warning('Kasir FCM push tidak sukses', $fcmSend);
+                if ($fcmTokens !== []) {
+                    $fcmSend = $this->fcmPushService->send($fcmTokens, $title, $body, $data);
+                    if (! ($fcmSend['ok'] ?? false)) {
+                        Log::warning('Kasir FCM push tidak sukses', $fcmSend);
+                    }
                 }
-            }
 
-            $expoTokens = DevicePushToken::query()
-                ->where('platform', DevicePushToken::PLATFORM_EXPO)
-                ->pluck('token')
-                ->all();
+                $expoTokens = DevicePushToken::query()
+                    ->where('platform', DevicePushToken::PLATFORM_EXPO)
+                    ->pluck('token')
+                    ->all();
 
-            if ($expoTokens === [] && $fcmTokens === []) {
-                Log::warning('Kasir push: tidak ada token FCM/Expo. Buka APK kasir sekali setelah login.');
-            }
+                if ($expoTokens === [] && $fcmTokens === []) {
+                    Log::warning('Kasir push: tidak ada token FCM/Expo. Buka APK kasir sekali setelah login.');
+                }
 
-            if ($expoTokens !== []) {
-                $send = $this->expoPushService->send($expoTokens, $title, $body, $data);
-                if (! ($send['ok'] ?? false)) {
-                    Log::warning('Kasir Expo push tidak sukses', $send);
+                if ($expoTokens !== []) {
+                    $send = $this->expoPushService->send($expoTokens, $title, $body, $data);
+                    if (! ($send['ok'] ?? false)) {
+                        Log::warning('Kasir Expo push tidak sukses', $send);
+                    }
                 }
             }
 
