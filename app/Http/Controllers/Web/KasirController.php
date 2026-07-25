@@ -69,26 +69,31 @@ class KasirController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
-        $pendingOrders = $posService->waitingOrders();
+        $board = KitchenBoardCache::remember('web-pending', function () use ($posService) {
+            $pendingOrders = $posService->waitingOrders();
+            $format = Format::class;
+            $currentOrder = $this->activeKasirOrder();
 
-        $format = Format::class;
-        $currentOrder = $this->activeKasirOrder();
+            return [
+                'count' => $pendingOrders->count(),
+                'total' => (float) $pendingOrders->sum('total'),
+                'order_ids' => $pendingOrders->pluck('id')->values()->all(),
+                'notify_order_ids' => $pendingOrders
+                    ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
+                        && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
+                    ->pluck('id')
+                    ->values()
+                    ->all(),
+                'has_pending' => $pendingOrders->isNotEmpty(),
+                'latest_order_id' => $pendingOrders->first()?->id,
+                'html' => $pendingOrders->isNotEmpty()
+                    ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
+                    : '',
+            ];
+        });
 
-        return response()->json(array_merge([
-            'count' => $pendingOrders->count(),
-            'total' => (float) $pendingOrders->sum('total'),
-            'order_ids' => $pendingOrders->pluck('id')->values(),
-            'notify_order_ids' => $pendingOrders
-                ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
-                    && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
-                ->pluck('id')
-                ->values(),
-            'has_pending' => $pendingOrders->isNotEmpty(),
-            'latest_order_id' => $pendingOrders->first()?->id,
-            'html' => $pendingOrders->isNotEmpty()
-                ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
-                : '',
-        ], $pinStatus));
+        return response()->json(array_merge($board, $pinStatus))
+            ->header('Cache-Control', 'private, max-age=5');
     }
 
     public function dapur(PosOrderService $posService)

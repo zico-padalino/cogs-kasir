@@ -53,9 +53,19 @@ class KasirPin
             return null;
         }
 
-        $payload = Cache::get($key);
+        $payload = self::store()->get($key);
 
         return is_array($payload) ? $payload : null;
+    }
+
+    /** API pakai file cache — hindari CACHE_STORE=database yang menambah proses MySQL. */
+    private static function store()
+    {
+        try {
+            return Cache::store('file');
+        } catch (\Throwable) {
+            return Cache::store();
+        }
     }
 
     public static function operatorEmployee(): ?Employee
@@ -222,7 +232,7 @@ class KasirPin
             $key = self::cacheKey();
 
             if ($key) {
-                Cache::put($key, [
+                self::store()->put($key, [
                     'employee_id' => (int) $operator->id,
                     'verified_at' => $now,
                     'expires_at' => $expiresAt,
@@ -260,7 +270,7 @@ class KasirPin
                 return false;
             }
 
-            Cache::put($key, [
+            self::store()->put($key, [
                 'employee_id' => (int) $payload['employee_id'],
                 'verified_at' => (int) ($payload['verified_at'] ?? $now),
                 'expires_at' => $expiresAt,
@@ -285,7 +295,7 @@ class KasirPin
             $key = self::cacheKey();
 
             if ($key) {
-                Cache::forget($key);
+                self::store()->forget($key);
             }
 
             return;

@@ -24,7 +24,7 @@ class KasirActiveOrder
         }
 
         if (self::usesCache()) {
-            $id = Cache::get(self::cacheKey($user));
+            $id = self::store()->get(self::cacheKey($user));
 
             return $id ? (int) $id : null;
         }
@@ -40,7 +40,7 @@ class KasirActiveOrder
         $orderId = $order instanceof PosOrder ? (int) $order->id : (int) $order;
 
         if (self::usesCache() && $user) {
-            Cache::put(self::cacheKey($user), $orderId, now()->addDays(7));
+            self::store()->put(self::cacheKey($user), $orderId, now()->addDays(7));
 
             return;
         }
@@ -53,7 +53,7 @@ class KasirActiveOrder
         $user ??= auth()->user();
 
         if (self::usesCache() && $user) {
-            Cache::forget(self::cacheKey($user));
+            self::store()->forget(self::cacheKey($user));
 
             return;
         }
@@ -80,5 +80,14 @@ class KasirActiveOrder
         $request = request();
 
         return $request && ($request->is('api/*') || $request->bearerToken());
+    }
+
+    private static function store()
+    {
+        try {
+            return Cache::store('file');
+        } catch (\Throwable) {
+            return Cache::store();
+        }
     }
 }

@@ -291,6 +291,7 @@ class PosOrderService
         $order->update(['status' => PosOrderStatus::Submitted]);
 
         $fresh = $order->fresh(['items.product', 'table']);
+        KitchenBoardCache::forget();
         $this->kasirPushNotifier->notifyNewOnlineOrder($fresh);
 
         return $fresh;
