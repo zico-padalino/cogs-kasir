@@ -101,14 +101,14 @@
                 Sekali klik Cetak Thermal → langsung buka Thermer & cetak. Ukuran 2× lebih besar.
             </p>
             <a
-                href="{{ $pdfRoute }}?print=1"
+                href="{{ route('kasir.receipt.print', $order) }}"
                 target="_blank"
                 rel="noopener"
                 class="btn-secondary w-full"
                 data-receipt-print
             >Cetak Pesanan</a>
             <a
-                href="{{ $kitchenPdfRoute }}?print=1"
+                href="{{ route('kasir.receipt.kitchen-print', $order) }}"
                 target="_blank"
                 rel="noopener"
                 class="btn-secondary w-full"

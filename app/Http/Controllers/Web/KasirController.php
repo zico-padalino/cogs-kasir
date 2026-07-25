@@ -743,6 +743,24 @@ class KasirController extends Controller
         ]);
     }
 
+    public function receiptPrint(PosOrder $order)
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $order->load(['items.product', 'table', 'cashier']);
+
+        return response()
+            ->view('kasir.receipt-print', [
+                'order' => $order,
+                'format' => Format::class,
+                'variant' => 'customer',
+                'title' => 'Cetak Pesanan',
+            ])
+            ->header('Cache-Control', 'private, max-age=0, must-revalidate');
+    }
+
     public function receiptKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
         if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
@@ -757,6 +775,24 @@ class KasirController extends Controller
             'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
             'Cache-Control' => 'private, max-age=0, must-revalidate',
         ]);
+    }
+
+    public function receiptKitchenPrint(PosOrder $order)
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $order->load(['items.product', 'table', 'cashier']);
+
+        return response()
+            ->view('kasir.receipt-print', [
+                'order' => $order,
+                'format' => Format::class,
+                'variant' => 'kitchen',
+                'title' => 'Cetak Dapur',
+            ])
+            ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }
 
     /**
