@@ -1254,6 +1254,16 @@ export default function KasirPosScreen() {
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled" bounces={false}>
             <View style={[styles.modalSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
               <Text style={styles.modalTitle}>Pembayaran</Text>
+              {(order?.discount_amount ?? 0) > 0 ? (
+                <View style={{ gap: 4, marginBottom: spacing.sm }}>
+                  <Text style={[styles.muted, { textAlign: 'center' }]}>
+                    Subtotal {formatRupiah(order?.subtotal ?? 0)}
+                  </Text>
+                  <Text style={[styles.muted, { textAlign: 'center', color: colors.red600 }]}>
+                    Diskon - {formatRupiah(order?.discount_amount ?? 0)}
+                  </Text>
+                </View>
+              ) : null}
               <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
               <View style={styles.typeRow}>
                 {(
@@ -1313,7 +1323,9 @@ export default function KasirPosScreen() {
                 </>
               )}
               <Pressable onPress={submitPay} disabled={paying} style={[styles.payBtn, { marginTop: spacing.lg }]}>
-                <Text style={styles.payBtnText}>{paying ? 'Memproses…' : 'Konfirmasi Bayar'}</Text>
+                <Text style={styles.payBtnText}>
+                  {paying ? 'Memproses…' : `Bayar ${formatRupiah(total)}`}
+                </Text>
               </Pressable>
               <Pressable onPress={() => setPayOpen(false)} style={{ alignItems: 'center', padding: spacing.md }}>
                 <Text style={styles.muted}>Batal</Text>

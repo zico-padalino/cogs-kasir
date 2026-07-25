@@ -7,11 +7,14 @@
                     <p class="pos-pay-modal-eyebrow">Pembayaran</p>
                     <h2 id="kasir-pay-modal-title" class="pos-pay-modal-title">Total Bayar</h2>
                     <p class="pos-pay-modal-total" data-kasir-pay-modal-total data-pos-order-total="{{ $order->total }}">{{ $format::rupiah($order->total) }}</p>
-                    <p class="pos-pay-modal-meta">
+                    <p class="pos-pay-modal-meta" data-kasir-pay-modal-meta>
                         {{ $order->items->count() }} item · {{ $order->order_number }}
-                        @if ($order->hasDiscount())
-                            · diskon {{ $format::rupiah($order->discount_amount) }}
-                        @endif
+                        <span
+                            class="pos-pay-modal-discount {{ $order->hasDiscount() ? '' : 'hidden' }}"
+                            data-kasir-pay-modal-discount
+                        >
+                            · diskon <span data-kasir-pay-modal-discount-amount>{{ $format::rupiah($order->discount_amount) }}</span>
+                        </span>
                     </p>
                 </div>
                 <button type="button" class="pos-add-modal-close" data-kasir-close-pay aria-label="Tutup">×</button>
@@ -112,7 +115,7 @@
                     class="pos-pay-submit"
                     data-pos-pay-submit
                 >
-                    Konfirmasi bayar {{ $format::rupiah($order->total) }}
+                    Bayar <span data-pos-pay-submit-total>{{ $format::rupiah($order->total) }}</span>
                 </button>
             </form>
         </div>

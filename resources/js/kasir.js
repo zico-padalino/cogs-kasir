@@ -1174,6 +1174,23 @@ function updateOrderTotalsDisplay(root, data) {
         }
     });
 
+    root.querySelectorAll('[data-pos-pay-submit-total]').forEach((el) => {
+        if (data.total_label) {
+            el.textContent = data.total_label;
+        }
+    });
+
+    const payDiscount = root.querySelector('[data-kasir-pay-modal-discount]');
+    const payDiscountAmount = root.querySelector('[data-kasir-pay-modal-discount-amount]');
+    if (payDiscount) {
+        const hasDiscount = Number(data.discount_amount || 0) > 0;
+        payDiscount.classList.toggle('hidden', ! hasDiscount);
+        if (hasDiscount && data.discount_label && payDiscountAmount) {
+            // discount_label is like "- Rp 9.300" — show amount part without leading dash for modal meta
+            payDiscountAmount.textContent = String(data.discount_label).replace(/^\-\s*/, '');
+        }
+    }
+
     root.querySelector('[data-kasir-pay-button-total]')?.replaceChildren(
         document.createTextNode(data.total_label || ''),
     );
