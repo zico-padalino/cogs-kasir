@@ -878,18 +878,13 @@ class PosOrderService
     /** @return Collection<int, Product> */
     public function sellableProducts(): Collection
     {
-        /** @var Collection<int, Product> $products */
-        $products = \Illuminate\Support\Facades\Cache::remember(
-            'pos.sellable_products.v1',
-            now()->addSeconds(45),
-            fn () => Product::sellable()
-                ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
-                ->orderBy('menu_category')
-                ->orderBy('name')
-                ->get(),
-        );
-
-        return $products;
+        // Jangan Cache::remember Collection Eloquent di shared hosting:
+        // CACHE_STORE=database sering tanpa tabel `cache` → HTTP 500 di /kasir & /order.
+        return Product::sellable()
+            ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
+            ->orderBy('menu_category')
+            ->orderBy('name')
+            ->get();
     }
 
     /** @return list<string> */
