@@ -63,10 +63,7 @@ class ReceiptPdfService
             $qty = Format::number($item->quantity, 0);
             $name = $item->product?->name ?? 'Item';
             $pdf->twoColumns($name.' x '.$qty, Format::rupiah($item->line_total), 28);
-
-            if ($item->notes) {
-                $pdf->line('  Catatan: '.$item->notes, 24, false, 'L');
-            }
+            $this->appendItemNotes($pdf, $item->notes);
         }
 
         $pdf->separator();
@@ -146,10 +143,7 @@ class ReceiptPdfService
             $qty = Format::number($item->quantity, 0);
             $name = $item->product?->name ?? 'Item';
             $pdf->checkItem($name.' x '.$qty, 28);
-
-            if ($item->notes) {
-                $pdf->line('  Catatan: '.$item->notes, 24, false, 'L');
-            }
+            $this->appendItemNotes($pdf, $item->notes);
         }
 
         $pdf->separator();
@@ -176,5 +170,19 @@ class ReceiptPdfService
             'PDF struk:',
             $pdfUrl,
         ]);
+    }
+
+    /** Pecah catatan pelanggan & add-on agar karakter · tidak jadi "?" di PDF. */
+    private function appendItemNotes(SimplePdf $pdf, ?string $notes): void
+    {
+        $parts = \App\Support\PosItemNotes::split($notes);
+
+        if ($parts['customer']) {
+            $pdf->line('  Catatan: '.$parts['customer'], 24, false, 'L');
+        }
+
+        foreach ($parts['addon_labels'] as $label) {
+            $pdf->line('  '.$label, 24, false, 'L');
+        }
     }
 }

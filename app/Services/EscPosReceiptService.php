@@ -114,8 +114,22 @@ class EscPosReceiptService
             $name = $this->sanitize($item->product?->name ?? 'Item');
             $lines[] = $this->columnsLine($name.' x '.$qty, Format::rupiah($item->line_total), $w, bold: 0, format: 1);
 
-            if ($item->notes) {
-                $lines[] = $this->textLine('  Catatan: '.$this->sanitize((string) $item->notes), bold: 0, align: 0, format: 1);
+            $noteParts = \App\Support\PosItemNotes::split($item->notes);
+            if ($noteParts['customer']) {
+                $lines[] = $this->textLine(
+                    '  Catatan: '.$this->sanitize($noteParts['customer']),
+                    bold: 0,
+                    align: 0,
+                    format: 1,
+                );
+            }
+            foreach ($noteParts['addon_labels'] as $label) {
+                $lines[] = $this->textLine(
+                    '  '.$this->sanitize($label),
+                    bold: 0,
+                    align: 0,
+                    format: 1,
+                );
             }
         }
 
@@ -327,11 +341,14 @@ class EscPosReceiptService
         $map = [
             '‘' => "'", '’' => "'", '“' => '"', '”' => '"',
             '–' => '-', '—' => '-', '×' => 'x', '…' => '...',
+            '·' => '-', '•' => '-', '●' => '-',
             'é' => 'e', 'è' => 'e', 'ê' => 'e', 'á' => 'a', 'à' => 'a',
             'ó' => 'o', 'ú' => 'u', 'ñ' => 'n',
         ];
         $text = strtr($text, $map);
+        // Karakter non-ASCII sisa dibuang (bukan diganti "?") agar struk bersih.
+        $text = preg_replace('/[^\x20-\x7E]+/u', '', $text) ?? $text;
 
-        return preg_replace('/[^\x20-\x7E]+/u', '?', $text) ?? $text;
+        return preg_replace('/ {2,}/', ' ', $text) ?? $text;
     }
 }

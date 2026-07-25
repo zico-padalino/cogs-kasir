@@ -371,8 +371,21 @@ final class SimplePdf
 
     private function escape(string $text): string
     {
-        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-        $text = $converted === false ? (preg_replace('/[^\x20-\x7E]/', '?', $text) ?? $text) : $converted;
+        // Map dulu karakter yang sering jadi "?" (· / bullet / dash tipografi).
+        $text = strtr($text, [
+            '·' => '-', '•' => '-', '●' => '-',
+            '–' => '-', '—' => '-', '×' => 'x', '…' => '...',
+            '‘' => "'", '’' => "'", '“' => '"', '”' => '"',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'á' => 'a', 'à' => 'a',
+            'ó' => 'o', 'ú' => 'u', 'ñ' => 'n',
+            'É' => 'E', 'Á' => 'A', 'Ó' => 'O', 'Ú' => 'U', 'Ñ' => 'N',
+        ]);
+
+        // IGNORE (bukan TRANSLIT) agar char asing dibuang, bukan diganti "?".
+        $converted = @iconv('UTF-8', 'ASCII//IGNORE', $text);
+        $text = $converted === false
+            ? (preg_replace('/[^\x20-\x7E]+/u', '', $text) ?? $text)
+            : $converted;
 
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
     }
