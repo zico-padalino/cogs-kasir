@@ -591,13 +591,11 @@ class KasirController extends Controller
             'amount_received' => ['nullable', 'numeric', 'min:0'],
             'payment_proof' => [
                 'nullable',
-                'required_if:payment_method,qris,transfer',
                 'image',
                 'max:5120',
                 'mimes:jpg,jpeg,png,webp,heic,heif',
             ],
         ], [
-            'payment_proof.required_if' => 'Upload foto bukti pembayaran untuk QRIS / Transfer.',
             'payment_proof.image' => 'Bukti pembayaran harus berupa gambar.',
             'payment_proof.max' => 'Ukuran bukti pembayaran maksimal 5 MB.',
         ]);

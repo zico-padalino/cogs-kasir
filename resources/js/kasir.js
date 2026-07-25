@@ -1503,20 +1503,20 @@ function initPosCashPayment(root) {
             const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
             const isCash = method === 'cash';
             const isQris = method === 'qris';
-            const needsProof = method === 'qris' || method === 'transfer';
+            const showsProof = method === 'qris' || method === 'transfer';
 
             cashPanel?.classList.toggle('hidden', ! isCash);
             qrisPanel?.classList.toggle('hidden', ! isQris);
-            proofPanel?.classList.toggle('hidden', ! needsProof);
+            proofPanel?.classList.toggle('hidden', ! showsProof);
             form.classList.toggle('is-cash-pay', isCash);
             form.classList.toggle('is-qris-pay', isQris);
-            form.classList.toggle('is-noncash-pay', needsProof);
+            form.classList.toggle('is-noncash-pay', showsProof);
 
             if (proofInput) {
-                proofInput.required = needsProof;
+                proofInput.required = false;
             }
 
-            if (! needsProof) {
+            if (! showsProof) {
                 clearProofPreview();
             }
         };
@@ -1580,19 +1580,6 @@ function initPosCashPayment(root) {
 
         form.addEventListener('submit', (event) => {
             syncReceivedAmount();
-
-            const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
-            const needsProof = method === 'qris' || method === 'transfer';
-
-            if (needsProof && ! proofInput?.files?.length) {
-                event.preventDefault();
-                proofError?.classList.remove('hidden');
-                if (proofError) {
-                    proofError.textContent = 'Bukti pembayaran wajib untuk QRIS / Transfer.';
-                }
-                proofPanel?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                return;
-            }
 
             if (! window.confirm('Proses pembayaran? Biaya pokok akan tercatat otomatis.')) {
                 event.preventDefault();

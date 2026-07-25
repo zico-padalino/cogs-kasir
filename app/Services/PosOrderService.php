@@ -373,7 +373,7 @@ class PosOrderService
 
         $total = (float) $order->total;
         $changeAmount = null;
-        $needsProof = in_array($paymentMethod, [PaymentMethod::Qris, PaymentMethod::Transfer], true);
+        $allowsProof = in_array($paymentMethod, [PaymentMethod::Qris, PaymentMethod::Transfer], true);
 
         if ($paymentMethod === PaymentMethod::Cash) {
             if ($amountReceived === null || $amountReceived < $total) {
@@ -383,12 +383,8 @@ class PosOrderService
             $changeAmount = round($amountReceived - $total, 4);
         }
 
-        if ($needsProof && ! $paymentProof) {
-            throw new RuntimeException('Upload foto bukti pembayaran untuk QRIS / Transfer.');
-        }
-
         $proofPath = null;
-        if ($needsProof && $paymentProof) {
+        if ($allowsProof && $paymentProof) {
             $proofPath = $paymentProof->store('payment-proofs/'.now()->format('Y/m'), 'public');
         }
 

@@ -217,22 +217,25 @@ export default function KasirPosScreen() {
   const itemCount = order?.items?.length ?? 0;
   const total = order?.total ?? 0;
 
-  const openAdd = (product: MenuProduct) => {
+  const ensureCustomerName = (actionLabel = 'melanjutkan'): boolean => {
     const requiresName = order?.source === 'kasir';
     const name = (customerNote || '').trim();
+    if (!requiresName || name) return true;
 
-    if (requiresName && !name) {
-      setOrderBarOpen(true);
-      Alert.alert('Nama diperlukan', 'Isi nama pelanggan dulu sebelum menambah menu.', [
-        {
-          text: 'Isi nama',
-          onPress: () => {
-            setTimeout(() => customerInputRef.current?.focus(), 120);
-          },
+    setOrderBarOpen(true);
+    Alert.alert('Nama diperlukan', `Isi nama pelanggan dulu sebelum ${actionLabel}.`, [
+      {
+        text: 'Isi nama',
+        onPress: () => {
+          setTimeout(() => customerInputRef.current?.focus(), 120);
         },
-      ]);
-      return;
-    }
+      },
+    ]);
+    return false;
+  };
+
+  const openAdd = (product: MenuProduct) => {
+    if (!ensureCustomerName('menambah menu')) return;
 
     setAddProduct(product);
     setQty(1);
@@ -243,18 +246,15 @@ export default function KasirPosScreen() {
   const submitAdd = async () => {
     if (!addProduct) return;
 
-    const requiresName = order?.source === 'kasir';
-    const name = (customerNote || '').trim();
-    if (requiresName && !name) {
+    if (!ensureCustomerName('menambah menu')) {
       setAddProduct(null);
-      setOrderBarOpen(true);
-      Alert.alert('Nama diperlukan', 'Isi nama pelanggan dulu sebelum menambah menu.');
       return;
     }
 
+    const name = (customerNote || '').trim();
     setSavingItem(true);
     try {
-      if (requiresName && name && name !== (order?.customer_note || '').trim()) {
+      if (order?.source === 'kasir' && name && name !== (order?.customer_note || '').trim()) {
         await saveOrderContext(orderType, name);
       }
 
@@ -357,10 +357,7 @@ export default function KasirPosScreen() {
 
   const submitPay = async () => {
     if (!order) return;
-    if ((payMethod === 'qris' || payMethod === 'transfer') && !proofUri) {
-      Alert.alert('Bukti wajib', 'Upload foto bukti pembayaran untuk QRIS / Transfer.');
-      return;
-    }
+    if (!ensureCustomerName('membayar')) return;
     if (payMethod === 'cash') {
       const received = parseRupiahInput(amountReceived);
       if (received < total) {
@@ -371,6 +368,10 @@ export default function KasirPosScreen() {
 
     setPaying(true);
     try {
+      const name = (customerNote || '').trim();
+      if (order.source === 'kasir' && name && name !== (order.customer_note || '').trim()) {
+        await saveOrderContext(orderType, name);
+      }
       const form = new FormData();
       form.append('payment_method', payMethod);
       if (payMethod === 'cash') {
@@ -417,6 +418,7 @@ export default function KasirPosScreen() {
 
   const submitOpenBill = () => {
     if (!order || order.source !== 'kasir') return;
+    if (!ensureCustomerName('menyimpan tagihan')) return;
     const alreadyOpen = order.is_open_bill || order.status === 'unpaid';
     Alert.alert(
       alreadyOpen ? 'Update tagihan' : 'Simpan dulu',
@@ -430,6 +432,10 @@ export default function KasirPosScreen() {
           onPress: async () => {
             setHolding(true);
             try {
+              const name = (customerNote || '').trim();
+              if (name && name !== (order.customer_note || '').trim()) {
+                await saveOrderContext(orderType, name);
+              }
               const res = await kasirApi.openBill();
               applyOrder(res.data.active_order);
               await refresh();
@@ -1093,6 +1099,7 @@ export default function KasirPosScreen() {
                 ) : null}
                 <Pressable
                   onPress={() => {
+                    if (!ensureCustomerName('membayar')) return;
                     setPayMethod('cash');
                     setAmountReceived(formatRupiahInput(Math.ceil(total)));
                     setProofUri(null);
@@ -1287,11 +1294,11 @@ export default function KasirPosScreen() {
                         <Image source={QRIS_IMAGE} style={styles.qrisImage} resizeMode="contain" />
                       </View>
                       <Text style={styles.muted}>
-                        Minta pelanggan scan kode di atas, lalu unggah bukti pembayaran.
+                        Minta pelanggan scan kode di atas. Foto bukti opsional.
                       </Text>
                     </>
                   ) : null}
-                  <Text style={styles.sectionLabel}>Bukti pembayaran</Text>
+                  <Text style={styles.sectionLabel}>Bukti pembayaran (opsional)</Text>
                   <Pressable onPress={pickProof} style={styles.outlineBtn}>
                     <Text style={styles.outlineBtnText}>{proofUri ? 'Ganti foto' : 'Ambil foto'}</Text>
                   </Pressable>

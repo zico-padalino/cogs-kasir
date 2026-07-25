@@ -69,7 +69,7 @@
                 <div class="pos-qris-panel hidden" data-pos-qris-panel>
                     <ol class="pos-qris-steps" aria-label="Langkah bayar QRIS">
                         <li><span>1</span> Pelanggan scan QR</li>
-                        <li><span>2</span> Ambil foto bukti</li>
+                        <li><span>2</span> Foto bukti (opsional)</li>
                         <li><span>3</span> Konfirmasi bayar</li>
                     </ol>
                     <p class="pos-pay-label">1 · Kode QRIS</p>
@@ -81,11 +81,11 @@
                             data-pos-qris-image
                         >
                     </div>
-                    <p class="pos-qris-hint">Tunjukkan kode ke pelanggan. Setelah transfer, lanjut unggah bukti di bawah.</p>
+                    <p class="pos-qris-hint">Tunjukkan kode ke pelanggan. Foto bukti di bawah bersifat opsional.</p>
                 </div>
 
                 <div class="pos-proof-panel hidden" data-pos-proof-panel>
-                    <label class="pos-pay-label" for="pos-payment-proof">Foto bukti pembayaran</label>
+                    <label class="pos-pay-label" for="pos-payment-proof">Foto bukti pembayaran (opsional)</label>
                     <label class="pos-proof-drop" for="pos-payment-proof">
                         <input
                             id="pos-payment-proof"
@@ -98,13 +98,13 @@
                         >
                         <span class="pos-proof-drop-icon" aria-hidden="true">📷</span>
                         <span class="pos-proof-drop-title" data-pos-proof-title>Ambil / unggah foto</span>
-                        <span class="pos-proof-drop-hint">JPG, PNG, WEBP · maks. 5 MB</span>
+                        <span class="pos-proof-drop-hint">Opsional · JPG, PNG, WEBP · maks. 5 MB</span>
                     </label>
                     <div class="pos-proof-preview hidden" data-pos-proof-preview>
                         <img src="" alt="Pratinjau bukti bayar" class="pos-proof-preview-image" data-pos-proof-preview-image>
                         <button type="button" class="pos-proof-clear" data-pos-proof-clear>Ganti foto</button>
                     </div>
-                    <p class="pos-proof-error hidden" data-pos-proof-error>Bukti pembayaran wajib untuk QRIS / Transfer.</p>
+                    <p class="pos-proof-error hidden" data-pos-proof-error></p>
                 </div>
 
                 <button
