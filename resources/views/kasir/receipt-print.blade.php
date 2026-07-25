@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} — {{ $order->order_number }}</title>
     <style>
-        /* Plain monospace — aman untuk printer thermal (hindari flex/CSS rumit). */
+        /* Monospace + bold selektif (header/total) — selaras PDF/thermal. */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: "Courier New", Courier, monospace;
@@ -20,15 +20,17 @@
             background: #fff;
             padding: 10px 8px 16px;
         }
-        pre.receipt {
+        .receipt {
             margin: 0;
             font-family: inherit;
             font-size: 12px;
+            font-weight: 400;
             line-height: 1.35;
             white-space: pre-wrap;
             word-break: break-word;
             color: #000;
         }
+        .receipt .b { font-weight: 700; }
         .hint {
             max-width: 320px;
             margin: 12px auto 0;
@@ -60,7 +62,7 @@
                 margin: 0;
                 padding: 0;
             }
-            pre.receipt {
+            .receipt {
                 font-size: 11px;
                 line-height: 1.3;
             }
@@ -101,21 +103,23 @@
         return str_repeat(' ', $left).$text;
     };
 
-    $lines = [];
-    $lines[] = $center($shopName, $width);
-    $lines[] = $center($isKitchen ? 'Struk Dapur' : 'Struk Pembayaran', $width);
-    $lines[] = $center($order->order_number, $width);
-    $lines[] = $center($paidAt, $width);
+    $e = static fn (string $t) => e($t);
+    $rows = [];
+
+    $rows[] = ['html' => '<span class="b">'.$e($center($shopName, $width)).'</span>'];
+    $rows[] = ['html' => $e($center($isKitchen ? 'Struk Dapur' : 'Struk Pembayaran', $width))];
+    $rows[] = ['html' => '<span class="b">'.$e($center($order->order_number, $width)).'</span>'];
+    $rows[] = ['html' => $e($center($paidAt, $width))];
     if ($order->order_type) {
-        $lines[] = $center($order->order_type->label(), $width);
+        $rows[] = ['html' => $e($center($order->order_type->label(), $width))];
     }
     if ($order->table) {
-        $lines[] = $center('Meja: '.$order->table->label, $width);
+        $rows[] = ['html' => $e($center('Meja: '.$order->table->label, $width))];
     }
     if ($order->customer_note) {
-        $lines[] = $center('Pelanggan: '.$order->customer_note, $width);
+        $rows[] = ['html' => $e($center('Pelanggan: '.$order->customer_note, $width))];
     }
-    $lines[] = str_repeat('-', $width);
+    $rows[] = ['html' => $e(str_repeat('-', $width))];
 
     foreach ($order->items as $item) {
         $qty = Format::number($item->quantity, 0);
@@ -123,47 +127,47 @@
         $noteParts = PosItemNotes::split($item->notes);
 
         if ($isKitchen) {
-            $lines[] = '[ ] '.$name.' x '.$qty;
+            $rows[] = ['html' => $e('[ ] '.$name.' x '.$qty)];
         } else {
-            $lines[] = $pad($name.' x '.$qty, Format::rupiah($item->line_total), $width);
+            $rows[] = ['html' => $e($pad($name.' x '.$qty, Format::rupiah($item->line_total), $width))];
         }
 
         foreach ($noteParts['addon_labels'] as $label) {
-            $lines[] = '  '.$label;
+            $rows[] = ['html' => $e('  '.$label)];
         }
         if ($noteParts['customer']) {
-            $lines[] = '  Catatan: '.$noteParts['customer'];
+            $rows[] = ['html' => $e('  Catatan: '.$noteParts['customer'])];
         }
     }
 
-    $lines[] = str_repeat('-', $width);
+    $rows[] = ['html' => $e(str_repeat('-', $width))];
 
     if (! $isKitchen) {
         if ($order->hasDiscount()) {
-            $lines[] = $pad('Subtotal', Format::rupiah($order->subtotal), $width);
-            $lines[] = $pad('Diskon', '- '.Format::rupiah($order->discount_amount), $width);
+            $rows[] = ['html' => $e($pad('Subtotal', Format::rupiah($order->subtotal), $width))];
+            $rows[] = ['html' => $e($pad('Diskon', '- '.Format::rupiah($order->discount_amount), $width))];
         }
-        $lines[] = $pad('TOTAL', Format::rupiah($order->total), $width);
-        $lines[] = 'Bayar: '.($order->payment_method?->label() ?? '-');
+        $rows[] = ['html' => '<span class="b">'.$e($pad('TOTAL', Format::rupiah($order->total), $width)).'</span>'];
+        $rows[] = ['html' => $e('Bayar: '.($order->payment_method?->label() ?? '-'))];
         if ($order->payment_method?->value === 'cash' && $order->amount_received) {
-            $lines[] = 'Diterima: '.Format::rupiah($order->amount_received);
-            $lines[] = 'Kembalian: '.Format::rupiah($order->change_amount);
+            $rows[] = ['html' => $e('Diterima: '.Format::rupiah($order->amount_received))];
+            $rows[] = ['html' => $e('Kembalian: '.Format::rupiah($order->change_amount))];
         }
     }
 
     if ($order->cashierDisplayName() !== '-') {
-        $lines[] = 'Kasir: '.$order->cashierDisplayName();
+        $rows[] = ['html' => $e('Kasir: '.$order->cashierDisplayName())];
     }
 
-    $lines[] = '';
-    $lines[] = $center($isKitchen ? 'Ceklis item selesai' : 'Terima kasih', $width);
-    $lines[] = '';
-
-    $receiptText = implode("\n", $lines);
+    $rows[] = ['html' => ''];
+    $footer = $isKitchen ? 'Ceklis item selesai' : 'Terima kasih';
+    $rows[] = ['html' => '<span class="b">'.$e($center($footer, $width)).'</span>'];
+    $rows[] = ['html' => ''];
 @endphp
 
     <div class="sheet">
-        <pre class="receipt">{{ $receiptText }}</pre>
+        <div class="receipt">@foreach ($rows as $row){!! $row['html'] !!}
+@endforeach</div>
     </div>
 
     <div class="hint no-print">
