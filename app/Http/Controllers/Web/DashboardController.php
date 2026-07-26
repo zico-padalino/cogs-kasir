@@ -28,6 +28,7 @@ class DashboardController extends Controller
         return view('dashboard.index', [
             'today' => $this->salePeriodMetrics($todayStart, $todayEnd),
             'month' => $this->salePeriodMetrics($monthStart, $monthEnd),
+            'dailyRevenue' => $this->dailyRevenue(now()->subDays(6)->startOfDay(), $todayEnd),
             'snapshot' => $this->businessSnapshot(),
             'topMenus' => $this->topSellingMenus($monthStart, $monthEnd, 5),
             'summary' => $cogsService->getSummaryReport(),
@@ -89,6 +90,44 @@ class DashboardController extends Controller
                 ? ($start->isToday() ? 'Hari ini' : $start->translatedFormat('d M Y'))
                 : $start->translatedFormat('F Y'),
         ];
+    }
+
+    /**
+     * @return Collection<int, array{
+     *     date: string,
+     *     label: string,
+     *     count: int,
+     *     omzet_kotor: float,
+     *     diskon_total: float,
+     *     omzet: float
+     * }>
+     */
+    private function dailyRevenue(Carbon $start, Carbon $end): Collection
+    {
+        $ordersByDate = PosOrder::query()
+            ->whereIn('status', [PosOrderStatus::Paid, PosOrderStatus::Served])
+            ->whereBetween('paid_at', [$start, $end])
+            ->get(['paid_at', 'total', 'subtotal', 'discount_amount'])
+            ->groupBy(fn (PosOrder $order) => $order->paid_at?->toDateString());
+
+        $dayCount = (int) floor($start->diffInDays($end));
+
+        return collect(range(0, $dayCount))
+            ->map(function (int $offset) use ($start, $ordersByDate) {
+                $date = $start->copy()->addDays($offset);
+                $orders = $ordersByDate->get($date->toDateString(), collect());
+
+                return [
+                    'date' => $date->toDateString(),
+                    'label' => $date->isToday() ? 'Hari ini' : $date->translatedFormat('d M Y'),
+                    'count' => $orders->count(),
+                    'omzet_kotor' => round((float) $orders->sum('subtotal'), 4),
+                    'diskon_total' => round((float) $orders->sum('discount_amount'), 4),
+                    'omzet' => round((float) $orders->sum('total'), 4),
+                ];
+            })
+            ->reverse()
+            ->values();
     }
 
     /**

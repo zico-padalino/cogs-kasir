@@ -63,6 +63,33 @@
                 </p>
             </div>
         </div>
+
+        <div class="mt-6">
+            <x-table-card title="Omzet Harian" subtitle="7 hari terakhir">
+                <table class="table-default">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Transaksi</th>
+                            <th>Omzet sebelum diskon</th>
+                            <th>Diskon</th>
+                            <th>Omzet bersih</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($dailyRevenue as $row)
+                            <tr>
+                                <td class="font-semibold text-slate-900">{{ $row['label'] }}</td>
+                                <td>{{ $format::number($row['count'], 0) }}</td>
+                                <td class="cell-money">{{ $format::rupiah($row['omzet_kotor']) }}</td>
+                                <td class="cell-money">{{ $format::rupiah($row['diskon_total']) }}</td>
+                                <td class="cell-highlight">{{ $format::rupiah($row['omzet']) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </x-table-card>
+        </div>
     </section>
 
     <section class="mb-10">
