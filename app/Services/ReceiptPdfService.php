@@ -96,31 +96,73 @@ class ReceiptPdfService
      */
     public function storeKitchen(PosOrder $order): array
     {
-        $order->loadMissing(['items.product', 'table', 'cashier']);
+        return $this->storeStationTicket($order, 'kitchen');
+    }
+
+    /**
+     * @return array{binary: string, filename: string, path: string, url: string}
+     */
+    public function storeBar(PosOrder $order): array
+    {
+        return $this->storeStationTicket($order, 'bar');
+    }
+
+    /**
+     * @param  'kitchen'|'bar'  $station
+     * @return array{binary: string, filename: string, path: string, url: string}
+     */
+    public function storeStationTicket(PosOrder $order, string $station): array
+    {
+        $posService = app(PosOrderService::class);
+        $ticket = $posService->orderForStation($order, $station);
 
         $safe = preg_replace('/[^A-Za-z0-9_-]+/', '-', $order->order_number) ?: 'struk';
-        $filename = 'dapur-'.$safe.'.pdf';
+        $prefix = $station === 'bar' ? 'bar' : 'dapur';
+        $filename = $prefix.'-'.$safe.'.pdf';
         $path = 'receipts/'.$filename;
-        $binary = $this->buildKitchen($order);
+        $binary = $this->buildStationTicket($ticket, $station);
 
         Storage::disk('public')->put($path, $binary);
+
+        $route = $station === 'bar' ? 'receipts.bar' : 'receipts.kitchen';
 
         return [
             'binary' => $binary,
             'filename' => $filename,
             'path' => $path,
-            'url' => URL::signedRoute('receipts.kitchen', ['order' => $order]),
+            'url' => URL::signedRoute($route, ['order' => $order]),
         ];
     }
 
     public function buildKitchen(PosOrder $order): string
     {
+        return $this->buildStationTicket(
+            app(PosOrderService::class)->orderForStation($order, 'kitchen'),
+            'kitchen',
+        );
+    }
+
+    public function buildBar(PosOrder $order): string
+    {
+        return $this->buildStationTicket(
+            app(PosOrderService::class)->orderForStation($order, 'bar'),
+            'bar',
+        );
+    }
+
+    /**
+     * @param  'kitchen'|'bar'  $station
+     */
+    public function buildStationTicket(PosOrder $order, string $station): string
+    {
         $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $pdf = new SimplePdf;
+        $title = $station === 'bar' ? 'Struk Bar' : 'Struk Dapur';
+        $emptyLabel = $station === 'bar' ? 'Tidak ada item minuman' : 'Tidak ada item dapur';
 
         // Header sama gaya struk pembayaran.
         $pdf->title($shopName);
-        $pdf->line('Struk Dapur', 28, false, 'C');
+        $pdf->line($title, 28, false, 'C');
         $pdf->spacer(12);
         $pdf->line($order->order_number, 30, true, 'C');
         $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'), 26, false, 'C');
@@ -140,11 +182,15 @@ class ReceiptPdfService
         $pdf->spacer(12);
         $pdf->separator();
 
-        foreach ($order->items as $item) {
-            $qty = Format::number($item->quantity, 0);
-            $name = $item->product?->name ?? 'Item';
-            $pdf->checkItem($name.' x '.$qty, 28);
-            $this->appendItemNotes($pdf, $item->notes);
+        if ($order->items->isEmpty()) {
+            $pdf->line($emptyLabel, 26, false, 'C');
+        } else {
+            foreach ($order->items as $item) {
+                $qty = Format::number($item->quantity, 0);
+                $name = $item->product?->name ?? 'Item';
+                $pdf->checkItem($name.' x '.$qty, 28);
+                $this->appendItemNotes($pdf, $item->notes);
+            }
         }
 
         $pdf->separator();

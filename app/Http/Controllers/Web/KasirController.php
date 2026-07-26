@@ -777,20 +777,54 @@ class KasirController extends Controller
         ]);
     }
 
-    public function receiptKitchenPrint(PosOrder $order)
+    public function receiptKitchenPrint(PosOrder $order, PosOrderService $posService)
     {
         if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
             abort(404);
         }
 
-        $order->load(['items.product', 'table', 'cashier']);
+        $ticket = $posService->orderForStation($order, 'kitchen');
 
         return response()
             ->view('kasir.receipt-print', [
-                'order' => $order,
+                'order' => $ticket,
                 'format' => Format::class,
                 'variant' => 'kitchen',
                 'title' => 'Cetak Dapur',
+            ])
+            ->header('Cache-Control', 'private, max-age=0, must-revalidate');
+    }
+
+    public function receiptBarPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->storeBar($order);
+        $inline = request()->boolean('print', true);
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function receiptBarPrint(PosOrder $order, PosOrderService $posService)
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $ticket = $posService->orderForStation($order, 'bar');
+
+        return response()
+            ->view('kasir.receipt-print', [
+                'order' => $ticket,
+                'format' => Format::class,
+                'variant' => 'bar',
+                'title' => 'Cetak Bar',
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }
@@ -821,6 +855,22 @@ class KasirController extends Controller
         }
 
         $pdf = $receiptPdf->storeKitchen($order);
+        $inline = request()->boolean('print', true);
+
+        return response($pdf['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment').'; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    public function publicBarPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $pdf = $receiptPdf->storeBar($order);
         $inline = request()->boolean('print', true);
 
         return response($pdf['binary'], 200, [

@@ -1,6 +1,9 @@
 @php
     $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
-    $isKitchen = ($variant ?? 'customer') === 'kitchen';
+    $variant = $variant ?? 'customer';
+    $isStation = in_array($variant, ['kitchen', 'bar'], true);
+    $stationTitle = $variant === 'bar' ? 'Struk Bar' : 'Struk Dapur';
+    $emptyStationLabel = $variant === 'bar' ? 'Tidak ada item minuman' : 'Tidak ada item dapur';
     $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
 
     // Karakter aneh sering bikin driver thermal corrupt di struk panjang.
@@ -207,10 +210,10 @@
 </head>
 <body>
 
-    <div class="sheet{{ $isKitchen ? ' is-kitchen' : '' }}">
+    <div class="sheet{{ $isStation ? ' is-kitchen' : '' }}">
         <div class="center">
             <div class="shop">{{ $clean($shopName) }}</div>
-            <div class="eyebrow">{{ $isKitchen ? 'Struk Dapur' : 'Struk Pembayaran' }}</div>
+            <div class="eyebrow">{{ $isStation ? $stationTitle : 'Struk Pembayaran' }}</div>
             <div class="order-no">{{ $clean($order->order_number) }}</div>
             <div class="meta">{{ $paidAt }}</div>
             @if ($order->order_type)
@@ -227,14 +230,14 @@
         <hr class="sep">
 
         <table class="lines" cellspacing="0" cellpadding="0">
-            @foreach ($order->items as $item)
+            @forelse ($order->items as $item)
                 @php
                     $qty = $format::number($item->quantity, 0);
                     $name = $clean($item->product?->name ?? 'Item');
                     $noteParts = \App\Support\PosItemNotes::split($item->notes);
                 @endphp
 
-                @if ($isKitchen)
+                @if ($isStation)
                     <tr>
                         <td class="l">{{ $name }} x {{ $qty }}</td>
                         <td class="check"><span class="box"></span></td>
@@ -256,12 +259,18 @@
                         <td class="l" colspan="2"><div class="note">Catatan: {{ $clean($noteParts['customer']) }}</div></td>
                     </tr>
                 @endif
-            @endforeach
+            @empty
+                @if ($isStation)
+                    <tr>
+                        <td class="l" colspan="2">{{ $emptyStationLabel }}</td>
+                    </tr>
+                @endif
+            @endforelse
         </table>
 
         <hr class="sep">
 
-        @if (! $isKitchen)
+        @if (! $isStation)
             <table class="lines" cellspacing="0" cellpadding="0">
                 @if ($order->hasDiscount())
                     <tr>
@@ -289,7 +298,7 @@
             <div class="pay-meta">Kasir: {{ $clean($order->cashierDisplayName()) }}</div>
         @endif
 
-        @if ($isKitchen)
+        @if ($isStation)
             <div class="footer muted">Ceklis item yang sudah selesai</div>
         @else
             <div class="footer">Terima kasih</div>

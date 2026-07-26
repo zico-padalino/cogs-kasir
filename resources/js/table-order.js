@@ -354,10 +354,10 @@ function initOrderKasirConfirmation() {
     }
 
     const initialStatus = section.dataset.orderInitialStatus || '';
-    // Shared hosting: jangan poll 5 detik — mudah kena 503 (entry process penuh).
+    // Shared hosting: poll status jarang — kurangi EP/NPROC (503).
     const baseIntervalSec = Math.max(
-        20,
-        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 30),
+        60,
+        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 90),
     );
     let intervalSec = baseIntervalSec;
     let inFlight = false;
@@ -389,7 +389,7 @@ function initOrderKasirConfirmation() {
             });
 
             if (response.status === 503 || response.status === 429 || !response.ok) {
-                intervalSec = Math.min(120, Math.round(intervalSec * 2));
+                intervalSec = Math.min(180, Math.round(intervalSec * 2));
                 return;
             }
 

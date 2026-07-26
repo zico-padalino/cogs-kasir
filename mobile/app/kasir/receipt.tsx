@@ -46,6 +46,7 @@ export default function ReceiptScreen() {
   const [order, setOrder] = useState<PosOrder | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [kitchenPdfUrl, setKitchenPdfUrl] = useState<string | null>(null);
+  const [barPdfUrl, setBarPdfUrl] = useState<string | null>(null);
   const [waMessage, setWaMessage] = useState('');
   const [shopName, setShopName] = useState('');
   const [thermal, setThermal] = useState<ThermalPayload | null>(null);
@@ -62,6 +63,7 @@ export default function ReceiptScreen() {
     setOrder(res.data.order);
     setPdfUrl(res.data.pdf_url);
     setKitchenPdfUrl(res.data.kitchen_pdf_url ?? null);
+    setBarPdfUrl(res.data.bar_pdf_url ?? null);
     setWaMessage(res.data.wa_message);
     setShopName(res.data.shop_name);
     setThermal(res.data.thermal ?? null);
@@ -237,6 +239,12 @@ export default function ReceiptScreen() {
         {kitchenPdfUrl ? (
           <Pressable onPress={() => Linking.openURL(kitchenPdfUrl)} style={styles.outlineBtn}>
             <Text style={styles.outlineText}>Cetak Dapur</Text>
+          </Pressable>
+        ) : null}
+
+        {barPdfUrl ? (
+          <Pressable onPress={() => Linking.openURL(barPdfUrl)} style={styles.outlineBtn}>
+            <Text style={styles.outlineText}>Cetak Bar</Text>
           </Pressable>
         ) : null}
 

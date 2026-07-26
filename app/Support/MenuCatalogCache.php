@@ -2,18 +2,23 @@
 
 namespace App\Support;
 
+use App\Models\Product;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Cache katalog menu jual (file store) untuk halaman QR /pesan & kasir.
- * Mengurangi query berat saat banyak HP buka menu bersamaan (EP/NPROC).
- *
- * Sengaja pakai store `file` — jangan CACHE_STORE=database (bisa tanpa tabel cache).
+ * Cache ID katalog menu (file store) — bukan Eloquent model.
+ * Model di file cache sering rusak saat unserialize → pluck() crash (HTTP 500).
  */
 final class MenuCatalogCache
 {
-    private const KEY = 'pos:sellable_menu_catalog_v2';
+    private const KEY = 'pos:sellable_menu_ids_v3';
+
+    /** @var list<string> */
+    private const LEGACY_KEYS = [
+        'pos:sellable_menu_catalog_v2',
+        'pos:sellable_menu_ids_v3',
+    ];
 
     public static function ttlSeconds(): int
     {
@@ -21,19 +26,35 @@ final class MenuCatalogCache
     }
 
     /**
-     * @param  callable(): Collection  $callback
-     * @return Collection<int, \App\Models\Product>
+     * @param  callable(): Collection  $callback  loader penuh (Product + addons)
+     * @return Collection<int, Product>
      */
     public static function remember(callable $callback): Collection
     {
         try {
-            $cached = Cache::store('file')->remember(self::KEY, self::ttlSeconds(), function () use ($callback) {
-                $value = $callback();
+            $cachedIds = Cache::store('file')->get(self::KEY);
 
-                return $value instanceof Collection ? $value->values()->all() : [];
-            });
+            if (is_array($cachedIds) && $cachedIds !== []) {
+                $hydrated = self::hydrateOrdered($cachedIds);
+                if ($hydrated->isNotEmpty()) {
+                    return $hydrated;
+                }
+            }
 
-            return collect($cached);
+            $value = $callback();
+            $products = $value instanceof Collection ? $value : collect($value);
+
+            $ids = $products
+                ->map(fn ($product) => (int) data_get($product, 'id'))
+                ->filter(fn (int $id) => $id > 0)
+                ->values()
+                ->all();
+
+            if ($ids !== []) {
+                Cache::store('file')->put(self::KEY, $ids, self::ttlSeconds());
+            }
+
+            return $products->values();
         } catch (\Throwable) {
             $value = $callback();
 
@@ -41,12 +62,39 @@ final class MenuCatalogCache
         }
     }
 
+    /**
+     * @param  list<int|string>  $ids
+     * @return Collection<int, Product>
+     */
+    private static function hydrateOrdered(array $ids): Collection
+    {
+        $orderedIds = array_values(array_unique(array_map('intval', $ids)));
+        $orderedIds = array_values(array_filter($orderedIds, fn (int $id) => $id > 0));
+
+        if ($orderedIds === []) {
+            return collect();
+        }
+
+        $products = Product::query()
+            ->whereIn('id', $orderedIds)
+            ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
+            ->get()
+            ->keyBy('id');
+
+        return collect($orderedIds)
+            ->map(fn (int $id) => $products->get($id))
+            ->filter()
+            ->values();
+    }
+
     public static function forget(): void
     {
-        try {
-            Cache::store('file')->forget(self::KEY);
-        } catch (\Throwable) {
-            // cache opsional
+        foreach (self::LEGACY_KEYS as $key) {
+            try {
+                Cache::store('file')->forget($key);
+            } catch (\Throwable) {
+                // cache opsional
+            }
         }
     }
 }

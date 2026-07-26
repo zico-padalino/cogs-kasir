@@ -93,7 +93,7 @@ export function installServerBusyFetchGuard() {
 
     window.fetch = async (...args) => {
         const response = await originalFetch(...args);
-        if (isServerBusyStatus(response.status)) {
+        if (isServerBusyStatus(response.status) && !isBackgroundNoiseRequest(args[0])) {
             showServerBusy({
                 message:
                     response.status === 429
@@ -103,6 +103,17 @@ export function installServerBusyFetchGuard() {
         }
         return response;
     };
+}
+
+/** Poll PIN / status diam-diam — jangan paksa overlay tiap interval. */
+function isBackgroundNoiseRequest(input) {
+    try {
+        const raw = typeof input === 'string' ? input : input?.url || '';
+        const path = String(raw);
+        return /\/pin\/(status|touch)|\/pesan\/status|pending-orders\/poll|dapur\/poll/i.test(path);
+    } catch {
+        return false;
+    }
 }
 
 function boot() {

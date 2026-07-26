@@ -557,7 +557,7 @@ function initKasirNotifications() {
                 return;
             }
             pollPinStatus(shell);
-        }, continuousPoll ? 60_000 : 120_000);
+        }, continuousPoll ? 90_000 : 180_000);
     }
 
     if (! pollUrl) {

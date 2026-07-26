@@ -102,6 +102,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('orders/{order}/receipt', [PosController::class, 'receipt'])->name('orders.receipt');
                 Route::get('orders/{order}/receipt/pdf', [PosController::class, 'receiptPdf'])->name('orders.receipt.pdf');
                 Route::get('orders/{order}/receipt/kitchen', [PosController::class, 'receiptKitchenPdf'])->name('orders.receipt.kitchen');
+                Route::get('orders/{order}/receipt/bar', [PosController::class, 'receiptBarPdf'])->name('orders.receipt.bar');
                 Route::get('orders/{order}/receipt/thermal', [PosController::class, 'receiptThermal'])->name('orders.receipt.thermal');
 
                 Route::get('orders', [OrderHistoryController::class, 'index'])->name('orders.index');

@@ -896,17 +896,58 @@ class PosOrderService
     /** @return list<string> */
     public function kitchenCategories(): array
     {
-        $categories = config('pos.kitchen_categories', ['makanan', 'snack']);
+        return $this->stationCategories('kitchen');
+    }
 
-        return array_values(array_filter(
-            is_array($categories) ? $categories : ['makanan', 'snack'],
-            fn ($slug) => is_string($slug) && $slug !== '',
-        ));
+    /** @return list<string> */
+    public function barCategories(): array
+    {
+        return $this->stationCategories('bar');
     }
 
     public function isKitchenProductCategory(?string $category): bool
     {
         return in_array($category, $this->kitchenCategories(), true);
+    }
+
+    public function isBarProductCategory(?string $category): bool
+    {
+        return in_array($category, $this->barCategories(), true);
+    }
+
+    /**
+     * Salinan order hanya berisi item stasiun (dapur/bar) untuk cetak tiket.
+     *
+     * @param  'kitchen'|'bar'  $station
+     */
+    public function orderForStation(PosOrder $order, string $station): PosOrder
+    {
+        $order->loadMissing(['items.product', 'table', 'cashier']);
+        $categories = $this->stationCategories($station);
+        $filtered = $order->items
+            ->filter(fn ($item) => in_array($item->product?->menu_category, $categories, true))
+            ->values();
+        $order->setRelation('items', $filtered);
+
+        return $order;
+    }
+
+    /**
+     * @param  'kitchen'|'bar'  $station
+     * @return list<string>
+     */
+    public function stationCategories(string $station): array
+    {
+        $defaults = $station === 'bar'
+            ? ['minuman']
+            : ['makanan', 'snack'];
+        $key = $station === 'bar' ? 'pos.bar_categories' : 'pos.kitchen_categories';
+        $categories = config($key, $defaults);
+
+        return array_values(array_filter(
+            is_array($categories) ? $categories : $defaults,
+            fn ($slug) => is_string($slug) && $slug !== '',
+        ));
     }
 
     /** @return Collection<int, Product> */
@@ -927,7 +968,17 @@ class PosOrderService
     {
         $configured = array_keys(MenuCategory::options());
         $used = $products
-            ->pluck('menu_category')
+            ->map(function ($product) {
+                if (is_array($product)) {
+                    $value = $product['menu_category'] ?? null;
+
+                    return is_string($value) ? $value : null;
+                }
+
+                $value = data_get($product, 'menu_category');
+
+                return is_string($value) ? $value : null;
+            })
             ->filter()
             ->unique()
             ->values()

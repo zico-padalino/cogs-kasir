@@ -114,6 +114,13 @@
                 class="btn-secondary w-full"
                 data-receipt-kitchen-print
             >Cetak Dapur</a>
+            <a
+                href="{{ route('kasir.receipt.bar-print', $order) }}"
+                target="_blank"
+                rel="noopener"
+                class="btn-secondary w-full"
+                data-receipt-bar-print
+            >Cetak Bar</a>
             <button type="button" class="btn-secondary w-full" data-receipt-wa-open>
                 Kirim WhatsApp
             </button>

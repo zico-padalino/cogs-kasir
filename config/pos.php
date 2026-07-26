@@ -14,11 +14,17 @@ return [
         'lainnya' => 'Lainnya',
     ],
 
-    /** Kategori yang muncul di layar dapur + suara AI dapur. */
-    'kitchen_categories' => [
-        'makanan',
-        'snack',
-    ],
+    /** Kategori yang muncul di layar dapur + suara AI dapur + cetak dapur. */
+    'kitchen_categories' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('POS_KITCHEN_CATEGORIES', 'makanan,snack')),
+    ))),
+
+    /** Kategori cetak bar (minuman). */
+    'bar_categories' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('POS_BAR_CATEGORIES', 'minuman')),
+    ))),
 
     /**
      * Cache katalog menu jual (halaman QR /pesan + bootstrap kasir).
