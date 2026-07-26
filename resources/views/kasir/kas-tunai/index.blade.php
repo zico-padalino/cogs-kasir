@@ -50,7 +50,7 @@
         <form method="POST" action="{{ route('kasir.kas-tunai.float') }}" class="card p-4 space-y-3">
             @csrf
             <div>
-                <h2 class="text-sm font-semibold text-slate-900">Tambah uang cash</h2>
+                <h2 class="text-sm font-semibold text-slate-900">Tambah uang</h2>
                 <p class="mt-0.5 text-xs text-slate-500">Modal / setoran kas yang disediakan di laci.</p>
             </div>
             <div>
@@ -67,7 +67,7 @@
         <form method="POST" action="{{ route('kasir.kas-tunai.expense') }}" class="card p-4 space-y-3">
             @csrf
             <div>
-                <h2 class="text-sm font-semibold text-slate-900">Pengeluaran cash</h2>
+                <h2 class="text-sm font-semibold text-slate-900">Pengeluaran</h2>
                 <p class="mt-0.5 text-xs text-slate-500">Pembelian mendadak / pemakaian uang kas.</p>
             </div>
             <div>
