@@ -10,6 +10,7 @@ class ResetDataService
 {
     /** @var list<string> */
     private array $cogsTables = [
+        'business_expenses',
         'cogs_calculations',
         'sales_transactions',
         'pos_order_items',

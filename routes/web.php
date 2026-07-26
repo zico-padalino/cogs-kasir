@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\Auth\PinSetupController;
 use App\Http\Controllers\Web\CogsController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\BahanJadiController;
+use App\Http\Controllers\Web\BusinessFundController;
 use App\Http\Controllers\Web\InventoryController;
 use App\Http\Controllers\Web\StockWasteController;
 use App\Http\Controllers\Web\OpsAssetController;
@@ -170,6 +171,11 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
 
 Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('dana-usaha', [BusinessFundController::class, 'index'])->name('business-funds.index');
+    Route::post('dana-usaha/pengeluaran', [BusinessFundController::class, 'store'])->name('business-funds.store');
+    Route::put('dana-usaha/pengeluaran/{businessExpense}', [BusinessFundController::class, 'update'])->name('business-funds.update');
+    Route::delete('dana-usaha/pengeluaran/{businessExpense}', [BusinessFundController::class, 'destroy'])->name('business-funds.destroy');
 
     Route::get('reset-data', [ResetDataController::class, 'show'])->name('reset-data.show');
     Route::post('reset-data', [ResetDataController::class, 'reset'])->name('reset-data.store');

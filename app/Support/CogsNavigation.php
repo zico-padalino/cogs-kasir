@@ -87,6 +87,7 @@ class CogsNavigation
             'cogs.',
             'stock-wastes.',
             'ops-assets.',
+            'business-funds.',
         ];
     }
 
@@ -106,6 +107,7 @@ class CogsNavigation
             '/cogs',
             '/stok-rusak',
             '/inventaris-operasional',
+            '/dana-usaha',
         ];
     }
 }

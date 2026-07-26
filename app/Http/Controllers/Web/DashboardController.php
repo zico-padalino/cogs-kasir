@@ -9,6 +9,7 @@ use App\Models\CogsCalculation;
 use App\Models\PosOrder;
 use App\Models\Product;
 use App\Models\SalesTransaction;
+use App\Services\BusinessFundService;
 use App\Services\CogsCalculationService;
 use App\Support\Format;
 use Carbon\Carbon;
@@ -18,7 +19,10 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(CogsCalculationService $cogsService): View
+    public function index(
+        CogsCalculationService $cogsService,
+        BusinessFundService $fundService,
+    ): View
     {
         $todayStart = now()->startOfDay();
         $todayEnd = now()->endOfDay();
@@ -29,6 +33,8 @@ class DashboardController extends Controller
             'today' => $this->salePeriodMetrics($todayStart, $todayEnd),
             'month' => $this->salePeriodMetrics($monthStart, $monthEnd),
             'dailyRevenue' => $this->dailyRevenue(now()->subDays(6)->startOfDay(), $todayEnd),
+            'fundToday' => $fundService->dayReport($todayStart),
+            'fundBalance' => $fundService->balance(),
             'snapshot' => $this->businessSnapshot(),
             'topMenus' => $this->topSellingMenus($monthStart, $monthEnd, 5),
             'summary' => $cogsService->getSummaryReport(),

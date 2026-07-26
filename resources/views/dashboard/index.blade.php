@@ -93,6 +93,22 @@
     </section>
 
     <section class="mb-10">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Dana Usaha Hari Ini</h2>
+                <p class="mt-1 text-sm text-slate-500">Saldo awal + omzet bersih − pengeluaran = saldo akhir.</p>
+            </div>
+            <a href="{{ route('business-funds.index') }}" class="btn-primary">Buka Dana Usaha</a>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <x-stat-card label="Saldo awal" :value="$format::rupiah($fundToday['opening'])" color="slate" />
+            <x-stat-card label="+ Omzet bersih" :value="$format::rupiah($fundToday['revenue'])" color="green" />
+            <x-stat-card label="− Pengeluaran" :value="$format::rupiah($fundToday['expense'])" color="rose" />
+            <x-stat-card label="Saldo dana saat ini" :value="$format::rupiah($fundBalance)" color="brand" />
+        </div>
+    </section>
+
+    <section class="mb-10">
         <div class="mb-4">
             <h2 class="text-lg font-semibold text-slate-900">Data Usaha</h2>
             <p class="mt-1 text-sm text-slate-500">Ringkas jumlah menu dan bahan yang sudah dicatat.</p>

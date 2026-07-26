@@ -71,6 +71,11 @@
                         <span class="app-sidebar-link-icon">🍽️</span>
                         Inventaris Ops
                     </a>
+                    <a href="{{ route('business-funds.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('business-funds.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">💰</span>
+                        Dana Usaha
+                    </a>
                 @else
                     <a href="{{ route('dashboard') }}"
                        class="app-sidebar-link mb-1 {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
@@ -105,6 +110,11 @@
                        class="app-sidebar-link {{ request()->routeIs('ops-assets.*') ? 'is-active' : '' }}">
                         <span class="app-sidebar-link-icon">🍽️</span>
                         Inventaris Ops
+                    </a>
+                    <a href="{{ route('business-funds.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('business-funds.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">💰</span>
+                        Dana Usaha
                     </a>
                 @endif
 
