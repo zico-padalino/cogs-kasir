@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#5c4033">
+    <meta name="robots" content="noindex">
+    <title>Server sibuk — muat ulang</title>
+    <style>
+        :root {
+            --brand: #5c4033;
+            --bg: #f6f1ea;
+            --card: #ffffff;
+            --text: #1c1917;
+            --muted: #78716c;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--text);
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(92, 64, 51, 0.16), transparent),
+                var(--bg);
+        }
+        .card {
+            width: 100%;
+            max-width: 22.5rem;
+            background: var(--card);
+            border: 1px solid rgba(92, 64, 51, 0.14);
+            border-radius: 1.35rem;
+            padding: 1.6rem 1.35rem 1.35rem;
+            text-align: center;
+            box-shadow: 0 18px 50px rgba(28, 25, 23, 0.12);
+        }
+        .icon {
+            font-size: 2.1rem;
+            line-height: 1;
+            margin-bottom: 0.7rem;
+            font-family: system-ui, sans-serif;
+        }
+        h1 {
+            margin: 0 0 0.55rem;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--brand);
+            letter-spacing: -0.02em;
+        }
+        p {
+            margin: 0 0 1rem;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--muted);
+        }
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.85rem;
+            border-radius: 0.9rem;
+            border: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            font-size: 0.95rem;
+            font-weight: 650;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--brand);
+            color: #fff;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-ghost {
+            background: #f5f5f4;
+            color: #44403c;
+        }
+        .hint {
+            margin-top: 0.9rem;
+            margin-bottom: 0;
+            font-size: 0.78rem;
+            color: #a8a29e;
+            font-family: system-ui, sans-serif;
+        }
+        #countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--brand); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon" aria-hidden="true">⏳</div>
+        <h1>Server sedang sibuk</h1>
+        <p>
+            Koneksi penuh sementara. Tunggu sebentar, lalu muat ulang halaman
+            untuk lanjut pesan / kasir.
+        </p>
+        <div class="actions">
+            <button type="button" class="btn btn-primary" id="btn-reload">Muat ulang sekarang</button>
+            <a class="btn btn-ghost" href="/pesan" id="btn-pesan">Kembali ke halaman pesan</a>
+        </div>
+        <p class="hint">Otomatis muat ulang dalam <span id="countdown">15</span> dtk · kode 503</p>
+    </div>
+    <script>
+        (function () {
+            var seconds = 15;
+            var el = document.getElementById('countdown');
+            var btn = document.getElementById('btn-reload');
+            var timer = null;
+            var stopped = false;
+
+            function go() {
+                try {
+                    var ref = document.referrer || '';
+                    if (ref && ref.indexOf(location.host) !== -1 && ref.indexOf('/503.html') === -1) {
+                        location.replace(ref);
+                        return;
+                    }
+                } catch (e) {}
+                location.reload();
+            }
+
+            btn.addEventListener('click', function () {
+                stopped = true;
+                if (timer) clearInterval(timer);
+                go();
+            });
+
+            timer = setInterval(function () {
+                if (stopped) return;
+                seconds -= 1;
+                if (el) el.textContent = String(Math.max(0, seconds));
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    go();
+                }
+            }, 1000);
+        })();
+    </script>
+</body>
+</html>

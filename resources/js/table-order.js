@@ -356,13 +356,14 @@ function initOrderKasirConfirmation() {
     const initialStatus = section.dataset.orderInitialStatus || '';
     // Shared hosting: poll status jarang — kurangi EP/NPROC (503).
     const baseIntervalSec = Math.max(
-        60,
+        90,
         Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 90),
     );
     let intervalSec = baseIntervalSec;
     let inFlight = false;
     let timer = null;
     let stopped = false;
+    let failStreak = 0;
 
     const schedule = () => {
         if (stopped) {
@@ -388,11 +389,19 @@ function initOrderKasirConfirmation() {
                 },
             });
 
-            if (response.status === 503 || response.status === 429 || !response.ok) {
-                intervalSec = Math.min(180, Math.round(intervalSec * 2));
+            if (response.status === 503 || response.status === 429 || response.status === 508 || ! response.ok) {
+                failStreak += 1;
+                intervalSec = Math.min(240, Math.round(intervalSec * 2));
+                if (failStreak >= 2 && typeof window.showServerBusy === 'function') {
+                    window.showServerBusy({
+                        force: true,
+                        message: 'Server sedang penuh. Muat ulang halaman untuk mencoba lagi.',
+                    });
+                }
                 return;
             }
 
+            failStreak = 0;
             intervalSec = baseIntervalSec;
             const data = await response.json();
 
@@ -401,7 +410,14 @@ function initOrderKasirConfirmation() {
                 window.location.reload();
             }
         } catch {
-            intervalSec = Math.min(120, Math.round(intervalSec * 2));
+            failStreak += 1;
+            intervalSec = Math.min(240, Math.round(intervalSec * 2));
+            if (failStreak >= 2 && typeof window.showServerBusy === 'function') {
+                window.showServerBusy({
+                    force: true,
+                    message: 'Koneksi gagal. Muat ulang halaman untuk mencoba lagi.',
+                });
+            }
         } finally {
             inFlight = false;
         }

@@ -32,6 +32,9 @@ function buildOverlay() {
                 <button type="button" class="server-busy-btn server-busy-btn-primary" data-server-busy-refresh>
                     Muat ulang
                 </button>
+                <a class="server-busy-btn server-busy-btn-ghost" href="/503.html" data-server-busy-static>
+                    Buka halaman bantuan
+                </a>
                 <button type="button" class="server-busy-btn server-busy-btn-ghost" data-server-busy-dismiss>
                     Tutup
                 </button>

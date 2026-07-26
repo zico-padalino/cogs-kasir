@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Halaman sibuk statis — jangan lempar ke index.php (penting saat EP penuh).
+    RewriteRule ^503\.html$ - [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -23,6 +26,11 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Saat proses PHP penuh, Apache/LiteSpeed harus tampilkan HTML statis (bukan PHP).
+ErrorDocument 503 /503.html
+ErrorDocument 429 /503.html
+ErrorDocument 508 /503.html
 
 # DomaiNesia PageSpeed/Speed Booster sering menaikkan Number of Processes → 503.
 <IfModule mod_pagespeed.c>

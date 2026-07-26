@@ -22,13 +22,15 @@ class TableOrderController extends Controller
     public function show(PosOrderService $posService): View
     {
         $order = $this->currentOrder($posService);
+        // Lepas session lock sebelum query menu berat — kurangi antrian EP saat banyak QR.
+        SessionPressure::releaseEarly();
+
         $order->load(['items.product', 'table']);
 
         // Setelah dikirim ke kasir, tidak perlu load katalog menu (berat + sering reload dari poll).
         $needsMenu = $order->status === PosOrderStatus::Open;
 
         $products = $needsMenu ? $posService->sellableProducts() : collect();
-        SessionPressure::releaseEarly();
 
         return view('order.table', [
             'order' => $order,
@@ -202,7 +204,7 @@ class TableOrderController extends Controller
                 'is_confirmed' => false,
                 'is_paid' => false,
                 'is_served' => false,
-            ]);
+            ])->header('Cache-Control', 'private, max-age=10');
         }
 
         $status = $order->status->value;
@@ -216,7 +218,7 @@ class TableOrderController extends Controller
             'is_confirmed' => $status === 'confirmed',
             'is_paid' => $status === 'paid',
             'is_served' => $status === 'served',
-        ]);
+        ])->header('Cache-Control', 'private, max-age=10');
     }
 
     private function currentOrder(PosOrderService $posService): PosOrder
