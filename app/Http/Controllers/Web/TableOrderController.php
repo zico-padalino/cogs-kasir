@@ -27,9 +27,12 @@ class TableOrderController extends Controller
         // Setelah dikirim ke kasir, tidak perlu load katalog menu (berat + sering reload dari poll).
         $needsMenu = $order->status === PosOrderStatus::Open;
 
+        $products = $needsMenu ? $posService->sellableProducts() : collect();
+        SessionPressure::releaseEarly();
+
         return view('order.table', [
             'order' => $order,
-            'products' => $needsMenu ? $posService->sellableProducts() : collect(),
+            'products' => $products,
             'format' => Format::class,
         ]);
     }

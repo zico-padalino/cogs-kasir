@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MenuCatalogCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -12,6 +13,12 @@ class MenuCategory extends Model
         'name',
         'sort_order',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(static fn () => MenuCatalogCache::forget());
+        static::deleted(static fn () => MenuCatalogCache::forget());
+    }
 
     protected function casts(): array
     {

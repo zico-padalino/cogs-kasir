@@ -20,6 +20,12 @@ return [
         'snack',
     ],
 
+    /**
+     * Cache katalog menu jual (halaman QR /pesan + bootstrap kasir).
+     * Detik. Invalidate otomatis saat produk/addon/kategori berubah.
+     */
+    'menu_catalog_ttl_seconds' => max(30, (int) env('POS_MENU_CACHE_TTL', 180)),
+
     'product_presets' => [
         'images/products/bread-loaf.svg' => 'Roti Tawar',
         'images/products/bread-pack.svg' => 'Roti Pack',

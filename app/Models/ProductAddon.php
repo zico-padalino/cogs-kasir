@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MenuCatalogCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,6 +17,12 @@ class ProductAddon extends Model
         'is_active',
         'sort_order',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(static fn () => MenuCatalogCache::forget());
+        static::deleted(static fn () => MenuCatalogCache::forget());
+    }
 
     protected function casts(): array
     {

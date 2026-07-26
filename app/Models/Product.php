@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CostingMethod;
 use App\Enums\ProductType;
+use App\Support\MenuCatalogCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,6 +29,12 @@ class Product extends Model
         'is_sold_out',
         'hpp_updated_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(static fn () => MenuCatalogCache::forget());
+        static::deleted(static fn () => MenuCatalogCache::forget());
+    }
 
     protected function casts(): array
     {
