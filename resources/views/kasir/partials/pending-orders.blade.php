@@ -77,7 +77,7 @@
                     'is-current' => $isCurrent,
                     'is-open-bill' => $isOpenBill,
                     'is-awaiting-serve' => $isAwaitingServe,
-                    'is-clickable' => $canOpen || $isAwaitingServe,
+                    'is-clickable' => $canOpen || $isAwaitingServe || ($isCurrent && $isOpenBill),
                 ])>
                     @if ($canOpen)
                         <form action="{{ route('kasir.load-order', $pending) }}" method="POST" class="pos-pending-card-hit-form">
@@ -110,6 +110,23 @@
                             </span>
                             <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $pending->status->label() }}</span>
                         </a>
+                    @elseif ($isCurrent && $isOpenBill)
+                        <button
+                            type="button"
+                            class="pos-pending-card-hit"
+                            data-open-current-order
+                            aria-label="Lihat item dan tambah menu untuk {{ $pending->customer_note ?: $pending->order_number }}"
+                        >
+                            <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>
+                            <span class="pos-pending-amount">{{ $format::rupiah($pending->total) }}</span>
+                            <span class="pos-pending-btn-meta">
+                                {{ $pending->order_number }}
+                                @if ($pending->table)
+                                    · {{ $pending->table->label }}
+                                @endif
+                            </span>
+                            <span class="badge badge-blue pos-pending-status">Sedang dibuka</span>
+                        </button>
                     @else
                         <div class="pos-pending-card-head">
                             <span class="pos-pending-btn-name">{{ $pending->customer_note ?: 'Tanpa nama' }}</span>

@@ -1337,6 +1337,22 @@ function initPosPendingPanel(root) {
     root.dataset.boundPendingToggle = '1';
 
     root.addEventListener('click', (event) => {
+        const currentOrder = event.target.closest('[data-open-current-order]');
+        if (currentOrder) {
+            event.preventDefault();
+
+            if (window.innerWidth < POS_DESKTOP_BP && typeof kasirSetPanel === 'function') {
+                kasirSetPanel('cart');
+                return;
+            }
+
+            root.querySelector('[data-kasir-panel="cart"]')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+            return;
+        }
+
         const toggle = event.target.closest('[data-pos-pending-toggle]');
         if (! toggle) {
             return;

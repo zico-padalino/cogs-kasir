@@ -9,6 +9,7 @@ use App\Models\PosOrder;
 use App\Models\PosTable;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\Format;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -220,6 +221,28 @@ class KasirPageTest extends TestCase
             ->assertJsonPath('count', 1)
             ->assertJsonPath('has_pending', true)
             ->assertJsonStructure(['order_ids', 'html']);
+    }
+
+    public function test_current_open_bill_card_can_open_its_cart(): void
+    {
+        $order = PosOrder::create([
+            'order_number' => 'TRX-OPEN-001',
+            'source' => 'kasir',
+            'order_type' => 'takeaway',
+            'status' => 'unpaid',
+            'subtotal' => 15200,
+            'total' => 15200,
+        ]);
+
+        $order->load(['items.product', 'table']);
+        $html = view('kasir.partials.pending-orders', [
+            'pendingOrders' => $order->newCollection([$order]),
+            'format' => Format::class,
+            'currentOrder' => $order,
+        ])->render();
+
+        $this->assertStringContainsString('data-open-current-order', $html);
+        $this->assertStringContainsString('Lihat item dan tambah menu', $html);
     }
 
     public function test_kasir_can_apply_percent_discount_before_payment(): void
