@@ -26,8 +26,9 @@ export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
   const onPinPage = pathname.includes('/kasir/pin');
   const onUbahPin = pathname.includes('/kasir/ubah-pin');
   const onAttendance = pathname.includes('/kasir/attendance');
+  // PIN hanya untuk modul kasir — dapur bebas tanpa PIN.
   const guardActive =
-    (activeModule === 'kasir' || activeModule === 'dapur') &&
+    activeModule === 'kasir' &&
     !onPinPage &&
     !onUbahPin &&
     !onAttendance;

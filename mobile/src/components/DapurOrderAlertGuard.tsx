@@ -28,14 +28,10 @@ export function DapurOrderAlertGuard({ children }: { children?: ReactNode }) {
         title={orderAlert?.title ?? null}
         message={orderAlert?.message ?? null}
         sticky
-        actionLabel={orderAlert?.pinLocked ? 'Masukkan PIN' : 'Lihat Dapur'}
+        actionLabel="Lihat Dapur"
         onAction={
           orderAlert
             ? async () => {
-                if (orderAlert.pinLocked) {
-                  router.replace('/kasir/pin' as never);
-                  return;
-                }
                 router.replace('/dapur' as never);
               }
             : undefined

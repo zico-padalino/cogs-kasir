@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -96,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeModule, setActiveModule] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
   const [pin, setPin] = useState<PinStatus | null>(null);
+  const activeModuleRef = useRef<Role | null>(null);
+  activeModuleRef.current = activeModule;
 
   const lockPinSession = useCallback(() => {
     setPin((prev) => ({
@@ -109,6 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setPinLockedListener(() => {
+      // Dapur bebas PIN — abaikan 423 saat modul dapur aktif.
+      if (activeModuleRef.current === 'dapur') {
+        return;
+      }
       lockPinSession();
     });
     return () => setPinLockedListener(null);

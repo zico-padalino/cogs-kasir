@@ -47,7 +47,7 @@ function RootNavigator() {
         return;
       }
       if (activeModule === 'dapur') {
-        router.push((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+        router.push('/dapur' as never);
         return;
       }
       router.push((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
@@ -76,7 +76,8 @@ function RootNavigator() {
       if (activeModule === 'kasir') {
         router.replace((pin?.unlocked ? '/kasir' : '/kasir/pin') as never);
       } else if (activeModule === 'dapur') {
-        router.replace((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+        // Dapur tidak butuh PIN.
+        router.replace('/dapur' as never);
       } else {
         router.replace(ROLE_META.cogs.homeRoute);
       }
@@ -93,27 +94,26 @@ function RootNavigator() {
       }
     } else if (activeModule === 'dapur') {
       if (first === 'cogs') {
-        router.replace((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+        router.replace('/dapur' as never);
         return;
       }
       if (first === 'kasir' && second === 'pin') {
+        // Jangan paksa PIN di dapur — langsung ke board.
+        router.replace('/dapur' as never);
         return;
       }
       if (first === 'kasir' && (second === 'ubah-pin' || second === 'attendance')) {
         return;
       }
       if (first === 'kasir') {
-        // APK dapur: jangan izinkan masuk POS kasir.
         if (isDapurOnlyApp()) {
-          router.replace((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+          router.replace('/dapur' as never);
           return;
         }
         // dari dapur ke kasir via menu "Ke Kasir" sudah switchModule; biarkan.
         return;
       }
-      if (first === 'dapur' && !pin?.unlocked) {
-        router.replace('/kasir/pin' as never);
-      }
+      // /dapur bebas tanpa PIN
     } else if (first === 'kasir' || first === 'dapur') {
       router.replace('/cogs');
     }

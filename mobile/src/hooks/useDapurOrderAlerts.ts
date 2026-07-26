@@ -51,13 +51,11 @@ export function useDapurOrderAlerts(enabled: boolean) {
           newIds.includes(Number(data.latest_order_id)) && data.latest_order_id
             ? Number(data.latest_order_id)
             : Math.max(...newIds);
-        const pinLocked = !data.unlocked;
+        const pinLocked = false;
         const alert = buildKitchenOrderAlert(newOrders);
         setOrderAlert({
           title: alert.title,
-          message: pinLocked
-            ? `${alert.message} · Masukkan PIN untuk membuka.`
-            : alert.message,
+          message: alert.message,
           orderId: Number.isFinite(newest) ? newest : null,
           pinLocked,
         });

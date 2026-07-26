@@ -78,6 +78,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('pin/touch', [PinController::class, 'touch'])->name('pin.touch');
             Route::get('pending-orders/poll', [PosController::class, 'pendingPoll'])->name('pending.poll');
             Route::get('dapur/poll', [PosController::class, 'dapurPoll'])->name('dapur.poll');
+            // Aksi dapur: tanpa sesi PIN (layar dapur / APK dapur).
+            Route::patch('items/{item}/delivered', [PosController::class, 'toggleItemDelivered'])->name('items.delivered');
+            Route::post('orders/{order}/serve', [PosController::class, 'markServed'])->name('orders.serve');
             Route::post('push-token', [PushTokenController::class, 'store'])->name('push-token.store');
             Route::delete('push-token', [PushTokenController::class, 'destroy'])->name('push-token.destroy');
             Route::post('push-token/test', [PushTokenController::class, 'test'])->name('push-token.test');
@@ -91,11 +94,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('orders/{order}/load', [PosController::class, 'loadOrder'])->name('orders.load');
                 Route::post('orders/{order}/edit', [PosController::class, 'editPaidOrder'])->name('orders.edit');
                 Route::post('orders/{order}/confirm', [PosController::class, 'confirmOrder'])->name('orders.confirm');
-                Route::post('orders/{order}/serve', [PosController::class, 'markServed'])->name('orders.serve');
                 Route::post('orders/{order}/cancel', [PosController::class, 'cancelPendingOrder'])->name('orders.cancel');
                 Route::post('items', [PosController::class, 'addItem'])->name('items.store');
                 Route::patch('items/{item}', [PosController::class, 'updateItem'])->name('items.update');
-                Route::patch('items/{item}/delivered', [PosController::class, 'toggleItemDelivered'])->name('items.delivered');
                 Route::delete('items/{item}', [PosController::class, 'removeItem'])->name('items.destroy');
                 Route::post('pay', [PosController::class, 'pay'])->name('pay');
                 Route::post('open-bill', [PosController::class, 'openBill'])->name('open-bill');

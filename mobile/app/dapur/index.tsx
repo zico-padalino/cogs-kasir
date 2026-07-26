@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { kasirApi, pinApi } from '@/api/kasir';
+import { kasirApi } from '@/api/kasir';
 import type { OrderItem, PosOrder } from '@/api/types';
 import { reportApiError, useAuth } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
@@ -67,13 +67,12 @@ function splitNotes(notes?: string | null): { customer?: string; addons: string[
 
 export default function DapurBoardScreen() {
   const insets = useSafeAreaInsets();
-  const { pin, setPin } = useAuth();
+  const { pin } = useAuth();
   const [orders, setOrders] = useState<PosOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyItemId, setBusyItemId] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(0);
-  const lastPinTouchAt = useRef(0);
 
   const load = useCallback(async (opts?: { soft?: boolean }) => {
     if (!opts?.soft) {
@@ -83,28 +82,13 @@ export default function DapurBoardScreen() {
       const res = await kasirApi.dapurPoll();
       setOrders(res.data.orders || []);
       seedKitchenIds((res.data.order_ids || []).map(Number));
-      if (res.data.unlocked !== undefined) {
-        setPin({
-          unlocked: !!res.data.unlocked,
-          expires_at: res.data.expires_at ?? null,
-          server_now: res.data.server_now ?? Math.floor(Date.now() / 1000),
-          remaining_seconds: res.data.remaining_seconds ?? 0,
-          operator_name: res.data.operator_name ?? null,
-        });
-      }
-      // Jangan touch setiap poll — bikin request ekstra & 503 di shared hosting.
-      const now = Date.now();
-      if (now - lastPinTouchAt.current >= 60_000) {
-        lastPinTouchAt.current = now;
-        void pinApi.touch().catch(() => {});
-      }
     } catch (err) {
       reportApiError(err, 'Gagal memuat dapur');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [setPin]);
+  }, []);
 
   useEffect(() => {
     void load();

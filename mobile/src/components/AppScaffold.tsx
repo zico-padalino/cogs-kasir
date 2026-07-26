@@ -196,8 +196,11 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
   };
 
   const handleLock = () => {
+    if (moduleType === 'dapur') {
+      return;
+    }
     onNavigate?.();
-    Alert.alert(moduleType === 'dapur' ? 'Kunci Dapur' : 'Kunci Kasir', 'Kunci sesi PIN sekarang?', [
+    Alert.alert('Kunci Kasir', 'Kunci sesi PIN sekarang?', [
       { text: 'Batal', style: 'cancel' },
       {
         text: 'Kunci',
@@ -315,7 +318,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
           <Text style={styles.logoutText}>🔑  Ubah Password</Text>
         </Pressable>
 
-        {moduleType === 'kasir' || moduleType === 'dapur' ? (
+        {moduleType === 'kasir' ? (
           <Pressable
             onPress={() => {
               onNavigate?.();
@@ -327,11 +330,9 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
           </Pressable>
         ) : null}
 
-        {moduleType === 'kasir' || moduleType === 'dapur' ? (
+        {moduleType === 'kasir' ? (
           <Pressable onPress={handleLock} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>
-              {moduleType === 'dapur' ? '🔒  Kunci Dapur' : '🔒  Kunci Kasir'}
-            </Text>
+            <Text style={styles.logoutText}>🔒  Kunci Kasir</Text>
           </Pressable>
         ) : null}
 
