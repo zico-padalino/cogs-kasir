@@ -14,10 +14,16 @@ return [
         'lainnya' => 'Lainnya',
     ],
 
-    /** Kategori yang muncul di layar dapur + suara AI dapur + cetak dapur. */
-    'kitchen_categories' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env('POS_KITCHEN_CATEGORIES', 'makanan,snack')),
+    /**
+     * Makanan dan snack selalu masuk dapur. Nilai env dapat menambahkan
+     * kategori lain tanpa sengaja menghilangkan dua kategori utama.
+     */
+    'kitchen_categories' => array_values(array_unique(array_merge(
+        ['makanan', 'snack'],
+        array_filter(array_map(
+            'trim',
+            explode(',', (string) env('POS_KITCHEN_CATEGORIES', '')),
+        )),
     ))),
 
     /** Kategori cetak bar (minuman). */

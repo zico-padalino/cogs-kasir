@@ -27,6 +27,14 @@ function formatQty(qty: number): string {
   return String(qty);
 }
 
+function categoryLabel(category?: string | null): string | null {
+  const value = (category || '').trim().toLowerCase();
+  if (!value) return null;
+  if (value === 'makanan') return 'Makanan';
+  if (value === 'snack') return 'Snack';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function elapsedLabel(iso?: string | null): string {
   if (!iso) return '—';
   const start = new Date(iso).getTime();
@@ -260,6 +268,7 @@ export default function DapurBoardScreen() {
                       {items.map((item) => {
                         const notes = splitNotes(item.notes);
                         const doneItem = !!item.is_delivered;
+                        const category = categoryLabel(item.menu_category);
                         return (
                           <Pressable
                             key={item.id}
@@ -278,6 +287,17 @@ export default function DapurBoardScreen() {
                               >
                                 {item.product_name || 'Item'}
                               </Text>
+                              {category ? (
+                                <Text
+                                  style={[
+                                    styles.itemCategory,
+                                    item.menu_category?.trim().toLowerCase() === 'snack' &&
+                                      styles.itemCategorySnack,
+                                  ]}
+                                >
+                                  {category}
+                                </Text>
+                              ) : null}
                               {notes.customer ? (
                                 <Text style={styles.itemNote} numberOfLines={2}>
                                   {notes.customer}
@@ -440,6 +460,20 @@ const styles = StyleSheet.create({
   },
   itemName: { fontSize: 14, color: colors.slate900, ...font('700') },
   itemNameDone: { color: colors.slate400, textDecorationLine: 'line-through' },
+  itemCategory: {
+    alignSelf: 'flex-start',
+    marginTop: 3,
+    borderRadius: radius.full,
+    backgroundColor: colors.brand50,
+    color: colors.brand800,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    fontSize: 9,
+    overflow: 'hidden',
+    textTransform: 'uppercase',
+    ...font('700'),
+  },
+  itemCategorySnack: { backgroundColor: colors.amber50, color: colors.amber800 },
   itemNote: { marginTop: 2, fontSize: 11, color: colors.amber800, ...font('600') },
   itemAddon: { marginTop: 1, fontSize: 11, color: colors.slate500, ...font('500') },
   serveBtn: {
