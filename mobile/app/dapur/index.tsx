@@ -125,7 +125,21 @@ export default function DapurBoardScreen() {
       if (updated.status === 'served') {
         setOrders((prev) => prev.filter((o) => o.id !== updated.id));
       } else {
-        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+        setOrders((prev) =>
+          prev.map((order) => {
+            if (order.id !== updated.id) return order;
+
+            // Endpoint ceklis dipakai juga oleh kasir dan mengembalikan semua
+            // kategori. Pertahankan daftar tiket dapur yang sudah difilter API.
+            return {
+              ...order,
+              ...updated,
+              items: (order.items || []).map((row) =>
+                row.id === item.id ? { ...row, is_delivered: next } : row,
+              ),
+            };
+          }),
+        );
       }
     } catch (err) {
       reportApiError(err, 'Gagal ceklis item');

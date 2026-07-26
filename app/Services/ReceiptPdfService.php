@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PosOrder;
 use App\Support\Format;
+use App\Support\PosItemNotes;
 use App\Support\SimplePdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -35,29 +36,9 @@ class ReceiptPdfService
 
     public function build(PosOrder $order): string
     {
-        $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $pdf = new SimplePdf;
 
-        $pdf->title($shopName);
-        $pdf->line('Struk Pembayaran', 28, false, 'C');
-        $pdf->spacer(12);
-        $pdf->line($order->order_number, 30, true, 'C');
-        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 26, false, 'C');
-
-        if ($order->order_type) {
-            $pdf->line($order->order_type->label(), 26, false, 'C');
-        }
-
-        if ($order->table) {
-            $pdf->line('Meja: '.$order->table->label, 26, false, 'C');
-        }
-
-        if ($order->customer_note) {
-            $pdf->line('Pelanggan: '.$order->customer_note, 26, false, 'C');
-        }
-
-        $pdf->spacer(12);
-        $pdf->separator();
+        $this->appendReceiptHeader($pdf, $order, 'Struk Pembayaran');
 
         foreach ($order->items as $item) {
             $qty = Format::number($item->quantity, 0);
@@ -155,32 +136,11 @@ class ReceiptPdfService
      */
     public function buildStationTicket(PosOrder $order, string $station): string
     {
-        $shopName = (string) config('pos.shop_name', 'Coffee & Kitchen');
         $pdf = new SimplePdf;
         $title = $station === 'bar' ? 'Struk Bar' : 'Struk Dapur';
         $emptyLabel = $station === 'bar' ? 'Tidak ada item minuman' : 'Tidak ada item dapur';
 
-        // Header sama gaya struk pembayaran.
-        $pdf->title($shopName);
-        $pdf->line($title, 28, false, 'C');
-        $pdf->spacer(12);
-        $pdf->line($order->order_number, 30, true, 'C');
-        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'), 26, false, 'C');
-
-        if ($order->order_type) {
-            $pdf->line($order->order_type->label(), 26, false, 'C');
-        }
-
-        if ($order->table) {
-            $pdf->line('Meja: '.$order->table->label, 26, false, 'C');
-        }
-
-        if ($order->customer_note) {
-            $pdf->line('Pelanggan: '.$order->customer_note, 26, false, 'C');
-        }
-
-        $pdf->spacer(12);
-        $pdf->separator();
+        $this->appendReceiptHeader($pdf, $order, $title);
 
         if ($order->items->isEmpty()) {
             $pdf->line($emptyLabel, 26, false, 'C');
@@ -219,10 +179,35 @@ class ReceiptPdfService
         ]);
     }
 
+    /** Header tunggal agar struk pelanggan dan tiket stasiun selalu konsisten. */
+    private function appendReceiptHeader(SimplePdf $pdf, PosOrder $order, string $title): void
+    {
+        $pdf->title((string) config('pos.shop_name', 'Coffee & Kitchen'));
+        $pdf->line($title, 28, false, 'C');
+        $pdf->spacer(12);
+        $pdf->line($order->order_number, 30, true, 'C');
+        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 26, false, 'C');
+
+        if ($order->order_type) {
+            $pdf->line($order->order_type->label(), 26, false, 'C');
+        }
+
+        if ($order->table) {
+            $pdf->line('Meja: '.$order->table->label, 26, false, 'C');
+        }
+
+        if ($order->customer_note) {
+            $pdf->line('Pelanggan: '.$order->customer_note, 26, false, 'C');
+        }
+
+        $pdf->spacer(12);
+        $pdf->separator();
+    }
+
     /** Pecah catatan pelanggan & add-on agar karakter · tidak jadi "?" di PDF. */
     private function appendItemNotes(SimplePdf $pdf, ?string $notes): void
     {
-        $parts = \App\Support\PosItemNotes::split($notes);
+        $parts = PosItemNotes::split($notes);
 
         foreach ($parts['addon_labels'] as $label) {
             $pdf->line('  '.$label, 24, false, 'L');
