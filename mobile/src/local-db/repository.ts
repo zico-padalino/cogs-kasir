@@ -13,6 +13,14 @@ import { ensureSchema, seedProductsIfEmpty } from '@/local-db/seed';
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
+function localDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 export async function getLocalDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!databasePromise) {
     databasePromise = (async () => {
@@ -261,7 +269,7 @@ export async function checkoutLocalCart(input: {
   }
 
   const now = new Date();
-  const orderDay = now.toISOString().slice(0, 10);
+  const orderDay = localDateString(now);
   const orderNumber = await nextLocalOrderNumber(db, orderDay);
   const createdAt = now.toISOString();
 
@@ -344,7 +352,7 @@ export async function submitOnlineOrder(input: OnlineOrderInput): Promise<LocalO
 
   const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0);
   const now = new Date();
-  const orderDay = now.toISOString().slice(0, 10);
+  const orderDay = localDateString(now);
   const orderNumber = await nextLocalOrderNumber(db, orderDay);
   const createdAt = now.toISOString();
 

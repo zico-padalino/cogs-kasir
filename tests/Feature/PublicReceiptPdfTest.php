@@ -57,6 +57,16 @@ class PublicReceiptPdfTest extends TestCase
         $this->assertStringNotContainsString('/storage/receipts/', $pdf['url']);
     }
 
+    public function test_receipt_uses_jakarta_date_and_time(): void
+    {
+        $this->assertSame('Asia/Jakarta', config('app.timezone'));
+        $this->travelTo('2026-07-27 01:15:00');
+
+        $pdf = app(ReceiptPdfService::class)->build($this->paidOrder());
+
+        $this->assertStringContainsString('27/07/2026 01:15', $pdf);
+    }
+
     public function test_kitchen_receipt_matches_order_header_and_only_contains_food_and_snacks(): void
     {
         config()->set('pos.kitchen_categories', ['makanan', 'snack']);
