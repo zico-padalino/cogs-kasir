@@ -2,10 +2,13 @@ import { useEffect, useRef } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { useAuth } from '@/auth';
 import {
+  forceStopListenMode,
+  isDapurListenModeRunning,
   startDapurListenMode,
   stopDapurListenMode,
 } from '@/dapur/dapurListenMode';
 import {
+  isKasirListenModeRunning,
   startKasirListenMode,
   stopKasirListenMode,
 } from '@/kasir/kasirListenMode';
@@ -13,13 +16,15 @@ import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNo
 
 /**
  * Setelah login kasir/dapur:
- * - daftar FCM/Expo push token (throttle di registerKasirPushToken)
- * - jalankan Mode Dengar (foreground) sesuai modul aktif
+ * - daftar FCM/Expo push token (throttle)
+ * - pastikan Mode Dengar hidup — tanpa restart berulang (hindari app “keluar sendiri”)
  */
 export function KasirPushKeepAlive() {
   const { user, loading, activeModule } = useAuth();
   const hasKasir = !!user?.has_kasir;
   const startedRef = useRef(false);
+  const moduleRef = useRef(activeModule);
+  moduleRef.current = activeModule;
 
   useEffect(() => {
     if (loading) {
@@ -29,35 +34,47 @@ export function KasirPushKeepAlive() {
     if (!hasKasir) {
       startedRef.current = false;
       void unregisterKasirPushToken();
-      void stopKasirListenMode();
-      void stopDapurListenMode();
+      void forceStopListenMode();
       return;
     }
 
-    const boot = async () => {
-      await registerKasirPushToken();
+    const ensureListenMode = async () => {
       if (Platform.OS !== 'android') {
         return;
       }
 
-      if (activeModule === 'dapur') {
+      const module = moduleRef.current;
+      if (module === 'dapur') {
+        if (await isDapurListenModeRunning()) {
+          startedRef.current = true;
+          return;
+        }
         await stopKasirListenMode();
-        const ok = await startDapurListenMode();
-        startedRef.current = ok;
+        startedRef.current = await startDapurListenMode();
         return;
       }
 
-      await stopDapurListenMode();
-      const ok = await startKasirListenMode();
-      startedRef.current = ok;
+      if (module === 'kasir') {
+        if (await isKasirListenModeRunning()) {
+          startedRef.current = true;
+          return;
+        }
+        await stopDapurListenMode();
+        startedRef.current = await startKasirListenMode();
+      }
+    };
+
+    const boot = async () => {
+      await registerKasirPushToken();
+      await ensureListenMode();
     };
 
     void boot();
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
-        // Hanya pastikan listen mode hidup; register token sudah di-throttle.
-        void boot();
+        // Jangan stop+start ulang — hanya pastikan masih hidup.
+        void ensureListenMode();
       }
     };
     const sub = AppState.addEventListener('change', onAppState);

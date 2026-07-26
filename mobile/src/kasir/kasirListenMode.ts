@@ -1,9 +1,12 @@
 import { Platform } from 'react-native';
 import BackgroundService from 'react-native-background-actions';
+import { getListenModeKind, setListenModeKind } from '@/kasir/listenModeState';
 
 /**
  * Foreground service keepalive saja — tanpa HTTP poll.
  * Sync order lewat push → pull sekali (hindari 503 EP/NPROC).
+ *
+ * Jangan stop+start berulang — bisa bikin app “keluar sendiri” di Android.
  */
 const KEEPALIVE_MS = 60_000;
 
@@ -40,7 +43,7 @@ export async function isKasirListenModeRunning(): Promise<boolean> {
     return false;
   }
   try {
-    return BackgroundService.isRunning();
+    return BackgroundService.isRunning() && getListenModeKind() === 'kasir';
   } catch {
     return false;
   }
@@ -53,12 +56,18 @@ export async function startKasirListenMode(): Promise<boolean> {
   }
 
   try {
+    if (BackgroundService.isRunning() && getListenModeKind() === 'kasir') {
+      return true;
+    }
     if (BackgroundService.isRunning()) {
       await BackgroundService.stop();
+      setListenModeKind(null);
     }
     await BackgroundService.start(listenTask, serviceOptions);
+    setListenModeKind('kasir');
     return true;
   } catch (err) {
+    setListenModeKind(null);
     if (__DEV__) {
       console.warn('[kasir-listen] start failed', err);
     }
@@ -71,8 +80,9 @@ export async function stopKasirListenMode(): Promise<void> {
     return;
   }
   try {
-    if (BackgroundService.isRunning()) {
+    if (BackgroundService.isRunning() && getListenModeKind() === 'kasir') {
       await BackgroundService.stop();
+      setListenModeKind(null);
     }
   } catch {
     // ignore
