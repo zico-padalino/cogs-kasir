@@ -263,7 +263,8 @@ function initDapurBoard() {
         return;
     }
 
-    let intervalSec = Math.max(20, Number(root.getAttribute('data-dapur-poll-interval') || 30));
+    let intervalSec = Math.max(30, Number(root.getAttribute('data-dapur-poll-interval') || 60));
+    const continuousPoll = root.getAttribute('data-dapur-continuous-poll') === '1';
     let timer = null;
 
     updateClocks(document);
@@ -278,7 +279,18 @@ function initDapurBoard() {
         toggleItem(button);
     });
 
+    const pullOnce = async () => {
+        if (document.visibilityState === 'hidden') {
+            return;
+        }
+        await pollBoard(root);
+        await touchPin(root);
+    };
+
     const schedule = () => {
+        if (!continuousPoll) {
+            return;
+        }
         if (timer) {
             window.clearTimeout(timer);
         }
@@ -297,7 +309,7 @@ function initDapurBoard() {
         if (root.dataset.dapurLastPollOk === '0') {
             intervalSec = Math.min(120, Math.round(intervalSec * 2));
         } else {
-            intervalSec = Math.max(20, Number(root.getAttribute('data-dapur-poll-interval') || 30));
+            intervalSec = Math.max(30, Number(root.getAttribute('data-dapur-poll-interval') || 60));
         }
 
         schedule();
@@ -305,12 +317,24 @@ function initDapurBoard() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            intervalSec = Math.max(20, Number(root.getAttribute('data-dapur-poll-interval') || 30));
-            tick();
+            if (continuousPoll) {
+                intervalSec = Math.max(30, Number(root.getAttribute('data-dapur-poll-interval') || 60));
+                tick();
+            } else {
+                void pullOnce();
+            }
         }
     });
 
-    tick();
+    window.addEventListener('kasir:pull-pending', () => {
+        void pullOnce();
+    });
+
+    if (continuousPoll) {
+        tick();
+    } else {
+        void pullOnce();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initDapurBoard);

@@ -87,6 +87,16 @@ self.addEventListener('push', (event) => {
             // Empty wake-up push — show default kasir alert.
         }
 
+        // Tab kasir terbuka → minta pull sekali (tanpa poll berkala).
+        try {
+            const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            for (const client of clientsList) {
+                client.postMessage({ type: 'kasir-wake', reason: 'new_order', data });
+            }
+        } catch {
+            // ignore
+        }
+
         await self.registration.showNotification(title, {
             body,
             icon: '/icons/icon-192.png',

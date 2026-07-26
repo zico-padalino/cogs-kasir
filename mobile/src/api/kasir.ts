@@ -170,6 +170,7 @@ export const kasirApi = {
           latest_order_id?: number | null;
           orders: PosOrder[];
           active_order_id?: number | null;
+          kasir_poll_enabled?: boolean;
         }
       >
     >('/kasir/pending-orders/poll');
@@ -184,6 +185,7 @@ export const kasirApi = {
           latest_order_id?: number | null;
           orders: PosOrder[];
           fingerprint?: string;
+          dapur_poll_enabled?: boolean;
         }
       >
     >('/kasir/dapur/poll');

@@ -68,7 +68,9 @@ class PosController extends Controller
                 ])->values(),
                 'pending_orders' => PosOrderResource::collection($pendingOrders),
                 'shop_name' => config('pos.shop_name'),
-                'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 30),
+                'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 60),
+                'kasir_poll_enabled' => (bool) config('pos.notifications.kasir_poll_enabled', false),
+                'dapur_poll_enabled' => (bool) config('pos.notifications.dapur_poll_enabled', false),
                 'auto_load_new_order' => (bool) config('pos.notifications.auto_load_new_order', true),
                 'pin' => KasirPin::statusPayload(),
             ],
@@ -80,23 +82,7 @@ class PosController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
-        // Hemat proses hosting: APK kasir tetap hit endpoint, tapi tanpa query berat.
-        if (! config('pos.notifications.kasir_poll_enabled', false)) {
-            return response()->json([
-                'data' => array_merge([
-                    'count' => 0,
-                    'total' => 0,
-                    'order_ids' => [],
-                    'notify_order_ids' => [],
-                    'has_pending' => false,
-                    'latest_order_id' => null,
-                    'orders' => [],
-                    'active_order_id' => null,
-                    'poll_disabled' => true,
-                ], $pinStatus),
-            ])->header('Cache-Control', 'private, max-age=30');
-        }
-
+        // Selalu data nyata: dipanggil on-demand setelah push (bukan stub kosong).
         $pendingOrders = $posService->waitingOrders();
 
         return response()->json([
@@ -113,6 +99,7 @@ class PosController extends Controller
                 'latest_order_id' => $pendingOrders->first()?->id,
                 'orders' => PosOrderResource::collection($pendingOrders),
                 'active_order_id' => KasirActiveOrder::getId(),
+                'kasir_poll_enabled' => (bool) config('pos.notifications.kasir_poll_enabled', false),
             ], $pinStatus),
         ]);
     }
@@ -122,20 +109,7 @@ class PosController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
-        if (! config('pos.notifications.dapur_poll_enabled', true)) {
-            return response()->json([
-                'data' => array_merge([
-                    'count' => 0,
-                    'order_ids' => [],
-                    'notify_order_ids' => [],
-                    'latest_order_id' => null,
-                    'orders' => [],
-                    'fingerprint' => '',
-                    'poll_disabled' => true,
-                ], $pinStatus),
-            ])->header('Cache-Control', 'private, max-age=5');
-        }
-
+        // Selalu data nyata untuk pull sekali saat push kitchen_order.
         $board = KitchenBoardCache::remember('api', function () use ($posService) {
             $kitchenOrders = $posService->kitchenOrders();
 
@@ -156,7 +130,9 @@ class PosController extends Controller
         });
 
         return response()->json([
-            'data' => array_merge($board, $pinStatus),
+            'data' => array_merge($board, $pinStatus, [
+                'dapur_poll_enabled' => (bool) config('pos.notifications.dapur_poll_enabled', false),
+            ]),
         ])->header('Cache-Control', 'private, max-age=15');
     }
 

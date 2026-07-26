@@ -6,6 +6,7 @@ import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { apiRequest, getToken } from '@/api/client';
 import { announceSpeakText } from '@/kasir/orderAlert';
+import { emitOrderSyncEvent, type OrderSyncType } from '@/kasir/orderSyncEvents';
 
 export const KASIR_PUSH_CHANNEL = 'kasir-orders';
 const BACKGROUND_NOTIFICATION_TASK = 'KASIR_BACKGROUND_NOTIFICATION';
@@ -109,6 +110,16 @@ async function speakFromNotification(notification: Notifications.Notification): 
   if (!payload) {
     return;
   }
+
+  const data = (notification.request.content.data || {}) as PushData;
+  if (payload.type === 'kitchen_order' || payload.type === 'new_order' || payload.type === 'stock_out') {
+    const orderIdRaw = data.order_id;
+    emitOrderSyncEvent({
+      type: payload.type as OrderSyncType,
+      orderId: orderIdRaw != null && orderIdRaw !== '' ? Number(orderIdRaw) : null,
+    });
+  }
+
   if (!(await shouldSpeakPushType(payload.type))) {
     return;
   }
@@ -161,6 +172,13 @@ if (!TaskManager.isTaskDefined(BACKGROUND_NOTIFICATION_TASK)) {
           speakText,
           String(raw.order_id ?? (raw.type === 'kitchen_order' ? `kitchen-${speakText}` : speakText)),
         );
+        const syncType = (raw.type || 'new_order') as OrderSyncType;
+        if (syncType === 'kitchen_order' || syncType === 'new_order' || syncType === 'stock_out') {
+          emitOrderSyncEvent({
+            type: syncType,
+            orderId: raw.order_id != null && raw.order_id !== '' ? Number(raw.order_id) : null,
+          });
+        }
       }
     } catch {
       // Notifikasi sistem tetap tampil meski TTS background gagal
@@ -390,7 +408,7 @@ export function addKasirNotificationResponseListener(
 ): { remove: () => void } {
   return Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as PushData | undefined;
-    if (data?.type === 'new_order') {
+    if (data?.type === 'new_order' || data?.type === 'kitchen_order') {
       onNewOrder();
     }
   });

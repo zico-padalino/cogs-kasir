@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { kasirApi } from '@/api/kasir';
-import { announceKitchenOrders } from '@/dapur/kitchenAlert';
-import { takeNewKitchenIds } from '@/dapur/kitchenOrderTracker';
-
-const POLL_MS = 30_000;
+import { buildKitchenOrderAlert } from '@/dapur/kitchenAlert';
+import { seedKitchenIds, takeNewKitchenIds } from '@/dapur/kitchenOrderTracker';
+import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
 
 export type DapurOrderAlertState = {
   title: string;
@@ -13,9 +12,11 @@ export type DapurOrderAlertState = {
   pinLocked: boolean;
 };
 
-/** Poll antrian dapur + TTS nama menu. */
+/**
+ * Pull dapur on-demand: seed sekali + saat push kitchen_order.
+ * TTS dari push; hook ini toast + sync tracker (hindari dobel suara).
+ */
 export function useDapurOrderAlerts(enabled: boolean) {
-  const announcingRef = useRef(false);
   const [orderAlert, setOrderAlert] = useState<DapurOrderAlertState | null>(null);
 
   useEffect(() => {
@@ -23,16 +24,21 @@ export function useDapurOrderAlerts(enabled: boolean) {
       return;
     }
 
-    const poll = async () => {
+    const pull = async (opts?: { showToast?: boolean }) => {
       try {
         const res = await kasirApi.dapurPoll();
         const data = res.data;
         const orders = data.orders || [];
         const ids = (data.order_ids || []).map(Number);
         const notifyIds = (data.notify_order_ids || data.order_ids || []).map(Number);
-        const newIds = takeNewKitchenIds(ids, notifyIds);
 
-        if (newIds.length === 0 || announcingRef.current) {
+        if (!opts?.showToast) {
+          seedKitchenIds(ids);
+          return;
+        }
+
+        const newIds = takeNewKitchenIds(ids, notifyIds);
+        if (newIds.length === 0) {
           return;
         }
 
@@ -46,42 +52,38 @@ export function useDapurOrderAlerts(enabled: boolean) {
             ? Number(data.latest_order_id)
             : Math.max(...newIds);
         const pinLocked = !data.unlocked;
-
-        announcingRef.current = true;
-        try {
-          const alert = await announceKitchenOrders(newOrders);
-          if (alert) {
-            setOrderAlert({
-              title: alert.title,
-              message: pinLocked
-                ? `${alert.message} · Masukkan PIN untuk membuka.`
-                : alert.message,
-              orderId: Number.isFinite(newest) ? newest : null,
-              pinLocked,
-            });
-          }
-        } finally {
-          announcingRef.current = false;
-        }
+        const alert = buildKitchenOrderAlert(newOrders);
+        setOrderAlert({
+          title: alert.title,
+          message: pinLocked
+            ? `${alert.message} · Masukkan PIN untuk membuka.`
+            : alert.message,
+          orderId: Number.isFinite(newest) ? newest : null,
+          pinLocked,
+        });
       } catch {
-        // ignore — PIN / absensi ditangani layar lain
+        // ignore
       }
     };
 
-    void poll();
-    const timer = setInterval(() => {
-      void poll();
-    }, POLL_MS);
+    void pull({ showToast: false });
+
+    const unsub = onOrderSyncEvent((event) => {
+      if (event.type !== 'kitchen_order') {
+        return;
+      }
+      void pull({ showToast: true });
+    });
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
-        void poll();
+        void pull({ showToast: false });
       }
     };
     const sub = AppState.addEventListener('change', onAppState);
 
     return () => {
-      clearInterval(timer);
+      unsub();
       sub.remove();
     };
   }, [enabled]);

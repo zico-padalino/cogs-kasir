@@ -118,8 +118,20 @@ async function initKasirPush() {
                 },
             }),
         });
+
+        // Saat push masuk & tab terbuka → pull antrian sekali.
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event?.data?.type !== 'kasir-wake') {
+                return;
+            }
+            if (typeof window.__kasirPullPending === 'function') {
+                window.__kasirPullPending();
+            } else {
+                window.dispatchEvent(new CustomEvent('kasir:pull-pending'));
+            }
+        });
     } catch {
-        // Push opsional — polling tetap jalan saat tab terbuka.
+        // Push opsional — tanpa push, buka ulang tab / visibility tetap pull sekali.
     }
 }
 
@@ -127,4 +139,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(() => {
         initKasirPush();
     }, 1500);
+
+    // Listener global: push wake → pull sekalipun subscribe VAPID belum selesai.
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event?.data?.type !== 'kasir-wake') {
+                return;
+            }
+            if (typeof window.__kasirPullPending === 'function') {
+                window.__kasirPullPending();
+            } else {
+                window.dispatchEvent(new CustomEvent('kasir:pull-pending'));
+            }
+        });
+    }
 });

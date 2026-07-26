@@ -6,7 +6,7 @@ import { OrderToast } from '@/components/OrderToast';
 import { useDapurOrderAlerts } from '@/hooks/useDapurOrderAlerts';
 
 /**
- * Poll + TTS menu + toast di semua layar dapur, termasuk saat menunggu PIN.
+ * Toast + pull on-demand di semua layar dapur (TTS dari push).
  */
 export function DapurOrderAlertGuard({ children }: { children?: ReactNode }) {
   const { activeModule, user } = useAuth();

@@ -22,9 +22,7 @@ class KasirPushNotifier
         $body = "Atas nama {$customer}".($orderType ? " · {$orderType}" : '');
         $speakText = "Pesanan baru masuk, atas nama {$customer}.";
 
-        // Poll API kasir APK mati → jangan kirim FCM/Expo, tapi push web tetap hidup.
-        $toMobile = (bool) config('pos.notifications.kasir_poll_enabled', true);
-
+        // Push selalu (web + mobile) saat ada order — bukan bergantung poll berkala.
         $this->dispatch(
             title: $title,
             body: $body,
@@ -36,17 +34,13 @@ class KasirPushNotifier
                 'speak_text' => $speakText,
             ],
             wakeWeb: true,
-            toMobile: $toMobile,
+            toMobile: true,
         );
     }
 
     /** Notifikasi layar dapur — suara AI membacakan nama menu (makanan/snack saja). */
     public function notifyKitchenOrder(PosOrder $order): void
     {
-        if (! config('pos.notifications.dapur_poll_enabled', true)) {
-            return;
-        }
-
         $order->loadMissing(['items.product', 'table']);
 
         $categories = config('pos.kitchen_categories', ['makanan', 'snack']);
@@ -136,7 +130,7 @@ class KasirPushNotifier
                 'speak_text' => $speakText,
             ],
             wakeWeb: true,
-            toMobile: (bool) config('pos.notifications.kasir_poll_enabled', true),
+            toMobile: true,
         );
     }
 

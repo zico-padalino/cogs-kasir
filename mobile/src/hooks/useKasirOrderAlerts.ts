@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { kasirApi } from '@/api/kasir';
 import { announceNewOrders } from '@/kasir/orderAlert';
-import { takeNewPendingIds } from '@/kasir/pendingOrderTracker';
-
-const POLL_MS = 30_000;
+import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
+import { seedPendingIds, takeNewPendingIds } from '@/kasir/pendingOrderTracker';
 
 export type KasirOrderAlertState = {
   title: string;
@@ -13,7 +12,10 @@ export type KasirOrderAlertState = {
   pinLocked: boolean;
 };
 
-/** Poll pesanan + TTS — aman dipanggil di PIN maupun layar kasir lain. */
+/**
+ * Pull kasir on-demand: seed sekali + saat push new_order.
+ * Interval hanya jika server kasir_poll_enabled=true.
+ */
 export function useKasirOrderAlerts(enabled: boolean) {
   const announcingRef = useRef(false);
   const [orderAlert, setOrderAlert] = useState<KasirOrderAlertState | null>(null);
@@ -23,15 +25,24 @@ export function useKasirOrderAlerts(enabled: boolean) {
       return;
     }
 
-    const poll = async () => {
+    let continuous = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const pull = async (opts?: { announceNew?: boolean }) => {
       try {
         const res = await kasirApi.poll();
         const data = res.data;
+        continuous = !!data.kasir_poll_enabled;
         const orders = data.orders || [];
         const ids = (data.order_ids || []).map(Number);
         const notifyIds = (data.notify_order_ids || data.order_ids || []).map(Number);
-        const newIds = takeNewPendingIds(ids, notifyIds);
 
+        if (!opts?.announceNew) {
+          seedPendingIds(ids);
+          return;
+        }
+
+        const newIds = takeNewPendingIds(ids, notifyIds);
         if (newIds.length === 0 || announcingRef.current) {
           return;
         }
@@ -66,25 +77,39 @@ export function useKasirOrderAlerts(enabled: boolean) {
           announcingRef.current = false;
         }
       } catch {
-        // ignore — PIN / absensi ditangani layar lain
+        // ignore
       }
     };
 
-    void poll();
-    const timer = setInterval(() => {
-      void poll();
-    }, POLL_MS);
+    void (async () => {
+      await pull({ announceNew: false });
+      if (continuous && !timer) {
+        timer = setInterval(() => {
+          void pull({ announceNew: true });
+        }, 60_000);
+      }
+    })();
+
+    const unsub = onOrderSyncEvent((event) => {
+      if (event.type !== 'new_order' && event.type !== 'stock_out') {
+        return;
+      }
+      void pull({ announceNew: true });
+    });
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
-        void poll();
+        void pull({ announceNew: false });
       }
     };
     const sub = AppState.addEventListener('change', onAppState);
 
     return () => {
-      clearInterval(timer);
+      unsub();
       sub.remove();
+      if (timer) {
+        clearInterval(timer);
+      }
     };
   }, [enabled]);
 

@@ -29,6 +29,7 @@ import {
   useSidebarLayout,
 } from '@/components/AppScaffold';
 import { consumePendingOpenOrderId, seedPendingIds } from '@/kasir/pendingOrderTracker';
+import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
 
@@ -72,7 +73,8 @@ export default function KasirPosScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [pending, setPending] = useState<PosOrder[]>([]);
   const [shopName, setShopName] = useState('Kasir');
-  const [pollMs, setPollMs] = useState(30000);
+  const [pollMs, setPollMs] = useState(60000);
+  const [continuousPoll, setContinuousPoll] = useState(false);
 
   const [addProduct, setAddProduct] = useState<MenuProduct | null>(null);
   const [qty, setQty] = useState(1);
@@ -130,7 +132,8 @@ export default function KasirPosScreen() {
       applyOrder(data.order);
       setPending(data.pending_orders || []);
       setShopName(data.shop_name);
-      setPollMs(Math.max(20, data.poll_interval_seconds || 30) * 1000);
+      setPollMs(Math.max(30, data.poll_interval_seconds || 60) * 1000);
+      setContinuousPoll(!!data.kasir_poll_enabled);
       setPin(data.pin);
       // Seed agar pesanan lama tidak dibunyikan saat buka POS.
       seedPendingIds((data.pending_orders || []).map((o) => o.id));
@@ -161,7 +164,7 @@ export default function KasirPosScreen() {
   );
 
   useEffect(() => {
-    const timer = setInterval(async () => {
+    const syncPending = async () => {
       try {
         const res = await kasirApi.poll();
         const data = res.data;
@@ -176,19 +179,38 @@ export default function KasirPosScreen() {
           router.replace('/kasir/pin' as never);
           return;
         }
-
-        // TTS/toast di KasirOrderAlertGuard (termasuk saat layar PIN).
         setPending(data.orders || []);
+        if (typeof data.kasir_poll_enabled === 'boolean') {
+          setContinuousPoll(data.kasir_poll_enabled);
+        }
       } catch (err) {
         const apiErr = asApiError(err);
         if (apiErr.status === 423) {
           router.replace('/kasir/pin' as never);
         }
       }
-    }, pollMs);
+    };
 
-    return () => clearInterval(timer);
-  }, [pollMs, router, setPin]);
+    const unsub = onOrderSyncEvent((event) => {
+      if (event.type === 'new_order' || event.type === 'stock_out') {
+        void syncPending();
+      }
+    });
+
+    let timer: ReturnType<typeof setInterval> | null = null;
+    if (continuousPoll) {
+      timer = setInterval(() => {
+        void syncPending();
+      }, pollMs);
+    }
+
+    return () => {
+      unsub();
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [continuousPoll, pollMs, router, setPin]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();

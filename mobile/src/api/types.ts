@@ -113,6 +113,8 @@ export type PosBootstrap = {
   pending_orders: PosOrder[];
   shop_name: string;
   poll_interval_seconds: number;
+  kasir_poll_enabled?: boolean;
+  dapur_poll_enabled?: boolean;
   auto_load_new_order: boolean;
   pin: PinStatus;
 };

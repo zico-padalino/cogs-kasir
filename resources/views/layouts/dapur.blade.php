@@ -14,7 +14,8 @@
     class="kds-body min-h-screen font-sans text-slate-900 antialiased"
     data-dapur-board
     data-dapur-poll-url="{{ route('kasir.dapur.poll') }}"
-    data-dapur-poll-interval="{{ $pollInterval ?? config('pos.notifications.poll_interval_seconds', 30) }}"
+    data-dapur-poll-interval="{{ $pollInterval ?? config('pos.notifications.poll_interval_seconds', 60) }}"
+    data-dapur-continuous-poll="{{ config('pos.notifications.dapur_poll_enabled', false) ? '1' : '0' }}"
     data-dapur-fingerprint="{{ $kitchenFingerprint ?? '' }}"
     data-kasir-pin-status-url="{{ route('kasir.pin.status') }}"
     data-kasir-pin-touch-url="{{ route('kasir.pin.touch') }}"

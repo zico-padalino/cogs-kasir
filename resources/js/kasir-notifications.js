@@ -535,7 +535,8 @@ function initKasirNotifications() {
     }
 
     const pollUrl = shell.dataset.kasirPollUrl;
-    let intervalSeconds = Math.max(20, parseInt(shell.dataset.kasirPollInterval || '30', 10));
+    let intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
+    const continuousPoll = shell.dataset.kasirContinuousPoll === '1';
     const pinPollOnly = isPinPollOnly(shell);
     let pollTimer = null;
     let pollInFlight = false;
@@ -547,6 +548,7 @@ function initKasirNotifications() {
         initKasirIdlePinGuard(shell);
         observeKasirTransactionState();
 
+        // Pin status jarang saja — activity/visibility sudah menyentuh PIN.
         if (pinStatusTimer) {
             window.clearInterval(pinStatusTimer);
         }
@@ -555,7 +557,7 @@ function initKasirNotifications() {
                 return;
             }
             pollPinStatus(shell);
-        }, 30_000);
+        }, continuousPoll ? 60_000 : 120_000);
     }
 
     if (! pollUrl) {
@@ -563,6 +565,9 @@ function initKasirNotifications() {
     }
 
     const schedulePoll = () => {
+        if (! continuousPoll) {
+            return;
+        }
         if (pollTimer) {
             window.clearTimeout(pollTimer);
         }
@@ -583,7 +588,7 @@ function initKasirNotifications() {
         pollInFlight = true;
         pollPendingOrders(pollUrl, shell)
             .then(() => {
-                intervalSeconds = Math.max(20, parseInt(shell.dataset.kasirPollInterval || '30', 10));
+                intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
             })
             .catch((err) => {
                 const status = err?.status;
@@ -597,17 +602,46 @@ function initKasirNotifications() {
             });
     };
 
-    runPoll();
+    /** Pull sekali — dipanggil saat web push / tab fokus. */
+    const pullOnce = () => {
+        if (isHandlingNewOrder || pollInFlight) {
+            return;
+        }
+        if (document.visibilityState === 'hidden') {
+            return;
+        }
+        pollInFlight = true;
+        pollPendingOrders(pollUrl, shell)
+            .catch(() => {})
+            .finally(() => {
+                pollInFlight = false;
+            });
+    };
+
+    window.__kasirPullPending = pullOnce;
+
+    // Seed antrian sekali saat buka kasir (bukan loop kecuali continuous poll ON).
+    if (continuousPoll) {
+        runPoll();
+    } else {
+        pullOnce();
+    }
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && ! isHandlingNewOrder) {
-            intervalSeconds = Math.max(20, parseInt(shell.dataset.kasirPollInterval || '30', 10));
-            runPoll();
+            if (continuousPoll) {
+                intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
+                runPoll();
+            } else {
+                pullOnce();
+            }
             if (! pinPollOnly) {
                 pollPinStatus(shell);
             }
         }
     });
+
+    window.addEventListener('kasir:pull-pending', pullOnce);
 }
 
 document.addEventListener('DOMContentLoaded', initKasirNotifications);

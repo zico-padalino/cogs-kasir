@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  type AppStateStatus,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,6 +17,7 @@ import type { OrderItem, PosOrder } from '@/api/types';
 import { reportApiError, useAuth } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
 import { seedKitchenIds } from '@/dapur/kitchenOrderTracker';
+import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
 import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 
 function formatQty(qty: number): string {
@@ -105,10 +108,22 @@ export default function DapurBoardScreen() {
 
   useEffect(() => {
     void load();
-    const timer = setInterval(() => {
-      void load({ soft: true });
-    }, 30000);
-    return () => clearInterval(timer);
+    // Board di-refresh saat push kitchen_order / app aktif / pull manual — bukan tiap 30 dtk.
+    const unsub = onOrderSyncEvent((event) => {
+      if (event.type === 'kitchen_order') {
+        void load({ soft: true });
+      }
+    });
+    const onAppState = (state: AppStateStatus) => {
+      if (state === 'active') {
+        void load({ soft: true });
+      }
+    };
+    const sub = AppState.addEventListener('change', onAppState);
+    return () => {
+      unsub();
+      sub.remove();
+    };
   }, [load]);
 
   useEffect(() => {
