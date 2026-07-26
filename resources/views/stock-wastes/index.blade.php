@@ -143,6 +143,7 @@
                             <th>Qty</th>
                             <th>Alasan</th>
                             <th>Nilai</th>
+                            <th>Dicatat oleh</th>
                             <th>Catatan</th>
                         </tr>
                     </thead>
@@ -161,11 +162,12 @@
                                 <td>{{ number_format((float) $waste->quantity, 2) }} {{ $waste->product?->unit }}</td>
                                 <td><span class="badge-amber">{{ $waste->reasonLabel() }}</span></td>
                                 <td>{{ $format::rupiah($waste->total_cost) }}</td>
+                                <td class="text-xs font-medium text-slate-700">{{ $waste->user?->name ?? 'Sistem' }}</td>
                                 <td class="text-xs text-slate-500">{{ $waste->note ?: '—' }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-8 text-center text-sm text-slate-500">Belum ada pencatatan.</td>
+                                <td colspan="7" class="py-8 text-center text-sm text-slate-500">Belum ada pencatatan.</td>
                             </tr>
                         @endforelse
                     </tbody>
