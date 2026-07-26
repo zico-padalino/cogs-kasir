@@ -12,7 +12,19 @@
       "distribution": "internal",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://kedaitjoan.online/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://kedaitjoan.online/api/v1",
+        "EXPO_PUBLIC_APP_MODULE": "kasir"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-dapur": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://kedaitjoan.online/api/v1",
+        "EXPO_PUBLIC_APP_MODULE": "dapur"
       },
       "android": {
         "buildType": "apk"

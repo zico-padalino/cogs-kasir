@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi, pinApi } from '@/api/kasir';
 import { ROLE_META, useAuth, type Role } from '@/auth';
+import { isDapurOnlyApp } from '@/config/appModule';
 import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
@@ -46,7 +47,7 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   dapur: [
     { label: 'Antrian Dapur', icon: '🍳', route: '/dapur' },
-    { label: 'Ke Kasir', icon: '🛒', route: '/kasir' },
+    ...(isDapurOnlyApp() ? [] : [{ label: 'Ke Kasir', icon: '🛒', route: '/kasir' }]),
   ],
 };
 
@@ -158,6 +159,9 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
       return;
     }
     if (route === '/kasir' && moduleType === 'dapur') {
+      if (isDapurOnlyApp()) {
+        return;
+      }
       void switchModule('kasir').then(() => {
         router.replace('/kasir' as never);
       });
@@ -169,7 +173,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
   };
 
   const handleSwitchModule = () => {
-    if (!user) return;
+    if (!user || isDapurOnlyApp()) return;
     const options: Role[] = [];
     if (moduleType !== 'kasir' && user.has_kasir) options.push('kasir');
     if (moduleType !== 'dapur' && user.has_kasir) options.push('dapur');
@@ -193,7 +197,7 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
 
   const handleLock = () => {
     onNavigate?.();
-    Alert.alert('Kunci Kasir', 'Kunci sesi PIN sekarang?', [
+    Alert.alert(moduleType === 'dapur' ? 'Kunci Dapur' : 'Kunci Kasir', 'Kunci sesi PIN sekarang?', [
       { text: 'Batal', style: 'cancel' },
       {
         text: 'Kunci',
@@ -221,7 +225,8 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
   const operatorName = pin?.operator_name || user?.name || 'Pengguna';
   const hasOperatorPin = Boolean(pin?.operator_name);
   const canSwitchModule = Boolean(
-    user &&
+    !isDapurOnlyApp() &&
+      user &&
       ((user.has_kasir && user.has_cogs) ||
         (user.has_kasir && (moduleType === 'kasir' || moduleType === 'dapur' || moduleType === 'cogs'))),
   );
@@ -324,7 +329,9 @@ function SidebarBody({ moduleType, onNavigate, onCollapse, showCollapse, compact
 
         {moduleType === 'kasir' || moduleType === 'dapur' ? (
           <Pressable onPress={handleLock} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>🔒  Kunci Kasir</Text>
+            <Text style={styles.logoutText}>
+              {moduleType === 'dapur' ? '🔒  Kunci Dapur' : '🔒  Kunci Kasir'}
+            </Text>
           </Pressable>
         ) : null}
 

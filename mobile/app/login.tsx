@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authApi } from '@/api/kasir';
 import { asApiError, useAuth } from '@/auth';
+import { isDapurOnlyApp } from '@/config/appModule';
 import { colors, font, fontDisplay, radius, spacing } from '@/theme';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
 
@@ -29,7 +30,9 @@ export default function LoginScreen() {
 
   const [shop, setShop] = useState<ShopInfo>({
     name: 'Coffee & Kitchen',
-    title: 'Masuk untuk mengelola toko Anda',
+    title: isDapurOnlyApp()
+      ? 'Masuk ke aplikasi dapur'
+      : 'Masuk untuk mengelola toko Anda',
     logo_url: null,
     initial: 'C',
   });
@@ -46,7 +49,9 @@ export default function LoginScreen() {
       .then((res) => {
         setShop({
           name: res.data.name || 'Coffee & Kitchen',
-          title: res.data.title || 'Masuk untuk mengelola toko Anda',
+          title: isDapurOnlyApp()
+            ? 'Masuk ke aplikasi dapur'
+            : res.data.title || 'Masuk untuk mengelola toko Anda',
           logo_url: resolveMediaUrl(res.data.logo_url),
           initial: res.data.initial || (res.data.name?.[0] || 'C').toUpperCase(),
         });

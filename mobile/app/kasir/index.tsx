@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  DevSettings,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -116,6 +117,26 @@ export default function KasirPosScreen() {
     }
     if (apiErr.code === 'ATTENDANCE_REQUIRED') {
       Alert.alert('Absensi diperlukan', apiErr.message);
+      return;
+    }
+    if (apiErr.status === 503 || apiErr.status === 429 || apiErr.status === 508) {
+      Alert.alert(
+        'Server sedang sibuk',
+        'Koneksi penuh sementara. Tunggu sebentar, lalu muat ulang.',
+        [
+          { text: 'Tutup', style: 'cancel' },
+          {
+            text: 'Muat ulang',
+            onPress: () => {
+              try {
+                DevSettings.reload();
+              } catch {
+                // ignore
+              }
+            },
+          },
+        ],
+      );
       return;
     }
     Alert.alert('Gagal', apiErr.message || 'Terjadi kesalahan.');

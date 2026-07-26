@@ -19,6 +19,7 @@ import { DapurOrderAlertGuard } from '@/components/DapurOrderAlertGuard';
 import { KasirOrderAlertGuard } from '@/components/KasirOrderAlertGuard';
 import { KasirPinSessionGuard } from '@/components/KasirPinSessionGuard';
 import { KasirPushKeepAlive } from '@/components/KasirPushKeepAlive';
+import { isDapurOnlyApp } from '@/config/appModule';
 import { warmupOrderSpeech } from '@/kasir/orderAlert';
 import {
   addKasirNotificationResponseListener,
@@ -98,7 +99,15 @@ function RootNavigator() {
       if (first === 'kasir' && second === 'pin') {
         return;
       }
-      if (first === 'kasir' && second !== 'ubah-pin' && second !== 'attendance') {
+      if (first === 'kasir' && (second === 'ubah-pin' || second === 'attendance')) {
+        return;
+      }
+      if (first === 'kasir') {
+        // APK dapur: jangan izinkan masuk POS kasir.
+        if (isDapurOnlyApp()) {
+          router.replace((pin?.unlocked ? '/dapur' : '/kasir/pin') as never);
+          return;
+        }
         // dari dapur ke kasir via menu "Ke Kasir" sudah switchModule; biarkan.
         return;
       }

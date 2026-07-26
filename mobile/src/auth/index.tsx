@@ -7,11 +7,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Alert } from 'react-native';
+import { Alert, DevSettings } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '@/api/kasir';
 import { getToken, isPinSessionError, setPinLockedListener, setToken } from '@/api/client';
 import type { ApiError, AuthUser, PinStatus } from '@/api/types';
+import { isDapurOnlyApp } from '@/config/appModule';
 import { resetPendingTracker } from '@/kasir/pendingOrderTracker';
 import { resetKitchenTracker } from '@/dapur/kitchenOrderTracker';
 import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNotifications';
@@ -54,8 +55,14 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Mirror web preferredLoginModule: kasir > cogs. */
+/** Mirror web preferredLoginModule: kasir > cogs. APK dapur → selalu dapur. */
 function preferredModule(user: AuthUser): Role {
+  if (isDapurOnlyApp()) {
+    if (!user.has_kasir) {
+      throw new Error('Akun ini tidak punya akses dapur/kasir.');
+    }
+    return 'dapur';
+  }
   if (user.has_kasir) {
     return 'kasir';
   }
@@ -66,6 +73,12 @@ function preferredModule(user: AuthUser): Role {
 }
 
 function resolveActiveModule(user: AuthUser, preferred?: Role | null): Role {
+  if (isDapurOnlyApp()) {
+    if (!user.has_kasir) {
+      return preferredModule(user);
+    }
+    return 'dapur';
+  }
   if (preferred === 'dapur' && user.has_kasir) {
     return 'dapur';
   }
@@ -187,6 +200,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const switchModule = useCallback(
     async (module: Role) => {
       if (!user) return;
+      if (isDapurOnlyApp() && module !== 'dapur') {
+        return;
+      }
       const next = resolveActiveModule(user, module);
       // Backend hanya kenal kasir/cogs/admin — dapur = akses kasir di sisi server.
       const apiModule = next === 'dapur' ? 'kasir' : next;
@@ -239,5 +255,26 @@ export function reportApiError(err: unknown, title = 'Gagal'): void {
   if (isPinSessionError(err)) {
     return;
   }
-  Alert.alert(title, asApiError(err).message || 'Terjadi kesalahan.');
+  const apiErr = asApiError(err);
+  if (apiErr.status === 503 || apiErr.status === 429 || apiErr.status === 508) {
+    Alert.alert(
+      'Server sedang sibuk',
+      'Koneksi penuh sementara. Tunggu sebentar, lalu muat ulang.',
+      [
+        { text: 'Tutup', style: 'cancel' },
+        {
+          text: 'Muat ulang',
+          onPress: () => {
+            try {
+              DevSettings.reload();
+            } catch {
+              // ignore
+            }
+          },
+        },
+      ],
+    );
+    return;
+  }
+  Alert.alert(title, apiErr.message || 'Terjadi kesalahan.');
 }
