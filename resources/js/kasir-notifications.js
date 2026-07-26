@@ -347,7 +347,8 @@ let pinExpiryTimer = null;
 let pinStatusTimer = null;
 let pinTouchInFlight = false;
 let lastPinTouchAt = 0;
-const PIN_TOUCH_THROTTLE_MS = 15_000;
+/** Hemat EP: touch server jarang; expiry lokal yang utama. */
+const PIN_TOUCH_THROTTLE_MS = 120_000;
 
 function syncPinExpiryFromPayload(shell, data) {
     if (! data || typeof data.remaining_seconds !== 'number') {
@@ -544,20 +545,15 @@ function initKasirNotifications() {
     if (! pinPollOnly) {
         openCartTabFromQuery();
         schedulePinExpiryRedirect(shell);
+        // Satu sync saat buka halaman — tanpa interval berkala (hemat EP/NPROC).
         pollPinStatus(shell);
         initKasirIdlePinGuard(shell);
         observeKasirTransactionState();
 
-        // Pin status jarang saja — activity/visibility sudah menyentuh PIN.
         if (pinStatusTimer) {
             window.clearInterval(pinStatusTimer);
+            pinStatusTimer = null;
         }
-        pinStatusTimer = window.setInterval(() => {
-            if (document.visibilityState === 'hidden') {
-                return;
-            }
-            pollPinStatus(shell);
-        }, continuousPoll ? 90_000 : 180_000);
     }
 
     if (! pollUrl) {

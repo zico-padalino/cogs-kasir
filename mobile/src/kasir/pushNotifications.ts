@@ -11,6 +11,9 @@ import { emitOrderSyncEvent, type OrderSyncType } from '@/kasir/orderSyncEvents'
 export const KASIR_PUSH_CHANNEL = 'kasir-orders';
 const BACKGROUND_NOTIFICATION_TASK = 'KASIR_BACKGROUND_NOTIFICATION';
 const STORED_PUSH_TOKEN_KEY = 'kasir_expo_push_token_v1';
+const STORED_PUSH_REGISTERED_AT_KEY = 'kasir_expo_push_registered_at_v1';
+/** Jangan POST token ke server lebih sering dari ini (kecuali token berubah). */
+const PUSH_REGISTER_MIN_INTERVAL_MS = 12 * 60 * 60 * 1000;
 const PERMISSION_DENIED_KEY = 'kasir_push_permission_denied_v1';
 
 type PushData = {
@@ -354,6 +357,24 @@ export async function registerKasirPushToken(): Promise<string | null> {
 
     await persistLocalToken(token);
 
+    // Skip POST jika token sama & baru didaftarkan (hemat hit server).
+    try {
+      const [registeredAtRaw, lastPosted] = await AsyncStorage.multiGet([
+        STORED_PUSH_REGISTERED_AT_KEY,
+        `${STORED_PUSH_TOKEN_KEY}_posted`,
+      ]);
+      const registeredAt = registeredAtRaw[1] ? Number(registeredAtRaw[1]) : 0;
+      if (
+        lastPosted[1] === token &&
+        Number.isFinite(registeredAt) &&
+        Date.now() - registeredAt < PUSH_REGISTER_MIN_INTERVAL_MS
+      ) {
+        return token;
+      }
+    } catch {
+      // lanjut daftar
+    }
+
     // Retry singkat: jaringan / server kadang gagal sekali.
     let lastError: unknown = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -368,6 +389,10 @@ export async function registerKasirPushToken(): Promise<string | null> {
           },
         });
         lastError = null;
+        await AsyncStorage.multiSet([
+          [STORED_PUSH_REGISTERED_AT_KEY, String(Date.now())],
+          [`${STORED_PUSH_TOKEN_KEY}_posted`, token],
+        ]);
         break;
       } catch (err) {
         lastError = err;

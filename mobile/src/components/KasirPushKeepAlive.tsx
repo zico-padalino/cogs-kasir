@@ -13,7 +13,7 @@ import { registerKasirPushToken, unregisterKasirPushToken } from '@/kasir/pushNo
 
 /**
  * Setelah login kasir/dapur:
- * - daftar FCM/Expo push token
+ * - daftar FCM/Expo push token (throttle di registerKasirPushToken)
  * - jalankan Mode Dengar (foreground) sesuai modul aktif
  */
 export function KasirPushKeepAlive() {
@@ -56,18 +56,14 @@ export function KasirPushKeepAlive() {
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
+        // Hanya pastikan listen mode hidup; register token sudah di-throttle.
         void boot();
       }
     };
     const sub = AppState.addEventListener('change', onAppState);
 
-    const timer = setInterval(() => {
-      void boot();
-    }, 6 * 60 * 60 * 1000);
-
     return () => {
       sub.remove();
-      clearInterval(timer);
     };
   }, [hasKasir, loading, user?.id, activeModule]);
 

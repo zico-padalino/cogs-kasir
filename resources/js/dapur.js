@@ -155,6 +155,10 @@ async function toggleItem(button) {
         const payload = await res.json();
         const status = payload?.data?.status;
         lastLocalEditAt = Date.now();
+        const board = document.querySelector('[data-dapur-board]');
+        if (board) {
+            void touchPin(board);
+        }
 
         // Paid + semua item ceklis → order jadi served; hapus tiket dari papan.
         if (status === 'served') {
@@ -284,7 +288,7 @@ function initDapurBoard() {
             return;
         }
         await pollBoard(root);
-        await touchPin(root);
+        // Tidak touch PIN di setiap pull — hanya saat aksi user (ceklis).
     };
 
     const schedule = () => {
@@ -304,7 +308,7 @@ function initDapurBoard() {
         }
 
         await pollBoard(root);
-        await touchPin(root);
+        // Touch PIN hanya pada aksi user, bukan tiap poll.
 
         if (root.dataset.dapurLastPollOk === '0') {
             intervalSec = Math.min(120, Math.round(intervalSec * 2));

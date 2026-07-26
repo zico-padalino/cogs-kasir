@@ -354,11 +354,13 @@ function initOrderKasirConfirmation() {
     }
 
     const initialStatus = section.dataset.orderInitialStatus || '';
-    // Shared hosting: poll status jarang — kurangi EP/NPROC (503).
+    // Shared hosting: poll jarang + stop otomatis agar tidak mengisi EP.
     const baseIntervalSec = Math.max(
-        90,
-        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 90),
+        180,
+        Number(section.dataset.orderPollInterval || document.body?.dataset?.orderPollInterval || 180),
     );
+    const maxPollMs = 15 * 60 * 1000; // stop setelah 15 menit
+    const startedAt = Date.now();
     let intervalSec = baseIntervalSec;
     let inFlight = false;
     let timer = null;
@@ -379,6 +381,10 @@ function initOrderKasirConfirmation() {
         if (inFlight || stopped) {
             return;
         }
+        if (Date.now() - startedAt > maxPollMs) {
+            stopped = true;
+            return;
+        }
         inFlight = true;
 
         try {
@@ -391,7 +397,7 @@ function initOrderKasirConfirmation() {
 
             if (response.status === 503 || response.status === 429 || response.status === 508 || ! response.ok) {
                 failStreak += 1;
-                intervalSec = Math.min(240, Math.round(intervalSec * 2));
+                intervalSec = Math.min(300, Math.round(intervalSec * 2));
                 if (failStreak >= 2 && typeof window.showServerBusy === 'function') {
                     window.showServerBusy({
                         force: true,
@@ -411,7 +417,7 @@ function initOrderKasirConfirmation() {
             }
         } catch {
             failStreak += 1;
-            intervalSec = Math.min(240, Math.round(intervalSec * 2));
+            intervalSec = Math.min(300, Math.round(intervalSec * 2));
             if (failStreak >= 2 && typeof window.showServerBusy === 'function') {
                 window.showServerBusy({
                     force: true,

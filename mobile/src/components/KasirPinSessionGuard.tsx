@@ -4,21 +4,20 @@ import { usePathname, useRouter } from 'expo-router';
 import { pinApi } from '@/api/kasir';
 import { useAuth } from '@/auth';
 
-const TOUCH_THROTTLE_MS = 15_000;
+/** Hemat EP: touch server jarang; timer idle lokal yang utama. */
+const TOUCH_THROTTLE_MS = 120_000;
 
 /**
- * Mirror web kasir-notifications.js:
- * - poll /kasir/pin/status
- * - jika unlocked=false / remaining <= 0 → halaman PIN
- * - schedule redirect saat sisa waktu habis
- * - sentuhan layar / aktivitas → pin/touch (reset idle timer)
+ * Sesi PIN kasir (bukan dapur):
+ * - timer lokal dari remaining_seconds (tanpa poll /pin/status berkala)
+ * - sync status hanya saat app kembali aktif
+ * - sentuhan → pin/touch jarang (throttle 2 menit)
  */
 export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
   const { activeModule, pin, setPin, lockPinSession } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const expiryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchInFlight = useRef(false);
   const lastTouchAt = useRef(0);
   const ttlMinutes = useRef(20);
@@ -152,11 +151,7 @@ export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
       }
     };
 
-    void syncStatus();
-    pollTimer.current = setInterval(() => {
-      void syncStatus();
-    }, 90_000);
-
+    // Tanpa interval — hanya saat app kembali ke foreground.
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
         void syncStatus();
@@ -165,10 +160,6 @@ export function KasirPinSessionGuard({ children }: { children?: ReactNode }) {
     const sub = AppState.addEventListener('change', onAppState);
 
     return () => {
-      if (pollTimer.current) {
-        clearInterval(pollTimer.current);
-        pollTimer.current = null;
-      }
       sub.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
