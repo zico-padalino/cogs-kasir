@@ -12,8 +12,7 @@
     "build:apk": "eas build --platform android --profile preview",
     "build:apk:dapur": "eas build --platform android --profile preview-dapur",
     "build:aab": "eas build --platform android --profile production",
-    "build:apk:local": "expo prebuild --platform android --clean && cd android && .\\gradlew.bat assembleRelease",
-    "build:apk:dapur:local": "expo prebuild --platform android --clean && cd android && .\\gradlew.bat assembleRelease"
+    "build:apk:local": "expo prebuild --platform android --clean && cd android && .\\gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
