@@ -73,7 +73,9 @@ export function KasirPushKeepAlive() {
 
     const onAppState = (state: AppStateStatus) => {
       if (state === 'active') {
-        // Jangan stop+start ulang — hanya pastikan masih hidup.
+        // Segarkan registrasi token sekali saat app dibuka, lalu pastikan
+        // mode dengar masih hidup. Tidak ada polling endpoint pesanan.
+        void registerKasirPushToken();
         void ensureListenMode();
       }
     };

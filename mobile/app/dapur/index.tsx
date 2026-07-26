@@ -100,7 +100,7 @@ export default function DapurBoardScreen() {
 
   useEffect(() => {
     void load();
-    // Board di-refresh saat push kitchen_order / app aktif / pull manual — bukan tiap 30 dtk.
+    // Push kitchen_order memicu satu kali pull; app aktif juga sinkron satu kali.
     const unsub = onOrderSyncEvent((event) => {
       if (event.type === 'kitchen_order') {
         void load({ soft: true });
@@ -112,6 +112,7 @@ export default function DapurBoardScreen() {
       }
     };
     const sub = AppState.addEventListener('change', onAppState);
+
     return () => {
       unsub();
       sub.remove();
