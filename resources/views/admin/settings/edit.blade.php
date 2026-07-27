@@ -92,7 +92,7 @@
                 <p class="form-label">Siapa yang wajib absen</p>
                 <p class="mb-2 text-xs text-slate-500">
                     Centang dari Data Karyawan. Pegawai tanpa akun login tetap bisa dipilih dan muncul di scan QR.
-                    Buat nama baru di menu Data Karyawan jika belum ada.
+                    Akun root tidak ditampilkan. Buat nama baru di menu Data Karyawan jika belum ada.
                 </p>
                 <div class="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
                     @forelse ($employees as $employee)

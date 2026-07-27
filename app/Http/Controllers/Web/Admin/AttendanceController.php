@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\AttendanceStatus;
-use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeAttendance;
@@ -82,7 +81,7 @@ class AttendanceController extends Controller
             $requiredIds = $attendanceService->requiredEmployeeIds();
 
             $missingQuery = Employee::query()
-                ->where('status', EmployeeStatus::Active)
+                ->forAttendance()
                 ->whereNotIn('id', $presentIds)
                 ->orderBy('name');
 
@@ -106,7 +105,7 @@ class AttendanceController extends Controller
             'missingToday' => $missingToday,
             'settings' => $settings,
             'shopName' => ShopSettings::get('shop_name', config('pos.shop_name')),
-            'employees' => Employee::query()->where('status', EmployeeStatus::Active)->orderBy('name')->get(),
+            'employees' => Employee::query()->forAttendance()->orderBy('name')->get(),
             'statuses' => AttendanceStatus::cases(),
         ]);
     }
@@ -121,6 +120,13 @@ class AttendanceController extends Controller
             'status' => ['required', 'in:hadir,izin,sakit,alpha,cuti'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $employee = Employee::query()->forAttendance()->find($validated['employee_id']);
+        if (! $employee) {
+            return back()->withInput()->withErrors([
+                'employee_id' => 'Pegawai tidak ditemukan atau tidak boleh dicatat absen.',
+            ]);
+        }
 
         EmployeeAttendance::query()->updateOrCreate(
             [

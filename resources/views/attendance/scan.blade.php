@@ -70,7 +70,7 @@
                             data-action="{{ $row['action'] }}"
                             @selected((string) old('employee_id') === (string) $row['id'])
                         >
-                            {{ $row['name'] }} ({{ $row['code'] }})
+                            {{ $row['name'] }}
                         </option>
                     @endforeach
                 </select>

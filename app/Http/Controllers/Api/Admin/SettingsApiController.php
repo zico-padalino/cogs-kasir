@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
@@ -22,8 +21,8 @@ class SettingsApiController extends Controller
                 'settings' => $settings,
                 'logo_url' => ShopSettings::logoUrl(),
                 'employees' => Employee::query()
-                    ->with('user:id,name,email')
-                    ->where('status', EmployeeStatus::Active)
+                    ->with('user:id,name,email,is_root')
+                    ->forAttendance()
                     ->orderBy('name')
                     ->get(),
                 'required_employee_ids' => $attendanceService->requiredEmployeeIds(),
@@ -69,6 +68,13 @@ class SettingsApiController extends Controller
             ->filter(fn (int $id) => $id > 0)
             ->unique()
             ->values()
+            ->all();
+
+        $requiredEmployeeIds = Employee::query()
+            ->forAttendance()
+            ->whereIn('id', $requiredEmployeeIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
             ->all();
 
         $linkedUserIds = Employee::query()

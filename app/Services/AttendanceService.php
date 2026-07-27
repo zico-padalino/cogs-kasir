@@ -141,20 +141,13 @@ class AttendanceService
     public function requiredEmployees(): array
     {
         $ids = $this->requiredEmployeeIds();
-        if ($ids === []) {
-            return Employee::query()
-                ->where('status', EmployeeStatus::Active)
-                ->orderBy('name')
-                ->get()
-                ->all();
+        $query = Employee::query()->forAttendance()->orderBy('name');
+
+        if ($ids !== []) {
+            $query->whereIn('id', $ids);
         }
 
-        return Employee::query()
-            ->whereIn('id', $ids)
-            ->where('status', EmployeeStatus::Active)
-            ->orderBy('name')
-            ->get()
-            ->all();
+        return $query->get()->all();
     }
 
     public function needsProfileSetup(User $user): bool
@@ -374,9 +367,7 @@ class AttendanceService
     {
         $requiredIds = $this->requiredEmployeeIds();
 
-        $query = Employee::query()
-            ->where('status', EmployeeStatus::Active)
-            ->orderBy('name');
+        $query = Employee::query()->forAttendance()->orderBy('name');
 
         if ($requiredIds !== []) {
             $query->whereIn('id', $requiredIds);

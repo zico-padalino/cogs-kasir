@@ -21,8 +21,8 @@ class SettingsController extends Controller
             'settings' => $settings,
             'logoUrl' => ShopSettings::logoUrl(),
             'employees' => Employee::query()
-                ->with('user:id,name,email')
-                ->where('status', EmployeeStatus::Active)
+                ->with('user:id,name,email,is_root')
+                ->forAttendance()
                 ->orderBy('name')
                 ->get(),
             'requiredEmployeeIds' => $attendanceService->requiredEmployeeIds(),
@@ -67,6 +67,14 @@ class SettingsController extends Controller
             ->filter(fn (int $id) => $id > 0)
             ->unique()
             ->values()
+            ->all();
+
+        // Abaikan pegawai terhubung ke akun root.
+        $requiredEmployeeIds = Employee::query()
+            ->forAttendance()
+            ->whereIn('id', $requiredEmployeeIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
             ->all();
 
         // Simpan juga user_id terkait (untuk kompatibilitas middleware lama)

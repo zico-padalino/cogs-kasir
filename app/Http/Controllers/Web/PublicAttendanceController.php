@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
@@ -51,10 +50,10 @@ class PublicAttendanceController extends Controller
             'mode.required' => 'Mode absensi tidak valid.',
         ]);
 
-        $employee = Employee::query()->findOrFail($validated['employee_id']);
+        $employee = Employee::query()->forAttendance()->find($validated['employee_id']);
 
-        if ($employee->status !== EmployeeStatus::Active) {
-            return back()->withInput()->with('error', 'Pegawai tidak aktif.');
+        if (! $employee) {
+            return back()->withInput()->with('error', 'Pegawai tidak ditemukan atau tidak boleh absen.');
         }
 
         $expected = $attendanceService->actionForEmployee($employee);

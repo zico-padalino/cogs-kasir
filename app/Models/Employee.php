@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EmployeeStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -78,6 +79,19 @@ class Employee extends Model
     public function salaries(): HasMany
     {
         return $this->hasMany(EmployeeSalary::class);
+    }
+
+    /**
+     * Pegawai yang boleh muncul di absensi (aktif, bukan akun root).
+     *
+     * @param  Builder<Employee>  $query
+     * @return Builder<Employee>
+     */
+    public function scopeForAttendance(Builder $query): Builder
+    {
+        return $query
+            ->where('status', EmployeeStatus::Active)
+            ->whereDoesntHave('user', fn (Builder $userQuery) => $userQuery->where('is_root', true));
     }
 
     public static function nextCode(): string
