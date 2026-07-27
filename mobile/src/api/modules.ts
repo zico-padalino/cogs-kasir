@@ -52,8 +52,6 @@ export const adminApi = {
   updateEmployee: (id: number, body: unknown) =>
     apiRequest<Envelope<unknown>>(`/admin/employees/${id}`, { method: 'PUT', body }),
   deleteEmployee: (id: number) => apiRequest<{ message: string }>(`/admin/employees/${id}`, { method: 'DELETE' }),
-  enrollFace: (id: number, body: unknown) =>
-    apiRequest<Envelope<unknown>>(`/admin/employees/${id}/face`, { method: 'POST', body }),
   attendances: (params: Record<string, string> = {}) => {
     const qs = new URLSearchParams(params).toString();
     return apiRequest<Envelope<unknown>>(`/admin/attendances${qs ? `?${qs}` : ''}`);

@@ -9,7 +9,6 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
-                'resources/js/attendance-face.js',
                 'resources/js/attendance-scan.js',
             ],
             refresh: true,

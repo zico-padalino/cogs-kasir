@@ -208,7 +208,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('employees/{employee}', [EmployeeApiController::class, 'show'])->name('employees.show');
             Route::put('employees/{employee}', [EmployeeApiController::class, 'update'])->name('employees.update');
             Route::delete('employees/{employee}', [EmployeeApiController::class, 'destroy'])->name('employees.destroy');
-            Route::post('employees/{employee}/face', [EmployeeApiController::class, 'enrollFace'])->name('employees.face');
 
             Route::get('attendances', [AdminAttendanceApiController::class, 'index'])->name('attendances.index');
             Route::get('attendances/qr', [AdminAttendanceApiController::class, 'qrInfo'])->name('attendances.qr');

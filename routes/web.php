@@ -94,7 +94,6 @@ Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::resource('employees', EmployeeController::class)->except(['show']);
-    Route::post('employees/{employee}/face', [EmployeeController::class, 'enrollFace'])->name('employees.face');
     Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
     Route::get('attendances/qr', [AttendanceQrController::class, 'show'])->name('attendances.qr');
     Route::post('attendances', [AttendanceController::class, 'store'])->name('attendances.store');

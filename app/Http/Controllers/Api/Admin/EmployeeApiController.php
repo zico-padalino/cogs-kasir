@@ -6,14 +6,12 @@ use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\User;
-use App\Services\AttendanceService;
+use App\Support\Format;
 use App\Support\KasirPin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 class EmployeeApiController extends Controller
 {
@@ -44,19 +42,22 @@ class EmployeeApiController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $this->validated($request);
-        $pin = $this->extractPin($validated, required: true);
+        $pin = $this->extractPin($validated);
 
         $employee = DB::transaction(function () use ($validated, $pin) {
             unset($validated['pin'], $validated['pin_confirmation']);
 
             $employee = Employee::query()->create($validated);
-            $this->assignKasirPin($employee, $pin);
+
+            if ($pin !== null) {
+                $this->assignKasirPin($employee, $pin);
+            }
 
             return $employee->fresh()->load('user');
         });
 
         return response()->json([
-            'message' => 'Data karyawan berhasil ditambahkan. PIN kasir sudah diset.',
+            'message' => 'Data karyawan berhasil ditambahkan.',
             'data' => $this->formatEmployee($employee),
         ], 201);
     }
@@ -64,7 +65,7 @@ class EmployeeApiController extends Controller
     public function update(Request $request, Employee $employee): JsonResponse
     {
         $validated = $this->validated($request, $employee);
-        $pin = $this->extractPin($validated, required: ! KasirPin::hasPin($employee));
+        $pin = $this->extractPin($validated);
 
         $employee = DB::transaction(function () use ($validated, $employee, $pin) {
             unset($validated['pin'], $validated['pin_confirmation']);
@@ -90,45 +91,10 @@ class EmployeeApiController extends Controller
 
     public function destroy(Employee $employee): JsonResponse
     {
-        if ($employee->face_photo_path) {
-            Storage::disk('public')->delete($employee->face_photo_path);
-        }
-
         $employee->delete();
 
         return response()->json([
             'message' => 'Data karyawan dihapus.',
-        ]);
-    }
-
-    public function enrollFace(Request $request, Employee $employee, AttendanceService $attendanceService): JsonResponse
-    {
-        $validated = $request->validate([
-            'photo' => ['required', 'string'],
-            'descriptor' => ['required', 'string'],
-        ], [
-            'photo.required' => 'Foto wajah wajib diambil.',
-            'descriptor.required' => 'Wajah belum terdeteksi.',
-        ]);
-
-        $descriptor = json_decode($validated['descriptor'], true);
-        if (! is_array($descriptor)) {
-            return response()->json([
-                'message' => 'Data wajah tidak valid.',
-            ], 422);
-        }
-
-        try {
-            $attendanceService->enrollFace($employee, $validated['photo'], $descriptor);
-        } catch (RuntimeException $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-            ], 422);
-        }
-
-        return response()->json([
-            'message' => 'Wajah karyawan berhasil didaftarkan.',
-            'data' => $this->formatEmployee($employee->fresh()->load('user')),
         ]);
     }
 
@@ -138,36 +104,33 @@ class EmployeeApiController extends Controller
         return [
             ...$employee->toArray(),
             'has_pin' => KasirPin::hasPin($employee),
-            'has_face_enrollment' => $employee->hasFaceEnrollment(),
-            'face_photo_url' => $employee->face_photo_path
-                ? Storage::disk('public')->url($employee->face_photo_path)
-                : null,
+            'attendance_method' => 'selfie_gps',
         ];
     }
 
     /** @return array<string, mixed> */
     private function validated(Request $request, ?Employee $employee = null): array
     {
-        $pinRequired = $employee === null || ! KasirPin::hasPin($employee);
-
         $validated = $request->validate([
             'employee_code' => ['required', 'string', 'max:32', 'unique:employees,employee_code,'.($employee?->id ?? 'NULL')],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'hire_date' => ['nullable', 'date'],
             'base_salary' => ['required', 'numeric', 'min:0'],
+            'daily_salary' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', 'in:active,inactive'],
             'user_id' => ['nullable', 'exists:users,id'],
             'notes' => ['nullable', 'string'],
-            'pin' => [$pinRequired ? 'required' : 'nullable', 'digits_between:4,6'],
+            'pin' => ['nullable', 'digits_between:4,6'],
             'pin_confirmation' => ['nullable', 'required_with:pin', 'same:pin'],
         ], [
-            'pin.required' => 'PIN kasir wajib diisi untuk setiap karyawan.',
             'pin.digits_between' => 'PIN harus 4–6 digit angka.',
             'pin_confirmation.required_with' => 'Ulangi PIN untuk konfirmasi.',
             'pin_confirmation.same' => 'Konfirmasi PIN tidak cocok.',
         ]);
 
+        $validated['base_salary'] = Format::parseRupiah($validated['base_salary']);
+        $validated['daily_salary'] = Format::parseRupiah($validated['daily_salary'] ?? 0);
         $validated['user_id'] = $validated['user_id'] ?: null;
         $validated['phone'] = $employee?->phone;
         $validated['position'] = $employee?->position;
@@ -177,17 +140,11 @@ class EmployeeApiController extends Controller
     }
 
     /** @param  array<string, mixed>  $validated */
-    private function extractPin(array $validated, bool $required = false): ?string
+    private function extractPin(array $validated): ?string
     {
         $pin = preg_replace('/\D+/', '', (string) ($validated['pin'] ?? '')) ?? '';
 
         if ($pin === '') {
-            if ($required) {
-                throw ValidationException::withMessages([
-                    'pin' => 'PIN kasir wajib diisi untuk setiap karyawan.',
-                ]);
-            }
-
             return null;
         }
 

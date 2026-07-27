@@ -83,7 +83,7 @@
                     <video data-scan-video class="scan-video" playsinline muted autoplay></video>
                     <canvas data-scan-canvas class="hidden"></canvas>
                 </div>
-                <p class="scan-camera-hint">Arahkan kamera ke wajah — selfie biasa</p>
+                <p class="scan-camera-hint">Ambil selfie sebagai bukti absen. Tidak perlu daftar wajah.</p>
             </div>
 
             <p class="scan-gps" data-scan-gps>Membaca lokasi GPS…</p>

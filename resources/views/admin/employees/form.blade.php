@@ -28,8 +28,21 @@
                 <input id="hire_date" type="date" name="hire_date" class="form-input" value="{{ old('hire_date', $employee->hire_date?->toDateString()) }}">
             </div>
             <div>
-                <label class="form-label" for="base_salary">Gaji pokok</label>
-                <input id="base_salary" type="number" min="0" step="1" name="base_salary" class="form-input" value="{{ old('base_salary', $employee->base_salary) }}" required>
+                <x-rupiah-input
+                    name="base_salary"
+                    label="Gaji pokok bulanan"
+                    :value="old('base_salary', $employee->base_salary)"
+                    placeholder="0"
+                    required
+                />
+            </div>
+            <div>
+                <x-rupiah-input
+                    name="daily_salary"
+                    label="Gaji harian"
+                    :value="old('daily_salary', $employee->daily_salary ?? 0)"
+                    placeholder="0"
+                />
             </div>
             <div>
                 <label class="form-label" for="status">Status</label>
@@ -46,18 +59,18 @@
                         <option value="{{ $user->id }}" @selected((string) old('user_id', $employee->user_id) === (string) $user->id)>{{ $user->name }} ({{ $user->email }})</option>
                     @endforeach
                 </select>
-                <p class="mt-1 text-xs text-slate-500">Hanya jika pegawai juga perlu login ke sistem. PIN kasir tetap wajib tanpa akun.</p>
+                <p class="mt-1 text-xs text-slate-500">Hanya jika pegawai juga perlu login ke sistem.</p>
             </div>
         </div>
 
         <div class="rounded-2xl border border-brand-100 bg-brand-50/50 p-4 space-y-4">
             <div>
-                <h2 class="text-sm font-semibold text-brand-900">PIN Kasir <span class="text-red-600">*</span></h2>
+                <h2 class="text-sm font-semibold text-brand-900">PIN Kasir (opsional)</h2>
                 <p class="mt-1 text-xs text-brand-800/80">
                     @if ($hasPin ?? false)
                         PIN sudah aktif. Kosongkan jika tidak ingin mengganti, atau isi PIN baru di bawah.
                     @else
-                        Wajib. PIN 4–6 digit dipakai membuka kasir (tanpa harus punya akun login).
+                        Opsional. PIN 4–6 digit dipakai membuka kasir (tanpa harus punya akun login).
                     @endif
                 </p>
             </div>
@@ -75,7 +88,6 @@
                         minlength="4"
                         autocomplete="new-password"
                         value="{{ old('pin') }}"
-                        @required(! ($hasPin ?? false))
                     >
                     @error('pin')
                         <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
@@ -94,13 +106,19 @@
                         minlength="4"
                         autocomplete="new-password"
                         value="{{ old('pin_confirmation') }}"
-                        @required(! ($hasPin ?? false))
                     >
                     @error('pin_confirmation')
                         <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <h2 class="text-sm font-semibold text-slate-900">Cara absen</h2>
+            <p class="mt-1 text-xs text-slate-600">
+                Karyawan absen lewat QR dengan selfie dan GPS. Tidak perlu mendaftarkan wajah terlebih dahulu.
+            </p>
         </div>
 
         <div>
@@ -114,41 +132,4 @@
         </div>
     </form>
 
-    @if ($employee->exists)
-        <div class="card mt-6 max-w-2xl space-y-4" data-attendance-enroll>
-            <div>
-                <h2 class="text-base font-semibold text-slate-900">Daftarkan wajah</h2>
-                <p class="mt-1 text-sm text-slate-500">Wajib agar karyawan bisa absen muka. Ambil foto jelas dari depan.</p>
-            </div>
-
-            @if ($employee->hasFaceEnrollment())
-                <div class="flex items-center gap-3">
-                    <img
-                        src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($employee->face_photo_path) }}"
-                        alt="Wajah terdaftar"
-                        class="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
-                    >
-                    <p class="text-sm text-green-700">Wajah sudah terdaftar. Ambil ulang untuk mengganti.</p>
-                </div>
-            @else
-                <p class="text-sm text-amber-700">Belum ada wajah terdaftar.</p>
-            @endif
-
-            <div class="attendance-camera-wrap face-cam">
-                <video data-attendance-video class="attendance-video" playsinline muted autoplay></video>
-                <canvas data-attendance-canvas class="hidden"></canvas>
-                <div class="face-cam-flash" data-face-flash aria-hidden="true"></div>
-                <p class="attendance-status face-cam-status" data-attendance-status>Menyiapkan kamera…</p>
-            </div>
-
-            <form action="{{ route('admin.employees.face', $employee) }}" method="POST" data-attendance-form>
-                @csrf
-                <input type="hidden" name="photo" data-attendance-photo>
-                <input type="hidden" name="descriptor" data-attendance-descriptor>
-                <button type="submit" class="btn-primary" data-attendance-submit disabled>Simpan wajah dari kamera</button>
-            </form>
-        </div>
-
-        @vite(['resources/js/attendance-face.js'])
-    @endif
 @endsection

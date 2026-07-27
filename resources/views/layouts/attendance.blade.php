@@ -10,7 +10,7 @@
     @hasSection('vite')
         @yield('vite')
     @else
-        @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/attendance-face.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
 </head>
 <body class="attendance-page">

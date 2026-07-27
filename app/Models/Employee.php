@@ -19,18 +19,16 @@ class Employee extends Model
         'department',
         'hire_date',
         'base_salary',
+        'daily_salary',
         'status',
         'user_id',
         'pin_hash',
         'pin_set_at',
         'notes',
-        'face_photo_path',
-        'face_descriptor',
     ];
 
     protected $hidden = [
         'pin_hash',
-        'face_descriptor',
     ];
 
     protected function casts(): array
@@ -38,8 +36,8 @@ class Employee extends Model
         return [
             'hire_date' => 'date',
             'base_salary' => 'decimal:4',
+            'daily_salary' => 'decimal:4',
             'status' => EmployeeStatus::class,
-            'face_descriptor' => 'array',
             'pin_set_at' => 'datetime',
         ];
     }
@@ -51,13 +49,6 @@ class Employee extends Model
                 ? $value
                 : mb_strtoupper(trim($value), 'UTF-8'),
         );
-    }
-
-    public function hasFaceEnrollment(): bool
-    {
-        return filled($this->face_photo_path)
-            && is_array($this->face_descriptor)
-            && count($this->face_descriptor) >= 64;
     }
 
     /**

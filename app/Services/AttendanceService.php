@@ -181,7 +181,6 @@ class AttendanceService
             'radius_meters' => (float) ShopSettings::get('attendance_radius_meters', '100'),
             'has_location' => filled(ShopSettings::get('attendance_latitude'))
                 && filled(ShopSettings::get('attendance_longitude')),
-            'face_threshold' => (float) config('attendance.face_match_threshold', 0.55),
             'required_user_ids' => $this->requiredUserIds(),
             'required_employee_ids' => $this->requiredEmployeeIds(),
         ];
@@ -282,49 +281,6 @@ class AttendanceService
                 'Lokasi di luar area toko (%.0f m dari titik absen, maksimal %.0f m).',
                 $distance,
                 $settings['radius_meters'],
-            ));
-        }
-
-        return $distance;
-    }
-
-    /**
-     * @param  list<float|int>  $a
-     * @param  list<float|int>  $b
-     */
-    public function faceDistance(array $a, array $b): float
-    {
-        $len = min(count($a), count($b));
-        if ($len < 64) {
-            throw new RuntimeException('Descriptor wajah tidak valid.');
-        }
-
-        $sum = 0.0;
-        for ($i = 0; $i < $len; $i++) {
-            $diff = ((float) $a[$i]) - ((float) $b[$i]);
-            $sum += $diff * $diff;
-        }
-
-        return sqrt($sum);
-    }
-
-    /**
-     * @param  list<float|int>  $descriptor
-     */
-    public function assertFaceMatch(Employee $employee, array $descriptor): float
-    {
-        if (! $employee->hasFaceEnrollment()) {
-            throw new RuntimeException('Wajah karyawan belum didaftarkan. Hubungi admin.');
-        }
-
-        $distance = $this->faceDistance($employee->face_descriptor ?? [], $descriptor);
-        $threshold = (float) config('attendance.face_match_threshold', 0.55);
-
-        if ($distance > $threshold) {
-            throw new RuntimeException(sprintf(
-                'Wajah tidak cocok (skor %.3f > batas %.3f). Coba lagi dengan pencahayaan lebih baik.',
-                $distance,
-                $threshold,
             ));
         }
 
@@ -440,29 +396,6 @@ class AttendanceService
     public function publicScanUrl(): string
     {
         return url('/absensi');
-    }
-
-    /**
-     * @param  list<float|int>  $descriptor
-     */
-    public function enrollFace(Employee $employee, string $photoBase64, array $descriptor): Employee
-    {
-        if (count($descriptor) < 64) {
-            throw new RuntimeException('Descriptor wajah tidak valid. Pastikan wajah terdeteksi jelas.');
-        }
-
-        if ($employee->face_photo_path) {
-            Storage::disk('public')->delete($employee->face_photo_path);
-        }
-
-        $path = $this->storePhoto($employee, $photoBase64, 'enroll');
-
-        $employee->update([
-            'face_photo_path' => $path,
-            'face_descriptor' => array_values(array_map('floatval', $descriptor)),
-        ]);
-
-        return $employee->fresh();
     }
 
     private function todayAt(string $time): Carbon

@@ -3,9 +3,9 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Face match: Euclidean distance threshold (lower = stricter)
+    | Attendance
     |--------------------------------------------------------------------------
-    | Akun yang dikecualikan dari absensi wajib dipilih di Admin → Pengaturan.
+    | Absensi menggunakan selfie sebagai bukti dan GPS untuk validasi lokasi.
+    | Tidak ada pendaftaran atau pencocokan biometrik wajah.
     */
-    'face_match_threshold' => (float) env('ATTENDANCE_FACE_THRESHOLD', 0.55),
 ];
