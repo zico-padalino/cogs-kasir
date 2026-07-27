@@ -20,7 +20,9 @@
                     <p class="mt-0.5 font-mono text-xs text-slate-600">{{ $employee->employee_code }}</p>
                     <p class="mt-0.5 text-xs text-slate-500">
                         Bulanan {{ $format::rupiah($employee->base_salary) }}
-                        · Harian {{ $format::rupiah($employee->daily_salary ?? 0) }}
+                        @if ($hasDailySalary ?? false)
+                            · Harian {{ $format::rupiah($employee->daily_salary ?? 0) }}
+                        @endif
                         · PIN: {{ \App\Support\KasirPin::hasPin($employee) ? '✓' : 'belum' }}
                         @if ($employee->user)
                             · Akun: {{ $employee->user->email }}

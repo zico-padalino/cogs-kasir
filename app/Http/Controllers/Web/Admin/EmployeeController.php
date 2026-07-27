@@ -11,6 +11,7 @@ use App\Support\KasirPin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -26,6 +27,7 @@ class EmployeeController extends Controller
         return view('admin.employees.index', [
             'employees' => $employees,
             'format' => Format::class,
+            'hasDailySalary' => Schema::hasColumn('employees', 'daily_salary'),
         ]);
     }
 
@@ -122,7 +124,13 @@ class EmployeeController extends Controller
         ]);
 
         $validated['base_salary'] = Format::parseRupiah($validated['base_salary']);
-        $validated['daily_salary'] = Format::parseRupiah($validated['daily_salary'] ?? 0);
+
+        if (Schema::hasColumn('employees', 'daily_salary')) {
+            $validated['daily_salary'] = Format::parseRupiah($validated['daily_salary'] ?? 0);
+        } else {
+            unset($validated['daily_salary']);
+        }
+
         $validated['user_id'] = $validated['user_id'] ?: null;
         $validated['phone'] = $employee?->phone;
         $validated['position'] = $employee?->position;

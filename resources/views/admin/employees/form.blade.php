@@ -36,6 +36,7 @@
                     required
                 />
             </div>
+            @if (\Illuminate\Support\Facades\Schema::hasColumn('employees', 'daily_salary'))
             <div>
                 <x-rupiah-input
                     name="daily_salary"
@@ -44,6 +45,7 @@
                     placeholder="0"
                 />
             </div>
+            @endif
             <div>
                 <label class="form-label" for="status">Status</label>
                 <select id="status" name="status" class="form-input">
