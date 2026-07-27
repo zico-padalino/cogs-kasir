@@ -216,6 +216,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::get('salaries', [SalaryApiController::class, 'index'])->name('salaries.index');
             Route::post('salaries', [SalaryApiController::class, 'store'])->name('salaries.store');
+            Route::post('salaries/generate', [SalaryApiController::class, 'generate'])->name('salaries.generate');
             Route::post('salaries/{salary}/paid', [SalaryApiController::class, 'markPaid'])->name('salaries.paid');
             Route::delete('salaries/{salary}', [SalaryApiController::class, 'destroy'])->name('salaries.destroy');
 

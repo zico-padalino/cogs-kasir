@@ -13,7 +13,7 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v6';
+    public const CACHE_KEY = 'shop_settings.v7';
 
     public const KEYS = [
         'shop_name',
@@ -28,6 +28,7 @@ class ShopSettings
         'attendance_radius_meters',
         'attendance_required_user_ids',
         'attendance_required_employee_ids',
+        'salary_default_deduction',
     ];
 
     public static function defaults(): array
@@ -45,7 +46,13 @@ class ShopSettings
             'attendance_radius_meters' => '100',
             'attendance_required_user_ids' => '',
             'attendance_required_employee_ids' => '',
+            'salary_default_deduction' => '0',
         ];
+    }
+
+    public static function salaryDefaultDeduction(): float
+    {
+        return Format::parseRupiah(self::get('salary_default_deduction', '0'));
     }
 
     public static function all(): array

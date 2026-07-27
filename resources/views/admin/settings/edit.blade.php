@@ -207,6 +207,26 @@
             </button>
         </div>
 
+        <div class="card space-y-5">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Gaji karyawan</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Potongan default dipakai otomatis saat hitung gaji bulanan.
+                    Gaji pokok diambil dari Data Karyawan.
+                </p>
+            </div>
+
+            <div class="max-w-sm">
+                <x-rupiah-input
+                    name="salary_default_deduction"
+                    label="Potongan default"
+                    :value="old('salary_default_deduction', $settings['salary_default_deduction'] ?? 0)"
+                    placeholder="0"
+                />
+                <p class="mt-1.5 text-xs text-slate-500">Contoh: kasbon, iuran, atau potongan rutin lainnya.</p>
+            </div>
+        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn-primary w-full sm:w-auto">Simpan pengaturan</button>
             <a href="{{ route('admin.dashboard') }}" class="btn-secondary w-full sm:w-auto">Batal</a>

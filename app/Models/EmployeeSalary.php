@@ -12,6 +12,8 @@ class EmployeeSalary extends Model
         'employee_id',
         'period_month',
         'base_salary',
+        'daily_salary',
+        'work_days',
         'allowance',
         'deduction',
         'total',
@@ -25,6 +27,8 @@ class EmployeeSalary extends Model
         return [
             'period_month' => 'date',
             'base_salary' => 'decimal:4',
+            'daily_salary' => 'decimal:4',
+            'work_days' => 'integer',
             'allowance' => 'decimal:4',
             'deduction' => 'decimal:4',
             'total' => 'decimal:4',
@@ -36,5 +40,10 @@ class EmployeeSalary extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function dailyTotal(): float
+    {
+        return (float) $this->daily_salary * (int) $this->work_days;
     }
 }

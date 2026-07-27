@@ -100,6 +100,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
     Route::get('salaries', [SalaryController::class, 'index'])->name('salaries.index');
     Route::post('salaries', [SalaryController::class, 'store'])->name('salaries.store');
+    Route::post('salaries/generate', [SalaryController::class, 'generate'])->name('salaries.generate');
     Route::post('salaries/{salary}/paid', [SalaryController::class, 'markPaid'])->name('salaries.paid');
     Route::delete('salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
     Route::resource('users', UserAccessController::class);

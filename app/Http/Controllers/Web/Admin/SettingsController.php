@@ -6,6 +6,7 @@ use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
+use App\Support\Format;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class SettingsController extends Controller
             'attendance_radius_meters' => ['required', 'numeric', 'min:10', 'max:5000'],
             'attendance_required_employee_ids' => ['nullable', 'array'],
             'attendance_required_employee_ids.*' => ['integer', 'exists:employees,id'],
+            'salary_default_deduction' => ['nullable', 'numeric', 'min:0'],
         ], [
             'shop_name.required' => 'Nama toko wajib diisi.',
             'logo.image' => 'Logo harus berupa gambar.',
@@ -103,6 +105,7 @@ class SettingsController extends Controller
             'attendance_radius_meters' => (string) $validated['attendance_radius_meters'],
             'attendance_required_employee_ids' => implode(',', $requiredEmployeeIds),
             'attendance_required_user_ids' => implode(',', $linkedUserIds),
+            'salary_default_deduction' => (string) Format::parseRupiah($validated['salary_default_deduction'] ?? 0),
         ];
 
         $currentLogo = ShopSettings::get('logo_path');
