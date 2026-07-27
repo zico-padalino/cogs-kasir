@@ -56,6 +56,11 @@ class SettingsController extends Controller
             'attendance_required_employee_ids' => ['nullable', 'array'],
             'attendance_required_employee_ids.*' => ['integer', 'exists:employees,id'],
             'salary_default_deduction' => ['nullable', 'numeric', 'min:0'],
+            'salary_deduction_late' => ['nullable', 'numeric', 'min:0'],
+            'salary_late_after_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
+            'salary_deduction_alpha' => ['nullable', 'numeric', 'min:0'],
+            'salary_deduction_izin' => ['nullable', 'numeric', 'min:0'],
+            'salary_deduction_sakit' => ['nullable', 'numeric', 'min:0'],
         ], [
             'shop_name.required' => 'Nama toko wajib diisi.',
             'logo.image' => 'Logo harus berupa gambar.',
@@ -106,6 +111,11 @@ class SettingsController extends Controller
             'attendance_required_employee_ids' => implode(',', $requiredEmployeeIds),
             'attendance_required_user_ids' => implode(',', $linkedUserIds),
             'salary_default_deduction' => (string) Format::parseRupiah($validated['salary_default_deduction'] ?? 0),
+            'salary_deduction_late' => (string) Format::parseRupiah($validated['salary_deduction_late'] ?? 0),
+            'salary_late_after_minutes' => (string) max(0, (int) ($validated['salary_late_after_minutes'] ?? 0)),
+            'salary_deduction_alpha' => (string) Format::parseRupiah($validated['salary_deduction_alpha'] ?? 0),
+            'salary_deduction_izin' => (string) Format::parseRupiah($validated['salary_deduction_izin'] ?? 0),
+            'salary_deduction_sakit' => (string) Format::parseRupiah($validated['salary_deduction_sakit'] ?? 0),
         ];
 
         $currentLogo = ShopSettings::get('logo_path');

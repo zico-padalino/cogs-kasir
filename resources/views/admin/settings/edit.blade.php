@@ -211,19 +211,74 @@
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Gaji karyawan</h2>
                 <p class="mt-1 text-sm text-slate-500">
-                    Potongan default dipakai otomatis saat hitung gaji bulanan.
-                    Gaji pokok diambil dari Data Karyawan.
+                    Semua potongan opsional (isi 0 atau kosongkan jika tidak dipakai).
+                    Gaji pokok &amp; harian diambil dari Data Karyawan; potongan absensi dihitung otomatis dari data absensi.
                 </p>
             </div>
 
-            <div class="max-w-sm">
-                <x-rupiah-input
-                    name="salary_default_deduction"
-                    label="Potongan default"
-                    :value="old('salary_default_deduction', $settings['salary_default_deduction'] ?? 0)"
-                    placeholder="0"
-                />
-                <p class="mt-1.5 text-xs text-slate-500">Contoh: kasbon, iuran, atau potongan rutin lainnya.</p>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <x-rupiah-input
+                        name="salary_default_deduction"
+                        label="Potongan rutin (opsional)"
+                        :value="old('salary_default_deduction', $settings['salary_default_deduction'] ?? 0)"
+                        placeholder="0"
+                    />
+                    <p class="mt-1.5 text-xs text-slate-500">Kasbon, iuran, atau potongan tetap per bulan.</p>
+                </div>
+                <div>
+                    <x-rupiah-input
+                        name="salary_deduction_late"
+                        label="Potongan telat datang / kali (opsional)"
+                        :value="old('salary_deduction_late', $settings['salary_deduction_late'] ?? 0)"
+                        placeholder="0"
+                    />
+                    <p class="mt-1.5 text-xs text-slate-500">Dikalikan jumlah hari yang melewati toleransi di bawah.</p>
+                </div>
+                <div>
+                    <label class="form-label" for="salary_late_after_minutes">Potongan telat berlaku setelah (menit)</label>
+                    <input
+                        type="number"
+                        name="salary_late_after_minutes"
+                        id="salary_late_after_minutes"
+                        class="form-input"
+                        min="0"
+                        max="240"
+                        value="{{ old('salary_late_after_minutes', $settings['salary_late_after_minutes'] ?? 0) }}"
+                        placeholder="0"
+                    >
+                    <p class="mt-1.5 text-xs text-slate-500">
+                        Contoh: isi <strong>15</strong> = potongan hanya jika check-in lebih dari 15 menit setelah jam masuk.
+                        Isi <strong>0</strong> = potongan sejak melewati jam masuk.
+                    </p>
+                </div>
+                <div>
+                    <x-rupiah-input
+                        name="salary_deduction_alpha"
+                        label="Potongan tidak hadir / alpha / kali (opsional)"
+                        :value="old('salary_deduction_alpha', $settings['salary_deduction_alpha'] ?? 0)"
+                        placeholder="0"
+                    />
+                    <p class="mt-1.5 text-xs text-slate-500">Dikalikan jumlah hari status Alpha.</p>
+                </div>
+                <div>
+                    <x-rupiah-input
+                        name="salary_deduction_izin"
+                        label="Potongan izin / kali (opsional)"
+                        :value="old('salary_deduction_izin', $settings['salary_deduction_izin'] ?? 0)"
+                        placeholder="0"
+                    />
+                    <p class="mt-1.5 text-xs text-slate-500">Dikalikan jumlah hari status Izin.</p>
+                </div>
+                <div>
+                    <x-rupiah-input
+                        name="salary_deduction_sakit"
+                        label="Potongan sakit / kali (opsional)"
+                        :value="old('salary_deduction_sakit', $settings['salary_deduction_sakit'] ?? 0)"
+                        placeholder="0"
+                    />
+                    <p class="mt-1.5 text-xs text-slate-500">Dikalikan jumlah hari status Sakit.</p>
+                </div>
             </div>
         </div>
 

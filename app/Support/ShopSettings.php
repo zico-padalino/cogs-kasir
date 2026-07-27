@@ -13,7 +13,7 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v7';
+    public const CACHE_KEY = 'shop_settings.v9';
 
     public const KEYS = [
         'shop_name',
@@ -29,6 +29,11 @@ class ShopSettings
         'attendance_required_user_ids',
         'attendance_required_employee_ids',
         'salary_default_deduction',
+        'salary_deduction_late',
+        'salary_late_after_minutes',
+        'salary_deduction_alpha',
+        'salary_deduction_izin',
+        'salary_deduction_sakit',
     ];
 
     public static function defaults(): array
@@ -47,12 +52,34 @@ class ShopSettings
             'attendance_required_user_ids' => '',
             'attendance_required_employee_ids' => '',
             'salary_default_deduction' => '0',
+            'salary_deduction_late' => '0',
+            'salary_late_after_minutes' => '0',
+            'salary_deduction_alpha' => '0',
+            'salary_deduction_izin' => '0',
+            'salary_deduction_sakit' => '0',
         ];
     }
 
     public static function salaryDefaultDeduction(): float
     {
         return Format::parseRupiah(self::get('salary_default_deduction', '0'));
+    }
+
+    /**
+     * Tarif potongan gaji (semua opsional; 0 = tidak dipakai).
+     *
+     * @return array{fixed: float, late: float, late_after_minutes: int, alpha: float, izin: float, sakit: float}
+     */
+    public static function salaryDeductionRates(): array
+    {
+        return [
+            'fixed' => Format::parseRupiah(self::get('salary_default_deduction', '0')),
+            'late' => Format::parseRupiah(self::get('salary_deduction_late', '0')),
+            'late_after_minutes' => max(0, (int) self::get('salary_late_after_minutes', '0')),
+            'alpha' => Format::parseRupiah(self::get('salary_deduction_alpha', '0')),
+            'izin' => Format::parseRupiah(self::get('salary_deduction_izin', '0')),
+            'sakit' => Format::parseRupiah(self::get('salary_deduction_sakit', '0')),
+        ];
     }
 
     public static function all(): array

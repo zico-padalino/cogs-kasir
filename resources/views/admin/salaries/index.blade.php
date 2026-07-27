@@ -18,11 +18,25 @@
                 <h2 class="text-sm font-semibold text-slate-900">Hitung gaji bulanan</h2>
                 <p class="mt-1 text-xs text-slate-500">
                     Pokok &amp; gaji harian dari Data Karyawan.
-                    Subtotal harian = gaji harian × hari hadir (absensi).
-                    Potongan default: <strong>{{ $format::rupiah($defaultDeduction) }}</strong>
-                    (atur di
-                    <a href="{{ route('admin.settings.edit') }}" class="font-medium text-brand-700 underline">Pengaturan</a>).
+                    Subtotal harian = gaji harian × hari hadir.
+                    Potongan otomatis dari absensi (telat / alpha / izin / sakit) + potongan rutin —
+                    atur di
+                    <a href="{{ route('admin.settings.edit') }}" class="font-medium text-brand-700 underline">Pengaturan</a>
+                    (semua opsional).
                 </p>
+                @php $rates = $deductionRates ?? []; @endphp
+                @if (($rates['fixed'] ?? 0) > 0 || ($rates['late'] ?? 0) > 0 || ($rates['alpha'] ?? 0) > 0 || ($rates['izin'] ?? 0) > 0 || ($rates['sakit'] ?? 0) > 0)
+                    <p class="mt-1 text-xs text-slate-500">
+                        Tarif:
+                        @if (($rates['fixed'] ?? 0) > 0) rutin {{ $format::rupiah($rates['fixed']) }}@endif
+                        @if (($rates['late'] ?? 0) > 0) · telat {{ $format::rupiah($rates['late']) }}/kali
+                            @if (($rates['late_after_minutes'] ?? 0) > 0) (≥{{ $rates['late_after_minutes'] }} mnt)@endif
+                        @endif
+                        @if (($rates['alpha'] ?? 0) > 0) · alpha {{ $format::rupiah($rates['alpha']) }}/kali@endif
+                        @if (($rates['izin'] ?? 0) > 0) · izin {{ $format::rupiah($rates['izin']) }}/kali@endif
+                        @if (($rates['sakit'] ?? 0) > 0) · sakit {{ $format::rupiah($rates['sakit']) }}/kali@endif
+                    </p>
+                @endif
             </div>
             <form method="POST" action="{{ route('admin.salaries.generate') }}" onsubmit="return confirm('Hitung ulang gaji semua karyawan untuk bulan ini? Data yang sudah lunas tidak diubah.')">
                 @csrf
@@ -86,7 +100,7 @@
                             data-salary-deduction
                         >
                     </div>
-                    <p class="mt-1 text-xs text-slate-500">Dari pengaturan. Hari hadir dihitung otomatis saat simpan.</p>
+                    <p class="mt-1 text-xs text-slate-500">Otomatis dari absensi + pengaturan. Detail ada di catatan setelah simpan.</p>
                 </div>
                 <div>
                     <label class="form-label" for="total_display">Estimasi total</label>

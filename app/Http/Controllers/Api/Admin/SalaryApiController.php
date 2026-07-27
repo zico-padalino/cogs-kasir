@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Enums\AttendanceStatus;
 use App\Enums\SalaryStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
-use App\Models\EmployeeAttendance;
 use App\Models\EmployeeSalary;
 use App\Support\Format;
+use App\Support\SalaryCalculator;
 use App\Support\ShopSettings;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +32,7 @@ class SalaryApiController extends Controller
                 'salaries' => $salaries,
                 'month' => $month->format('Y-m'),
                 'default_deduction' => ShopSettings::salaryDefaultDeduction(),
+                'deduction_rates' => ShopSettings::salaryDeductionRates(),
                 'employees' => Employee::query()->forAttendance()->orderBy('name')->get(),
             ],
         ]);
@@ -136,9 +136,10 @@ class SalaryApiController extends Controller
     ): EmployeeSalary {
         $base = (float) $employee->base_salary;
         $daily = (float) ($employee->daily_salary ?? 0);
-        $workDays = $this->countWorkDays($employee, $period);
+        $deductionInfo = SalaryCalculator::deductionsFor($employee, $period);
+        $workDays = $deductionInfo['work_days'];
         $dailyTotal = $daily * $workDays;
-        $deduction = ShopSettings::salaryDefaultDeduction();
+        $deduction = $deductionInfo['total'];
         $total = max(0, $base + $dailyTotal + $allowance - $deduction);
 
         $payload = [
@@ -147,7 +148,7 @@ class SalaryApiController extends Controller
             'deduction' => $deduction,
             'total' => $total,
             'status' => SalaryStatus::Draft,
-            'notes' => $notes,
+            'notes' => $this->mergeNotes($notes, $deductionInfo['summary']),
             'paid_at' => null,
         ];
 
@@ -165,16 +166,20 @@ class SalaryApiController extends Controller
         );
     }
 
-    private function countWorkDays(Employee $employee, Carbon $period): int
+    private function mergeNotes(?string $userNotes, string $autoSummary): ?string
     {
-        return (int) EmployeeAttendance::query()
-            ->where('employee_id', $employee->id)
-            ->whereBetween('work_date', [
-                $period->copy()->startOfMonth()->toDateString(),
-                $period->copy()->endOfMonth()->toDateString(),
-            ])
-            ->where('status', AttendanceStatus::Hadir)
-            ->whereNotNull('check_in')
-            ->count();
+        $user = trim((string) $userNotes);
+        $user = preg_replace('/\s*\|\s*Potongan:.*/u', '', $user) ?? $user;
+        $user = preg_replace('/^Potongan:.*/u', '', $user) ?? $user;
+        $user = trim($user);
+
+        $parts = array_filter([
+            $user !== '' ? $user : null,
+            $autoSummary !== '' ? 'Potongan: '.$autoSummary : null,
+        ]);
+
+        $merged = implode(' | ', $parts);
+
+        return $merged !== '' ? $merged : null;
     }
 }

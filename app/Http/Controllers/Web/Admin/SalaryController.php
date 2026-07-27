@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
-use App\Enums\AttendanceStatus;
 use App\Enums\SalaryStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
-use App\Models\EmployeeAttendance;
 use App\Models\EmployeeSalary;
 use App\Support\Format;
+use App\Support\SalaryCalculator;
 use App\Support\ShopSettings;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +20,7 @@ class SalaryController extends Controller
     public function index(Request $request): View
     {
         $month = Carbon::parse($request->input('month', now()->format('Y-m')).'-01')->startOfMonth();
-        $deduction = ShopSettings::salaryDefaultDeduction();
+        $rates = ShopSettings::salaryDeductionRates();
 
         $salaries = EmployeeSalary::query()
             ->with('employee')
@@ -38,7 +37,8 @@ class SalaryController extends Controller
             'salaries' => $salaries,
             'month' => $month,
             'employees' => $employees,
-            'defaultDeduction' => $deduction,
+            'defaultDeduction' => $rates['fixed'],
+            'deductionRates' => $rates,
             'format' => Format::class,
             'hasDailyColumns' => Schema::hasColumn('employee_salaries', 'daily_salary'),
         ]);
@@ -136,10 +136,14 @@ class SalaryController extends Controller
     ): EmployeeSalary {
         $base = (float) $employee->base_salary;
         $daily = (float) ($employee->daily_salary ?? 0);
-        $workDays = $this->countWorkDays($employee, $period);
+        $deductionInfo = SalaryCalculator::deductionsFor($employee, $period);
+        $workDays = $deductionInfo['work_days'];
         $dailyTotal = $daily * $workDays;
-        $deduction = ShopSettings::salaryDefaultDeduction();
+        $deduction = $deductionInfo['total'];
         $total = max(0, $base + $dailyTotal + $allowance - $deduction);
+
+        $autoNote = $deductionInfo['summary'];
+        $mergedNotes = $this->mergeNotes($notes, $autoNote);
 
         $payload = [
             'base_salary' => $base,
@@ -147,7 +151,7 @@ class SalaryController extends Controller
             'deduction' => $deduction,
             'total' => $total,
             'status' => SalaryStatus::Draft,
-            'notes' => $notes,
+            'notes' => $mergedNotes,
             'paid_at' => null,
         ];
 
@@ -165,16 +169,20 @@ class SalaryController extends Controller
         );
     }
 
-    private function countWorkDays(Employee $employee, Carbon $period): int
+    private function mergeNotes(?string $userNotes, string $autoSummary): ?string
     {
-        return (int) EmployeeAttendance::query()
-            ->where('employee_id', $employee->id)
-            ->whereBetween('work_date', [
-                $period->copy()->startOfMonth()->toDateString(),
-                $period->copy()->endOfMonth()->toDateString(),
-            ])
-            ->where('status', AttendanceStatus::Hadir)
-            ->whereNotNull('check_in')
-            ->count();
+        $user = trim((string) $userNotes);
+        $user = preg_replace('/\s*\|\s*Potongan:.*/u', '', $user) ?? $user;
+        $user = preg_replace('/^Potongan:.*/u', '', $user) ?? $user;
+        $user = trim($user);
+
+        $parts = array_filter([
+            $user !== '' ? $user : null,
+            $autoSummary !== '' ? 'Potongan: '.$autoSummary : null,
+        ]);
+
+        $merged = implode(' | ', $parts);
+
+        return $merged !== '' ? $merged : null;
     }
 }
