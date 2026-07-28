@@ -1664,6 +1664,8 @@
             overflow-y: auto;
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
+            /* Ruang bawah: home indicator + chrome browser (Android sering safe-area=0) */
+            padding-bottom: calc(2.75rem + env(safe-area-inset-bottom, 0px));
         }
     }
 
@@ -6883,6 +6885,29 @@
 
     .att-report-page {
         @apply space-y-4;
+    }
+
+    @media (max-width: 767px) {
+        .att-report-page {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .att-report-manual {
+            scroll-margin-bottom: 8rem;
+        }
+
+        .att-report-manual[open] {
+            padding-bottom: 1.25rem;
+        }
+
+        .att-report-manual-form .btn-primary {
+            margin-bottom: 0.25rem;
+        }
+
+        .att-report-manual .form-input,
+        .att-report-manual .btn-primary {
+            scroll-margin-bottom: 7rem;
+        }
     }
 
     .att-report-actions {

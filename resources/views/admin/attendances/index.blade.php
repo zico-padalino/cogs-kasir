@@ -215,7 +215,7 @@
             </div>
         </div>
 
-        <details class="card att-report-manual no-print">
+        <details class="card att-report-manual no-print" id="att-report-manual">
             <summary class="att-report-manual-summary">Catat absensi manual</summary>
             <form method="POST" action="{{ route('admin.attendances.store') }}" class="att-report-manual-form">
                 @csrf
@@ -258,4 +258,16 @@
             </form>
         </details>
     </div>
+    <script>
+        (function () {
+            var panel = document.getElementById('att-report-manual');
+            if (!panel) return;
+            panel.addEventListener('toggle', function () {
+                if (!panel.open) return;
+                requestAnimationFrame(function () {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            });
+        })();
+    </script>
 @endsection
