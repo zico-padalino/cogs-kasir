@@ -12,6 +12,27 @@ class AttendanceSelfieTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_can_open_public_attendance_without_login(): void
+    {
+        $this->assertGuest();
+
+        $this->get(route('attendance.scan'))
+            ->assertOk()
+            ->assertSee('Absensi QR')
+            ->assertSee('Ambil selfie sebagai bukti absen');
+    }
+
+    public function test_logged_in_user_still_sees_public_attendance_form(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('attendance.scan'))
+            ->assertOk()
+            ->assertSee('Absensi QR')
+            ->assertSee('Ambil selfie sebagai bukti absen');
+    }
+
     public function test_employee_without_registered_face_can_use_public_selfie_attendance(): void
     {
         $employee = Employee::query()->create([

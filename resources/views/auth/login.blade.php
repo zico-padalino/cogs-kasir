@@ -98,6 +98,13 @@
                     Masuk
                 </button>
             </form>
+
+            <p class="mt-5 text-center text-sm text-slate-500">
+                Hanya ingin absen?
+                <a href="{{ route('attendance.scan') }}" class="font-semibold text-teal-700 underline hover:text-teal-800">
+                    Buka absensi tanpa login
+                </a>
+            </p>
         </div>
     </div>
 @endsection

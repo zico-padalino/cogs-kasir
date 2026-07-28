@@ -81,15 +81,6 @@
 
             <p class="scan-mode-pill" data-scan-mode-label>Pilih pegawai dulu</p>
 
-            @auth
-                @if (! empty($continueUrl))
-                    <p class="scan-camera-hint mt-2">
-                        Setelah absen berhasil, Anda akan dialihkan ke modul.
-                        <a href="{{ $continueUrl }}" class="font-semibold text-teal-700 underline">Coba buka modul sekarang</a>
-                    </p>
-                @endif
-            @endauth
-
             <div class="scan-camera">
                 <div class="scan-camera-preview">
                     <video data-scan-video class="scan-video" playsinline muted autoplay></video>

@@ -19,6 +19,8 @@ class EnsurePasswordChanged
             'home',
             'login',
             'login.store',
+            'attendance.scan',
+            'attendance.scan.store',
         )) {
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
-use App\Support\AttendanceGate;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,46 +13,27 @@ use RuntimeException;
 
 class PublicAttendanceController extends Controller
 {
-    public function show(Request $request, AttendanceService $attendanceService): View|RedirectResponse
+    /**
+     * Halaman absensi QR publik — tanpa login.
+     * Pegawai cukup scan QR → pilih nama → selfie + GPS.
+     */
+    public function show(AttendanceService $attendanceService): View
     {
-        $user = $request->user();
-
-        // Gate absen-wajib dimatikan: user login jangan stuck di halaman absen.
-        // QR publik tetap dipakai tanpa login.
-        if ($user && ! AttendanceGate::enforcesBeforeModules()) {
-            $request->session()->forget('url.intended');
-
-            return redirect()->to($user->postAuthUrl());
-        }
-
         if (! $attendanceService->isEnabled()) {
             return view('attendance.scan-disabled', [
                 'shopName' => ShopSettings::get('shop_name', config('pos.shop_name')),
             ]);
         }
 
-        // Sudah absen hari ini (atau tidak wajib) → lanjut ke modul.
-        if ($user
-            && $attendanceService->requiredAction($user) === null
-            && ! $attendanceService->needsProfileSetup($user)
-        ) {
-            $request->session()->forget('url.intended');
-
-            return redirect()->to($user->postAuthUrl());
-        }
-
         $settings = $attendanceService->settings();
-        $selectedEmployeeId = $user
-            ? $attendanceService->employeeFor($user)?->id
-            : null;
 
         return view('attendance.scan', [
             'shopName' => ShopSettings::get('shop_name', config('pos.shop_name')),
             'settings' => $settings,
             'employees' => $attendanceService->activeEmployeesForScan(),
             'nowLabel' => now()->translatedFormat('l, d M Y'),
-            'selectedEmployeeId' => $selectedEmployeeId,
-            'continueUrl' => $user?->postAuthUrl(),
+            'selectedEmployeeId' => null,
+            'continueUrl' => null,
         ]);
     }
 
@@ -112,18 +92,6 @@ class PublicAttendanceController extends Controller
             }
         } catch (RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
-        }
-
-        $user = $request->user();
-        if ($user && (
-            ! AttendanceGate::enforcesBeforeModules()
-            || $attendanceService->requiredAction($user) === null
-        )) {
-            $request->session()->forget('url.intended');
-
-            return redirect()
-                ->to($user->postAuthUrl())
-                ->with('success', $message);
         }
 
         return redirect()

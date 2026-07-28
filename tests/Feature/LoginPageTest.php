@@ -16,6 +16,7 @@ class LoginPageTest extends TestCase
             ->assertOk()
             ->assertSee('Masuk')
             ->assertSee('Gunakan email dan password akun Anda')
+            ->assertSee('Buka absensi tanpa login')
             ->assertDontSee('Pilih modul');
     }
 
