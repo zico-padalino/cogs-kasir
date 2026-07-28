@@ -2,7 +2,7 @@
 
 @section('title', 'Pengaturan')
 @section('heading', 'Pengaturan')
-@section('subheading', 'Nama toko, judul, dan logo yang tampil di kasir, login, dan stiker QR')
+@section('subheading', 'Nama toko, juduul, dan logo yang tampil di kasir, login, dan stiker QR')
 
 @section('content')
     <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data" class="mx-auto max-w-2xl space-y-6">
