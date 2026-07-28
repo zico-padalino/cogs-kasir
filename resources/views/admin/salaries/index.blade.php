@@ -36,13 +36,24 @@
                 @if (($rates['fixed'] ?? 0) > 0 || ($rates['late'] ?? 0) > 0 || ($rates['alpha'] ?? 0) > 0 || ($rates['izin'] ?? 0) > 0 || ($rates['sakit'] ?? 0) > 0)
                     <p class="mt-1 text-xs text-slate-500">
                         Tarif:
-                        @if (($rates['fixed'] ?? 0) > 0) rutin {{ $format::rupiah($rates['fixed']) }}@endif
-                        @if (($rates['late'] ?? 0) > 0) · telat {{ $format::rupiah($rates['late']) }}/kali
-                            @if (($rates['late_after_minutes'] ?? 0) > 0) (≥{{ $rates['late_after_minutes'] }} mnt)@endif
+                        @if (($rates['fixed'] ?? 0) > 0)
+                            rutin {{ $format::rupiah($rates['fixed']) }}
                         @endif
-                        @if (($rates['alpha'] ?? 0) > 0) · alpha {{ $format::rupiah($rates['alpha']) }}/kali@endif
-                        @if (($rates['izin'] ?? 0) > 0) · izin {{ $format::rupiah($rates['izin']) }}/kali@endif
-                        @if (($rates['sakit'] ?? 0) > 0) · sakit {{ $format::rupiah($rates['sakit']) }}/kali@endif
+                        @if (($rates['late'] ?? 0) > 0)
+                            · telat {{ $format::rupiah($rates['late']) }}/kali
+                            @if (($rates['late_after_minutes'] ?? 0) > 0)
+                                (≥{{ $rates['late_after_minutes'] }} mnt)
+                            @endif
+                        @endif
+                        @if (($rates['alpha'] ?? 0) > 0)
+                            · alpha {{ $format::rupiah($rates['alpha']) }}/kali
+                        @endif
+                        @if (($rates['izin'] ?? 0) > 0)
+                            · izin {{ $format::rupiah($rates['izin']) }}/kali
+                        @endif
+                        @if (($rates['sakit'] ?? 0) > 0)
+                            · sakit {{ $format::rupiah($rates['sakit']) }}/kali
+                        @endif
                     </p>
                 @endif
             </div>

@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Cogs\OverheadApiController;
 use App\Http\Controllers\Api\Cogs\ProductApiController;
 use App\Http\Controllers\Api\Cogs\ProductionApiController;
 use App\Http\Controllers\Api\Cogs\OpsAssetApiController;
+use App\Http\Controllers\Api\Cogs\ResetDataApiController;
 use App\Http\Controllers\Api\Cogs\StockWasteApiController;
 use App\Http\Controllers\Api\Kasir\WasteController as KasirWasteController;
 use App\Http\Controllers\Api\Kasir\KasTunaiController;
