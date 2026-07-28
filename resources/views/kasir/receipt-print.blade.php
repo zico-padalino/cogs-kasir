@@ -319,14 +319,15 @@
             var hint = document.getElementById('print-hint');
 
             function openThermer(url) {
-                var iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = url;
-                document.body.appendChild(iframe);
+                var a = document.createElement('a');
+                a.href = url;
+                a.style.display = 'none';
+                a.setAttribute('rel', 'noopener');
+                document.body.appendChild(a);
+                a.click();
                 setTimeout(function () {
-                    try { document.body.removeChild(iframe); } catch (e) {}
-                }, 1500);
-                try { window.location.href = url; } catch (e) {}
+                    try { document.body.removeChild(a); } catch (e) {}
+                }, 1000);
             }
 
             async function printViaThermer() {
@@ -345,27 +346,22 @@
                     );
                     if (! res.ok) throw new Error('thermal fetch failed');
                     var thermal = await res.json();
-                    var url = thermal.thermer_url || '';
+                    // Docs Browser Print: my.bluetoothprint.scheme://<RESPONSE_URL>
+                    var url = thermal.thermer_browser_url || '';
+                    if (! url && thermal.thermer_url) {
+                        url = thermal.thermer_url;
+                    }
                     if (! url && thermal.thermer_json) {
                         url = 'thermer://?data=' + encodeURIComponent(thermal.thermer_json);
                         if (url.length > 1800) url = '';
                     }
-                    // Prioritas Intent (BAF + package) sesuai docs Thermer Android
-                    if (thermal.intent_url) {
-                        url = thermal.intent_url;
-                    } else if (! url && thermal.thermer_baf_text) {
-                        url = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
-                            + 'package=mate.bluetoothprint;'
-                            + 'S.android.intent.extra.TEXT=' + encodeURIComponent(thermal.thermer_baf_text)
-                            + ';end';
-                    }
                     if (! url) {
-                        if (hint) hint.textContent = 'Data Thermer belum siap. Pastikan Thermer terpasang.';
+                        if (hint) hint.textContent = 'Data Thermer belum siap. Aktifkan Browser Print di settings Thermer.';
                         return;
                     }
                     openThermer(url);
                     if (hint) {
-                        hint.innerHTML = 'Thermer harus terbuka. Jika tidak, pastikan printer sudah dipilih di Thermer.';
+                        hint.innerHTML = 'Thermer harus terbuka. Jika ke Play Store: buka Thermer → Settings → aktifkan Browser Print.';
                     }
                 } catch (e) {
                     if (hint) hint.textContent = 'Gagal membuka Thermer. Kembali ke struk dan coba lagi.';

@@ -372,6 +372,7 @@
 
                 var shareText = thermal.thermer_share_text || '';
                 var bafText = thermal.thermer_baf_text || shareText;
+                var browserUrl = thermal.thermer_browser_url || '';
                 var thermerUrl = thermal.thermer_url || '';
                 if (!thermerUrl && thermal.thermer_json) {
                     thermerUrl = 'thermer://?data=' + encodeURIComponent(thermal.thermer_json);
@@ -384,7 +385,7 @@
                     || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
                 function openThermerDeepLink(url) {
-                    // Cara paling andal di Chrome Android: klik <a href="intent:..."> / thermer://
+                    // Cara paling andal: klik <a href="..."> (wajib untuk scheme Thermer)
                     var a = document.createElement('a');
                     a.href = url;
                     a.style.display = 'none';
@@ -396,46 +397,28 @@
                     }, 1000);
                 }
 
-                function openThermerFallback() {
-                    // Intent SEND + package Thermer + BAF (format resmi Intent Print).
-                    if (intentUrl) {
-                        openThermerDeepLink(intentUrl);
-                        return true;
-                    }
-                    if (bafText) {
-                        var built = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
-                            + 'package=mate.bluetoothprint;'
-                            + 'S.android.intent.extra.TEXT=' + encodeURIComponent(bafText)
-                            + ';end';
-                        if (built.length <= 2000) {
-                            openThermerDeepLink(built);
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-
                 if (isAndroid()) {
-                    if (!thermerUrl && !intentUrl && !shareText && !bafText) {
+                    if (!browserUrl && !thermerUrl && !intentUrl && !shareText && !bafText) {
                         if (hintEl) hintEl.textContent = 'Data thermal belum siap.';
                         return;
                     }
                     if (hintEl) hintEl.textContent = 'Membuka Thermer…';
 
-                    // Prioritas Android (sesuai docs Thermer Intent Print):
-                    // 1) Intent SEND + package + BAF
-                    // 2) Deep link thermer:// (fallback)
-                    if (intentUrl) {
-                        openThermerDeepLink(intentUrl);
+                    // Prioritas Web Android (docs Browser Print):
+                    // 1) my.bluetoothprint.scheme://https://.../struk/.../thermer
+                    // 2) thermer://?data=JSON
+                    // Jangan pakai intent+package dari browser — sering dilempar ke Play Store.
+                    if (browserUrl) {
+                        openThermerDeepLink(browserUrl);
                     } else if (thermerUrl) {
                         openThermerDeepLink(thermerUrl);
-                    } else {
-                        openThermerFallback();
+                    } else if (intentUrl && intentUrl.indexOf('package=') === -1) {
+                        openThermerDeepLink(intentUrl);
                     }
 
                     setTimeout(function () {
                         if (!hintEl) return;
-                        hintEl.innerHTML = 'Thermer harus terbuka & mencetak otomatis. Jika tidak: pastikan printer sudah dipilih di Thermer, '
+                        hintEl.innerHTML = 'Thermer harus terbuka & mencetak otomatis. Jika muncul Play Store: buka Thermer → Settings → aktifkan <strong>Browser Print</strong>, '
                             + 'lalu klik <button type="button" class="underline text-brand-700" data-thermal-retry>Cetak lagi</button>. '
                             + '<a class="underline text-brand-700" href="' + playStore + '" target="_blank" rel="noopener">Install Thermer</a>';
 
@@ -449,9 +432,9 @@
                     return;
                 }
 
-                if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') && thermerUrl) {
+                if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') && (browserUrl || thermerUrl)) {
                     if (hintEl) hintEl.textContent = 'Membuka Thermer…';
-                    openThermerDeepLink(thermerUrl);
+                    openThermerDeepLink(browserUrl || thermerUrl);
                     return;
                 }
 

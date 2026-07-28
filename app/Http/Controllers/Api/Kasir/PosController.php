@@ -583,6 +583,7 @@ class PosController extends Controller
                     'variant' => $thermal['variant'],
                     'base64' => $thermal['base64'],
                     'thermer_url' => $thermal['thermer_url'],
+                    'thermer_browser_url' => $thermal['thermer_browser_url'],
                     'intent_url' => $thermal['intent_url'],
                     'thermer_share_text' => $thermal['thermer_share_text'],
                     'thermer_baf_text' => $thermal['thermer_baf_text'],

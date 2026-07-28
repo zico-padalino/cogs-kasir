@@ -718,6 +718,7 @@ class KasirController extends Controller
                 'width' => $thermal['width'],
                 'base64' => $thermal['base64'],
                 'thermer_url' => $thermal['thermer_url'],
+                'thermer_browser_url' => $thermal['thermer_browser_url'],
                 'intent_url' => $thermal['intent_url'],
                 'thermer_share_text' => $thermal['thermer_share_text'],
                 'thermer_baf_text' => $thermal['thermer_baf_text'],
@@ -853,6 +854,30 @@ class KasirController extends Controller
         ]);
     }
 
+    /**
+     * Public signed JSON for Thermer Browser Print.
+     * Response HARUS murni JSON (tanpa HTML/wrapper) — Thermer yang fetch URL ini.
+     */
+    public function publicThermerJson(PosOrder $order, EscPosReceiptService $escPos): \Illuminate\Http\Response
+    {
+        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+            abort(404);
+        }
+
+        $paper = request()->query('paper');
+        $variant = request()->query('variant', 'customer');
+        $thermal = $escPos->payload(
+            $order,
+            is_string($paper) ? $paper : null,
+            is_string($variant) ? $variant : 'customer',
+        );
+
+        return response($thermal['thermer_json'], 200, [
+            'Content-Type' => 'application/json; charset=UTF-8',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
     public function publicKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
         if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
@@ -928,6 +953,7 @@ class KasirController extends Controller
             'variant' => $thermal['variant'],
             'base64' => $thermal['base64'],
             'thermer_url' => $thermal['thermer_url'],
+            'thermer_browser_url' => $thermal['thermer_browser_url'],
             'intent_url' => $thermal['intent_url'],
             'thermer_share_text' => $thermal['thermer_share_text'],
             'thermer_baf_text' => $thermal['thermer_baf_text'],

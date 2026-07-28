@@ -86,6 +86,9 @@ Route::get('/struk/{order}/dapur', [KasirController::class, 'publicKitchenPdf'])
 Route::get('/struk/{order}/bar', [KasirController::class, 'publicBarPdf'])
     ->middleware('signed')
     ->name('receipts.bar');
+Route::get('/struk/{order}/thermer', [KasirController::class, 'publicThermerJson'])
+    ->middleware('signed')
+    ->name('receipts.thermer');
 
 Route::get('manifest/{app}.webmanifest', [PwaController::class, 'manifest'])
     ->name('pwa.manifest')

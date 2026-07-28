@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\PosOrder;
 use App\Support\Format;
+use Illuminate\Support\Facades\URL;
 
 /**
  * ESC/POS + Thermer — layout identik dengan ReceiptPdfService (posisi, urutan, teks).
  *
- * Android: Intent ACTION_SEND ke package mate.bluetoothprint dengan teks BAF (<BAF>content).
- * iOS/Web fallback: deep link thermer://?data=JSON
+ * Web Android (Browser Print): my.bluetoothprint.scheme://https://.../struk/{id}/thermer?...
+ * Native Android (Intent Print): ACTION_SEND + package mate.bluetoothprint + BAF text
+ * iOS fallback: thermer://?data=JSON
  */
 class EscPosReceiptService
 {
@@ -81,8 +83,21 @@ class EscPosReceiptService
             $thermerUrl = '';
         }
 
-        // Android Intent Print (format resmi Thermer): ACTION_SEND + package + BAF text.
-        // Tanpa package, Chrome sering buka dialog share/print sistem (bukan Thermer).
+        // Browser Print (docs resmi website): my.bluetoothprint.scheme://<RESPONSE_URL>
+        // Thermer akan fetch URL tersebut dan mencetak JSON-nya.
+        // URL harus publik (signed) karena Thermer fetch tanpa session login.
+        $responseUrl = URL::temporarySignedRoute(
+            'receipts.thermer',
+            now()->addHours(12),
+            [
+                'order' => $ticket->id,
+                'variant' => $variant,
+                'paper' => $paper,
+            ],
+        );
+        $browserPrintUrl = 'my.bluetoothprint.scheme://'.$responseUrl;
+
+        // Native/Intent fallback (docs Intent Print): ACTION_SEND + package + BAF
         $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
             .'package=mate.bluetoothprint;'
             .'S.android.intent.extra.TEXT='.rawurlencode($bafText)
@@ -107,6 +122,7 @@ class EscPosReceiptService
             'thermer_share_text' => $shareText,
             'thermer_baf_text' => $bafText,
             'thermer_url' => $thermerUrl,
+            'thermer_browser_url' => $browserPrintUrl,
             'intent_url' => $intentUrl,
             'thermer_play_store' => $playStore,
             'rawbt_url' => $thermerUrl,
@@ -332,7 +348,7 @@ class EscPosReceiptService
             ];
         }
 
-        return json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        return json_encode($entries, JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
     }
 
     /**
