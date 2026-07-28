@@ -6886,7 +6886,7 @@
     }
 
     .att-report-actions {
-        @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap;
+        @apply grid grid-cols-2 gap-2 sm:flex sm:flex-wrap;
     }
 
     .att-report-action {
@@ -6895,6 +6895,18 @@
 
     .att-report-filters {
         @apply grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5;
+    }
+
+    .att-report-filters .form-input,
+    .att-report-manual .form-input {
+        font-size: 16px;
+    }
+
+    @media (min-width: 640px) {
+        .att-report-filters .form-input,
+        .att-report-manual .form-input {
+            font-size: 0.875rem;
+        }
     }
 
     .att-report-filters-submit {
@@ -6925,72 +6937,18 @@
         @apply rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900;
     }
 
-    .att-report-cards {
-        @apply grid gap-3;
-    }
-
-    .att-report-card {
-        @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
-    }
-
-    .att-report-card-head {
-        @apply flex items-start justify-between gap-3;
-    }
-
-    .att-report-card-name {
-        @apply truncate text-sm font-semibold text-slate-900;
-    }
-
-    .att-report-card-sub {
-        @apply mt-0.5 text-[11px] leading-snug text-slate-500;
-    }
-
-    .att-report-card-badges {
-        @apply flex shrink-0 flex-col items-end gap-1;
-    }
-
-    .att-report-card-grid {
-        @apply mt-3 grid grid-cols-2 gap-3;
-    }
-
-    .att-report-card-block {
-        @apply rounded-xl bg-slate-50 p-3;
-    }
-
-    .att-report-card-label {
-        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-400;
-    }
-
-    .att-report-card-time {
-        @apply mt-1 text-base font-semibold tabular-nums text-slate-900;
-    }
-
-    .att-selfie--card {
-        @apply mt-2;
-    }
-
-    .att-selfie--card img {
-        @apply h-14 w-14;
-    }
-
-    .att-report-card-map {
-        @apply mt-2 block text-[11px] font-medium text-teal-700 underline-offset-2 hover:underline;
-    }
-
-    .att-report-card-notes {
-        @apply mt-3 text-xs text-slate-500;
-    }
-
-    .att-report-card-foot {
-        @apply mt-3 border-t border-slate-100 pt-3;
-    }
-
-    .att-report-empty {
-        @apply rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500;
-    }
-
     .att-report-table-wrap {
-        @apply hidden overflow-hidden md:block;
+        @apply overflow-hidden;
+    }
+
+    .att-report-scroll-hint {
+        @apply border-b border-slate-100 px-4 py-2 text-[11px] font-medium text-slate-400 md:hidden;
+    }
+
+    .att-report-table-scroll {
+        @apply overflow-x-auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
     }
 
     .att-report-table {
@@ -6998,7 +6956,7 @@
     }
 
     .att-report-table th {
-        @apply border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+        @apply whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
     }
 
     .att-report-table td {
@@ -7035,12 +6993,6 @@
 
     .att-report-manual-grid {
         @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3;
-    }
-
-    @media (min-width: 768px) {
-        .att-report-cards {
-            display: none;
-        }
     }
 
     .login-form-head {
