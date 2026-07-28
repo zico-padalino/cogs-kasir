@@ -208,14 +208,13 @@ function bindScan(root) {
     window.addEventListener('beforeunload', () => stopCamera(video));
     window.addEventListener('pagehide', () => stopCamera(video));
     window.addEventListener('visibilitychange', () => {
-        if (document.visibilityState !== 'visible') {
+        if (document.hidden) {
             stopCamera(video);
         }
     });
-    // If page is restored from bfcache, reload to refresh auth/session state.
     window.addEventListener('pageshow', (event) => {
-        if (event.persisted) {
-            window.location.reload();
+        if (event.persisted && ! video.srcObject) {
+            startCamera(video).catch(() => {});
         }
     });
     window.addEventListener('orientationchange', () => {
