@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\EnsurePasswordChanged::class,
             \App\Http\Middleware\EnsureAttendanceChecked::class,
+            \App\Http\Middleware\PreventSensitivePageCache::class,
         ]);
 
         $middleware->trustProxies(at: '*');
