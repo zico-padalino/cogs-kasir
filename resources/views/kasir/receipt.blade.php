@@ -83,9 +83,9 @@
             <p class="mt-4 text-xs text-slate-400">Biaya pokok tercatat otomatis</p>
         </div>
 
-        <div class="form-actions receipt-actions mt-4 no-print">
+        <div class="form-actions receipt-actions mt-4 no-print" @if (! empty($autoThermal)) data-auto-thermal="1" @endif>
             <button type="button" class="btn-primary w-full" data-receipt-thermal-print>
-                Cetak Thermal
+                Cetak Thermal (Thermer)
             </button>
             <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
@@ -98,7 +98,7 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Sekali klik Cetak Thermal → langsung buka Thermer & cetak.
+                Setelah bayar, Thermer dibuka otomatis di Android. Klik Cetak Thermal untuk cetak ulang.
             </p>
             <a
                 href="{{ route('kasir.receipt.print', $order) }}"
@@ -363,16 +363,21 @@
                 } catch (e) {}
 
                 var thermal = payload.thermal || {};
-                if (paper !== thermal.paper || !thermal.thermer_url) {
+                if (paper !== thermal.paper || (!thermal.thermer_url && !thermal.thermer_json && !thermal.intent_url)) {
                     thermal = await fetchThermal(paper);
                     payload.thermal = thermal;
                 }
 
                 var shareText = thermal.thermer_share_text || '';
+                var bafText = thermal.thermer_baf_text || shareText;
                 var thermerUrl = thermal.thermer_url || '';
                 if (!thermerUrl && thermal.thermer_json) {
                     thermerUrl = 'thermer://?data=' + encodeURIComponent(thermal.thermer_json);
+                    if (thermerUrl.length > 1800) {
+                        thermerUrl = '';
+                    }
                 }
+                var intentUrl = thermal.intent_url || '';
                 var playStore = thermal.thermer_play_store
                     || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
@@ -392,16 +397,37 @@
                     } catch (e) {}
                 }
 
+                function openThermerFallback() {
+                    // Intent SEND tanpa package (BAF) — Thermer/chooser menangani struk panjang.
+                    if (intentUrl) {
+                        openThermerDeepLink(intentUrl);
+                        return true;
+                    }
+                    if (bafText) {
+                        var built = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+                            + 'S.android.intent.extra.TEXT=' + encodeURIComponent(bafText)
+                            + ';end';
+                        if (built.length <= 1800) {
+                            openThermerDeepLink(built);
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
                 if (isAndroid()) {
-                    if (!thermerUrl && !shareText) {
+                    if (!thermerUrl && !intentUrl && !shareText && !bafText) {
                         if (hintEl) hintEl.textContent = 'Data thermal belum siap.';
                         return;
                     }
                     if (hintEl) hintEl.textContent = 'Membuka Thermer…';
 
-                    // Deep link thermer:// — JANGAN intent+package (itu yang buka Play Store).
+                    // 1) Deep link thermer:// (JSON type 0)
                     if (thermerUrl) {
                         openThermerDeepLink(thermerUrl);
+                    } else {
+                        // 2) Fallback Intent SEND (BAF) untuk struk panjang
+                        openThermerFallback();
                     }
 
                     setTimeout(function () {
@@ -427,7 +453,7 @@
                 }
 
                 if (hintEl) {
-                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome pakai Cetak Thermal.';
+                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome Thermer terbuka otomatis.';
                 }
                 printDesktopFallback();
             }
@@ -436,6 +462,23 @@
                 thermalBtn.addEventListener('click', function () {
                     printThermal();
                 });
+            }
+
+            // Di Android, "Cetak Pesanan" juga sinkron ke Thermer (bukan dialog browser).
+            var printOrderBtn = document.querySelector('[data-receipt-print]');
+            if (printOrderBtn && isAndroid()) {
+                printOrderBtn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    printThermal();
+                });
+            }
+
+            // Setelah bayar berhasil → langsung buka Thermer di Android.
+            var actionsEl = document.querySelector('[data-auto-thermal]');
+            if (actionsEl && isAndroid()) {
+                setTimeout(function () {
+                    printThermal();
+                }, 600);
             }
 
             if (openBtn && panel && phoneInput && sendBtn) {

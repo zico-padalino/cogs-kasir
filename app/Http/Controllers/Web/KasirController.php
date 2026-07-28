@@ -682,7 +682,8 @@ class KasirController extends Controller
         session()->forget('kasir_order_id');
 
         $redirect = redirect()->route('kasir.receipt', $result['order'])
-            ->with('success', 'Pembayaran berhasil.');
+            ->with('success', 'Pembayaran berhasil.')
+            ->with('auto_thermal', true);
 
         if (! empty($result['stock_out_message'])) {
             $redirect->with('warning', $result['stock_out_message']);
@@ -705,6 +706,7 @@ class KasirController extends Controller
         return view('kasir.receipt', [
             'order' => $order,
             'format' => Format::class,
+            'autoThermal' => (bool) session('auto_thermal'),
             'pdfUrl' => $pdf['url'],
             'pdfRoute' => route('kasir.receipt.pdf', $order),
             'kitchenPdfRoute' => route('kasir.receipt.kitchen', $order),

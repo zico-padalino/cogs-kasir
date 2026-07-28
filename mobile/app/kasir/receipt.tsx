@@ -39,10 +39,11 @@ function isValidWaPhone(phone: string): boolean {
 }
 
 export default function ReceiptScreen() {
-  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
+  const { id, from, autoprint } = useLocalSearchParams<{ id: string; from?: string; autoprint?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const fromHistory = from === 'history';
+  const shouldAutoPrint = autoprint === '1' && !fromHistory;
   const [order, setOrder] = useState<PosOrder | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [kitchenPdfUrl, setKitchenPdfUrl] = useState<string | null>(null);
@@ -57,6 +58,7 @@ export default function ReceiptScreen() {
   const [waPhone, setWaPhone] = useState('');
   const [waError, setWaError] = useState('');
   const [waSending, setWaSending] = useState(false);
+  const [autoPrinted, setAutoPrinted] = useState(false);
 
   const loadReceipt = async (paperSize: ThermalPaper) => {
     const res = await kasirApi.receipt(Number(id), paperSize);
@@ -124,6 +126,18 @@ export default function ReceiptScreen() {
       setPrinting(false);
     }
   };
+
+  // Setelah bayar: langsung sinkron ke Thermer (sekali).
+  useEffect(() => {
+    if (loading || !shouldAutoPrint || autoPrinted || !thermal) {
+      return;
+    }
+    setAutoPrinted(true);
+    const timer = setTimeout(() => {
+      void onPrintThermal();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [loading, shouldAutoPrint, autoPrinted, thermal]);
 
   const onSendWhatsApp = async () => {
     const phone = normalizePhone(waPhone);
@@ -226,12 +240,22 @@ export default function ReceiptScreen() {
         </View>
 
         <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
-          <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal'}</Text>
+          <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal (Thermer)'}</Text>
         </Pressable>
-        <Text style={styles.hint}>Layout sama Cetak Pesanan. Pair printer di Thermer dulu.</Text>
+        <Text style={styles.hint}>
+          {shouldAutoPrint
+            ? 'Setelah bayar, Thermer dibuka otomatis. Pair printer di Thermer dulu.'
+            : 'Layout sama Cetak Pesanan. Pair printer di Thermer dulu.'}
+        </Text>
 
         {pdfUrl ? (
-          <Pressable onPress={() => Linking.openURL(pdfUrl)} style={styles.outlineBtn}>
+          <Pressable
+            onPress={() => {
+              // Cetak struk = sinkron Thermer (bukan buka PDF).
+              void onPrintThermal();
+            }}
+            style={styles.outlineBtn}
+          >
             <Text style={styles.outlineText}>Cetak Pesanan</Text>
           </Pressable>
         ) : null}

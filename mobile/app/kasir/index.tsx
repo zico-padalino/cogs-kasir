@@ -430,13 +430,13 @@ export default function KasirPosScreen() {
             },
             {
               text: 'Ke Struk',
-              onPress: () => router.push(`/kasir/receipt?id=${res.data.id}` as never),
+              onPress: () => router.push(`/kasir/receipt?id=${res.data.id}&autoprint=1` as never),
             },
           ],
         );
         return;
       }
-      router.push(`/kasir/receipt?id=${res.data.id}` as never);
+      router.push(`/kasir/receipt?id=${res.data.id}&autoprint=1` as never);
     } catch (err) {
       handleApiError(err);
     } finally {
