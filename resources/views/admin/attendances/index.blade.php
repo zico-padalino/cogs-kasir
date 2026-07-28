@@ -243,11 +243,11 @@
                     </div>
                     <div>
                         <label class="form-label" for="check_in">Jam masuk</label>
-                        <input id="check_in" type="time" name="check_in" class="form-input">
+                        <x-time-24-picker name="check_in" id="check_in" value="" />
                     </div>
                     <div>
                         <label class="form-label" for="check_out">Jam pulang</label>
-                        <input id="check_out" type="time" name="check_out" class="form-input">
+                        <x-time-24-picker name="check_out" id="check_out" value="" />
                     </div>
                     <div>
                         <label class="form-label" for="notes">Catatan</label>

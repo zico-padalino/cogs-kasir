@@ -23,4 +23,5 @@ import './material-history';
 import './searchable-select';
 import './materials-list-search';
 import './products-list-search';
+import './time-24-picker';
 

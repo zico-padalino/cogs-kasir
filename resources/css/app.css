@@ -7074,6 +7074,30 @@
         @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3;
     }
 
+    .time-24-picker {
+        @apply w-full;
+    }
+
+    .time-24-picker__row {
+        @apply flex items-end gap-2;
+    }
+
+    .time-24-picker__field {
+        @apply min-w-0 flex-1;
+    }
+
+    .time-24-picker__caption {
+        @apply mb-1 block text-[11px] font-medium text-slate-500;
+    }
+
+    .time-24-picker__select {
+        @apply tabular-nums;
+    }
+
+    .time-24-picker__sep {
+        @apply mb-2.5 shrink-0 text-lg font-semibold text-slate-400;
+    }
+
     .login-form-head {
         @apply mb-5;
     }

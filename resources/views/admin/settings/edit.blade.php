@@ -129,29 +129,23 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="form-label" for="attendance_clock_in">Jam masuk</label>
-                    <input
-                        type="time"
+                    <x-time-24-picker
                         name="attendance_clock_in"
                         id="attendance_clock_in"
-                        class="form-input"
-                        value="{{ old('attendance_clock_in', $settings['attendance_clock_in'] ?? '08:00') }}"
-                        step="60"
-                        required
-                    >
-                    <p class="mt-1 text-xs text-slate-500">Pilih jam masuk (format 24 jam).</p>
+                        :value="old('attendance_clock_in', $settings['attendance_clock_in'] ?? '08:00')"
+                        :required="true"
+                    />
+                    <p class="mt-1 text-xs text-slate-500">Format 24 jam (contoh: 16:00).</p>
                 </div>
                 <div>
                     <label class="form-label" for="attendance_clock_out">Jam pulang</label>
-                    <input
-                        type="time"
+                    <x-time-24-picker
                         name="attendance_clock_out"
                         id="attendance_clock_out"
-                        class="form-input"
-                        value="{{ old('attendance_clock_out', $settings['attendance_clock_out'] ?? '17:00') }}"
-                        step="60"
-                        required
-                    >
-                    <p class="mt-1 text-xs text-slate-500">Pilih jam pulang (format 24 jam).</p>
+                        :value="old('attendance_clock_out', $settings['attendance_clock_out'] ?? '17:00')"
+                        :required="true"
+                    />
+                    <p class="mt-1 text-xs text-slate-500">Format 24 jam (contoh: 23:59).</p>
                 </div>
                 <div>
                     <label class="form-label" for="attendance_early_minutes">Boleh absen masuk lebih awal (menit)</label>
