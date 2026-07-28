@@ -350,8 +350,14 @@
                         url = 'thermer://?data=' + encodeURIComponent(thermal.thermer_json);
                         if (url.length > 1800) url = '';
                     }
-                    if (! url && thermal.intent_url) {
+                    // Prioritas Intent (BAF + package) sesuai docs Thermer Android
+                    if (thermal.intent_url) {
                         url = thermal.intent_url;
+                    } else if (! url && thermal.thermer_baf_text) {
+                        url = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+                            + 'package=mate.bluetoothprint;'
+                            + 'S.android.intent.extra.TEXT=' + encodeURIComponent(thermal.thermer_baf_text)
+                            + ';end';
                     }
                     if (! url) {
                         if (hint) hint.textContent = 'Data Thermer belum siap. Pastikan Thermer terpasang.';

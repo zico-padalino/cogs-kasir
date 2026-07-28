@@ -7,6 +7,9 @@ use App\Support\Format;
 
 /**
  * ESC/POS + Thermer — layout identik dengan ReceiptPdfService (posisi, urutan, teks).
+ *
+ * Android: Intent ACTION_SEND ke package mate.bluetoothprint dengan teks BAF (<BAF>content).
+ * iOS/Web fallback: deep link thermer://?data=JSON
  */
 class EscPosReceiptService
 {
@@ -78,14 +81,20 @@ class EscPosReceiptService
             $thermerUrl = '';
         }
 
-        // Intent SEND tanpa package — pakai BAF agar ukuran besar ikut terbaca Thermer
+        // Android Intent Print (format resmi Thermer): ACTION_SEND + package + BAF text.
+        // Tanpa package, Chrome sering buka dialog share/print sistem (bukan Thermer).
         $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+            .'package=mate.bluetoothprint;'
             .'S.android.intent.extra.TEXT='.rawurlencode($bafText)
             .';end;';
-        if (strlen($intentUrl) > 1800) {
+        if (strlen($intentUrl) > 2000) {
             $intentUrl = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+                .'package=mate.bluetoothprint;'
                 .'S.android.intent.extra.TEXT='.rawurlencode($shareText)
                 .';end;';
+        }
+        if (strlen($intentUrl) > 2000) {
+            $intentUrl = '';
         }
 
         return [

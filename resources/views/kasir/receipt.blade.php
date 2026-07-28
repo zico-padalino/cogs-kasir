@@ -384,32 +384,30 @@
                     || 'https://play.google.com/store/apps/details?id=mate.bluetoothprint';
 
                 function openThermerDeepLink(url) {
-                    // Jangan pakai intent+package — Chrome akan lempar ke Play Store jika gagal.
-                    var iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = url;
-                    document.body.appendChild(iframe);
+                    // Cara paling andal di Chrome Android: klik <a href="intent:..."> / thermer://
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.style.display = 'none';
+                    a.setAttribute('rel', 'noopener');
+                    document.body.appendChild(a);
+                    a.click();
                     setTimeout(function () {
-                        try { document.body.removeChild(iframe); } catch (e) {}
-                    }, 1500);
-
-                    // Trigger juga via location (beberapa browser butuh ini)
-                    try {
-                        window.location.href = url;
-                    } catch (e) {}
+                        try { document.body.removeChild(a); } catch (e) {}
+                    }, 1000);
                 }
 
                 function openThermerFallback() {
-                    // Intent SEND tanpa package (BAF) — Thermer/chooser menangani struk panjang.
+                    // Intent SEND + package Thermer + BAF (format resmi Intent Print).
                     if (intentUrl) {
                         openThermerDeepLink(intentUrl);
                         return true;
                     }
                     if (bafText) {
                         var built = 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;'
+                            + 'package=mate.bluetoothprint;'
                             + 'S.android.intent.extra.TEXT=' + encodeURIComponent(bafText)
                             + ';end';
-                        if (built.length <= 1800) {
+                        if (built.length <= 2000) {
                             openThermerDeepLink(built);
                             return true;
                         }
@@ -424,11 +422,14 @@
                     }
                     if (hintEl) hintEl.textContent = 'Membuka Thermer…';
 
-                    // 1) Deep link thermer:// (JSON type 0)
-                    if (thermerUrl) {
+                    // Prioritas Android (sesuai docs Thermer Intent Print):
+                    // 1) Intent SEND + package + BAF
+                    // 2) Deep link thermer:// (fallback)
+                    if (intentUrl) {
+                        openThermerDeepLink(intentUrl);
+                    } else if (thermerUrl) {
                         openThermerDeepLink(thermerUrl);
                     } else {
-                        // 2) Fallback Intent SEND (BAF) untuk struk panjang
                         openThermerFallback();
                     }
 

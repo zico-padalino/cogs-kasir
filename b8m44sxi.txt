@@ -1,0 +1,121 @@
+Following are the instructions to print content on your Bluetooth / USB Thermal Printer from your own android application via Bluetooth Print app
+Bluetooth Print App URL: https://play.google.com/store/apps/details?id=mate.bluetoothprint
+
+You can print with Bluetooth Print app from your own Android app by passing data through Intent
+
+First of all, create your data
+
+String str = "";
+1. Print text data
+Add <BAF>Content; where
+B: bold status and value must be 0 if no and 1 if yes
+A: align status and value must be 0 if left, 1 if center, 2 if right
+F: format type and valune must be 0 if normal, 1 if double Height, 2 if double Height + Width, 3 if double Width
+Content: Content is text that you want to print with given format
+e.g. str = str + "<110>This is my testing data";
+
+2. Print image
+Add <IMAGE>A#Base64; where
+A: align status and value must be 0 if left, 1 if center, 2 if right
+Base64: Base 64 encoded string derived from below function
+
+//Send parameters like pageWidth and filepath where
+//pageWidth is page width e.g. 48 for 58mm printer, 72 for 80mm printer
+//filePath is complete image file path
+private String getBase64(int pageWidth, String filePath) {
+        //You can modify below program as per your requirements provided that you return base64 string corresponding to the image
+        //Also check if filepath is not null and your app has required permissions before calling this method
+        Bitmap bm = BitmapFactory.decodeFile(filePath);
+        int width = bm.getWidth(), height = bm.getHeight();
+        int compressValue = 50;
+        if(width > 500 || height > 500) {
+            compressValue = 20;
+            int reqWidth = (int) Math.round(pageWidth * 8);
+            if (width < reqWidth && width > 16) {
+                int diff = width % 8;
+                if (diff != 0) {
+                    int newWidth = width - diff;
+                    int newHeight = (int) (width - diff) * height / width;
+                    float scaleWidth = ((float) newWidth) / width;
+                    float scaleHeight = ((float) newHeight) / height;
+                    // CREATE A MATRIX FOR THE MANIPULATION
+                    Matrix matrix = new Matrix();
+                    // RESIZE THE BIT MAP
+                    matrix.postScale(scaleWidth, scaleHeight);
+
+                    // "RECREATE" THE NEW BITMAP
+                    Bitmap resizedBitmap = Bitmap.createBitmap(
+                            bm, 0, 0, width, height, matrix, false);
+                    if (bm != null && !bm.isRecycled())
+                        bm.recycle();
+                    bm = resizedBitmap;
+                }
+            } else if (width > 16) {
+                int newHeight = (int) reqWidth * height / width;
+                float scaleWidth = ((float) reqWidth) / width;
+                float scaleHeight = ((float) newHeight) / height;
+                // CREATE A MATRIX FOR THE MANIPULATION
+                Matrix matrix = new Matrix();
+                // RESIZE THE BIT MAP
+                matrix.postScale(scaleWidth, scaleHeight);
+
+                // "RECREATE" THE NEW BITMAP
+                Bitmap resizedBitmap = Bitmap.createBitmap(
+                        bm, 0, 0, width, height, matrix, false);
+                if (bm != null && !bm.isRecycled())
+                    bm.recycle();
+                bm = resizedBitmap;
+            }
+        }
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.JPEG, compressValue, byteArrayOutputStream); // bm is the bitmap object
+        return Base64.encodeToString(byteArrayOutputStream.toByteArray(), Base64.DEFAULT);
+    }
+
+e.g. str = str + "<IMAGE>1#"+getBase64(48,Environment.getExternalStorageDirectory().toString()+"/BluetoothPrint/test.jpg");
+
+3. Print Barcode
+Add <BARCODE>A#W#H#Value; where
+A: align status and value must be 0 if left, 1 if center, 2 if right
+W: Valid barcode width
+H: Valid barcode height
+Value: Valid barcode value
+e.g. str = str + "<BARCODE>0#100#50#2132137538472";
+
+4. Print QR Code
+Add <QR>A#S#Value; where
+A: align status and value must be 0 if left, 1 if center, 2 if right
+S: QR Code Size
+Value: Valid QR Code value
+e.g. str = str + "<QR>1#50#This is sample";
+
+5. Print HTML
+Add <HTML>Code where
+Code: This is an HTML code to be printed; Put escape character before "
+e.g. str = str + "<HTML>" + getHTMLEquivalent("<div><div style=\"float:left;\"><b>This is left</b></div><div style=\"float:right;font-size:15px;\">This is right</div></div>");
+
+Add below function for HTML
+private String getHTMLEquivalent(String s) {
+    return s.replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+
+To say in simple words, You can create an example string like below
+String imgpath = Environment.getExternalStorageDirectory().toString()+"/BluetoothPrint/test.jpg";
+String str = "<113>Mate Technologies<100>Website: www.matetech.in\nEmail: matetusshar@gmail.com<IMAGE>1#"+imgpath;
+str = str + "<BARCODE>0#100#50#2132137538472<QR>1#40#testing text";
+str = str + "<HTML><div><div style=\"float:left;\"><b>This is left</b></div><div style=\"float:right;font-size:15px;\">This is right</div></div>";
+
+Just pass this to Bluetooth Print app using Intent below
+
+//check if app is already installed to avoid crash
+if(appInstalled){
+Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.setPackage("mate.bluetoothprint");
+        sendIntent.putExtra(Intent.EXTRA_TEXT, str);
+        sendIntent.setType("text/plain");
+        startActivity(sendIntent);
+}
+
+Note: If any non english entry is added, it will get auto get converted to text special if this setting is on in the app. You will find this setting in Settings->Special Characters
