@@ -64,11 +64,14 @@
                     data-scan-employee
                 >
                     <option value="">— Pilih nama —</option>
+                    @php
+                        $prefillId = old('employee_id', $selectedEmployeeId ?? null);
+                    @endphp
                     @foreach ($employees as $row)
                         <option
                             value="{{ $row['id'] }}"
                             data-action="{{ $row['action'] }}"
-                            @selected((string) old('employee_id') === (string) $row['id'])
+                            @selected((string) $prefillId === (string) $row['id'])
                         >
                             {{ $row['name'] }}
                         </option>
@@ -77,6 +80,15 @@
             </div>
 
             <p class="scan-mode-pill" data-scan-mode-label>Pilih pegawai dulu</p>
+
+            @auth
+                @if (! empty($continueUrl))
+                    <p class="scan-camera-hint mt-2">
+                        Setelah absen berhasil, Anda akan dialihkan ke modul.
+                        <a href="{{ $continueUrl }}" class="font-semibold text-teal-700 underline">Coba buka modul sekarang</a>
+                    </p>
+                @endif
+            @endauth
 
             <div class="scan-camera">
                 <div class="scan-camera-preview">

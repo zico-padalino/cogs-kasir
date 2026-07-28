@@ -13,7 +13,7 @@ use RuntimeException;
 
 class PublicAttendanceController extends Controller
 {
-    public function show(AttendanceService $attendanceService): View|RedirectResponse
+    public function show(Request $request, AttendanceService $attendanceService): View|RedirectResponse
     {
         if (! $attendanceService->isEnabled()) {
             return view('attendance.scan-disabled', [
@@ -21,13 +21,19 @@ class PublicAttendanceController extends Controller
             ]);
         }
 
+        $user = $request->user();
         $settings = $attendanceService->settings();
+        $selectedEmployeeId = $user
+            ? $attendanceService->employeeFor($user)?->id
+            : null;
 
         return view('attendance.scan', [
             'shopName' => ShopSettings::get('shop_name', config('pos.shop_name')),
             'settings' => $settings,
             'employees' => $attendanceService->activeEmployeesForScan(),
             'nowLabel' => now()->translatedFormat('l, d M Y'),
+            'selectedEmployeeId' => $selectedEmployeeId,
+            'continueUrl' => $user?->postAuthUrl(),
         ]);
     }
 
@@ -86,6 +92,14 @@ class PublicAttendanceController extends Controller
             }
         } catch (RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        $user = $request->user();
+        if ($user && $attendanceService->requiredAction($user) === null) {
+            // Absen akun login selesai → kembali ke modul yang tadi dibuka (kasir/hub/dll).
+            return redirect()
+                ->intended($user->postAuthUrl())
+                ->with('success', $message);
         }
 
         return redirect()

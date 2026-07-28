@@ -9,12 +9,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureApiAttendanceChecked
 {
+    /** Sementara false = absen tidak wajib sebelum akses API modul. */
+    private const ENFORCE = false;
+
     public function __construct(
         private readonly AttendanceService $attendanceService,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
+        if (! self::ENFORCE) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if (! $user) {

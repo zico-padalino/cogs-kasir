@@ -1,8 +1,23 @@
-const CACHE_NAME = 'cogs-pos-shell-v2';
+const CACHE_NAME = 'cogs-pos-shell-v3';
 const PRECACHE_URLS = [
     '/icons/icon-192.png',
     '/icons/icon-512.png',
     '/favicon.png',
+];
+
+/** Halaman sesi/absensi — jangan di-intercept / di-cache SW. */
+const BYPASS_PATH_PREFIXES = [
+    '/absensi',
+    '/attendance',
+    '/login',
+    '/logout',
+    '/hub',
+    '/kasir',
+    '/admin',
+    '/dashboard',
+    '/password',
+    '/pin',
+    '/employee',
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,6 +45,11 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Navigasi HTML ke modul/absensi selalu network — hindari "nyangkut" halaman absen.
+    if (event.request.mode === 'navigate' || isBypassedPath(url.pathname)) {
+        return;
+    }
+
     if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/icons/')) {
         event.respondWith(cacheFirst(event.request));
 
@@ -38,6 +58,10 @@ self.addEventListener('fetch', (event) => {
 
     event.respondWith(networkFirst(event.request));
 });
+
+function isBypassedPath(pathname) {
+    return BYPASS_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 async function cacheFirst(request) {
     const cached = await caches.match(request);

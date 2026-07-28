@@ -9,12 +9,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureAttendanceChecked
 {
+    /** Sementara false = absen tidak wajib sebelum masuk kasir/modul. */
+    private const ENFORCE = false;
+
     public function __construct(
         private readonly AttendanceService $attendanceService,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
+        if (! self::ENFORCE) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if (! $user) {
@@ -68,8 +75,9 @@ class EnsureAttendanceChecked
             ], 403);
         }
 
+        // Simpan URL tujuan (kasir/admin/cogs) agar setelah absen langsung kembali.
         return redirect()
-            ->route('attendance.scan')
+            ->guest(route('attendance.scan'))
             ->with('error', $action === 'check_out'
                 ? 'Waktunya absen pulang — scan QR absensi di toko.'
                 : 'Silakan absen masuk dulu lewat scan QR di toko.');
