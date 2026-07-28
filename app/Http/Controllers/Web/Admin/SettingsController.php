@@ -39,6 +39,9 @@ class SettingsController extends Controller
             'attendance_longitude' => $request->filled('attendance_longitude')
                 ? $request->input('attendance_longitude')
                 : null,
+            // type=time kadang kirim HH:mm:ss — simpan sebagai HH:mm
+            'attendance_clock_in' => $this->normalizeClockInput($request->input('attendance_clock_in')),
+            'attendance_clock_out' => $this->normalizeClockInput($request->input('attendance_clock_out')),
         ]);
 
         $validated = $request->validate([
@@ -135,5 +138,25 @@ class SettingsController extends Controller
         return redirect()
             ->route('admin.settings.edit')
             ->with('success', 'Pengaturan disimpan. Daftar pegawai wajib absen diperbarui.');
+    }
+
+    private function normalizeClockInput(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if (preg_match('/^(\d{1,2}:\d{2})/', $raw, $matches) !== 1) {
+            return $raw;
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $matches[1]));
+
+        if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
+            return $raw;
+        }
+
+        return sprintf('%02d:%02d', $hour, $minute);
     }
 }

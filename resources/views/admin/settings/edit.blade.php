@@ -130,32 +130,28 @@
                 <div>
                     <label class="form-label" for="attendance_clock_in">Jam masuk</label>
                     <input
-                        type="text"
-                        inputmode="numeric"
+                        type="time"
                         name="attendance_clock_in"
                         id="attendance_clock_in"
                         class="form-input"
                         value="{{ old('attendance_clock_in', $settings['attendance_clock_in'] ?? '08:00') }}"
-                        placeholder="16:00"
-                        pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                        step="60"
                         required
                     >
-                    <p class="mt-1 text-xs text-slate-500">Format 24 jam (HH:mm), contoh: 16:00.</p>
+                    <p class="mt-1 text-xs text-slate-500">Pilih jam masuk (format 24 jam).</p>
                 </div>
                 <div>
                     <label class="form-label" for="attendance_clock_out">Jam pulang</label>
                     <input
-                        type="text"
-                        inputmode="numeric"
+                        type="time"
                         name="attendance_clock_out"
                         id="attendance_clock_out"
                         class="form-input"
                         value="{{ old('attendance_clock_out', $settings['attendance_clock_out'] ?? '17:00') }}"
-                        placeholder="23:59"
-                        pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                        step="60"
                         required
                     >
-                    <p class="mt-1 text-xs text-slate-500">Format 24 jam (HH:mm), contoh: 23:59.</p>
+                    <p class="mt-1 text-xs text-slate-500">Pilih jam pulang (format 24 jam).</p>
                 </div>
                 <div>
                     <label class="form-label" for="attendance_early_minutes">Boleh absen masuk lebih awal (menit)</label>
