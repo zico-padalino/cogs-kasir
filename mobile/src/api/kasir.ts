@@ -242,8 +242,11 @@ export const kasirApi = {
       Envelope<{ held_order: PosOrder; active_order: PosOrder; merged?: boolean }>
     >('/kasir/open-bill', { method: 'POST' });
   },
-  receipt(orderId: number, paper?: '58mm' | '80mm') {
-    const qs = paper ? `?paper=${encodeURIComponent(paper)}` : '';
+  receipt(orderId: number, paper?: '58mm' | '80mm', variant?: 'customer' | 'kitchen' | 'bar') {
+    const params = new URLSearchParams();
+    if (paper) params.set('paper', paper);
+    if (variant && variant !== 'customer') params.set('variant', variant);
+    const qs = params.toString() ? `?${params.toString()}` : '';
     return apiRequest<
       Envelope<{
         order: PosOrder;
@@ -255,6 +258,7 @@ export const kasirApi = {
         thermal?: {
           paper: string;
           width: number;
+          variant?: string;
           base64?: string;
           thermer_url?: string;
           thermer_json?: string;

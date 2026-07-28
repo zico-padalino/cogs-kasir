@@ -98,29 +98,17 @@
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Setelah bayar, Thermer dibuka otomatis di Android. Klik Cetak Thermal untuk cetak ulang.
+                Di Android: tombol cetak langsung buka Thermer (bukan dialog printer sistem).
             </p>
-            <a
-                href="{{ route('kasir.receipt.print', $order) }}"
-                target="_blank"
-                rel="noopener"
-                class="btn-secondary w-full"
-                data-receipt-print
-            >Cetak Pesanan</a>
-            <a
-                href="{{ route('kasir.receipt.kitchen-print', $order) }}"
-                target="_blank"
-                rel="noopener"
-                class="btn-secondary w-full"
-                data-receipt-kitchen-print
-            >Cetak Dapur</a>
-            <a
-                href="{{ route('kasir.receipt.bar-print', $order) }}"
-                target="_blank"
-                rel="noopener"
-                class="btn-secondary w-full"
-                data-receipt-bar-print
-            >Cetak Bar</a>
+            <button type="button" class="btn-secondary w-full" data-receipt-print data-thermal-variant="customer">
+                Cetak Pesanan
+            </button>
+            <button type="button" class="btn-secondary w-full" data-receipt-kitchen-print data-thermal-variant="kitchen">
+                Cetak Dapur
+            </button>
+            <button type="button" class="btn-secondary w-full" data-receipt-bar-print data-thermal-variant="bar">
+                Cetak Bar
+            </button>
             <button type="button" class="btn-secondary w-full" data-receipt-wa-open>
                 Kirim WhatsApp
             </button>
@@ -339,33 +327,47 @@
                 }, 500);
             }
 
-            async function fetchThermal(paper) {
+            async function fetchThermal(paper, variant) {
+                variant = variant || 'customer';
                 var jsonBase = payload.thermalJsonRoute || '';
-                if (!jsonBase) {
+                if (! jsonBase) {
                     return payload.thermal || {};
                 }
                 try {
-                    var res = await fetch(jsonBase + '?paper=' + encodeURIComponent(paper), {
-                        credentials: 'same-origin',
-                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                    });
+                    var res = await fetch(
+                        jsonBase
+                            + '?paper=' + encodeURIComponent(paper)
+                            + '&variant=' + encodeURIComponent(variant),
+                        {
+                            credentials: 'same-origin',
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        }
+                    );
                     if (res.ok) {
                         return await res.json();
                     }
                 } catch (e) {}
-                return payload.thermal || {};
+                return variant === 'customer' ? (payload.thermal || {}) : {};
             }
 
-            async function printThermal() {
+            async function printThermal(variant) {
+                variant = variant || 'customer';
                 var paper = selectedPaper();
                 try {
                     localStorage.setItem(PAPER_KEY, paper);
                 } catch (e) {}
 
-                var thermal = payload.thermal || {};
-                if (paper !== thermal.paper || (!thermal.thermer_url && !thermal.thermer_json && !thermal.intent_url)) {
-                    thermal = await fetchThermal(paper);
-                    payload.thermal = thermal;
+                var cacheKey = paper + ':' + variant;
+                var thermalCache = payload.thermalCache || {};
+                var thermal = thermalCache[cacheKey] || null;
+
+                if (! thermal || (!thermal.thermer_url && !thermal.thermer_json && !thermal.intent_url)) {
+                    thermal = await fetchThermal(paper, variant);
+                    thermalCache[cacheKey] = thermal;
+                    payload.thermalCache = thermalCache;
+                    if (variant === 'customer') {
+                        payload.thermal = thermal;
+                    }
                 }
 
                 var shareText = thermal.thermer_share_text || '';
@@ -439,7 +441,7 @@
                         var retryBtn = hintEl.querySelector('[data-thermal-retry]');
                         if (retryBtn) {
                             retryBtn.addEventListener('click', function () {
-                                printThermal();
+                                printThermal(variant);
                             });
                         }
                     }, 2000);
@@ -452,32 +454,35 @@
                     return;
                 }
 
-                if (hintEl) {
-                    hintEl.textContent = 'Desktop: gunakan dialog cetak. Di Android Chrome Thermer terbuka otomatis.';
-                }
-                printDesktopFallback();
+                // Desktop: buka halaman cetak HTML (dialog printer biasa).
+                var desktopRoutes = {
+                    customer: @json(route('kasir.receipt.print', $order)),
+                    kitchen: @json(route('kasir.receipt.kitchen-print', $order)),
+                    bar: @json(route('kasir.receipt.bar-print', $order)),
+                };
+                var desktopUrl = desktopRoutes[variant] || desktopRoutes.customer;
+                window.open(desktopUrl, '_blank', 'noopener');
             }
 
             if (thermalBtn) {
                 thermalBtn.addEventListener('click', function () {
-                    printThermal();
+                    printThermal('customer');
                 });
             }
 
-            // Di Android, "Cetak Pesanan" juga sinkron ke Thermer (bukan dialog browser).
-            var printOrderBtn = document.querySelector('[data-receipt-print]');
-            if (printOrderBtn && isAndroid()) {
-                printOrderBtn.addEventListener('click', function (event) {
+            // Semua tombol cetak → Thermer di Android (tidak ke dialog printer sistem).
+            document.querySelectorAll('[data-thermal-variant]').forEach(function (btn) {
+                btn.addEventListener('click', function (event) {
                     event.preventDefault();
-                    printThermal();
+                    printThermal(btn.getAttribute('data-thermal-variant') || 'customer');
                 });
-            }
+            });
 
             // Setelah bayar berhasil → langsung buka Thermer di Android.
             var actionsEl = document.querySelector('[data-auto-thermal]');
             if (actionsEl && isAndroid()) {
                 setTimeout(function () {
-                    printThermal();
+                    printThermal('customer');
                 }, 600);
             }
 

@@ -45,9 +45,6 @@ export default function ReceiptScreen() {
   const fromHistory = from === 'history';
   const shouldAutoPrint = autoprint === '1' && !fromHistory;
   const [order, setOrder] = useState<PosOrder | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [kitchenPdfUrl, setKitchenPdfUrl] = useState<string | null>(null);
-  const [barPdfUrl, setBarPdfUrl] = useState<string | null>(null);
   const [waMessage, setWaMessage] = useState('');
   const [shopName, setShopName] = useState('');
   const [thermal, setThermal] = useState<ThermalPayload | null>(null);
@@ -63,9 +60,6 @@ export default function ReceiptScreen() {
   const loadReceipt = async (paperSize: ThermalPaper) => {
     const res = await kasirApi.receipt(Number(id), paperSize);
     setOrder(res.data.order);
-    setPdfUrl(res.data.pdf_url);
-    setKitchenPdfUrl(res.data.kitchen_pdf_url ?? null);
-    setBarPdfUrl(res.data.bar_pdf_url ?? null);
     setWaMessage(res.data.wa_message);
     setShopName(res.data.shop_name);
     setThermal(res.data.thermal ?? null);
@@ -95,14 +89,24 @@ export default function ReceiptScreen() {
     }
   };
 
-  const onPrintThermal = async () => {
-    if (!thermal?.thermer_share_text && !thermal?.thermer_url && !thermal?.intent_url) {
-      Alert.alert('Belum siap', 'Data cetak thermal belum tersedia.');
-      return;
-    }
+  const onPrintThermal = async (variant: 'customer' | 'kitchen' | 'bar' = 'customer') => {
     setPrinting(true);
     try {
-      const result = await printThermalViaThermer(thermal);
+      let payload = thermal;
+      if (variant !== 'customer' || !payload) {
+        const res = await kasirApi.receipt(Number(id), paper, variant);
+        payload = res.data.thermal ?? null;
+        if (variant === 'customer') {
+          setThermal(payload);
+        }
+      }
+
+      if (!payload?.thermer_share_text && !payload?.thermer_url && !payload?.intent_url) {
+        Alert.alert('Belum siap', 'Data cetak thermal belum tersedia.');
+        return;
+      }
+
+      const result = await printThermalViaThermer(payload);
       if (result === 'store') {
         Alert.alert(
           'Thermer tidak terbuka',
@@ -113,7 +117,7 @@ export default function ReceiptScreen() {
               text: 'Buka Play Store',
               onPress: () =>
                 Linking.openURL(
-                  thermal.thermer_play_store ||
+                  payload.thermer_play_store ||
                     'https://play.google.com/store/apps/details?id=mate.bluetoothprint',
                 ),
             },
@@ -122,6 +126,8 @@ export default function ReceiptScreen() {
       } else if (result === 'failed') {
         Alert.alert('Gagal cetak', 'Tidak bisa membuka Thermer. Pastikan aplikasi Thermer terpasang.');
       }
+    } catch {
+      Alert.alert('Gagal cetak', 'Tidak bisa menyiapkan data Thermer.');
     } finally {
       setPrinting(false);
     }
@@ -134,7 +140,7 @@ export default function ReceiptScreen() {
     }
     setAutoPrinted(true);
     const timer = setTimeout(() => {
-      void onPrintThermal();
+      void onPrintThermal('customer');
     }, 400);
     return () => clearTimeout(timer);
   }, [loading, shouldAutoPrint, autoPrinted, thermal]);
@@ -239,38 +245,26 @@ export default function ReceiptScreen() {
           </Pressable>
         </View>
 
-        <Pressable onPress={onPrintThermal} disabled={printing} style={styles.primaryBtn}>
+        <Pressable onPress={() => onPrintThermal('customer')} disabled={printing} style={styles.primaryBtn}>
           <Text style={styles.primaryText}>{printing ? 'Membuka Thermer…' : 'Cetak Thermal (Thermer)'}</Text>
         </Pressable>
         <Text style={styles.hint}>
           {shouldAutoPrint
             ? 'Setelah bayar, Thermer dibuka otomatis. Pair printer di Thermer dulu.'
-            : 'Layout sama Cetak Pesanan. Pair printer di Thermer dulu.'}
+            : 'Semua tombol cetak langsung ke Thermer. Pair printer di Thermer dulu.'}
         </Text>
 
-        {pdfUrl ? (
-          <Pressable
-            onPress={() => {
-              // Cetak struk = sinkron Thermer (bukan buka PDF).
-              void onPrintThermal();
-            }}
-            style={styles.outlineBtn}
-          >
-            <Text style={styles.outlineText}>Cetak Pesanan</Text>
-          </Pressable>
-        ) : null}
+        <Pressable onPress={() => onPrintThermal('customer')} disabled={printing} style={styles.outlineBtn}>
+          <Text style={styles.outlineText}>Cetak Pesanan</Text>
+        </Pressable>
 
-        {kitchenPdfUrl ? (
-          <Pressable onPress={() => Linking.openURL(kitchenPdfUrl)} style={styles.outlineBtn}>
-            <Text style={styles.outlineText}>Cetak Dapur</Text>
-          </Pressable>
-        ) : null}
+        <Pressable onPress={() => onPrintThermal('kitchen')} disabled={printing} style={styles.outlineBtn}>
+          <Text style={styles.outlineText}>Cetak Dapur</Text>
+        </Pressable>
 
-        {barPdfUrl ? (
-          <Pressable onPress={() => Linking.openURL(barPdfUrl)} style={styles.outlineBtn}>
-            <Text style={styles.outlineText}>Cetak Bar</Text>
-          </Pressable>
-        ) : null}
+        <Pressable onPress={() => onPrintThermal('bar')} disabled={printing} style={styles.outlineBtn}>
+          <Text style={styles.outlineText}>Cetak Bar</Text>
+        </Pressable>
 
         {!waOpen ? (
           <Pressable

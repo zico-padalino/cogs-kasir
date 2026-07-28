@@ -305,7 +305,7 @@
         @endif
     </div>
 
-    <div class="hint no-print">
+    <div class="hint no-print" id="print-hint">
         Pilih printer &amp; kertas di perangkat ini, lalu cetak.
         <br>
         <button type="button" onclick="window.print()">Cetak lagi</button>
@@ -313,7 +313,66 @@
 
     <script>
         window.addEventListener('load', function () {
-            setTimeout(function () { window.print(); }, 400);
+            var isAndroid = /Android/i.test(navigator.userAgent || '');
+            var thermalJsonRoute = @json($thermalJsonRoute ?? null);
+            var variant = @json($variant ?? 'customer');
+            var hint = document.getElementById('print-hint');
+
+            function openThermer(url) {
+                var iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+                setTimeout(function () {
+                    try { document.body.removeChild(iframe); } catch (e) {}
+                }, 1500);
+                try { window.location.href = url; } catch (e) {}
+            }
+
+            async function printViaThermer() {
+                if (! thermalJsonRoute) {
+                    if (hint) hint.innerHTML = 'Buka halaman struk, lalu klik Cetak di sana agar Thermer terbuka.';
+                    return;
+                }
+                if (hint) hint.textContent = 'Membuka Thermer…';
+                try {
+                    var res = await fetch(
+                        thermalJsonRoute + '?variant=' + encodeURIComponent(variant) + '&paper=58mm',
+                        {
+                            credentials: 'same-origin',
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        }
+                    );
+                    if (! res.ok) throw new Error('thermal fetch failed');
+                    var thermal = await res.json();
+                    var url = thermal.thermer_url || '';
+                    if (! url && thermal.thermer_json) {
+                        url = 'thermer://?data=' + encodeURIComponent(thermal.thermer_json);
+                        if (url.length > 1800) url = '';
+                    }
+                    if (! url && thermal.intent_url) {
+                        url = thermal.intent_url;
+                    }
+                    if (! url) {
+                        if (hint) hint.textContent = 'Data Thermer belum siap. Pastikan Thermer terpasang.';
+                        return;
+                    }
+                    openThermer(url);
+                    if (hint) {
+                        hint.innerHTML = 'Thermer harus terbuka. Jika tidak, pastikan printer sudah dipilih di Thermer.';
+                    }
+                } catch (e) {
+                    if (hint) hint.textContent = 'Gagal membuka Thermer. Kembali ke struk dan coba lagi.';
+                }
+            }
+
+            setTimeout(function () {
+                if (isAndroid) {
+                    printViaThermer();
+                } else {
+                    window.print();
+                }
+            }, 400);
         });
     </script>
 </body>

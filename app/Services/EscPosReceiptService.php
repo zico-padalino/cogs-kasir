@@ -29,27 +29,40 @@ class EscPosReceiptService
     }
 
     /**
+     * @param  'customer'|'kitchen'|'bar'  $variant
      * @return array{
      *     binary: string,
      *     base64: string,
      *     paper: string,
      *     width: int,
+     *     variant: string,
      *     thermer_url: string,
      *     intent_url: string,
      *     thermer_share_text: string,
+     *     thermer_baf_text: string,
      *     thermer_play_store: string,
      *     thermer_json: string,
      *     rawbt_url: string
      * }
      */
-    public function payload(PosOrder $order, ?string $paper = null): array
+    public function payload(PosOrder $order, ?string $paper = null, string $variant = 'customer'): array
     {
+        $variant = $this->normalizeVariant($variant);
         $paper = $this->normalizePaper($paper);
         $width = $paper === '80mm' ? self::WIDTH_80 : self::WIDTH_58;
-        $binary = $this->build($order, $width);
+
+        $ticket = $order;
+        if ($variant === 'kitchen' || $variant === 'bar') {
+            $ticket = app(PosOrderService::class)->orderForStation($order, $variant);
+        }
+
+        $lines = $variant === 'customer'
+            ? $this->receiptLines($ticket, $width)
+            : $this->stationLines($ticket, $width, $variant);
+
+        $binary = $this->buildFromLines($lines, $width);
         $base64 = base64_encode($binary);
 
-        $lines = $this->receiptLines($order, $width);
         $thermerJson = $this->linesToThermerJson($lines);
         $shareText = $this->linesToPlainText($lines);
         $bafText = $this->linesToBafText($lines);
@@ -80,6 +93,7 @@ class EscPosReceiptService
             'base64' => $base64,
             'paper' => $paper,
             'width' => $width,
+            'variant' => $variant,
             'thermer_json' => $thermerJson,
             'thermer_share_text' => $shareText,
             'thermer_baf_text' => $bafText,
@@ -89,6 +103,14 @@ class EscPosReceiptService
             'rawbt_url' => $thermerUrl,
             'rawbt_play_store' => $playStore,
         ];
+    }
+
+    /** @return 'customer'|'kitchen'|'bar' */
+    private function normalizeVariant(string $variant): string
+    {
+        $variant = strtolower(trim($variant));
+
+        return in_array($variant, ['kitchen', 'bar'], true) ? $variant : 'customer';
     }
 
     /**
@@ -171,6 +193,77 @@ class EscPosReceiptService
 
         $lines[] = $this->blankLine();
         $lines[] = $this->textLine('Terima kasih', bold: 1, align: 1, format: 0);
+        $lines[] = $this->blankLine();
+        $lines[] = $this->blankLine();
+
+        return $lines;
+    }
+
+    /**
+     * Tiket dapur/bar — mirror ReceiptPdfService::buildStationTicket.
+     *
+     * @param  'kitchen'|'bar'  $station
+     * @return list<array{kind: string, text?: string, bold: int, align: int, format: int}>
+     */
+    private function stationLines(PosOrder $order, int $width, string $station): array
+    {
+        $order->loadMissing(['items.product', 'table', 'cashier']);
+        $w = max(24, $width);
+        $shop = $this->sanitize((string) config('pos.shop_name', 'Coffee & Kitchen'));
+        $title = $station === 'bar' ? 'Struk Bar' : 'Struk Dapur';
+        $emptyLabel = $station === 'bar' ? 'Tidak ada item minuman' : 'Tidak ada item dapur';
+        $lines = [];
+
+        $lines[] = $this->textLine($shop, bold: 1, align: 1, format: 0);
+        $lines[] = $this->textLine($title, bold: 0, align: 1, format: 0);
+        $lines[] = $this->blankLine();
+        $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 0);
+        $lines[] = $this->textLine($order->paid_at?->format('d/m/Y H:i') ?? '-', bold: 0, align: 1, format: 0);
+
+        if ($order->order_type) {
+            $lines[] = $this->textLine($this->sanitize($order->order_type->label()), bold: 0, align: 1, format: 0);
+        }
+        if ($order->table) {
+            $lines[] = $this->textLine('Meja: '.$this->sanitize($order->table->label), bold: 0, align: 1, format: 0);
+        }
+        if ($order->customer_note) {
+            $lines[] = $this->textLine('Pelanggan: '.$this->sanitize($order->customer_note), bold: 0, align: 1, format: 0);
+        }
+
+        $lines[] = $this->blankLine();
+        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 0);
+
+        if ($order->items->isEmpty()) {
+            $lines[] = $this->textLine($emptyLabel, bold: 0, align: 1, format: 0);
+        } else {
+            foreach ($order->items as $item) {
+                $qty = Format::number($item->quantity, 0);
+                $name = $this->sanitize($item->product?->name ?? 'Item');
+                $lines[] = $this->textLine('[ ] '.$name.' x '.$qty, bold: 0, align: 0, format: 0);
+
+                $noteParts = \App\Support\PosItemNotes::split($item->notes);
+                foreach ($noteParts['addon_labels'] as $label) {
+                    $lines[] = $this->textLine('  '.$this->sanitize($label), bold: 0, align: 0, format: 0);
+                }
+                if ($noteParts['customer']) {
+                    $lines[] = $this->textLine(
+                        '  Catatan: '.$this->sanitize($noteParts['customer']),
+                        bold: 0,
+                        align: 0,
+                        format: 0,
+                    );
+                }
+            }
+        }
+
+        $lines[] = $this->textLine(str_repeat('-', $w), bold: 0, align: 0, format: 0);
+
+        if ($order->cashierDisplayName() !== '-') {
+            $lines[] = $this->textLine('Kasir: '.$this->sanitize($order->cashierDisplayName()), bold: 0, align: 0, format: 0);
+        }
+
+        $lines[] = $this->blankLine();
+        $lines[] = $this->textLine('Ceklis item yang sudah selesai', bold: 0, align: 1, format: 0);
         $lines[] = $this->blankLine();
         $lines[] = $this->blankLine();
 
@@ -277,8 +370,17 @@ class EscPosReceiptService
 
     public function build(PosOrder $order, int $width = self::WIDTH_58): string
     {
+        $lines = $this->receiptLines($order, max(24, $width));
+
+        return $this->buildFromLines($lines, $width);
+    }
+
+    /**
+     * @param  list<array{kind: string, text?: string, bold: int, align: int, format: int}>  $lines
+     */
+    private function buildFromLines(array $lines, int $width): string
+    {
         $w = max(24, $width);
-        $lines = $this->receiptLines($order, $w);
 
         $out = "\x1B\x40"; // Initialize
 

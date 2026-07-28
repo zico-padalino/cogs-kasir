@@ -759,6 +759,7 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'customer',
                 'title' => 'Cetak Pesanan',
+                'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }
@@ -793,6 +794,7 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'kitchen',
                 'title' => 'Cetak Dapur',
+                'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }
@@ -827,6 +829,7 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'bar',
                 'title' => 'Cetak Bar',
+                'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
     }
@@ -907,11 +910,17 @@ class KasirController extends Controller
         }
 
         $paper = request()->query('paper');
-        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
+        $variant = request()->query('variant', 'customer');
+        $thermal = $escPos->payload(
+            $order,
+            is_string($paper) ? $paper : null,
+            is_string($variant) ? $variant : 'customer',
+        );
 
         return response()->json([
             'paper' => $thermal['paper'],
             'width' => $thermal['width'],
+            'variant' => $thermal['variant'],
             'base64' => $thermal['base64'],
             'thermer_url' => $thermal['thermer_url'],
             'intent_url' => $thermal['intent_url'],

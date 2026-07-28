@@ -562,7 +562,12 @@ class PosController extends Controller
         $kitchenPdf = $receiptPdf->storeKitchen($order);
         $barPdf = $receiptPdf->storeBar($order);
         $paper = request()->query('paper');
-        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
+        $variant = request()->query('variant', 'customer');
+        $thermal = $escPos->payload(
+            $order,
+            is_string($paper) ? $paper : null,
+            is_string($variant) ? $variant : 'customer',
+        );
 
         return response()->json([
             'data' => [
@@ -575,6 +580,7 @@ class PosController extends Controller
                 'thermal' => [
                     'paper' => $thermal['paper'],
                     'width' => $thermal['width'],
+                    'variant' => $thermal['variant'],
                     'base64' => $thermal['base64'],
                     'thermer_url' => $thermal['thermer_url'],
                     'intent_url' => $thermal['intent_url'],
