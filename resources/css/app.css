@@ -613,19 +613,19 @@
     }
 
     .materials-card-grid {
-        @apply grid grid-cols-2 items-start gap-2 p-3 sm:gap-3 sm:p-4 md:p-5;
+        @apply grid grid-cols-1 items-start gap-3 p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 md:p-5 xl:grid-cols-3;
     }
 
     .materials-card-grid__full {
-        @apply col-span-2;
+        @apply col-span-1 sm:col-span-2 xl:col-span-3;
     }
 
     .materials-card-grid .material-card {
-        @apply min-w-0 p-3 sm:p-3.5;
+        @apply min-w-0 p-3.5;
     }
 
     .materials-card-grid .material-card__title {
-        @apply text-sm font-bold leading-snug text-slate-900 sm:text-[0.95rem];
+        @apply text-base font-bold leading-snug text-slate-900;
     }
 
     .materials-card-grid .material-card__top {
@@ -637,39 +637,43 @@
     }
 
     .materials-card-grid .module-stat-pill {
-        @apply px-2 py-0.5 text-[10px] leading-tight sm:text-[11px];
+        @apply px-2.5 py-1 text-[11px] leading-tight;
     }
 
     .materials-card-grid .material-card__actions {
-        @apply mt-2 grid grid-cols-3 gap-1.5;
+        @apply mt-3 grid grid-cols-2 gap-2;
     }
 
     .materials-card-grid .material-card__actions--two {
         @apply grid-cols-2;
     }
 
+    .materials-card-grid .material-card__action--primary {
+        @apply col-span-2;
+    }
+
     .materials-card-grid .material-card__action summary,
     .materials-card-grid .material-card__actions .btn-outline,
     .materials-card-grid .material-card__actions .btn-primary,
     .materials-card-grid .material-card__actions .btn-outline-danger {
-        @apply px-1.5 text-[11px] sm:text-xs;
+        @apply min-h-11 px-2 text-xs sm:min-h-9 sm:text-xs;
     }
 
     .materials-card-grid .btn-outline-danger.btn-sm,
     .materials-card-grid .btn-outline.btn-sm {
-        @apply px-1.5 text-[11px] sm:text-xs;
+        @apply min-h-10 px-2 text-xs sm:min-h-8;
     }
 
     .materials-card-grid .material-lots {
-        @apply mt-2 space-y-1.5 p-2;
+        @apply mt-3 space-y-2 p-0;
     }
 
     .materials-card-grid .material-lot {
-        @apply p-2;
+        @apply p-3;
     }
 
     .materials-card-grid .material-panel {
-        @apply mt-2 space-y-2 p-2.5;
+        @apply mt-2 space-y-2 p-3;
     }
 
     .materials-card-grid details[open] {
@@ -678,6 +682,10 @@
 
     .materials-card-grid .material-card__actions details[open] {
         @apply col-span-full;
+    }
+
+    .materials-card-grid .material-card__action--primary[open] {
+        @apply col-span-2;
     }
 
     .materials-card-grid .recipe-add-form,
@@ -695,6 +703,35 @@
 
     .materials-card-grid .recipe-add-form {
         @apply mt-3 gap-2 pt-3 lg:grid-cols-1;
+    }
+
+    .material-lots-fold {
+        @apply rounded-xl border border-slate-200 bg-slate-50/70;
+    }
+
+    .material-lots-fold > summary {
+        @apply flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .material-lots-fold > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .material-lots-fold > summary::after {
+        content: '▾';
+        @apply text-slate-400 transition;
+    }
+
+    .material-lots-fold[open] > summary::after {
+        transform: rotate(180deg);
+    }
+
+    .material-lots-fold__body {
+        @apply space-y-2 border-t border-slate-200 px-3 pb-3 pt-2;
+    }
+
+    .material-lots-fold__count {
+        @apply rounded-full bg-white px-2 py-0.5 text-[10px] font-bold tabular-nums text-slate-600 ring-1 ring-slate-200;
     }
 
     .searchable-select {
@@ -781,7 +818,7 @@
     }
 
     .material-card__actions {
-        @apply mt-3 grid grid-cols-3 gap-2;
+        @apply mt-3 grid grid-cols-2 gap-2;
     }
 
     .material-card__actions--two {
@@ -790,6 +827,10 @@
 
     .material-card__action {
         @apply min-w-0;
+    }
+
+    .material-card__action--primary {
+        @apply col-span-2;
     }
 
     .material-card__action summary {
@@ -882,19 +923,19 @@
         }
 
         .material-card {
-            @apply p-3.5;
+            @apply p-4;
         }
 
         .materials-card-grid {
-            @apply gap-2 p-2.5;
+            @apply gap-3 p-3;
         }
 
         .materials-card-grid .material-card {
-            @apply p-2.5;
+            @apply p-4;
         }
 
         .materials-card-grid .material-card__title {
-            @apply text-[13px];
+            @apply text-base;
         }
 
         .materials-card-grid .material-card__action summary,
@@ -903,7 +944,20 @@
         .materials-card-grid .material-card__actions .btn-outline-danger,
         .materials-card-grid .btn-outline-danger.btn-sm,
         .materials-card-grid .btn-outline.btn-sm {
-            @apply min-h-9 px-1 text-[10px] leading-tight;
+            @apply min-h-11 px-2 text-xs leading-snug;
+        }
+
+        .module-step-2.module-page {
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .module-step-2 .table-card-footer {
+            @apply gap-3;
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .module-step-2 .table-card-footer .btn-primary {
+            @apply min-h-12 text-sm;
         }
 
         .purchase-mode-tab {
