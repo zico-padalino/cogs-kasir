@@ -892,7 +892,12 @@ class KasirController extends Controller
         }
 
         $paper = request()->query('paper');
-        $thermal = $escPos->payload($order, is_string($paper) ? $paper : null);
+        $variant = request()->query('variant', 'customer');
+        $thermal = $escPos->payload(
+            $order,
+            is_string($paper) ? $paper : null,
+            is_string($variant) ? $variant : 'customer',
+        );
         $filename = 'struk-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $order->order_number).'.bin';
 
         return response($thermal['binary'], 200, [
