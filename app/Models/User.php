@@ -48,6 +48,10 @@ class User extends Authenticatable
      */
     public function isRoot(): bool
     {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('users', 'is_root')) {
+            return false;
+        }
+
         return (bool) $this->is_root;
     }
 

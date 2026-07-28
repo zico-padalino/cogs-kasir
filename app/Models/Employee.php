@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 class Employee extends Model
 {
@@ -89,9 +90,17 @@ class Employee extends Model
      */
     public function scopeForAttendance(Builder $query): Builder
     {
-        return $query
-            ->where('status', EmployeeStatus::Active)
-            ->whereDoesntHave('user', fn (Builder $userQuery) => $userQuery->where('is_root', true));
+        $query->where('status', EmployeeStatus::Active);
+
+        // Hindari 500 jika kolom users.is_root belum dimigrasi di hosting.
+        if (Schema::hasColumn('users', 'is_root')) {
+            $query->whereDoesntHave(
+                'user',
+                fn (Builder $userQuery) => $userQuery->where('is_root', true),
+            );
+        }
+
+        return $query;
     }
 
     public static function nextCode(): string

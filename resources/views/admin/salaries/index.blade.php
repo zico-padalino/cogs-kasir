@@ -4,6 +4,14 @@
 @section('heading', 'Gaji Karyawan')
 
 @section('content')
+    @if (! empty($schemaMissing))
+        <div class="card mb-4 border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Tabel gaji/karyawan belum lengkap di database.
+            Jalankan migrasi <code class="rounded bg-white px-1">php artisan migrate --force</code>
+            atau import SQL <code class="rounded bg-white px-1">database/fix_admin_salaries.sql</code>, lalu refresh halaman ini.
+        </div>
+    @endif
+
     <form method="GET" class="card mb-4 flex flex-wrap items-end gap-3 p-4">
         <div class="min-w-[12rem] flex-1">
             <label class="form-label" for="month">Bulan</label>

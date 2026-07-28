@@ -20,6 +20,20 @@ class SalaryApiController extends Controller
     {
         $month = Carbon::parse($request->input('month', now()->format('Y-m')).'-01')->startOfMonth();
 
+        if (! Schema::hasTable('employees') || ! Schema::hasTable('employee_salaries')) {
+            return response()->json([
+                'message' => 'Tabel gaji/karyawan belum lengkap. Jalankan migrasi atau SQL fix_admin_salaries.sql.',
+                'data' => [
+                    'salaries' => [],
+                    'month' => $month->format('Y-m'),
+                    'default_deduction' => ShopSettings::salaryDefaultDeduction(),
+                    'deduction_rates' => ShopSettings::salaryDeductionRates(),
+                    'employees' => [],
+                    'schema_missing' => true,
+                ],
+            ], 503);
+        }
+
         $salaries = EmployeeSalary::query()
             ->with('employee')
             ->whereDate('period_month', $month)

@@ -21,17 +21,22 @@ class SalaryController extends Controller
     {
         $month = Carbon::parse($request->input('month', now()->format('Y-m')).'-01')->startOfMonth();
         $rates = ShopSettings::salaryDeductionRates();
+        $schemaMissing = ! Schema::hasTable('employees') || ! Schema::hasTable('employee_salaries');
 
-        $salaries = EmployeeSalary::query()
-            ->with('employee')
-            ->whereDate('period_month', $month)
-            ->orderByDesc('id')
-            ->get();
+        $salaries = $schemaMissing
+            ? collect()
+            : EmployeeSalary::query()
+                ->with('employee')
+                ->whereDate('period_month', $month)
+                ->orderByDesc('id')
+                ->get();
 
-        $employees = Employee::query()
-            ->forAttendance()
-            ->orderBy('name')
-            ->get();
+        $employees = $schemaMissing
+            ? collect()
+            : Employee::query()
+                ->forAttendance()
+                ->orderBy('name')
+                ->get();
 
         return view('admin.salaries.index', [
             'salaries' => $salaries,
@@ -40,7 +45,9 @@ class SalaryController extends Controller
             'defaultDeduction' => $rates['fixed'],
             'deductionRates' => $rates,
             'format' => Format::class,
-            'hasDailyColumns' => Schema::hasColumn('employee_salaries', 'daily_salary'),
+            'hasDailyColumns' => Schema::hasTable('employee_salaries')
+                && Schema::hasColumn('employee_salaries', 'daily_salary'),
+            'schemaMissing' => $schemaMissing,
         ]);
     }
 
