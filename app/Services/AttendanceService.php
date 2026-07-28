@@ -164,10 +164,13 @@ class AttendanceService
     /** @return array<string, mixed> */
     public function settings(): array
     {
+        $clockIn = $this->normalizeClock((string) ShopSettings::get('attendance_clock_in', '08:00'));
+        $clockOut = $this->normalizeClock((string) ShopSettings::get('attendance_clock_out', '17:00'));
+
         return [
             'enabled' => $this->isEnabled(),
-            'clock_in' => (string) ShopSettings::get('attendance_clock_in', '08:00'),
-            'clock_out' => (string) ShopSettings::get('attendance_clock_out', '17:00'),
+            'clock_in' => $clockIn,
+            'clock_out' => $clockOut,
             'early_minutes' => (int) ShopSettings::get('attendance_early_minutes', '60'),
             'latitude' => (float) ShopSettings::get('attendance_latitude', '0'),
             'longitude' => (float) ShopSettings::get('attendance_longitude', '0'),
@@ -391,11 +394,36 @@ class AttendanceService
 
     private function todayAt(string $time): Carbon
     {
-        $parts = explode(':', $time);
+        $parts = explode(':', $this->normalizeClock($time));
         $hour = (int) ($parts[0] ?? 0);
         $minute = (int) ($parts[1] ?? 0);
 
         return today()->setTime($hour, $minute, 0);
+    }
+
+    /**
+     * Terima input jam 24 jam maupun format lama AM/PM, lalu kembalikan HH:mm.
+     */
+    private function normalizeClock(string $time): string
+    {
+        $value = trim($time);
+        if ($value === '') {
+            return '00:00';
+        }
+
+        try {
+            return Carbon::createFromFormat('H:i', $value)->format('H:i');
+        } catch (\Throwable) {
+            try {
+                return Carbon::createFromFormat('g:i A', strtoupper($value))->format('H:i');
+            } catch (\Throwable) {
+                try {
+                    return Carbon::parse($value)->format('H:i');
+                } catch (\Throwable) {
+                    return '00:00';
+                }
+            }
+        }
     }
 
     private function storePhoto(Employee $employee, string $photoBase64, string $suffix): string
