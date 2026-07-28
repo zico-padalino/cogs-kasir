@@ -364,17 +364,116 @@
                 <x-module-form-card
                     :step="3"
                     title="Add-on Tambahan"
-                    description="Opsional saat pesan di kasir — contoh: Telur, Keju, Sambal ekstra."
+                    description="Pilihan ekstra saat pesan di kasir — contoh: Telur, Keju, Sambal. Harga ditambah ke harga menu."
                     icon="🥚"
                 >
                     @if ($product->addons->isNotEmpty())
-                        <div class="recipe-table-wrap mb-4">
+                        {{-- Mobile: kartu --}}
+                        <div class="recipe-addon-cards mb-4">
+                            @foreach ($product->addons as $addon)
+                                @php
+                                    $mat = $addon->material;
+                                    $presented = $mat && $addon->material_quantity
+                                        ? $units::present((float) $addon->material_quantity, $mat->unit)
+                                        : null;
+                                    $editOptions = $mat ? $units::recipeOptions($mat->unit) : [];
+                                    $qtyValue = $presented
+                                        ? (rtrim(rtrim(number_format($presented['quantity'], 6, '.', ''), '0'), '.') ?: '')
+                                        : '';
+                                @endphp
+                                <article class="recipe-addon-card {{ $addon->is_active ? '' : 'recipe-addon-card--inactive' }}">
+                                    <div class="recipe-addon-card__head">
+                                        <div class="min-w-0 flex-1">
+                                            <p class="recipe-addon-card__name">{{ $addon->name }}</p>
+                                            @unless ($addon->is_active)
+                                                <p class="mt-0.5 text-xs font-medium text-amber-700">Nonaktif di kasir</p>
+                                            @endunless
+                                            @if ($presented && $mat)
+                                                <p class="mt-1 text-xs text-slate-500">
+                                                    Potong stok: {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
+                                                </p>
+                                            @else
+                                                <p class="mt-1 text-xs text-slate-400">Tanpa potong stok bahan</p>
+                                            @endif
+                                        </div>
+                                        <p class="recipe-addon-card__price">+{{ $format::rupiah($addon->selling_price, 0) }}</p>
+                                    </div>
+
+                                    <div class="recipe-addon-card__actions">
+                                        <details class="inline-edit recipe-edit flex-1 text-left">
+                                            <summary class="btn-outline btn-sm w-full cursor-pointer list-none text-center">Ubah</summary>
+                                            <form
+                                                action="{{ route('products.addons.update', [$product, $addon]) }}"
+                                                method="POST"
+                                                class="mt-2 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+                                                data-addon-edit-form
+                                                data-material-units="{{ json_encode($materialUnits, JSON_UNESCAPED_UNICODE) }}"
+                                            >
+                                                @csrf @method('PUT')
+                                                <div>
+                                                    <label class="form-label">Nama add-on</label>
+                                                    <input type="text" name="name" class="form-input" value="{{ $addon->name }}" required maxlength="100">
+                                                </div>
+                                                <div>
+                                                    <label class="form-label">Harga tambahan</label>
+                                                    <x-rupiah-input name="selling_price" :value="$addon->selling_price" placeholder="5.000" required />
+                                                </div>
+                                                <div>
+                                                    <label class="form-label">Potong stok bahan? (opsional)</label>
+                                                    <select name="material_product_id" class="form-input" data-addon-edit-material>
+                                                        <option value="">Tidak potong stok</option>
+                                                        @foreach ($rawMaterials as $p)
+                                                            <option value="{{ $p->id }}" @selected($addon->material_product_id === $p->id)>{{ $p->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div data-addon-edit-qty-wrap class="{{ $addon->material_product_id ? '' : 'hidden' }}">
+                                                    <label class="form-label">Jumlah bahan terpakai</label>
+                                                    <div class="bom-qty-row">
+                                                        <input
+                                                            type="number"
+                                                            name="material_quantity"
+                                                            class="form-input"
+                                                            step="any"
+                                                            min="0.0001"
+                                                            value="{{ $qtyValue }}"
+                                                            data-addon-edit-qty
+                                                        >
+                                                        <select name="unit" class="form-input" data-addon-edit-unit>
+                                                            @if ($editOptions)
+                                                                @foreach ($editOptions as $value => $label)
+                                                                    <option value="{{ $value }}" @selected($presented && $value === $presented['unit'])>{{ $label }}</option>
+                                                                @endforeach
+                                                            @else
+                                                                <option value="">—</option>
+                                                            @endif
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <label class="flex min-h-11 items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 text-sm">
+                                                    <input type="checkbox" name="is_active" value="1" class="h-4 w-4 rounded" @checked($addon->is_active)>
+                                                    Tampilkan di kasir
+                                                </label>
+                                                <button type="submit" class="btn-primary w-full">Simpan perubahan</button>
+                                            </form>
+                                        </details>
+                                        <form action="{{ route('products.addons.destroy', [$product, $addon]) }}" method="POST" class="shrink-0" onsubmit="return confirm('Hapus add-on ini?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn-outline-danger btn-sm min-h-10">Hapus</button>
+                                        </form>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+
+                        {{-- Desktop: tabel --}}
+                        <div class="recipe-table-wrap recipe-table-wrap--desktop mb-4">
                             <table class="table-default">
                                 <thead>
                                     <tr>
                                         <th>Add-on</th>
                                         <th>Harga jual</th>
-                                        <th class="hidden sm:table-cell">Bahan terkait</th>
+                                        <th>Bahan terkait</th>
                                         <th class="col-actions">Aksi</th>
                                     </tr>
                                 </thead>
@@ -398,7 +497,7 @@
                                                 @endunless
                                             </td>
                                             <td class="font-medium tabular-nums">+{{ $format::rupiah($addon->selling_price, 0) }}</td>
-                                            <td class="hidden text-sm text-slate-500 sm:table-cell">
+                                            <td class="text-sm text-slate-500">
                                                 @if ($presented && $mat)
                                                     {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
                                                 @else
@@ -476,43 +575,53 @@
                             </table>
                         </div>
                     @else
-                        <p class="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                            Belum ada add-on. Tambah di bawah — misalnya <strong>Telur</strong> +Rp 5.000.
-                        </p>
+                        <div class="recipe-addon-empty mb-4">
+                            <p class="font-medium text-slate-800">Belum ada add-on</p>
+                            <p class="mt-1 text-sm text-slate-500">
+                                Contoh: <strong>Telur ceplok</strong> +Rp 5.000 — pelanggan bisa pilih saat pesan di kasir.
+                            </p>
+                        </div>
                     @endif
 
                     <form
                         action="{{ route('products.addons.store', $product) }}"
                         method="POST"
-                        class="recipe-addon-form space-y-3 border-t border-slate-100 pt-4"
+                        class="recipe-addon-form"
                         data-material-units="{{ json_encode($materialUnits, JSON_UNESCAPED_UNICODE) }}"
                     >
                         @csrf
+                        <div class="recipe-addon-form__head">
+                            <p class="recipe-addon-form__title">Tambah add-on baru</p>
+                            <p class="recipe-addon-form__hint">Isi nama &amp; harga. Bahan opsional — hanya jika stok harus dipotong.</p>
+                        </div>
+
                         @if ($errors->hasAny(['name', 'selling_price', 'material_product_id', 'material_quantity', 'unit']))
                             <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                                 {{ $errors->first() }}
                             </div>
                         @endif
-                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+
+                        <div class="recipe-addon-form__grid">
                             <div>
                                 <label class="form-label" for="addon_name">Nama add-on</label>
-                                <input id="addon_name" type="text" name="name" class="form-input" required maxlength="100" placeholder="Telur ceplok" value="{{ old('name') }}">
+                                <input id="addon_name" type="text" name="name" class="form-input" required maxlength="100" placeholder="Contoh: Telur ceplok" value="{{ old('name') }}">
                             </div>
                             <div>
-                                <label class="form-label">Harga jual (+Rp)</label>
+                                <label class="form-label">Harga tambahan</label>
                                 <x-rupiah-input name="selling_price" :value="old('selling_price')" placeholder="5.000" required />
+                                <p class="mt-1 text-[11px] text-slate-500">Ditambahkan ke harga menu di kasir.</p>
                             </div>
                             <div>
-                                <label class="form-label" for="addon_material">Bahan terkait (opsional)</label>
+                                <label class="form-label" for="addon_material">Potong stok bahan? (opsional)</label>
                                 <select id="addon_material" name="material_product_id" class="form-input" data-addon-material>
-                                    <option value="">Tanpa bahan</option>
+                                    <option value="">Tidak potong stok</option>
                                     @foreach ($rawMaterials as $p)
                                         <option value="{{ $p->id }}" @selected((string) old('material_product_id') === (string) $p->id)>{{ $p->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div data-addon-qty-wrap class="{{ old('material_product_id') ? '' : 'hidden' }}">
-                                <label class="form-label">Jumlah bahan</label>
+                                <label class="form-label">Jumlah bahan terpakai</label>
                                 <div class="bom-qty-row">
                                     <input type="number" name="material_quantity" class="form-input" step="any" min="0.0001" placeholder="1" value="{{ old('material_quantity') }}" data-addon-qty>
                                     <select name="unit" class="form-input" data-addon-unit>
@@ -521,7 +630,8 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary">+ Tambah Add-on</button>
+
+                        <button type="submit" class="btn-primary recipe-addon-form__submit">+ Tambah Add-on</button>
                     </form>
                 </x-module-form-card>
             </div>

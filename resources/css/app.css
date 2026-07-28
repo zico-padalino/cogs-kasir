@@ -580,6 +580,62 @@
         @apply text-xs;
     }
 
+    .recipe-addon-form {
+        @apply space-y-3 border-t border-slate-100 pt-4;
+    }
+
+    .recipe-addon-form__head {
+        @apply space-y-0.5;
+    }
+
+    .recipe-addon-form__title {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .recipe-addon-form__hint {
+        @apply text-xs leading-relaxed text-slate-500;
+    }
+
+    .recipe-addon-form__grid {
+        @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end;
+    }
+
+    .recipe-addon-form__submit {
+        @apply w-full justify-center sm:w-auto;
+    }
+
+    .recipe-addon-cards {
+        @apply space-y-2.5 md:hidden;
+    }
+
+    .recipe-addon-card {
+        @apply rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm;
+    }
+
+    .recipe-addon-card--inactive {
+        @apply border-dashed bg-slate-50 opacity-80;
+    }
+
+    .recipe-addon-card__head {
+        @apply flex items-start justify-between gap-3;
+    }
+
+    .recipe-addon-card__name {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .recipe-addon-card__price {
+        @apply shrink-0 text-base font-bold tabular-nums text-brand-700;
+    }
+
+    .recipe-addon-card__actions {
+        @apply mt-3 flex items-start gap-2;
+    }
+
+    .recipe-addon-empty {
+        @apply rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4;
+    }
+
     .recipe-table-wrap--desktop {
         @apply hidden md:block;
     }
@@ -949,6 +1005,24 @@
 
         .module-step-2.module-page {
             padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .module-step-3.module-page {
+            padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .recipe-addon-form__submit {
+            @apply min-h-12 w-full text-sm;
+        }
+
+        .recipe-addon-card {
+            @apply p-4;
+        }
+
+        .recipe-addon-card__actions .btn-outline,
+        .recipe-addon-card__actions .btn-outline-danger,
+        .recipe-addon-card__actions .inline-edit summary {
+            @apply min-h-11;
         }
 
         .module-step-2 .table-card-footer {
