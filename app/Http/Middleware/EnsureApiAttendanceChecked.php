@@ -3,22 +3,20 @@
 namespace App\Http\Middleware;
 
 use App\Services\AttendanceService;
+use App\Support\AttendanceGate;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureApiAttendanceChecked
 {
-    /** Sementara false = absen tidak wajib sebelum akses API modul. */
-    private const ENFORCE = false;
-
     public function __construct(
         private readonly AttendanceService $attendanceService,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! self::ENFORCE) {
+        if (! AttendanceGate::enforcesBeforeModules()) {
             return $next($request);
         }
 
@@ -35,7 +33,6 @@ class EnsureApiAttendanceChecked
             'api.v1.kasir.pin.touch',
             'api.v1.kasir.pending.poll',
             'api.v1.kasir.dapur.poll',
-            // Push harus terdaftar meski belum absen — supaya notifikasi jalan saat app tertutup.
             'api.v1.kasir.push-token.store',
             'api.v1.kasir.push-token.destroy',
             'api.v1.kasir.push-token.test',

@@ -18,6 +18,8 @@ class LoginController extends Controller
         $user = $request->user();
 
         if ($user) {
+            $request->session()->forget('url.intended');
+
             return redirect()->to($user->postAuthUrl());
         }
 
@@ -59,8 +61,11 @@ class LoginController extends Controller
                 ->with('error', 'Akun baru wajib mengganti password sementara sebelum lanjut.');
         }
 
+        // Jangan bawa url.intended lama (sering tersangkut ke /absensi).
+        $request->session()->forget('url.intended');
+
         // Akun root diarahkan ke pemilih modul; selain itu ke kasir dulu (jika
-        // punya akses). Middleware absensi akan memaksa absen sebelum layar PIN.
+        // punya akses).
         return redirect()->to($user->postAuthUrl());
     }
 

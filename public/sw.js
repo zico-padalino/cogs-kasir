@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cogs-pos-shell-v3';
+const CACHE_NAME = 'cogs-pos-shell-v4';
 const PRECACHE_URLS = [
     '/icons/icon-192.png',
     '/icons/icon-512.png',

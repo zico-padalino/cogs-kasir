@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
+use App\Support\AttendanceGate;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,13 +16,32 @@ class PublicAttendanceController extends Controller
 {
     public function show(Request $request, AttendanceService $attendanceService): View|RedirectResponse
     {
+        $user = $request->user();
+
+        // Gate absen-wajib dimatikan: user login jangan stuck di halaman absen.
+        // QR publik tetap dipakai tanpa login.
+        if ($user && ! AttendanceGate::enforcesBeforeModules()) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->to($user->postAuthUrl());
+        }
+
         if (! $attendanceService->isEnabled()) {
             return view('attendance.scan-disabled', [
                 'shopName' => ShopSettings::get('shop_name', config('pos.shop_name')),
             ]);
         }
 
-        $user = $request->user();
+        // Sudah absen hari ini (atau tidak wajib) → lanjut ke modul.
+        if ($user
+            && $attendanceService->requiredAction($user) === null
+            && ! $attendanceService->needsProfileSetup($user)
+        ) {
+            $request->session()->forget('url.intended');
+
+            return redirect()->to($user->postAuthUrl());
+        }
+
         $settings = $attendanceService->settings();
         $selectedEmployeeId = $user
             ? $attendanceService->employeeFor($user)?->id
@@ -95,10 +115,14 @@ class PublicAttendanceController extends Controller
         }
 
         $user = $request->user();
-        if ($user && $attendanceService->requiredAction($user) === null) {
-            // Absen akun login selesai → kembali ke modul yang tadi dibuka (kasir/hub/dll).
+        if ($user && (
+            ! AttendanceGate::enforcesBeforeModules()
+            || $attendanceService->requiredAction($user) === null
+        )) {
+            $request->session()->forget('url.intended');
+
             return redirect()
-                ->intended($user->postAuthUrl())
+                ->to($user->postAuthUrl())
                 ->with('success', $message);
         }
 
