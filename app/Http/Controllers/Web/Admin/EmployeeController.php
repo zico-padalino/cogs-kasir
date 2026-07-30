@@ -165,11 +165,11 @@ class EmployeeController extends Controller
         $request->validate([
             'schedules' => ['nullable', 'array'],
             'schedules.*.enabled' => ['nullable'],
-            'schedules.*.clock_in' => ['nullable', 'regex:/^([01]\d|2[0-3]):([0-5]\d)$/'],
-            'schedules.*.clock_out' => ['nullable', 'regex:/^([01]\d|2[0-3]):([0-5]\d)$/'],
+            'schedules.*.clock_in' => ['nullable', 'regex:/^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$/'],
+            'schedules.*.clock_out' => ['nullable', 'regex:/^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$/'],
         ], [
-            'schedules.*.clock_in.regex' => 'Jam masuk harus format 24 jam HH:mm.',
-            'schedules.*.clock_out.regex' => 'Jam pulang harus format 24 jam HH:mm.',
+            'schedules.*.clock_in.regex' => 'Jam masuk tidak valid.',
+            'schedules.*.clock_out.regex' => 'Jam pulang tidak valid.',
         ]);
 
         $defaultIn = (string) ShopSettings::get('attendance_clock_in', '08:00');
@@ -182,13 +182,27 @@ class EmployeeController extends Controller
             $enabled = ! empty($row['enabled']);
             $rows[] = [
                 'day_of_week' => $day,
-                'clock_in' => $enabled ? (string) ($row['clock_in'] ?? $defaultIn) : $defaultIn,
-                'clock_out' => $enabled ? (string) ($row['clock_out'] ?? $defaultOut) : $defaultOut,
+                'clock_in' => $enabled ? $this->normalizeTimeInput((string) ($row['clock_in'] ?? $defaultIn), $defaultIn) : $defaultIn,
+                'clock_out' => $enabled ? $this->normalizeTimeInput((string) ($row['clock_out'] ?? $defaultOut), $defaultOut) : $defaultOut,
                 'is_off' => ! $enabled,
             ];
         }
 
         return $rows;
+    }
+
+    private function normalizeTimeInput(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $fallback;
+        }
+
+        if (preg_match('/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $value, $m)) {
+            return $m[1].':'.$m[2];
+        }
+
+        return $fallback;
     }
 
     /**

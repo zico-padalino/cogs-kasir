@@ -120,7 +120,7 @@
             <div>
                 <h2 class="text-sm font-semibold text-slate-900">Jadwal kerja (kalender mingguan)</h2>
                 <p class="mt-1 text-xs text-slate-600">
-                    Centang hari masuk, lalu isi jam masuk &amp; pulang (format 24 jam).
+                    Centang hari masuk, lalu pilih jam masuk &amp; pulang dari jam picker.
                     Hari yang tidak dicentang = libur (tidak bisa absen).
                     @unless ($hasSchedules ?? false)
                         <span class="text-amber-700">Tabel jadwal belum ada di database — jalankan query <code>employee_work_schedules.sql</code> dulu.</span>
@@ -151,13 +151,11 @@
                                 <label class="form-label" for="schedules_{{ $day }}_in">Masuk</label>
                                 <input
                                     id="schedules_{{ $day }}_in"
-                                    type="text"
-                                    inputmode="numeric"
+                                    type="time"
                                     name="schedules[{{ $day }}][clock_in]"
                                     class="form-input"
                                     value="{{ $row['clock_in'] ?? '08:00' }}"
-                                    placeholder="16:00"
-                                    pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                                    step="60"
                                     data-schedule-time
                                 >
                             </div>
@@ -165,20 +163,18 @@
                                 <label class="form-label" for="schedules_{{ $day }}_out">Pulang</label>
                                 <input
                                     id="schedules_{{ $day }}_out"
-                                    type="text"
-                                    inputmode="numeric"
+                                    type="time"
                                     name="schedules[{{ $day }}][clock_out]"
                                     class="form-input"
                                     value="{{ $row['clock_out'] ?? '17:00' }}"
-                                    placeholder="23:59"
-                                    pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                                    step="60"
                                     data-schedule-time
                                 >
                             </div>
                         </div>
                     @endforeach
                 </div>
-                <p class="text-xs text-slate-500">Contoh shift sore: Masuk <strong>16:00</strong>, Pulang <strong>23:59</strong> atau <strong>00:00</strong>.</p>
+                <p class="text-xs text-slate-500">Nilai tersimpan tetap 24 jam di database (contoh: 16:00–23:59). Di beberapa HP/browser tampilan picker bisa AM/PM.</p>
             @endif
         </div>
 
