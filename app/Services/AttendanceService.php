@@ -545,7 +545,20 @@ class AttendanceService
             $ext,
         );
 
-        Storage::disk('public')->put($path, $binary);
+        // Simpan ke disk public (storage/app/public) + mirror ke public/uploads
+        // supaya bisa diakses tanpa `php artisan storage:link` di shared hosting.
+        if (! Storage::disk('public')->put($path, $binary)) {
+            throw new RuntimeException('Foto gagal disimpan.');
+        }
+
+        $publicFull = public_path('uploads/'.$path);
+        $publicDir = dirname($publicFull);
+        if (! is_dir($publicDir) && ! mkdir($publicDir, 0755, true) && ! is_dir($publicDir)) {
+            throw new RuntimeException('Folder foto absensi gagal dibuat.');
+        }
+        if (file_put_contents($publicFull, $binary) === false) {
+            throw new RuntimeException('Foto gagal disimpan ke folder publik.');
+        }
 
         return $path;
     }

@@ -99,6 +99,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
     Route::get('attendances/qr', [AttendanceQrController::class, 'show'])->name('attendances.qr');
+    Route::get('attendances/{attendance}/selfie/{type}', [AttendanceController::class, 'selfie'])
+        ->whereIn('type', ['in', 'out'])
+        ->name('attendances.selfie');
     Route::post('attendances', [AttendanceController::class, 'store'])->name('attendances.store');
     Route::delete('attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
     Route::get('salaries', [SalaryController::class, 'index'])->name('salaries.index');

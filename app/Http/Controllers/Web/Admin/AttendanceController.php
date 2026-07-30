@@ -10,7 +10,9 @@ use App\Services\AttendanceService;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class AttendanceController extends Controller
 {
@@ -144,6 +146,39 @@ class AttendanceController extends Controller
         $attendance->delete();
 
         return back()->with('success', 'Absensi dihapus.');
+    }
+
+    /**
+     * Stream selfie absensi — menghindari 403 pada /storage di shared hosting.
+     */
+    public function selfie(EmployeeAttendance $attendance, string $type): Response
+    {
+        abort_unless(in_array($type, ['in', 'out'], true), 404);
+
+        $path = $type === 'out'
+            ? $attendance->check_out_photo_path
+            : $attendance->check_in_photo_path;
+
+        abort_unless(filled($path), 404);
+
+        $upload = public_path('uploads/'.$path);
+        if (is_file($upload)) {
+            return response()->file($upload);
+        }
+
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        // Mirror ke public/uploads agar request berikutnya tidak bergantung /storage.
+        $upload = public_path('uploads/'.$path);
+        if (! is_file($upload)) {
+            $dir = dirname($upload);
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            @file_put_contents($upload, Storage::disk('public')->get($path));
+        }
+
+        return Storage::disk('public')->response($path);
     }
 
     private function distanceOrNull(

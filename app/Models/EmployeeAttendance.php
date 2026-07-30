@@ -49,20 +49,41 @@ class EmployeeAttendance extends Model
 
     public function checkInPhotoUrl(): ?string
     {
-        return $this->photoUrl($this->check_in_photo_path);
+        return $this->photoUrl($this->check_in_photo_path, 'in');
     }
 
     public function checkOutPhotoUrl(): ?string
     {
-        return $this->photoUrl($this->check_out_photo_path);
+        return $this->photoUrl($this->check_out_photo_path, 'out');
     }
 
-    private function photoUrl(?string $path): ?string
+    /**
+     * URL selfie yang aman di shared hosting (hindari /storage 403).
+     * Prioritas: public/uploads → route Laravel (baca storage) → asset /storage.
+     */
+    private function photoUrl(?string $path, string $type): ?string
     {
-        if (! $path) {
+        if (! filled($path)) {
             return null;
         }
 
-        return Storage::disk('public')->url($path);
+        $uploadRelative = 'uploads/'.$path;
+        if (is_file(public_path($uploadRelative))) {
+            return asset($uploadRelative);
+        }
+
+        if ($this->id && Storage::disk('public')->exists($path)) {
+            return route('admin.attendances.selfie', [
+                'attendance' => $this->id,
+                'type' => $type,
+            ]);
+        }
+
+        // Fallback lokal bila symlink public/storage sudah ada.
+        if (is_file(public_path('storage/'.$path))) {
+            return asset('storage/'.$path);
+        }
+
+        return null;
     }
 }

@@ -72,4 +72,36 @@ class AttendanceSelfieTest extends TestCase
             ->assertDontSee('Daftarkan wajah')
             ->assertDontSee('Simpan wajah dari kamera');
     }
+
+    public function test_admin_can_view_attendance_selfie_via_app_route(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $employee = Employee::query()->create([
+            'employee_code' => 'EMP-SELFIE-003',
+            'name' => 'Pegawai Foto',
+            'base_salary' => 0,
+            'status' => EmployeeStatus::Active,
+        ]);
+
+        $path = 'attendance/'.$employee->id.'/test-in.jpg';
+        $bytes = base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z');
+        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $bytes);
+
+        $attendance = \App\Models\EmployeeAttendance::query()->create([
+            'employee_id' => $employee->id,
+            'work_date' => today(),
+            'check_in' => '09:00:00',
+            'check_in_photo_path' => $path,
+            'status' => \App\Enums\AttendanceStatus::Hadir,
+            'is_late' => false,
+        ]);
+
+        $url = $attendance->checkInPhotoUrl();
+        $this->assertNotNull($url);
+        $this->assertStringContainsString('/selfie/in', $url);
+
+        $this->actingAs($admin)
+            ->get(route('admin.attendances.selfie', ['attendance' => $attendance, 'type' => 'in']))
+            ->assertOk();
+    }
 }
