@@ -217,7 +217,11 @@
                         </div>
                     @endforeach
                 </div>
-                <p class="text-xs text-slate-500">Format 24 jam (00–23). Contoh shift sore: masuk <strong>16:00</strong>, pulang <strong>23:59</strong>.</p>
+                <p class="text-xs text-slate-500">
+                    Format 24 jam (00–23). Contoh shift sore: masuk <strong>16:00</strong>, pulang <strong>23:59</strong>.
+                    Jika pulang lewat tengah malam, isi jam pulang keesokan hari (contoh masuk <strong>16:00</strong>, pulang <strong>01:00</strong>) —
+                    sistem otomatis menghitung lintas hari, dan absen pulang tetap menempel ke tanggal masuk.
+                </p>
             @endif
         </div>
 

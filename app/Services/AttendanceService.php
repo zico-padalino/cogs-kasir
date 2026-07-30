@@ -193,6 +193,29 @@ class AttendanceService
     }
 
     /**
+     * Absensi yang masih menunggu pulang: hari ini, atau kemarin (shift lintas tengah malam).
+     */
+    public function openCheckoutAttendance(Employee $employee): ?EmployeeAttendance
+    {
+        $candidates = EmployeeAttendance::query()
+            ->where('employee_id', $employee->id)
+            ->whereNotNull('check_in')
+            ->whereNull('check_out')
+            ->whereDate('work_date', '>=', today()->subDay()->toDateString())
+            ->whereDate('work_date', '<=', today()->toDateString())
+            ->orderByDesc('work_date')
+            ->get();
+
+        foreach ($candidates as $row) {
+            if ($this->canCheckOutNow($row, $employee)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return 'check_in'|'check_out'|null
      */
     public function requiredAction(User $user): ?string
@@ -210,13 +233,11 @@ class AttendanceService
             return null;
         }
 
-        $attendance = $this->todayAttendance($employee);
-
-        if ($this->canCheckOutNow($attendance, $employee)) {
+        if ($this->openCheckoutAttendance($employee)) {
             return 'check_out';
         }
 
-        if ($this->canCheckInNow($attendance, $employee)) {
+        if ($this->canCheckInNow($this->todayAttendance($employee), $employee)) {
             return 'check_in';
         }
 
@@ -334,8 +355,8 @@ class AttendanceService
 
     public function checkOut(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
     {
-        $attendance = $this->todayAttendance($employee);
-        if (! $this->canCheckOutNow($attendance, $employee)) {
+        $attendance = $this->openCheckoutAttendance($employee);
+        if (! $attendance || ! $this->canCheckOutNow($attendance, $employee)) {
             throw new RuntimeException('Belum waktunya absen pulang, atau Anda belum absen masuk.');
         }
 
@@ -360,11 +381,12 @@ class AttendanceService
      */
     public function actionForEmployee(Employee $employee): string
     {
-        $attendance = $this->todayAttendance($employee);
-
-        if ($this->canCheckOutNow($attendance, $employee)) {
+        // Prioritas: selesaikan pulang shift kemarin (lintas tengah malam) dulu.
+        if ($this->openCheckoutAttendance($employee)) {
             return 'check_out';
         }
+
+        $attendance = $this->todayAttendance($employee);
 
         if ($this->canCheckInNow($attendance, $employee)) {
             return 'check_in';
@@ -483,7 +505,8 @@ class AttendanceService
     }
 
     /**
-     * Jika jam pulang ≤ jam masuk (mis. 16:00 → 00:00), pulang dihitung keesokan harinya.
+     * Jika jam pulang ≤ jam masuk (mis. 16:00 → 01:00), pulang dihitung keesokan harinya.
+     * Contoh: masuk Senin 16:00, pulang 01:00 → boleh absen pulang mulai Selasa 01:00.
      */
     private function resolveClockOut(Carbon $clockIn, string $clockOutTime): Carbon
     {
