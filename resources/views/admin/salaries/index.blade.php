@@ -25,9 +25,9 @@
             <div>
                 <h2 class="text-sm font-semibold text-slate-900">Hitung gaji bulanan</h2>
                 <p class="mt-1 text-xs text-slate-500">
-                    Gaji harian diakumulasi tiap hari hadir (gaji harian × hari hadir).
-                    Estimasi per minggu = gaji harian × hari jadwal; per bulan ≈ 4 minggu atau dari absensi aktual.
-                    Pokok bulanan (jika ada) ditambah. Potongan dari absensi — atur di
+                    Total = <strong>pokok</strong> + (<strong>gaji harian × hari hadir</strong>) + tunjangan − potongan.
+                    Estimasi / minggu = gaji harian × hari jadwal kerja.
+                    Potongan dari absensi — atur di
                     <a href="{{ route('admin.settings.edit') }}" class="font-medium text-brand-700 underline">Pengaturan</a>.
                 </p>
                 @php $rates = $deductionRates ?? []; @endphp
@@ -64,54 +64,74 @@
 
         <form method="POST" action="{{ route('admin.salaries.store') }}" class="space-y-4" data-salary-form>
             @csrf
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <input type="hidden" name="period_month" value="{{ $month->format('Y-m') }}">
+
+            <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="form-label" for="employee_id">Karyawan</label>
                     <select id="employee_id" name="employee_id" class="form-input" required data-salary-employee>
                         <option value="">Pilih karyawan</option>
                         @foreach ($employees as $employee)
+                            @php $p = $previews[$employee->id] ?? null; @endphp
                             <option
                                 value="{{ $employee->id }}"
-                                data-base="{{ (float) $employee->base_salary }}"
-                                data-daily="{{ (float) ($employee->daily_salary ?? 0) }}"
-                                data-days-week="{{ $employee->scheduledWorkDaysPerWeek() }}"
+                                data-base="{{ $p['base'] ?? 0 }}"
+                                data-daily="{{ $p['daily'] ?? 0 }}"
+                                data-days-week="{{ $p['days_week'] ?? 5 }}"
+                                data-weekly="{{ $p['weekly'] ?? 0 }}"
+                                data-work-days="{{ $p['work_days'] ?? 0 }}"
+                                data-daily-total="{{ $p['daily_total'] ?? 0 }}"
+                                data-deduction="{{ $p['deduction'] ?? 0 }}"
+                                data-deduction-summary="{{ e($p['deduction_summary'] ?? '') }}"
                             >{{ $employee->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="form-label" for="period_month">Periode</label>
-                    <input id="period_month" type="month" name="period_month" value="{{ $month->format('Y-m') }}" class="form-input" required>
+                    <label class="form-label">Periode</label>
+                    <input type="text" class="form-input bg-slate-50" value="{{ $month->translatedFormat('F Y') }}" readonly>
+                    <p class="mt-1 text-xs text-slate-500">Ganti bulan lewat filter di atas, lalu pilih karyawan lagi.</p>
                 </div>
-                <div>
-                    <label class="form-label" for="base_salary_display">Gaji pokok bulanan</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
-                        <input id="base_salary_display" type="text" class="form-input pl-10 bg-slate-50" value="" readonly data-salary-base placeholder="Otomatis">
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4" data-salary-preview>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ringkasan hitungan</p>
+                <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                        <p class="text-[11px] text-slate-500">Gaji pokok</p>
+                        <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-base>—</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">Gaji harian</p>
+                        <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-daily>—</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">Hari hadir (aktual)</p>
+                        <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-work-days>—</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">Akumulasi harian</p>
+                        <p class="text-sm font-semibold tabular-nums text-brand-800" data-out-daily-total>—</p>
+                        <p class="text-[10px] text-slate-400" data-out-daily-formula></p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">≈ / minggu (jadwal)</p>
+                        <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-weekly>—</p>
+                        <p class="text-[10px] text-slate-400" data-out-weekly-hint></p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">Potongan</p>
+                        <p class="text-sm font-semibold tabular-nums text-red-600" data-out-deduction>—</p>
+                        <p class="text-[10px] text-slate-400" data-out-deduction-hint></p>
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-2">
+                        <p class="text-[11px] text-slate-500">Total bulan (sebelum tunjangan)</p>
+                        <p class="text-lg font-bold tabular-nums text-brand-800" data-out-subtotal>—</p>
                     </div>
                 </div>
-                <div>
-                    <label class="form-label" for="daily_salary_display">Gaji harian</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
-                        <input id="daily_salary_display" type="text" class="form-input pl-10 bg-slate-50" value="" readonly data-salary-daily placeholder="Otomatis">
-                    </div>
-                </div>
-                <div>
-                    <label class="form-label" for="weekly_display">Estimasi / minggu</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
-                        <input id="weekly_display" type="text" class="form-input pl-10 bg-slate-50" value="" readonly data-salary-weekly placeholder="Harian × hari jadwal">
-                    </div>
-                    <p class="mt-1 text-xs text-slate-500" data-salary-weekly-hint>Gaji harian × hari kerja terjadwal.</p>
-                </div>
-                <div>
-                    <label class="form-label" for="monthly_daily_display">Estimasi harian / bulan (±4 minggu)</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
-                        <input id="monthly_daily_display" type="text" class="form-input pl-10 bg-slate-50" value="" readonly data-salary-monthly-daily placeholder="≈ 4 minggu">
-                    </div>
-                </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <x-rupiah-input
                         name="allowance"
@@ -121,22 +141,7 @@
                     />
                 </div>
                 <div>
-                    <label class="form-label" for="deduction_display">Potongan</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">Rp</span>
-                        <input
-                            id="deduction_display"
-                            type="text"
-                            class="form-input pl-10 bg-slate-50"
-                            value="{{ $format::inputValue($defaultDeduction) }}"
-                            readonly
-                            data-salary-deduction
-                        >
-                    </div>
-                    <p class="mt-1 text-xs text-slate-500">Otomatis dari absensi + pengaturan. Detail ada di catatan setelah simpan.</p>
-                </div>
-                <div>
-                    <label class="form-label" for="total_display">Estimasi total bulan</label>
+                    <label class="form-label" for="total_display">Total dibayar</label>
                     <div class="relative">
                         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-brand-700">Rp</span>
                         <input
@@ -146,16 +151,17 @@
                             value=""
                             readonly
                             data-salary-total
-                            placeholder="Pokok + harian − potongan"
+                            placeholder="0"
                         >
                     </div>
-                    <p class="mt-1 text-xs text-slate-500">Pokok + estimasi harian 4 minggu + tunjangan − potongan rutin. Saat simpan, harian diganti × hari hadir aktual.</p>
+                    <p class="mt-1 text-xs text-slate-500">Pokok + akumulasi hadir + tunjangan − potongan.</p>
                 </div>
-                <div class="sm:col-span-2 lg:col-span-3">
-                    <label class="form-label" for="notes">Catatan</label>
-                    <input id="notes" name="notes" class="form-input" value="{{ old('notes') }}">
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <label class="form-label" for="notes">Catatan (opsional)</label>
+                    <input id="notes" name="notes" class="form-input" value="{{ old('notes') }}" placeholder="Kosongkan — ringkasan otomatis ditambah saat simpan">
                 </div>
             </div>
+
             <button type="submit" class="btn-primary">Simpan Gaji</button>
         </form>
     </div>
@@ -235,7 +241,10 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-4 py-10 text-center text-slate-500">Belum ada data gaji bulan ini.</td>
+                            <td colspan="11" class="px-4 py-10 text-center text-slate-500">
+                                Belum ada data gaji bulan ini. Pilih karyawan lalu Simpan, atau klik
+                                <strong>Hitung semua karyawan</strong>.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -266,21 +275,28 @@
     <script>
         (function () {
             const form = document.querySelector('[data-salary-form]');
-            if (! form) return;
+            if (!form) return;
 
             const employeeSelect = form.querySelector('[data-salary-employee]');
-            const baseEl = form.querySelector('[data-salary-base]');
-            const dailyEl = form.querySelector('[data-salary-daily]');
-            const weeklyEl = form.querySelector('[data-salary-weekly]');
-            const weeklyHint = form.querySelector('[data-salary-weekly-hint]');
-            const monthlyDailyEl = form.querySelector('[data-salary-monthly-daily]');
             const totalEl = form.querySelector('[data-salary-total]');
-            const deduction = {{ (float) $defaultDeduction }};
             const allowanceHidden = form.querySelector('input[data-rupiah-target="allowance"]');
             const allowanceVisible = form.querySelector('.rupiah-input[data-rupiah-hidden="allowance"]');
 
-            function formatId(n) {
-                return new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(n || 0)));
+            const out = {
+                base: form.querySelector('[data-out-base]'),
+                daily: form.querySelector('[data-out-daily]'),
+                workDays: form.querySelector('[data-out-work-days]'),
+                dailyTotal: form.querySelector('[data-out-daily-total]'),
+                dailyFormula: form.querySelector('[data-out-daily-formula]'),
+                weekly: form.querySelector('[data-out-weekly]'),
+                weeklyHint: form.querySelector('[data-out-weekly-hint]'),
+                deduction: form.querySelector('[data-out-deduction]'),
+                deductionHint: form.querySelector('[data-out-deduction-hint]'),
+                subtotal: form.querySelector('[data-out-subtotal]'),
+            };
+
+            function formatRp(n) {
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(n || 0)));
             }
 
             function parseAllowance() {
@@ -291,31 +307,52 @@
                 return parseFloat(raw) || 0;
             }
 
+            function setText(el, value) {
+                if (el) el.textContent = value;
+            }
+
             function recalc() {
                 const opt = employeeSelect?.selectedOptions?.[0];
                 const selected = !!(opt && opt.value);
-                const base = selected ? parseFloat(opt.getAttribute('data-base') || '0') : 0;
-                const daily = selected ? parseFloat(opt.getAttribute('data-daily') || '0') : 0;
-                const daysWeek = selected ? parseFloat(opt.getAttribute('data-days-week') || '5') : 0;
-                const weekly = daily * daysWeek;
-                const monthlyDaily = weekly * 4;
-                const allowance = parseAllowance();
 
-                if (baseEl) baseEl.value = selected ? formatId(base) : '';
-                if (dailyEl) dailyEl.value = selected ? formatId(daily) : '';
-                if (weeklyEl) weeklyEl.value = selected ? formatId(weekly) : '';
-                if (monthlyDailyEl) monthlyDailyEl.value = selected ? formatId(monthlyDaily) : '';
-                if (weeklyHint) {
-                    weeklyHint.textContent = selected
-                        ? ('Gaji harian × ' + daysWeek + ' hari jadwal kerja.')
-                        : 'Gaji harian × hari kerja terjadwal.';
+                if (!selected) {
+                    setText(out.base, '—');
+                    setText(out.daily, '—');
+                    setText(out.workDays, '—');
+                    setText(out.dailyTotal, '—');
+                    setText(out.dailyFormula, '');
+                    setText(out.weekly, '—');
+                    setText(out.weeklyHint, '');
+                    setText(out.deduction, '—');
+                    setText(out.deductionHint, '');
+                    setText(out.subtotal, '—');
+                    if (totalEl) totalEl.value = '';
+                    return;
                 }
-                // Estimasi preview: pokok + harian 4 minggu + tunjangan − potongan rutin
-                if (totalEl) {
-                    totalEl.value = selected
-                        ? formatId(Math.max(0, base + monthlyDaily + allowance - deduction))
-                        : '';
-                }
+
+                const base = parseFloat(opt.getAttribute('data-base') || '0') || 0;
+                const daily = parseFloat(opt.getAttribute('data-daily') || '0') || 0;
+                const daysWeek = parseFloat(opt.getAttribute('data-days-week') || '5') || 0;
+                const weekly = parseFloat(opt.getAttribute('data-weekly') || '0') || 0;
+                const workDays = parseFloat(opt.getAttribute('data-work-days') || '0') || 0;
+                const dailyTotal = parseFloat(opt.getAttribute('data-daily-total') || '0') || 0;
+                const deduction = parseFloat(opt.getAttribute('data-deduction') || '0') || 0;
+                const deductionSummary = opt.getAttribute('data-deduction-summary') || '';
+                const allowance = parseAllowance();
+                const subtotal = Math.max(0, base + dailyTotal - deduction);
+                const total = Math.max(0, base + dailyTotal + allowance - deduction);
+
+                setText(out.base, formatRp(base));
+                setText(out.daily, formatRp(daily));
+                setText(out.workDays, workDays + ' hari');
+                setText(out.dailyTotal, formatRp(dailyTotal));
+                setText(out.dailyFormula, formatRp(daily) + ' × ' + workDays + ' hari');
+                setText(out.weekly, formatRp(weekly));
+                setText(out.weeklyHint, formatRp(daily) + ' × ' + daysWeek + ' hari jadwal');
+                setText(out.deduction, '− ' + formatRp(deduction));
+                setText(out.deductionHint, deductionSummary || (deduction > 0 ? '' : 'Tidak ada potongan'));
+                setText(out.subtotal, formatRp(subtotal));
+                if (totalEl) totalEl.value = new Intl.NumberFormat('id-ID').format(Math.round(total));
             }
 
             employeeSelect?.addEventListener('change', recalc);

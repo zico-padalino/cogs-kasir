@@ -26,7 +26,7 @@ class SalaryController extends Controller
         $salaries = $schemaMissing
             ? collect()
             : EmployeeSalary::query()
-                ->with('employee')
+                ->with(['employee.workSchedules'])
                 ->whereDate('period_month', $month)
                 ->orderByDesc('id')
                 ->get();
@@ -39,12 +39,16 @@ class SalaryController extends Controller
                 ->orderBy('name')
                 ->get();
 
-        $salaries->loadMissing('employee.workSchedules');
+        $previews = [];
+        foreach ($employees as $employee) {
+            $previews[$employee->id] = $this->previewFor($employee, $month);
+        }
 
         return view('admin.salaries.index', [
             'salaries' => $salaries,
             'month' => $month,
             'employees' => $employees,
+            'previews' => $previews,
             'defaultDeduction' => $rates['fixed'],
             'deductionRates' => $rates,
             'format' => Format::class,
@@ -101,7 +105,7 @@ class SalaryController extends Controller
         ]);
 
         $period = Carbon::createFromFormat('Y-m', $validated['period_month'])->startOfMonth();
-        $employees = Employee::query()->forAttendance()->orderBy('name')->get();
+        $employees = Employee::query()->forAttendance()->with('workSchedules')->orderBy('name')->get();
 
         $created = 0;
         foreach ($employees as $employee) {
@@ -144,40 +148,22 @@ class SalaryController extends Controller
         float $allowance = 0,
         ?string $notes = null,
     ): EmployeeSalary {
-        $base = (float) $employee->base_salary;
-        $daily = (float) ($employee->daily_salary ?? 0);
-        $deductionInfo = SalaryCalculator::deductionsFor($employee, $period);
-        $workDays = $deductionInfo['work_days'];
-        $dailyTotal = $daily * $workDays;
-        $daysPerWeek = $employee->scheduledWorkDaysPerWeek();
-        $weeklyFromDaily = $daily * $daysPerWeek;
-        $deduction = $deductionInfo['total'];
-        $total = max(0, $base + $dailyTotal + $allowance - $deduction);
-
-        $payParts = [];
-        if ($daily > 0) {
-            $payParts[] = 'Harian '.Format::rupiah($daily).' × '.$workDays.' hari = '.Format::rupiah($dailyTotal);
-            $payParts[] = '≈ / minggu '.Format::rupiah($weeklyFromDaily).' ('.$daysPerWeek.' hari jadwal)';
-        }
-        if ($deductionInfo['summary'] !== '') {
-            $payParts[] = 'Potongan: '.$deductionInfo['summary'];
-        }
-        $autoNote = implode(' · ', $payParts);
-        $mergedNotes = $this->mergeNotes($notes, $autoNote);
+        $preview = $this->previewFor($employee, $period, $allowance);
+        $mergedNotes = $this->mergeNotes($notes, $preview['auto_note']);
 
         $payload = [
-            'base_salary' => $base,
-            'allowance' => $allowance,
-            'deduction' => $deduction,
-            'total' => $total,
+            'base_salary' => $preview['base'],
+            'allowance' => $preview['allowance'],
+            'deduction' => $preview['deduction'],
+            'total' => $preview['total'],
             'status' => SalaryStatus::Draft,
             'notes' => $mergedNotes,
             'paid_at' => null,
         ];
 
         if (Schema::hasColumn('employee_salaries', 'daily_salary')) {
-            $payload['daily_salary'] = $daily;
-            $payload['work_days'] = $workDays;
+            $payload['daily_salary'] = $preview['daily'];
+            $payload['work_days'] = $preview['work_days'];
         }
 
         return EmployeeSalary::query()->updateOrCreate(
@@ -187,6 +173,59 @@ class SalaryController extends Controller
             ],
             $payload,
         );
+    }
+
+    /**
+     * Ringkasan hitungan gaji (sama dipakai preview UI & saat simpan).
+     *
+     * @return array{
+     *     base: float,
+     *     daily: float,
+     *     days_week: int,
+     *     weekly: float,
+     *     work_days: int,
+     *     daily_total: float,
+     *     allowance: float,
+     *     deduction: float,
+     *     deduction_summary: string,
+     *     total: float,
+     *     auto_note: string
+     * }
+     */
+    private function previewFor(Employee $employee, Carbon $period, float $allowance = 0): array
+    {
+        $base = (float) $employee->base_salary;
+        $daily = (float) ($employee->daily_salary ?? 0);
+        $deductionInfo = SalaryCalculator::deductionsFor($employee, $period);
+        $workDays = (int) $deductionInfo['work_days'];
+        $dailyTotal = $daily * $workDays;
+        $daysPerWeek = $employee->scheduledWorkDaysPerWeek();
+        $weekly = $daily * $daysPerWeek;
+        $deduction = (float) $deductionInfo['total'];
+        $total = max(0, $base + $dailyTotal + $allowance - $deduction);
+
+        $payParts = [];
+        if ($daily > 0 || $workDays > 0) {
+            $payParts[] = 'Harian '.Format::rupiah($daily).' × '.$workDays.' hari hadir = '.Format::rupiah($dailyTotal);
+            $payParts[] = '≈ / minggu '.Format::rupiah($weekly).' ('.$daysPerWeek.' hari jadwal)';
+        }
+        if ($deductionInfo['summary'] !== '') {
+            $payParts[] = 'Potongan: '.$deductionInfo['summary'];
+        }
+
+        return [
+            'base' => $base,
+            'daily' => $daily,
+            'days_week' => $daysPerWeek,
+            'weekly' => $weekly,
+            'work_days' => $workDays,
+            'daily_total' => $dailyTotal,
+            'allowance' => $allowance,
+            'deduction' => $deduction,
+            'deduction_summary' => $deductionInfo['summary'],
+            'total' => $total,
+            'auto_note' => implode(' · ', $payParts),
+        ];
     }
 
     private function mergeNotes(?string $userNotes, string $autoSummary): ?string
