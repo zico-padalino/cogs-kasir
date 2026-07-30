@@ -244,6 +244,7 @@ class InventoryController extends Controller
 
         $request->merge([
             'purchase_mode' => $request->input('purchase_mode', 'direct'),
+            'adjust_mode' => $request->input('adjust_mode', 'direct'),
         ]);
 
         $wantsStock = $this->materialEditHasPurchase($request);
@@ -253,6 +254,8 @@ class InventoryController extends Controller
             'unit_preset' => ['required', 'string', 'max:20'],
             'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
         ];
+
+        $rules = array_merge($rules, StockQuantity::validationRules());
 
         if ($wantsStock) {
             $rules = array_merge($rules, MaterialPurchase::validationRules());
@@ -300,6 +303,32 @@ class InventoryController extends Controller
             'unit' => $newUnit,
         ]);
 
+        try {
+            $resolvedRemaining = StockQuantity::resolveRemaining($request->all(), $newUnit);
+            $target = $resolvedRemaining['quantity'];
+            $beforeRemaining = $product->availableQuantity();
+
+            if (abs($target - $beforeRemaining) > 0.000001) {
+                $inventoryService->syncAvailableQuantity($product, $target);
+                $afterRemaining = $product->fresh()->availableQuantity();
+                $logService->log(
+                    action: 'adjust',
+                    product: $product,
+                    quantityBefore: $beforeRemaining,
+                    quantityAfter: $afterRemaining,
+                    note: 'Stock opname stok sisa · '.$resolvedRemaining['note'],
+                );
+                $changes[] = sprintf(
+                    'stok sisa %s → %s %s',
+                    Format::number($beforeRemaining),
+                    Format::number($afterRemaining),
+                    $newUnit,
+                );
+            }
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
         if ($wantsStock) {
             $purchase = MaterialPurchase::resolve($validated);
 
@@ -311,7 +340,7 @@ class InventoryController extends Controller
                 return back()->withErrors(['direct_total' => 'Harga tidak valid.'])->withInput();
             }
 
-            $before = $product->availableQuantity();
+            $before = $product->fresh()->availableQuantity();
             $qty = $purchase['quantity'];
             $unitCost = $purchase['unit_cost'];
 
