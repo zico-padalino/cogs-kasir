@@ -6,11 +6,14 @@ function initUnitPickers(root = document) {
 
         picker.dataset.unitPickerBound = '1';
 
+        const presetSelect = picker.querySelector('[data-unit-preset], select[name="unit_preset"]');
         const customBox = picker.querySelector('[data-unit-custom]');
         const customInput = customBox?.querySelector('input');
 
         const sync = () => {
-            const selected = picker.querySelector('input[type="radio"]:checked')?.value || 'kg';
+            const selected = presetSelect?.value
+                || picker.querySelector('input[type="radio"]:checked')?.value
+                || 'kg';
             const isOther = selected === 'other';
 
             if (customBox) {
@@ -26,6 +29,8 @@ function initUnitPickers(root = document) {
                 }
             }
         };
+
+        presetSelect?.addEventListener('change', sync);
 
         picker.querySelectorAll('input[type="radio"]').forEach((radio) => {
             radio.addEventListener('change', sync);

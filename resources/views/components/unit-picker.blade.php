@@ -13,20 +13,20 @@
 @endphp
 
 <div {{ $attributes->merge(['class' => 'unit-picker']) }} data-unit-picker>
-    <p class="form-label mb-1.5">Satuan stok</p>
+    <label class="form-label" for="{{ $name }}">Satuan stok</label>
 
-    <div class="unit-picker__grid" role="radiogroup" aria-label="Pilih satuan">
+    <select
+        id="{{ $name }}"
+        name="{{ $name }}"
+        class="form-input"
+        data-unit-preset
+        required
+    >
         @foreach ($presets as $value => $label)
-            <label class="unit-picker__chip">
-                <input type="radio" name="{{ $name }}" value="{{ $value }}" class="sr-only" @checked($oldPreset === $value)>
-                <span>{{ $label }}</span>
-            </label>
+            <option value="{{ $value }}" @selected($oldPreset === $value)>{{ $label }}</option>
         @endforeach
-        <label class="unit-picker__chip">
-            <input type="radio" name="{{ $name }}" value="other" class="sr-only" @checked($oldPreset === 'other')>
-            <span>Lainnya</span>
-        </label>
-    </div>
+        <option value="other" @selected($oldPreset === 'other')>Lainnya…</option>
+    </select>
 
     <div class="unit-picker__custom mt-2 {{ $showCustom ? '' : 'hidden' }}" data-unit-custom>
         <input

@@ -300,8 +300,26 @@
                                             :selected="old('unit_preset', $units::guessPreset($item->unit))"
                                             :custom-value="old('unit_custom', $units::guessPreset($item->unit) === 'other' ? $item->unit : '')"
                                         />
-                                        <p class="form-hint">Isi pembelian di bawah hanya jika menambah stok.</p>
-                                        <x-material-purchase-fields />
+
+                                        <div class="rounded-xl border border-amber-100 bg-amber-50/70 p-3 space-y-3">
+                                            <div>
+                                                <p class="text-xs font-semibold text-amber-900">Stok sisa</p>
+                                                <p class="mt-0.5 text-[11px] text-amber-800/80">
+                                                    Otomatis terisi stok sekarang. Ubah hanya jika stok fisik berbeda.
+                                                </p>
+                                            </div>
+                                            <x-stock-remaining-fields
+                                                :stock-unit="$item->unit"
+                                                :current-qty="$item->availableQuantity()"
+                                                :compact="true"
+                                            />
+                                        </div>
+
+                                        <p class="form-hint">Isi pembelian di bawah hanya jika menambah stok baru.</p>
+                                        <x-material-purchase-fields
+                                            :optional="true"
+                                            :stock-unit-label="$item->unit"
+                                        />
                                         <div class="material-panel__actions">
                                             <button type="button" class="btn-outline w-full" data-details-cancel>Batal</button>
                                             <button type="submit" class="btn-primary w-full">Simpan</button>

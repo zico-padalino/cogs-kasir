@@ -13,6 +13,7 @@ use App\Services\ProductDeletionService;
 use App\Support\Format;
 use App\Support\MaterialPurchase;
 use App\Support\MaterialUnits;
+use App\Support\StockQuantity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -145,6 +146,7 @@ class BahanJadiController extends Controller
 
         $request->merge([
             'purchase_mode' => $request->input('purchase_mode', 'direct'),
+            'adjust_mode' => $request->input('adjust_mode', 'direct'),
         ]);
 
         $wantsStock = filled($request->input('direct_total'))
@@ -156,6 +158,8 @@ class BahanJadiController extends Controller
             'unit_preset' => ['required', 'string', 'max:20'],
             'unit_custom' => ['nullable', 'string', 'max:20', 'required_if:unit_preset,other'],
         ];
+
+        $rules = array_merge($rules, StockQuantity::validationRules());
 
         if ($wantsStock) {
             $rules = array_merge($rules, MaterialPurchase::validationRules());
@@ -177,10 +181,30 @@ class BahanJadiController extends Controller
             'unit' => $newUnit,
         ]);
 
+        try {
+            $resolvedRemaining = StockQuantity::resolveRemaining($request->all(), $newUnit);
+            $target = $resolvedRemaining['quantity'];
+            $before = $product->availableQuantity();
+
+            if (abs($target - $before) > 0.000001) {
+                $inventoryService->syncAvailableQuantity($product, $target);
+                $after = $product->fresh()->availableQuantity();
+                $logService->log(
+                    action: 'adjust',
+                    product: $product,
+                    quantityBefore: $before,
+                    quantityAfter: $after,
+                    note: 'Stock opname bahan jadi · '.$resolvedRemaining['note'],
+                );
+            }
+        } catch (InvalidArgumentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
         if ($wantsStock) {
             $purchase = MaterialPurchase::resolve($validated);
             if ($purchase['quantity'] > 0) {
-                $before = $product->availableQuantity();
+                $before = $product->fresh()->availableQuantity();
                 $lot = $inventoryService->receiveStock(
                     product: $product,
                     quantity: $purchase['quantity'],

@@ -47,7 +47,9 @@ function resolveStockUnitLabel(box) {
         return 'satuan stok';
     }
 
-    const selected = form.querySelector('[data-unit-picker] input[type="radio"]:checked')?.value;
+    const selected = form.querySelector('[data-unit-picker] [data-unit-preset]')?.value
+        || form.querySelector('[data-unit-picker] select[name="unit_preset"]')?.value
+        || form.querySelector('[data-unit-picker] input[type="radio"]:checked')?.value;
     if (! selected) {
         return 'satuan stok';
     }
