@@ -74,7 +74,10 @@
         <div class="card space-y-5">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Absensi (jam & lokasi)</h2>
-                <p class="mt-1 text-sm text-slate-500">Atur jam masuk/pulang dan titik koordinat toko untuk absen GPS.</p>
+                <p class="mt-1 text-sm text-slate-500">
+                    Atur jam masuk/pulang global (fallback). Jadwal pribadi tiap pegawai diatur di
+                    <a href="{{ route('admin.employees.index') }}" class="font-medium text-brand-700 underline">Data Karyawan</a>.
+                </p>
             </div>
 
             <label class="flex items-center gap-2 text-sm text-slate-700">

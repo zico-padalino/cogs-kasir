@@ -71,6 +71,9 @@
                         <option
                             value="{{ $row['id'] }}"
                             data-action="{{ $row['action'] }}"
+                            data-clock-in="{{ $row['clock_in'] ?? '' }}"
+                            data-clock-out="{{ $row['clock_out'] ?? '' }}"
+                            data-is-off="{{ ! empty($row['is_off']) ? '1' : '0' }}"
                             @selected((string) $prefillId === (string) $row['id'])
                         >
                             {{ $row['name'] }}

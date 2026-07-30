@@ -5,7 +5,9 @@ namespace App\Support;
 use App\Enums\AttendanceStatus;
 use App\Models\Employee;
 use App\Models\EmployeeAttendance;
+use App\Models\EmployeeWorkSchedule;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class SalaryCalculator
 {
@@ -33,8 +35,16 @@ class SalaryCalculator
         $rates = ShopSettings::salaryDeductionRates();
         $from = $period->copy()->startOfMonth()->toDateString();
         $to = $period->copy()->endOfMonth()->toDateString();
-        $clockIn = (string) ShopSettings::get('attendance_clock_in', '08:00');
+        $defaultClockIn = (string) ShopSettings::get('attendance_clock_in', '08:00');
         $graceMinutes = $rates['late_after_minutes'];
+
+        $scheduleByDay = [];
+        if (Schema::hasTable('employee_work_schedules')) {
+            $scheduleByDay = EmployeeWorkSchedule::query()
+                ->where('employee_id', $employee->id)
+                ->get()
+                ->keyBy('day_of_week');
+        }
 
         $rows = EmployeeAttendance::query()
             ->where('employee_id', $employee->id)
@@ -46,7 +56,18 @@ class SalaryCalculator
             ->count();
 
         $lateCount = $rows
-            ->filter(fn (EmployeeAttendance $row) => self::isLateForDeduction($row, $clockIn, $graceMinutes))
+            ->filter(function (EmployeeAttendance $row) use ($scheduleByDay, $defaultClockIn, $graceMinutes) {
+                $workDate = $row->work_date instanceof Carbon
+                    ? $row->work_date
+                    : Carbon::parse((string) $row->work_date);
+                $day = (int) $workDate->dayOfWeekIso;
+                $schedule = $scheduleByDay[$day] ?? null;
+                $clockIn = $schedule && ! $schedule->is_off
+                    ? (string) $schedule->clock_in
+                    : $defaultClockIn;
+
+                return self::isLateForDeduction($row, $clockIn, $graceMinutes);
+            })
             ->count();
 
         $alphaCount = $rows

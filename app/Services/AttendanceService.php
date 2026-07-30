@@ -6,9 +6,11 @@ use App\Enums\AttendanceStatus;
 use App\Enums\EmployeeStatus;
 use App\Models\Employee;
 use App\Models\EmployeeAttendance;
+use App\Models\EmployeeWorkSchedule;
 use App\Models\User;
 use App\Support\ShopSettings;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -210,39 +212,53 @@ class AttendanceService
 
         $attendance = $this->todayAttendance($employee);
 
-        if ($this->canCheckOutNow($attendance)) {
+        if ($this->canCheckOutNow($attendance, $employee)) {
             return 'check_out';
         }
 
-        if ($this->canCheckInNow($attendance)) {
+        if ($this->canCheckInNow($attendance, $employee)) {
             return 'check_in';
         }
 
         return null;
     }
 
-    public function canCheckInNow(?EmployeeAttendance $attendance): bool
+    public function canCheckInNow(?EmployeeAttendance $attendance, ?Employee $employee = null): bool
     {
         if ($attendance?->check_in) {
             return false;
         }
 
+        $schedule = $this->scheduleFor($employee);
+        if ($schedule['is_off']) {
+            return false;
+        }
+
         $now = now();
-        $settings = $this->settings();
-        $clockIn = $this->todayAt($settings['clock_in']);
-        $clockOut = $this->todayAt($settings['clock_out']);
-        $earlyStart = $clockIn->copy()->subMinutes(max(0, $settings['early_minutes']));
+        $clockIn = $this->todayAt($schedule['clock_in']);
+        $clockOut = $this->resolveClockOut($clockIn, $schedule['clock_out']);
+        $earlyStart = $clockIn->copy()->subMinutes(max(0, $this->settings()['early_minutes']));
 
         return $now->greaterThanOrEqualTo($earlyStart) && $now->lessThan($clockOut);
     }
 
-    public function canCheckOutNow(?EmployeeAttendance $attendance): bool
+    public function canCheckOutNow(?EmployeeAttendance $attendance, ?Employee $employee = null): bool
     {
         if (! $attendance?->check_in || $attendance->check_out) {
             return false;
         }
 
-        $clockOut = $this->todayAt($this->settings()['clock_out']);
+        $workDate = $attendance->work_date
+            ? Carbon::parse($attendance->work_date->toDateString())
+            : today();
+
+        $schedule = $this->scheduleFor($employee, $workDate);
+        if ($schedule['is_off']) {
+            return false;
+        }
+
+        $clockIn = $this->atDate($workDate, $schedule['clock_in']);
+        $clockOut = $this->resolveClockOut($clockIn, $schedule['clock_out']);
 
         return now()->greaterThanOrEqualTo($clockOut);
     }
@@ -286,15 +302,15 @@ class AttendanceService
     public function checkIn(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
-        if (! $this->canCheckInNow($attendance)) {
+        if (! $this->canCheckInNow($attendance, $employee)) {
             throw new RuntimeException('Belum waktunya absen masuk, atau Anda sudah absen masuk hari ini.');
         }
 
         $this->assertWithinRadius($lat, $lng);
         $photoPath = $photoBase64 ? $this->storePhoto($employee, $photoBase64, 'in') : null;
 
-        $settings = $this->settings();
-        $clockIn = $this->todayAt($settings['clock_in']);
+        $schedule = $this->scheduleFor($employee);
+        $clockIn = $this->todayAt($schedule['clock_in']);
         $isLate = now()->greaterThan($clockIn);
         $notes = $isLate ? 'Terlambat' : null;
 
@@ -319,7 +335,7 @@ class AttendanceService
     public function checkOut(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
-        if (! $this->canCheckOutNow($attendance)) {
+        if (! $this->canCheckOutNow($attendance, $employee)) {
             throw new RuntimeException('Belum waktunya absen pulang, atau Anda belum absen masuk.');
         }
 
@@ -346,11 +362,11 @@ class AttendanceService
     {
         $attendance = $this->todayAttendance($employee);
 
-        if ($this->canCheckOutNow($attendance)) {
+        if ($this->canCheckOutNow($attendance, $employee)) {
             return 'check_out';
         }
 
-        if ($this->canCheckInNow($attendance)) {
+        if ($this->canCheckInNow($attendance, $employee)) {
             return 'check_in';
         }
 
@@ -378,12 +394,19 @@ class AttendanceService
 
         return $query
             ->get()
-            ->map(fn (Employee $employee) => [
-                'id' => $employee->id,
-                'name' => $employee->name,
-                'code' => $employee->employee_code,
-                'action' => $this->actionForEmployee($employee),
-            ])
+            ->map(function (Employee $employee) {
+                $schedule = $this->scheduleFor($employee);
+
+                return [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'code' => $employee->employee_code,
+                    'action' => $this->actionForEmployee($employee),
+                    'clock_in' => $schedule['clock_in'],
+                    'clock_out' => $schedule['clock_out'],
+                    'is_off' => $schedule['is_off'],
+                ];
+            })
             ->all();
     }
 
@@ -392,13 +415,85 @@ class AttendanceService
         return url('/absensi');
     }
 
+    /**
+     * Jadwal kerja pegawai untuk tanggal tertentu.
+     * Fallback ke jam global Pengaturan jika belum ada jadwal pribadi.
+     *
+     * @return array{clock_in: string, clock_out: string, is_off: bool, source: string}
+     */
+    public function scheduleFor(?Employee $employee, ?Carbon $date = null): array
+    {
+        $defaults = $this->settings();
+        $fallback = [
+            'clock_in' => $defaults['clock_in'],
+            'clock_out' => $defaults['clock_out'],
+            'is_off' => false,
+            'source' => 'global',
+        ];
+
+        if (! $employee) {
+            return $fallback;
+        }
+
+        if (! Schema::hasTable('employee_work_schedules')) {
+            return $fallback;
+        }
+
+        $date ??= now();
+        $day = (int) $date->dayOfWeekIso;
+
+        $row = EmployeeWorkSchedule::query()
+            ->where('employee_id', $employee->id)
+            ->where('day_of_week', $day)
+            ->first();
+
+        if (! $row) {
+            return $fallback;
+        }
+
+        if ($row->is_off) {
+            return [
+                'clock_in' => $this->normalizeClock((string) $row->clock_in),
+                'clock_out' => $this->normalizeClock((string) $row->clock_out),
+                'is_off' => true,
+                'source' => 'employee',
+            ];
+        }
+
+        return [
+            'clock_in' => $this->normalizeClock((string) $row->clock_in),
+            'clock_out' => $this->normalizeClock((string) $row->clock_out),
+            'is_off' => false,
+            'source' => 'employee',
+        ];
+    }
+
     private function todayAt(string $time): Carbon
+    {
+        return $this->atDate(today(), $time);
+    }
+
+    private function atDate(Carbon $date, string $time): Carbon
     {
         $parts = explode(':', $this->normalizeClock($time));
         $hour = (int) ($parts[0] ?? 0);
         $minute = (int) ($parts[1] ?? 0);
 
-        return today()->setTime($hour, $minute, 0);
+        return $date->copy()->startOfDay()->setTime($hour, $minute, 0);
+    }
+
+    /**
+     * Jika jam pulang ≤ jam masuk (mis. 16:00 → 00:00), pulang dihitung keesokan harinya.
+     */
+    private function resolveClockOut(Carbon $clockIn, string $clockOutTime): Carbon
+    {
+        $clockOut = $this->atDate($clockIn->copy()->startOfDay(), $clockOutTime);
+
+        if ($clockOut->lessThanOrEqualTo($clockIn)) {
+            $clockOut->addDay();
+        }
+
+        return $clockOut;
     }
 
     /**

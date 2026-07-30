@@ -485,6 +485,22 @@ CREATE TABLE IF NOT EXISTS `employee_salaries` (
         FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `employee_work_schedules` (
+    `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `employee_id`   BIGINT UNSIGNED NOT NULL,
+    `day_of_week`   TINYINT UNSIGNED NOT NULL COMMENT '1=Senin ... 7=Minggu',
+    `clock_in`      VARCHAR(5) NOT NULL DEFAULT '08:00',
+    `clock_out`     VARCHAR(5) NOT NULL DEFAULT '17:00',
+    `is_off`        TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at`    TIMESTAMP NULL DEFAULT NULL,
+    `updated_at`    TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `employee_work_schedules_employee_day_unique` (`employee_id`, `day_of_week`),
+    KEY `employee_work_schedules_employee_id_foreign` (`employee_id`),
+    CONSTRAINT `employee_work_schedules_employee_id_foreign`
+        FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================================================
@@ -518,7 +534,7 @@ ORDER BY TABLE_NAME;
 --           overhead_rates, cogs_calculations
 -- Kasir   : pos_tables, pos_orders, pos_order_items, sales_transactions
 -- Kas     : cash_ledger_entries
--- Admin   : employees, employee_attendances, employee_salaries
+-- Admin   : employees, employee_attendances, employee_salaries, employee_work_schedules
 --
 -- File terkait:
 --   database/mysql_schema_full.sql — skema lengkap

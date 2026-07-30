@@ -82,6 +82,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeSalary::class);
     }
 
+    public function workSchedules(): HasMany
+    {
+        return $this->hasMany(EmployeeWorkSchedule::class);
+    }
+
     /**
      * Pegawai yang boleh muncul di absensi (aktif, bukan akun root).
      *

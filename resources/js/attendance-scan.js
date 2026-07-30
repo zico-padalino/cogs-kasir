@@ -91,6 +91,15 @@ function actionLabel(action) {
     }[action] || 'Pilih pegawai';
 }
 
+function scheduleHint(option) {
+    if (! option?.value) return '';
+    if (option.dataset.isOff === '1') return 'Libur hari ini';
+    const clockIn = option.dataset.clockIn || '';
+    const clockOut = option.dataset.clockOut || '';
+    if (! clockIn || ! clockOut) return '';
+    return `Jadwal ${clockIn} – ${clockOut}`;
+}
+
 function bindScan(root) {
     const form = root.querySelector('[data-scan-form]');
     const video = root.querySelector('[data-scan-video]');
@@ -122,7 +131,9 @@ function bindScan(root) {
 
         if (modeInput) modeInput.value = canAct ? action : '';
         if (modeLabel) {
-            modeLabel.textContent = option?.value ? actionLabel(action) : 'Pilih pegawai dulu';
+            const base = option?.value ? actionLabel(action) : 'Pilih pegawai dulu';
+            const hint = scheduleHint(option);
+            modeLabel.textContent = hint ? `${base} · ${hint}` : base;
             modeLabel.classList.toggle('is-in', action === 'check_in');
             modeLabel.classList.toggle('is-out', action === 'check_out');
             modeLabel.classList.toggle('is-blocked', option?.value && ! canAct);

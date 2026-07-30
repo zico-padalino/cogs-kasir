@@ -116,6 +116,72 @@
             </div>
         </div>
 
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">Jadwal kerja (kalender mingguan)</h2>
+                <p class="mt-1 text-xs text-slate-600">
+                    Centang hari masuk, lalu isi jam masuk &amp; pulang (format 24 jam).
+                    Hari yang tidak dicentang = libur (tidak bisa absen).
+                    @unless ($hasSchedules ?? false)
+                        <span class="text-amber-700">Tabel jadwal belum ada di database — jalankan query <code>employee_work_schedules.sql</code> dulu.</span>
+                    @endunless
+                </p>
+            </div>
+
+            @if ($hasSchedules ?? false)
+                <div class="space-y-2">
+                    @foreach ($dayLabels as $day => $label)
+                        @php
+                            $row = old("schedules.$day", $schedules[$day] ?? ['enabled' => false, 'clock_in' => '08:00', 'clock_out' => '17:00']);
+                            $enabled = (bool) ($row['enabled'] ?? false);
+                        @endphp
+                        <div class="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[7rem_1fr_1fr] sm:items-end" data-schedule-day>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-800">
+                                <input
+                                    type="checkbox"
+                                    name="schedules[{{ $day }}][enabled]"
+                                    value="1"
+                                    class="rounded border-slate-300 text-brand-600"
+                                    data-schedule-enabled
+                                    @checked($enabled)
+                                >
+                                {{ $label }}
+                            </label>
+                            <div>
+                                <label class="form-label" for="schedules_{{ $day }}_in">Masuk</label>
+                                <input
+                                    id="schedules_{{ $day }}_in"
+                                    type="text"
+                                    inputmode="numeric"
+                                    name="schedules[{{ $day }}][clock_in]"
+                                    class="form-input"
+                                    value="{{ $row['clock_in'] ?? '08:00' }}"
+                                    placeholder="16:00"
+                                    pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                                    data-schedule-time
+                                >
+                            </div>
+                            <div>
+                                <label class="form-label" for="schedules_{{ $day }}_out">Pulang</label>
+                                <input
+                                    id="schedules_{{ $day }}_out"
+                                    type="text"
+                                    inputmode="numeric"
+                                    name="schedules[{{ $day }}][clock_out]"
+                                    class="form-input"
+                                    value="{{ $row['clock_out'] ?? '17:00' }}"
+                                    placeholder="23:59"
+                                    pattern="^([01]\d|2[0-3]):([0-5]\d)$"
+                                    data-schedule-time
+                                >
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="text-xs text-slate-500">Contoh shift sore: Masuk <strong>16:00</strong>, Pulang <strong>23:59</strong> atau <strong>00:00</strong>.</p>
+            @endif
+        </div>
+
         <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <h2 class="text-sm font-semibold text-slate-900">Cara absen</h2>
             <p class="mt-1 text-xs text-slate-600">
@@ -133,5 +199,22 @@
             <a href="{{ route('admin.employees.index') }}" class="btn-outline">Batal</a>
         </div>
     </form>
+
+    @if ($hasSchedules ?? false)
+    <script>
+        document.querySelectorAll('[data-schedule-day]').forEach((row) => {
+            const enabled = row.querySelector('[data-schedule-enabled]');
+            const times = row.querySelectorAll('[data-schedule-time]');
+            const sync = () => {
+                times.forEach((input) => {
+                    input.disabled = !enabled.checked;
+                    input.classList.toggle('bg-slate-100', !enabled.checked);
+                });
+            };
+            enabled?.addEventListener('change', sync);
+            sync();
+        });
+    </script>
+    @endif
 
 @endsection
