@@ -64,8 +64,6 @@
                 <h3 class="order-product-name">{{ $product->name }}</h3>
                 @if ($product->description)
                     <p class="order-product-desc">{{ \Illuminate\Support\Str::limit($product->description, 48) }}</p>
-                @else
-                    <p class="order-product-meta">{{ $product->sku }}</p>
                 @endif
                 <div class="order-product-foot">
                     <span class="order-product-price">{{ $soldOut ? 'Habis' : $format::rupiah($price) }}</span>
