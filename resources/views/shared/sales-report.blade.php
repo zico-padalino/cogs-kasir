@@ -90,6 +90,7 @@
     <x-stat-card label="Omzet kotor (seharusnya)" :value="$format::rupiah($omzet_kotor ?? $omzet)" color="slate" />
     <x-stat-card label="Total diskon" :value="$format::rupiah($diskon_total ?? 0)" color="amber" />
     <x-stat-card label="Omzet bersih" :value="$format::rupiah($omzet)" color="green" />
+    <x-stat-card label="Total lost produk" :value="$format::rupiah($lost_total ?? 0)" color="rose" />
     <x-stat-card label="Transaksi" :value="$format::number($count, 0)" color="brand" />
     <x-stat-card label="Rata-rata per transaksi" :value="$format::rupiah($average)" color="slate" />
 </div>
@@ -217,6 +218,58 @@
 
         var periodSelect = form.querySelector('[data-pembukuan-period]');
         var fields = form.querySelectorAll('[data-pembukuan-field]');
+        var lastPeriod = periodSelect.value;
+
+        function pad(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function todayDateValue() {
+            var now = new Date();
+            return now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+        }
+
+        function todayWeekValue() {
+            var now = new Date();
+            var tmp = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+            var dayNum = tmp.getUTCDay() || 7;
+            tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+            var yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+            return tmp.getUTCFullYear() + '-W' + pad(weekNo);
+        }
+
+        function todayMonthValue() {
+            var now = new Date();
+            return now.getFullYear() + '-' + pad(now.getMonth() + 1);
+        }
+
+        function isStaleDateValue(value) {
+            if (!value) {
+                return true;
+            }
+            // Nilai sisa dari periode "Keseluruhan" (anchor tahun 2000).
+            return value.indexOf('2000-') === 0;
+        }
+
+        function applyRealtimeDefaults(period) {
+            if (period === 'day') {
+                var dateInput = form.querySelector('#pembukuan-date');
+                if (dateInput && isStaleDateValue(dateInput.value)) {
+                    dateInput.value = todayDateValue();
+                }
+            } else if (period === 'week') {
+                var weekInput = form.querySelector('#pembukuan-week');
+                if (weekInput && isStaleDateValue(weekInput.value)) {
+                    weekInput.value = todayWeekValue();
+                }
+            } else if (period === 'month') {
+                var monthInput = form.querySelector('#pembukuan-month');
+                if (monthInput && isStaleDateValue(monthInput.value)) {
+                    monthInput.value = todayMonthValue();
+                }
+            }
+        }
 
         function syncFields() {
             var period = periodSelect.value;
@@ -229,7 +282,27 @@
             });
         }
 
-        periodSelect.addEventListener('change', syncFields);
+        periodSelect.addEventListener('change', function () {
+            var period = periodSelect.value;
+            // Saat ganti dari Keseluruhan / periode lain, default ke tanggal realtime.
+            if (period !== lastPeriod && period !== 'all') {
+                var dateInput = form.querySelector('#pembukuan-date');
+                var weekInput = form.querySelector('#pembukuan-week');
+                var monthInput = form.querySelector('#pembukuan-month');
+                if (period === 'day' && dateInput) {
+                    dateInput.value = todayDateValue();
+                } else if (period === 'week' && weekInput) {
+                    weekInput.value = todayWeekValue();
+                } else if (period === 'month' && monthInput) {
+                    monthInput.value = todayMonthValue();
+                }
+            }
+            lastPeriod = period;
+            syncFields();
+            applyRealtimeDefaults(period);
+        });
+
         syncFields();
+        applyRealtimeDefaults(periodSelect.value);
     })();
 </script>

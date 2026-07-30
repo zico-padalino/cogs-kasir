@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
 use App\Models\PosOrder;
+use App\Models\StockWaste;
 use App\Support\Format;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -41,6 +42,7 @@ class SalesReportService
         $omzetKotor = (float) $orders->sum('subtotal');
         $diskonTotal = (float) $orders->sum('discount_amount');
         $count = $orders->count();
+        $lostTotal = $this->lostProductTotal($period, $rangeStart, $rangeEnd);
 
         $byPayment = [];
         foreach (PaymentMethod::cases() as $method) {
@@ -70,6 +72,7 @@ class SalesReportService
             'omzet' => $omzet,
             'omzet_kotor' => $omzetKotor,
             'diskon_total' => $diskonTotal,
+            'lost_total' => $lostTotal,
             'count' => $count,
             'average' => $count > 0 ? $omzet / $count : 0,
             'byPayment' => $byPayment,
@@ -77,6 +80,17 @@ class SalesReportService
             'filters' => $this->filterValues($period, $rangeStart),
             'supportsAllPeriod' => $defaultPeriod === 'all',
         ];
+    }
+
+    private function lostProductTotal(string $period, Carbon $rangeStart, Carbon $rangeEnd): float
+    {
+        $query = StockWaste::query();
+
+        if ($period !== 'all') {
+            $query->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        }
+
+        return round((float) $query->sum('total_cost'), 4);
     }
 
     /** @param array<string, mixed> $validated */
@@ -181,11 +195,15 @@ class SalesReportService
     /** @return array<string, string> */
     private function filterValues(string $period, Carbon $anchor): array
     {
+        // Saat periode "all", range mulai dari tahun 2000 — jangan pakai itu
+        // sebagai default tanggal/minggu/bulan di form filter.
+        $picker = $period === 'all' ? now() : $anchor;
+
         return [
             'period' => $period,
-            'date' => $anchor->toDateString(),
-            'week' => $anchor->format('o-\WW'),
-            'month' => $anchor->format('Y-m'),
+            'date' => $picker->toDateString(),
+            'week' => $picker->format('o-\WW'),
+            'month' => $picker->format('Y-m'),
         ];
     }
 }
