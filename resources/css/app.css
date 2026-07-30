@@ -90,6 +90,10 @@
         @apply mb-1.5 block text-sm font-medium text-slate-700;
     }
 
+    .form-hint {
+        @apply text-sm leading-snug text-slate-500;
+    }
+
     .password-field {
         @apply relative;
     }
