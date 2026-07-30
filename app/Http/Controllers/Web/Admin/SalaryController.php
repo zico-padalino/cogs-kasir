@@ -35,8 +35,11 @@ class SalaryController extends Controller
             ? collect()
             : Employee::query()
                 ->forAttendance()
+                ->with('workSchedules')
                 ->orderBy('name')
                 ->get();
+
+        $salaries->loadMissing('employee.workSchedules');
 
         return view('admin.salaries.index', [
             'salaries' => $salaries,
@@ -146,10 +149,20 @@ class SalaryController extends Controller
         $deductionInfo = SalaryCalculator::deductionsFor($employee, $period);
         $workDays = $deductionInfo['work_days'];
         $dailyTotal = $daily * $workDays;
+        $daysPerWeek = $employee->scheduledWorkDaysPerWeek();
+        $weeklyFromDaily = $daily * $daysPerWeek;
         $deduction = $deductionInfo['total'];
         $total = max(0, $base + $dailyTotal + $allowance - $deduction);
 
-        $autoNote = $deductionInfo['summary'];
+        $payParts = [];
+        if ($daily > 0) {
+            $payParts[] = 'Harian '.Format::rupiah($daily).' × '.$workDays.' hari = '.Format::rupiah($dailyTotal);
+            $payParts[] = '≈ / minggu '.Format::rupiah($weeklyFromDaily).' ('.$daysPerWeek.' hari jadwal)';
+        }
+        if ($deductionInfo['summary'] !== '') {
+            $payParts[] = 'Potongan: '.$deductionInfo['summary'];
+        }
+        $autoNote = implode(' · ', $payParts);
         $mergedNotes = $this->mergeNotes($notes, $autoNote);
 
         $payload = [
@@ -179,13 +192,14 @@ class SalaryController extends Controller
     private function mergeNotes(?string $userNotes, string $autoSummary): ?string
     {
         $user = trim((string) $userNotes);
-        $user = preg_replace('/\s*\|\s*Potongan:.*/u', '', $user) ?? $user;
-        $user = preg_replace('/^Potongan:.*/u', '', $user) ?? $user;
+        // Hapus ringkasan otomatis sebelumnya agar tidak menumpuk.
+        $user = preg_replace('/\s*\|\s*(Harian|Potongan|≈).*/u', '', $user) ?? $user;
+        $user = preg_replace('/^(Harian|Potongan|≈).*/u', '', $user) ?? $user;
         $user = trim($user);
 
         $parts = array_filter([
             $user !== '' ? $user : null,
-            $autoSummary !== '' ? 'Potongan: '.$autoSummary : null,
+            $autoSummary !== '' ? $autoSummary : null,
         ]);
 
         $merged = implode(' | ', $parts);

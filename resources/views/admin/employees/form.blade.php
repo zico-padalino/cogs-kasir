@@ -44,6 +44,25 @@
                     :value="old('daily_salary', $employee->daily_salary ?? 0)"
                     placeholder="0"
                 />
+                <p class="mt-1 text-xs text-slate-500">Diakumulasi tiap hari hadir saat hitung gaji.</p>
+            </div>
+            <div class="sm:col-span-2 rounded-xl border border-brand-100 bg-brand-50/60 p-3" data-salary-estimate>
+                <p class="text-xs font-semibold text-brand-900">Estimasi dari gaji harian</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-3 text-sm">
+                    <div>
+                        <p class="text-[11px] text-slate-500">Hari kerja / minggu</p>
+                        <p class="font-semibold text-slate-900" data-estimate-days>{{ $employee->exists ? $employee->scheduledWorkDaysPerWeek() : 5 }} hari</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">Per minggu</p>
+                        <p class="font-semibold text-slate-900" data-estimate-weekly>Rp 0</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] text-slate-500">Per bulan (±4 minggu)</p>
+                        <p class="font-semibold text-brand-800" data-estimate-monthly>Rp 0</p>
+                    </div>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-500">Dihitung otomatis: gaji harian × hari terjadwal. Total gaji aktual = pokok + akumulasi hadir − potongan.</p>
             </div>
             @endif
             <div>
@@ -219,6 +238,58 @@
             <a href="{{ route('admin.employees.index') }}" class="btn-outline">Batal</a>
         </div>
     </form>
+
+    <script>
+        (function () {
+            const box = document.querySelector('[data-salary-estimate]');
+            if (!box) return;
+
+            const daysEl = box.querySelector('[data-estimate-days]');
+            const weeklyEl = box.querySelector('[data-estimate-weekly]');
+            const monthlyEl = box.querySelector('[data-estimate-monthly]');
+            const dailyHidden = document.querySelector('input[data-rupiah-target="daily_salary"]');
+            const dailyVisible = document.querySelector('.rupiah-input[data-rupiah-hidden="daily_salary"]');
+
+            function formatRp(n) {
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(n || 0)));
+            }
+
+            function parseDaily() {
+                if (dailyHidden && dailyHidden.value !== '') {
+                    return parseFloat(dailyHidden.value) || 0;
+                }
+                const raw = (dailyVisible?.value || '').replace(/[^\d]/g, '');
+                return parseFloat(raw) || 0;
+            }
+
+            function scheduledDays() {
+                const checks = document.querySelectorAll('[data-schedule-enabled]');
+                if (!checks.length) {
+                    return {{ $employee->exists ? $employee->scheduledWorkDaysPerWeek() : 5 }};
+                }
+                let n = 0;
+                checks.forEach((el) => { if (el.checked) n++; });
+                return n;
+            }
+
+            function updateEstimate() {
+                const daily = parseDaily();
+                const days = scheduledDays();
+                const weekly = daily * days;
+                const monthly = weekly * 4;
+                if (daysEl) daysEl.textContent = days + ' hari';
+                if (weeklyEl) weeklyEl.textContent = formatRp(weekly);
+                if (monthlyEl) monthlyEl.textContent = formatRp(monthly);
+            }
+
+            dailyVisible?.addEventListener('input', updateEstimate);
+            dailyVisible?.addEventListener('blur', updateEstimate);
+            document.querySelectorAll('[data-schedule-enabled]').forEach((el) => {
+                el.addEventListener('change', updateEstimate);
+            });
+            updateEstimate();
+        })();
+    </script>
 
     @if ($hasSchedules ?? false)
     <script>

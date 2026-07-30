@@ -88,6 +88,42 @@ class Employee extends Model
     }
 
     /**
+     * Jumlah hari kerja terjadwal per minggu (Sen–Min).
+     * Jika belum ada jadwal pribadi, fallback 5 hari.
+     */
+    public function scheduledWorkDaysPerWeek(): int
+    {
+        if (! Schema::hasTable('employee_work_schedules')) {
+            return 5;
+        }
+
+        if (! $this->relationLoaded('workSchedules')) {
+            $this->load('workSchedules');
+        }
+
+        if ($this->workSchedules->isEmpty()) {
+            return 5;
+        }
+
+        return max(0, $this->workSchedules->where('is_off', false)->count());
+    }
+
+    /** Estimasi gaji dari gaji harian × hari terjadwal per minggu. */
+    public function estimatedWeeklyFromDaily(): float
+    {
+        return (float) ($this->daily_salary ?? 0) * $this->scheduledWorkDaysPerWeek();
+    }
+
+    /**
+     * Estimasi bulanan dari gaji harian (≈ 4 minggu).
+     * Tidak termasuk gaji pokok bulanan.
+     */
+    public function estimatedMonthlyFromDaily(): float
+    {
+        return $this->estimatedWeeklyFromDaily() * 4;
+    }
+
+    /**
      * Pegawai yang boleh muncul di absensi (aktif, bukan akun root).
      *
      * @param  Builder<Employee>  $query
