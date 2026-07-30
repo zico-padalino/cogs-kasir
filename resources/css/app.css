@@ -597,7 +597,7 @@
     }
 
     .recipe-addon-form__grid {
-        @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end;
+        @apply grid gap-3 sm:grid-cols-2 lg:items-end;
     }
 
     .recipe-addon-form__submit {

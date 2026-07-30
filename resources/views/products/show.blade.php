@@ -390,7 +390,7 @@
                                             @endunless
                                             @if ($presented && $mat)
                                                 <p class="mt-1 text-xs text-slate-500">
-                                                    Potong stok: {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
+                                                    Potong stok {{ $mat->type->label() }}: {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
                                                 </p>
                                             @else
                                                 <p class="mt-1 text-xs text-slate-400">Tanpa potong stok bahan</p>
@@ -420,12 +420,12 @@
                                                 </div>
                                                 <div>
                                                     <label class="form-label">Potong stok bahan? (opsional)</label>
-                                                    <select name="material_product_id" class="form-input" data-addon-edit-material>
-                                                        <option value="">Tidak potong stok</option>
-                                                        @foreach ($rawMaterials as $p)
-                                                            <option value="{{ $p->id }}" @selected($addon->material_product_id === $p->id)>{{ $p->name }}</option>
-                                                        @endforeach
-                                                    </select>
+                                                    <x-addon-stock-selects
+                                                        mode="edit"
+                                                        :raw-materials="$addonRawMaterials"
+                                                        :semi-finished-materials="$addonSemiFinishedMaterials"
+                                                        :selected-id="$addon->material_product_id"
+                                                    />
                                                 </div>
                                                 <div data-addon-edit-qty-wrap class="{{ $addon->material_product_id ? '' : 'hidden' }}">
                                                     <label class="form-label">Jumlah bahan terpakai</label>
@@ -499,6 +499,7 @@
                                             <td class="font-medium tabular-nums">+{{ $format::rupiah($addon->selling_price, 0) }}</td>
                                             <td class="text-sm text-slate-500">
                                                 @if ($presented && $mat)
+                                                    <span class="block text-[11px] text-slate-400">{{ $mat->type->label() }}</span>
                                                     {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
                                                 @else
                                                     <span class="text-slate-400">—</span>
@@ -526,12 +527,12 @@
                                                             </div>
                                                             <div>
                                                                 <label class="form-label">Bahan (opsional)</label>
-                                                                <select name="material_product_id" class="form-input" data-addon-edit-material>
-                                                                    <option value="">Tanpa bahan</option>
-                                                                    @foreach ($rawMaterials as $p)
-                                                                        <option value="{{ $p->id }}" @selected($addon->material_product_id === $p->id)>{{ $p->name }}</option>
-                                                                    @endforeach
-                                                                </select>
+                                                                <x-addon-stock-selects
+                                                                    mode="edit"
+                                                                    :raw-materials="$addonRawMaterials"
+                                                                    :semi-finished-materials="$addonSemiFinishedMaterials"
+                                                                    :selected-id="$addon->material_product_id"
+                                                                />
                                                             </div>
                                                             <div data-addon-edit-qty-wrap class="{{ $addon->material_product_id ? '' : 'hidden' }}">
                                                                 <label class="form-label">Jumlah bahan</label>
@@ -592,7 +593,7 @@
                         @csrf
                         <div class="recipe-addon-form__head">
                             <p class="recipe-addon-form__title">Tambah add-on baru</p>
-                            <p class="recipe-addon-form__hint">Isi nama &amp; harga. Bahan opsional — hanya jika stok harus dipotong.</p>
+                            <p class="recipe-addon-form__hint">Isi nama &amp; harga. Opsional potong stok dari <strong>bahan baku</strong> atau <strong>bahan jadi</strong>.</p>
                         </div>
 
                         @if ($errors->hasAny(['name', 'selling_price', 'material_product_id', 'material_quantity', 'unit']))
@@ -611,14 +612,14 @@
                                 <x-rupiah-input name="selling_price" :value="old('selling_price')" placeholder="5.000" required />
                                 <p class="mt-1 text-[11px] text-slate-500">Ditambahkan ke harga menu di kasir.</p>
                             </div>
-                            <div>
-                                <label class="form-label" for="addon_material">Potong stok bahan? (opsional)</label>
-                                <select id="addon_material" name="material_product_id" class="form-input" data-addon-material>
-                                    <option value="">Tidak potong stok</option>
-                                    @foreach ($rawMaterials as $p)
-                                        <option value="{{ $p->id }}" @selected((string) old('material_product_id') === (string) $p->id)>{{ $p->name }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="sm:col-span-2">
+                                <label class="form-label">Potong stok bahan? (opsional)</label>
+                                <x-addon-stock-selects
+                                    mode="create"
+                                    :raw-materials="$addonRawMaterials"
+                                    :semi-finished-materials="$addonSemiFinishedMaterials"
+                                    :selected-id="old('material_product_id')"
+                                />
                             </div>
                             <div data-addon-qty-wrap class="{{ old('material_product_id') ? '' : 'hidden' }}">
                                 <label class="form-label">Jumlah bahan terpakai</label>
@@ -982,13 +983,22 @@
 
     const form = document.querySelector('.recipe-addon-form');
     if (form) {
-        const materialSelect = form.querySelector('[data-addon-material]');
+        const materialSelects = [...form.querySelectorAll('[data-addon-material]')];
+        const materialIdInput = form.querySelector('[data-addon-material-id]');
         const qtyWrap = form.querySelector('[data-addon-qty-wrap]');
         const unitSelect = form.querySelector('[data-addon-unit]');
         const materialUnits = parseUnits(form);
 
+        const activeMaterialId = () => {
+            if (materialIdInput) {
+                return String(materialIdInput.value || '');
+            }
+            const selected = materialSelects.find((select) => select.value);
+            return String(selected?.value || '');
+        };
+
         const syncAddonUnits = () => {
-            const id = String(materialSelect?.value || '');
+            const id = activeMaterialId();
             const meta = materialUnits[id];
 
             if (! id || ! meta) {
@@ -1001,19 +1011,47 @@
             fillUnitSelect(unitSelect, meta, unitSelect?.value || @json(old('unit')));
         };
 
-        materialSelect?.addEventListener('change', syncAddonUnits);
+        materialSelects.forEach((select) => {
+            select.addEventListener('change', () => {
+                if (materialIdInput) {
+                    const chosen = String(select.value || '');
+                    if (chosen) {
+                        materialIdInput.value = chosen;
+                        materialSelects.forEach((other) => {
+                            if (other !== select && other.value) {
+                                other.value = '';
+                            }
+                        });
+                    } else {
+                        const stillSelected = materialSelects.find((s) => s !== select && s.value);
+                        materialIdInput.value = stillSelected ? String(stillSelected.value) : '';
+                    }
+                }
+                syncAddonUnits();
+            });
+        });
+
         syncAddonUnits();
     }
 
     document.querySelectorAll('[data-addon-edit-form]').forEach((editForm) => {
-        const materialSelect = editForm.querySelector('[data-addon-edit-material]');
+        const materialSelects = [...editForm.querySelectorAll('[data-addon-edit-material]')];
+        const materialIdInput = editForm.querySelector('[data-addon-material-id]');
         const qtyWrap = editForm.querySelector('[data-addon-edit-qty-wrap]');
         const qtyInput = editForm.querySelector('[data-addon-edit-qty]');
         const unitSelect = editForm.querySelector('[data-addon-edit-unit]');
         const materialUnits = parseUnits(editForm);
 
+        const activeMaterialId = () => {
+            if (materialIdInput) {
+                return String(materialIdInput.value || '');
+            }
+            const selected = materialSelects.find((select) => select.value);
+            return String(selected?.value || '');
+        };
+
         const syncEditUnits = () => {
-            const id = String(materialSelect?.value || '');
+            const id = activeMaterialId();
             const meta = materialUnits[id];
             const previousUnit = unitSelect?.value || '';
 
@@ -1028,7 +1066,25 @@
             fillUnitSelect(unitSelect, meta, previousUnit);
         };
 
-        materialSelect?.addEventListener('change', syncEditUnits);
+        materialSelects.forEach((select) => {
+            select.addEventListener('change', () => {
+                if (materialIdInput) {
+                    const chosen = String(select.value || '');
+                    if (chosen) {
+                        materialIdInput.value = chosen;
+                        materialSelects.forEach((other) => {
+                            if (other !== select && other.value) {
+                                other.value = '';
+                            }
+                        });
+                    } else {
+                        const stillSelected = materialSelects.find((s) => s !== select && s.value);
+                        materialIdInput.value = stillSelected ? String(stillSelected.value) : '';
+                    }
+                }
+                syncEditUnits();
+            });
+        });
     });
 })();
 </script>

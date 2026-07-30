@@ -355,30 +355,30 @@ class ProductApiController extends Controller
         $materialId = $validated['material_product_id'] ?? null;
         $materialQty = null;
 
-        if ($materialId) {
-            $material = Product::query()->findOrFail($materialId);
-            if ($material->type !== ProductType::RawMaterial) {
-                throw ValidationException::withMessages([
-                    'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku.',
-                ]);
+            if ($materialId) {
+                $material = Product::query()->findOrFail($materialId);
+                if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
+                    throw ValidationException::withMessages([
+                        'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
+                    ]);
+                }
+
+                if (empty($validated['material_quantity'])) {
+                    throw ValidationException::withMessages([
+                        'material_quantity' => 'Isi jumlah bahan untuk add-on ini.',
+                    ]);
+                }
+
+                $materialQty = $this->quantityInStockUnit(
+                    (float) $validated['material_quantity'],
+                    $validated['unit'] ?? $material->unit,
+                    $material->unit,
+                );
             }
 
-            if (empty($validated['material_quantity'])) {
-                throw ValidationException::withMessages([
-                    'material_quantity' => 'Isi jumlah bahan untuk add-on ini.',
-                ]);
-            }
+            $maxOrder = (int) $product->addons()->max('sort_order');
 
-            $materialQty = $this->quantityInStockUnit(
-                (float) $validated['material_quantity'],
-                $validated['unit'] ?? $material->unit,
-                $material->unit,
-            );
-        }
-
-        $maxOrder = (int) $product->addons()->max('sort_order');
-
-        $addon = ProductAddon::create([
+            $addon = ProductAddon::create([
             'product_id' => $product->id,
             'name' => trim($validated['name']),
             'selling_price' => $sellingPrice,
@@ -421,9 +421,9 @@ class ProductApiController extends Controller
 
         if ($materialId) {
             $material = Product::query()->findOrFail($materialId);
-            if ($material->type !== ProductType::RawMaterial) {
+            if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
                 throw ValidationException::withMessages([
-                    'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku.',
+                    'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
                 ]);
             }
 

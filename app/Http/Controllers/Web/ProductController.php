@@ -92,14 +92,33 @@ class ProductController extends Controller
       ->filter(fn (Product $p) => $p->type === ProductType::RawMaterial)
       ->values();
 
-    $materialUnits = $allProducts->mapWithKeys(fn (Product $material) => [
-      (string) $material->id => [
-        'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
-        'label' => MaterialUnits::label($material->unit),
-        'options' => MaterialUnits::recipeOptions($material->unit),
-        'preferred' => MaterialUnits::preferredInputUnit($material->unit),
-      ],
-    ])->all();
+    // Add-on boleh potong stok bahan baku atau bahan jadi (terpisah dari daftar resep).
+    $addonStockProducts = Product::query()
+      ->whereIn('type', [ProductType::RawMaterial->value, ProductType::SemiFinished->value])
+      ->where('is_active', true)
+      ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::RawMaterial->value])
+      ->orderBy('name')
+      ->get();
+
+    $addonRawMaterials = $addonStockProducts
+      ->filter(fn (Product $p) => $p->type === ProductType::RawMaterial)
+      ->values();
+
+    $addonSemiFinishedMaterials = $addonStockProducts
+      ->filter(fn (Product $p) => $p->type === ProductType::SemiFinished)
+      ->values();
+
+    $materialUnits = $allProducts
+      ->merge($addonStockProducts)
+      ->unique('id')
+      ->mapWithKeys(fn (Product $material) => [
+        (string) $material->id => [
+          'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
+          'label' => MaterialUnits::label($material->unit),
+          'options' => MaterialUnits::recipeOptions($material->unit),
+          'preferred' => MaterialUnits::preferredInputUnit($material->unit),
+        ],
+      ])->all();
 
     $bomLineCosts = [];
     $materialCost = 0.0;
@@ -132,6 +151,8 @@ class ProductController extends Controller
       'product' => $product,
       'allProducts' => $allProducts,
       'rawMaterials' => $rawMaterials,
+      'addonRawMaterials' => $addonRawMaterials,
+      'addonSemiFinishedMaterials' => $addonSemiFinishedMaterials,
       'materialUnits' => $materialUnits,
       'bomLineCosts' => $bomLineCosts,
       'materialCost' => $materialCost,
@@ -353,9 +374,9 @@ class ProductController extends Controller
 
     if ($materialId) {
       $material = Product::query()->findOrFail($materialId);
-      if ($material->type !== ProductType::RawMaterial) {
+      if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
         throw ValidationException::withMessages([
-          'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku.',
+          'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
         ]);
       }
 
@@ -414,9 +435,9 @@ class ProductController extends Controller
 
     if ($materialId) {
       $material = Product::query()->findOrFail($materialId);
-      if ($material->type !== ProductType::RawMaterial) {
+      if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
         throw ValidationException::withMessages([
-          'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku.',
+          'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
         ]);
       }
 
