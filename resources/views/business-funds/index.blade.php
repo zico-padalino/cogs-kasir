@@ -51,22 +51,22 @@
         </div>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">1 · Uang sebelumnya</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Uang sebelumnya</p>
                 <p class="mt-2 text-xl font-bold text-slate-900">{{ $format::rupiah($opening) }}</p>
                 <p class="mt-1 text-xs text-slate-500">Sisa uang sampai kemarin</p>
             </div>
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">2 · Ditambah penjualan</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Ditambah penjualan</p>
                 <p class="mt-2 text-xl font-bold text-emerald-700">+ {{ $format::rupiah($revenue) }}</p>
                 <p class="mt-1 text-xs text-emerald-700">Omzet bersih semua pembayaran</p>
             </div>
             <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">3 · Dikurangi pengeluaran</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Dikurangi pengeluaran</p>
                 <p class="mt-2 text-xl font-bold text-rose-700">− {{ $format::rupiah($expense) }}</p>
                 <p class="mt-1 text-xs text-rose-700">Uang usaha yang dipakai</p>
             </div>
             <div class="rounded-2xl border border-brand-200 bg-brand-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">4 · Uang tersisa</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Uang tersisa</p>
                 <p class="mt-2 text-xl font-bold text-espresso">= {{ $format::rupiah($closing) }}</p>
                 <p class="mt-1 text-xs text-brand-700">Dibawa ke hari berikutnya</p>
             </div>
