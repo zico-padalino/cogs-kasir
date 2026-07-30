@@ -120,7 +120,7 @@
             <div>
                 <h2 class="text-sm font-semibold text-slate-900">Jadwal kerja (kalender mingguan)</h2>
                 <p class="mt-1 text-xs text-slate-600">
-                    Centang hari masuk, lalu pilih jam masuk &amp; pulang dari jam picker.
+                    Centang hari masuk, lalu pilih jam &amp; menit (format 24 jam, tanpa AM/PM).
                     Hari yang tidak dicentang = libur (tidak bisa absen).
                     @unless ($hasSchedules ?? false)
                         <span class="text-amber-700">Tabel jadwal belum ada di database — jalankan query <code>employee_work_schedules.sql</code> dulu.</span>
@@ -129,13 +129,23 @@
             </div>
 
             @if ($hasSchedules ?? false)
+                @php
+                    $hourOptions = range(0, 23);
+                    $minuteOptions = range(0, 59);
+                @endphp
                 <div class="space-y-2">
                     @foreach ($dayLabels as $day => $label)
                         @php
                             $row = old("schedules.$day", $schedules[$day] ?? ['enabled' => false, 'clock_in' => '08:00', 'clock_out' => '17:00']);
                             $enabled = (bool) ($row['enabled'] ?? false);
+                            $inParts = explode(':', (string) ($row['clock_in'] ?? '08:00'));
+                            $outParts = explode(':', (string) ($row['clock_out'] ?? '17:00'));
+                            $inH = (int) ($inParts[0] ?? 8);
+                            $inM = (int) ($inParts[1] ?? 0);
+                            $outH = (int) ($outParts[0] ?? 17);
+                            $outM = (int) ($outParts[1] ?? 0);
                         @endphp
-                        <div class="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[7rem_1fr_1fr] sm:items-end" data-schedule-day>
+                        <div class="rounded-xl border border-slate-200 bg-white p-3 space-y-2" data-schedule-day>
                             <label class="flex items-center gap-2 text-sm font-medium text-slate-800">
                                 <input
                                     type="checkbox"
@@ -147,34 +157,48 @@
                                 >
                                 {{ $label }}
                             </label>
-                            <div>
-                                <label class="form-label" for="schedules_{{ $day }}_in">Masuk</label>
-                                <input
-                                    id="schedules_{{ $day }}_in"
-                                    type="time"
-                                    name="schedules[{{ $day }}][clock_in]"
-                                    class="form-input"
-                                    value="{{ $row['clock_in'] ?? '08:00' }}"
-                                    step="60"
-                                    data-schedule-time
-                                >
-                            </div>
-                            <div>
-                                <label class="form-label" for="schedules_{{ $day }}_out">Pulang</label>
-                                <input
-                                    id="schedules_{{ $day }}_out"
-                                    type="time"
-                                    name="schedules[{{ $day }}][clock_out]"
-                                    class="form-input"
-                                    value="{{ $row['clock_out'] ?? '17:00' }}"
-                                    step="60"
-                                    data-schedule-time
-                                >
+
+                            <input type="hidden" name="schedules[{{ $day }}][clock_in]" value="{{ sprintf('%02d:%02d', $inH, $inM) }}" data-schedule-clock-in>
+                            <input type="hidden" name="schedules[{{ $day }}][clock_out]" value="{{ sprintf('%02d:%02d', $outH, $outM) }}" data-schedule-clock-out>
+
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                    <p class="form-label">Masuk</p>
+                                    <div class="flex items-center gap-1">
+                                        <select class="form-input" data-schedule-in-h data-schedule-time aria-label="Jam masuk {{ $label }}">
+                                            @foreach ($hourOptions as $h)
+                                                <option value="{{ $h }}" @selected($inH === $h)>{{ sprintf('%02d', $h) }}</option>
+                                            @endforeach
+                                        </select>
+                                        <span class="text-sm font-semibold text-slate-500">:</span>
+                                        <select class="form-input" data-schedule-in-m data-schedule-time aria-label="Menit masuk {{ $label }}">
+                                            @foreach ($minuteOptions as $m)
+                                                <option value="{{ $m }}" @selected($inM === $m)>{{ sprintf('%02d', $m) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="form-label">Pulang</p>
+                                    <div class="flex items-center gap-1">
+                                        <select class="form-input" data-schedule-out-h data-schedule-time aria-label="Jam pulang {{ $label }}">
+                                            @foreach ($hourOptions as $h)
+                                                <option value="{{ $h }}" @selected($outH === $h)>{{ sprintf('%02d', $h) }}</option>
+                                            @endforeach
+                                        </select>
+                                        <span class="text-sm font-semibold text-slate-500">:</span>
+                                        <select class="form-input" data-schedule-out-m data-schedule-time aria-label="Menit pulang {{ $label }}">
+                                            @foreach ($minuteOptions as $m)
+                                                <option value="{{ $m }}" @selected($outM === $m)>{{ sprintf('%02d', $m) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-                <p class="text-xs text-slate-500">Nilai tersimpan tetap 24 jam di database (contoh: 16:00–23:59). Di beberapa HP/browser tampilan picker bisa AM/PM.</p>
+                <p class="text-xs text-slate-500">Format 24 jam (00–23). Contoh shift sore: masuk <strong>16:00</strong>, pulang <strong>23:59</strong>.</p>
             @endif
         </div>
 
@@ -198,17 +222,40 @@
 
     @if ($hasSchedules ?? false)
     <script>
+        function pad2(n) {
+            return String(n).padStart(2, '0');
+        }
+
         document.querySelectorAll('[data-schedule-day]').forEach((row) => {
             const enabled = row.querySelector('[data-schedule-enabled]');
             const times = row.querySelectorAll('[data-schedule-time]');
-            const sync = () => {
+            const clockIn = row.querySelector('[data-schedule-clock-in]');
+            const clockOut = row.querySelector('[data-schedule-clock-out]');
+            const inH = row.querySelector('[data-schedule-in-h]');
+            const inM = row.querySelector('[data-schedule-in-m]');
+            const outH = row.querySelector('[data-schedule-out-h]');
+            const outM = row.querySelector('[data-schedule-out-m]');
+
+            const syncHidden = () => {
+                if (clockIn && inH && inM) {
+                    clockIn.value = pad2(inH.value) + ':' + pad2(inM.value);
+                }
+                if (clockOut && outH && outM) {
+                    clockOut.value = pad2(outH.value) + ':' + pad2(outM.value);
+                }
+            };
+
+            const syncDisabled = () => {
                 times.forEach((input) => {
                     input.disabled = !enabled.checked;
                     input.classList.toggle('bg-slate-100', !enabled.checked);
                 });
             };
-            enabled?.addEventListener('change', sync);
-            sync();
+
+            [inH, inM, outH, outM].forEach((el) => el?.addEventListener('change', syncHidden));
+            enabled?.addEventListener('change', syncDisabled);
+            syncHidden();
+            syncDisabled();
         });
     </script>
     @endif
