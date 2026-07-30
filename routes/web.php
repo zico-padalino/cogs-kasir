@@ -231,6 +231,8 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
 
     Route::get('stok-rusak', [StockWasteController::class, 'index'])->name('stock-wastes.index');
     Route::post('stok-rusak', [StockWasteController::class, 'store'])->name('stock-wastes.store');
+    Route::put('stok-rusak/{stockWaste}', [StockWasteController::class, 'update'])->name('stock-wastes.update');
+    Route::delete('stok-rusak/{stockWaste}', [StockWasteController::class, 'destroy'])->name('stock-wastes.destroy');
 
     Route::get('inventaris-operasional', [OpsAssetController::class, 'index'])->name('ops-assets.index');
     Route::post('inventaris-operasional', [OpsAssetController::class, 'store'])->name('ops-assets.store');

@@ -100,4 +100,50 @@ class StockWasteApiController extends Controller
             ],
         ], 201);
     }
+
+    public function update(Request $request, StockWaste $stockWaste, WasteStockService $wasteService): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'reason' => ['required', Rule::in(array_keys(StockWaste::REASONS))],
+            'pos_order_id' => ['nullable', 'exists:pos_orders,id'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $waste = $wasteService->update($stockWaste, [
+                'product_id' => (int) $validated['product_id'],
+                'quantity' => (float) $validated['quantity'],
+                'reason' => $validated['reason'],
+                'note' => $validated['note'] ?? null,
+                'pos_order_id' => $validated['pos_order_id'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Catatan stok rusak diperbarui.',
+            'data' => [
+                'id' => $waste->id,
+                'product_id' => $waste->product_id,
+                'quantity' => (float) $waste->quantity,
+                'total_cost' => (float) $waste->total_cost,
+            ],
+        ]);
+    }
+
+    public function destroy(StockWaste $stockWaste, WasteStockService $wasteService): JsonResponse
+    {
+        try {
+            $wasteService->cancel($stockWaste);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Catatan stok rusak dibatalkan. Stok sudah dikembalikan.',
+        ]);
+    }
 }

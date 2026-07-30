@@ -145,15 +145,19 @@
                             <th>Nilai</th>
                             <th>Dicatat oleh</th>
                             <th>Catatan</th>
+                            <th class="text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($wastes as $waste)
+                            @php
+                                $isMaterial = $waste->product?->type === \App\Enums\ProductType::RawMaterial;
+                            @endphp
                             <tr>
                                 <td class="whitespace-nowrap text-xs text-slate-500">{{ $waste->created_at?->format('d/m/Y H:i') }}</td>
                                 <td class="font-medium text-slate-900">
                                     {{ $waste->product?->name ?? '—' }}
-                                    @if ($waste->product?->type === \App\Enums\ProductType::RawMaterial)
+                                    @if ($isMaterial)
                                         <span class="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">bahan</span>
                                     @elseif ($waste->product)
                                         <span class="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">produk</span>
@@ -164,10 +168,66 @@
                                 <td>{{ $format::rupiah($waste->total_cost) }}</td>
                                 <td class="text-xs font-medium text-slate-700">{{ $waste->user?->name ?? 'Sistem' }}</td>
                                 <td class="text-xs text-slate-500">{{ $waste->note ?: '—' }}</td>
+                                <td class="text-right">
+                                    <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                                        <details class="inline-edit text-left">
+                                            <summary class="btn-outline btn-sm cursor-pointer list-none">Ubah</summary>
+                                            <form
+                                                action="{{ route('stock-wastes.update', $waste) }}"
+                                                method="POST"
+                                                class="mt-2 w-[min(100vw-2rem,20rem)] space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-sm"
+                                            >
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="product_id" value="{{ $waste->product_id }}">
+                                                <div>
+                                                    <label class="form-label">Jumlah</label>
+                                                    <input
+                                                        type="number"
+                                                        step="any"
+                                                        min="0.000001"
+                                                        name="quantity"
+                                                        class="form-input"
+                                                        required
+                                                        value="{{ rtrim(rtrim(number_format((float) $waste->quantity, 6, '.', ''), '0'), '.') }}"
+                                                    >
+                                                    <p class="mt-1 text-[11px] text-slate-500">
+                                                        Ubah qty = stok dikembalikan lalu dipotong ulang.
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <label class="form-label">Alasan</label>
+                                                    <select name="reason" class="form-input" required>
+                                                        @foreach ($reasons as $key => $labelReason)
+                                                            <option value="{{ $key }}" @selected($waste->reason === $key)>{{ $labelReason }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="form-label">Catatan</label>
+                                                    <input type="text" name="note" class="form-input" value="{{ $waste->note }}" maxlength="255">
+                                                </div>
+                                                @if ($waste->pos_order_id)
+                                                    <input type="hidden" name="pos_order_id" value="{{ $waste->pos_order_id }}">
+                                                @endif
+                                                <button type="submit" class="btn-primary btn-sm w-full">Simpan</button>
+                                            </form>
+                                        </details>
+                                        <form
+                                            action="{{ route('stock-wastes.destroy', $waste) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Batalkan catatan ini? Stok akan dikembalikan.')"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn-outline-danger btn-sm">Hapus</button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-8 text-center text-sm text-slate-500">Belum ada pencatatan.</td>
+                                <td colspan="8" class="py-8 text-center text-sm text-slate-500">Belum ada pencatatan.</td>
                             </tr>
                         @endforelse
                     </tbody>

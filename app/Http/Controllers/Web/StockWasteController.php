@@ -97,4 +97,40 @@ class StockWasteController extends Controller
 
         return back()->with('success', 'Stok rusak/gagal dicatat. Stok inventori sudah dikurangi.');
     }
+
+    public function update(Request $request, StockWaste $stockWaste, WasteStockService $wasteService)
+    {
+        $validated = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'reason' => ['required', Rule::in(array_keys(StockWaste::REASONS))],
+            'pos_order_id' => ['nullable', 'exists:pos_orders,id'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $wasteService->update($stockWaste, [
+                'product_id' => (int) $validated['product_id'],
+                'quantity' => (float) $validated['quantity'],
+                'reason' => $validated['reason'],
+                'note' => $validated['note'] ?? null,
+                'pos_order_id' => $validated['pos_order_id'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Catatan stok rusak diperbarui.');
+    }
+
+    public function destroy(StockWaste $stockWaste, WasteStockService $wasteService)
+    {
+        try {
+            $wasteService->cancel($stockWaste);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Catatan stok rusak dibatalkan. Stok sudah dikembalikan.');
+    }
 }

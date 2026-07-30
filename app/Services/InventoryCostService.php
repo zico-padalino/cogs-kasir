@@ -266,12 +266,13 @@ class InventoryCostService
         float $unitCost,
         array $lotConsumptions = [],
         ?string $note = null,
+        string $logAction = 'sale_void',
     ): void {
         if ($quantity <= 0) {
             return;
         }
 
-        DB::transaction(function () use ($product, $quantity, $unitCost, $lotConsumptions, $note) {
+        DB::transaction(function () use ($product, $quantity, $unitCost, $lotConsumptions, $note, $logAction) {
             $before = $product->availableQuantity();
             $restored = 0.0;
             $restoredViaLots = false;
@@ -310,7 +311,7 @@ class InventoryCostService
 
             if (Schema::hasTable('material_stock_logs')) {
                 $this->stockLogService->log(
-                    action: 'sale_void',
+                    action: $logAction,
                     product: $product,
                     quantityBefore: $before,
                     quantityAfter: round($before + $restored, 6),

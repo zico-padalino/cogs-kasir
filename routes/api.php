@@ -193,6 +193,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::get('stock-wastes', [StockWasteApiController::class, 'index'])->name('stock-wastes.index');
             Route::post('stock-wastes', [StockWasteApiController::class, 'store'])->name('stock-wastes.store');
+            Route::put('stock-wastes/{stockWaste}', [StockWasteApiController::class, 'update'])->name('stock-wastes.update');
+            Route::delete('stock-wastes/{stockWaste}', [StockWasteApiController::class, 'destroy'])->name('stock-wastes.destroy');
 
             Route::get('ops-assets', [OpsAssetApiController::class, 'index'])->name('ops-assets.index');
             Route::post('ops-assets', [OpsAssetApiController::class, 'store'])->name('ops-assets.store');
