@@ -96,7 +96,7 @@
 
             <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4" data-salary-preview>
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ringkasan hitungan</p>
-                <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="mt-3 grid grid-cols-2 gap-3">
                     <div>
                         <p class="text-[11px] text-slate-500">Gaji pokok</p>
                         <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-base>—</p>
@@ -106,7 +106,7 @@
                         <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-daily>—</p>
                     </div>
                     <div>
-                        <p class="text-[11px] text-slate-500">Hari hadir (aktual)</p>
+                        <p class="text-[11px] text-slate-500">Hari hadir</p>
                         <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-work-days>—</p>
                     </div>
                     <div>
@@ -115,19 +115,19 @@
                         <p class="text-[10px] text-slate-400" data-out-daily-formula></p>
                     </div>
                     <div>
-                        <p class="text-[11px] text-slate-500">≈ / minggu (jadwal)</p>
+                        <p class="text-[11px] text-slate-500">≈ / minggu</p>
                         <p class="text-sm font-semibold tabular-nums text-slate-900" data-out-weekly>—</p>
                         <p class="text-[10px] text-slate-400" data-out-weekly-hint></p>
                     </div>
                     <div>
                         <p class="text-[11px] text-slate-500">Potongan</p>
                         <p class="text-sm font-semibold tabular-nums text-red-600" data-out-deduction>—</p>
-                        <p class="text-[10px] text-slate-400" data-out-deduction-hint></p>
+                        <p class="text-[10px] text-slate-400 break-words" data-out-deduction-hint></p>
                     </div>
-                    <div class="sm:col-span-2 lg:col-span-2">
-                        <p class="text-[11px] text-slate-500">Total bulan (sebelum tunjangan)</p>
-                        <p class="text-lg font-bold tabular-nums text-brand-800" data-out-subtotal>—</p>
-                    </div>
+                </div>
+                <div class="mt-3 border-t border-slate-200 pt-3">
+                    <p class="text-[11px] text-slate-500">Subtotal (sebelum tunjangan)</p>
+                    <p class="text-lg font-bold tabular-nums text-brand-800" data-out-subtotal>—</p>
                 </div>
             </div>
 
@@ -162,114 +162,126 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary">Simpan Gaji</button>
+            <button type="submit" class="btn-primary w-full sm:w-auto">Simpan Gaji</button>
         </form>
     </div>
 
-    <div class="card p-0 overflow-hidden">
-        <div class="border-b border-slate-100 px-4 py-3">
-            <h2 class="text-sm font-semibold">Gaji {{ $month->translatedFormat('F Y') }}</h2>
+    @php
+        $monthTotal = $salaries->sum('total');
+        $monthPeople = $salaries->count();
+        $monthHadir = $salaries->sum(fn ($s) => (int) ($s->work_days ?? 0));
+    @endphp
+
+    <div class="space-y-3">
+        <div class="card flex flex-wrap items-end justify-between gap-3 p-4">
+            <div>
+                <h2 class="text-base font-semibold text-slate-900">Gaji {{ $month->translatedFormat('F Y') }}</h2>
+                <p class="mt-0.5 text-xs text-slate-500">
+                    {{ $monthPeople }} karyawan
+                    @if ($hasDailyColumns ?? true)
+                        · {{ $monthHadir }} hari hadir
+                    @endif
+                </p>
+            </div>
+            @if ($salaries->isNotEmpty())
+                <div class="text-right">
+                    <p class="text-[11px] uppercase tracking-wide text-slate-500">Total semua</p>
+                    <p class="text-lg font-bold tabular-nums text-brand-800">{{ $format::rupiah($monthTotal) }}</p>
+                </div>
+            @endif
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold">Karyawan</th>
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Pokok</th>
-                        @if ($hasDailyColumns ?? true)
-                            <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Gaji harian</th>
-                            <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Hari hadir</th>
-                            <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Akumulasi harian</th>
-                            <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">≈ / minggu</th>
-                        @endif
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Tunjangan</th>
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Potongan</th>
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Total / bulan</th>
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold">Status</th>
-                        <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($salaries as $salary)
-                        @php
-                            $dailyRate = (float) ($salary->daily_salary ?? 0);
-                            $workDays = (int) ($salary->work_days ?? 0);
-                            $dailyTotal = $dailyRate * $workDays;
-                            $daysWeek = $salary->employee?->scheduledWorkDaysPerWeek() ?? 5;
-                            $weeklyEst = $dailyRate * $daysWeek;
-                        @endphp
-                        <tr class="border-b border-slate-100 last:border-b-0">
-                            <td class="px-4 py-3 align-top">
-                                <p class="font-semibold text-slate-900">{{ $salary->employee?->name }}</p>
-                                <p class="text-[11px] text-slate-400">{{ $salary->employee?->employee_code }}</p>
-                                @if ($salary->notes)
-                                    <p class="mt-1 text-xs text-slate-500">{{ $salary->notes }}</p>
-                                @endif
-                            </td>
-                            <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ $format::rupiah($salary->base_salary) }}</td>
-                            @if ($hasDailyColumns ?? true)
-                                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ $format::rupiah($dailyRate) }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ $workDays }} hari</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ $format::rupiah($dailyTotal) }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                    {{ $format::rupiah($weeklyEst) }}
-                                    <span class="block text-[10px] font-normal text-slate-400">{{ $daysWeek }} hari jadwal</span>
-                                </td>
-                            @endif
-                            <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ $format::rupiah($salary->allowance) }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-red-600">− {{ $format::rupiah($salary->deduction) }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-right font-bold tabular-nums text-brand-700">{{ $format::rupiah($salary->total) }}</td>
-                            <td class="px-4 py-3 align-top">
-                                <span class="badge {{ $salary->status->badgeClass() }}">{{ $salary->status->label() }}</span>
-                            </td>
-                            <td class="px-4 py-3 align-top">
-                                <div class="flex flex-col items-end gap-1">
-                                    @if ($salary->status->value === 'draft')
-                                        <form action="{{ route('admin.salaries.paid', $salary) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="btn-sm btn-primary">Tandai Lunas</button>
-                                        </form>
-                                    @endif
-                                    <form action="{{ route('admin.salaries.destroy', $salary) }}" method="POST" onsubmit="return confirm('Hapus data gaji?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn-sm btn-outline-danger">Hapus</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="11" class="px-4 py-10 text-center text-slate-500">
-                                Belum ada data gaji bulan ini. Pilih karyawan lalu Simpan, atau klik
-                                <strong>Hitung semua karyawan</strong>.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-                @if ($salaries->isNotEmpty())
-                    <tfoot class="border-t border-slate-200 bg-slate-50 text-sm">
-                        <tr>
-                            <td class="px-4 py-3 font-semibold text-slate-900">Jumlah</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ $format::rupiah($salaries->sum('base_salary')) }}</td>
-                            @if ($hasDailyColumns ?? true)
-                                <td class="px-4 py-3"></td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ $salaries->sum(fn ($s) => (int) ($s->work_days ?? 0)) }} hari</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
-                                    {{ $format::rupiah($salaries->sum(fn ($s) => (float) ($s->daily_salary ?? 0) * (int) ($s->work_days ?? 0))) }}
-                                </td>
-                                <td class="px-4 py-3"></td>
-                            @endif
-                            <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ $format::rupiah($salaries->sum('allowance')) }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-red-600">− {{ $format::rupiah($salaries->sum('deduction')) }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-right font-bold tabular-nums text-brand-800">{{ $format::rupiah($salaries->sum('total')) }}</td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tfoot>
+        @forelse ($salaries as $salary)
+            @php
+                $dailyRate = (float) ($salary->daily_salary ?? 0);
+                $workDays = (int) ($salary->work_days ?? 0);
+                $dailyTotal = $dailyRate * $workDays;
+                $daysWeek = $salary->employee?->scheduledWorkDaysPerWeek() ?? 5;
+                $weeklyEst = $dailyRate * $daysWeek;
+                $userNote = trim((string) preg_replace('/\s*\|\s*(Harian|Potongan|≈).*/u', '', (string) ($salary->notes ?? '')) );
+            @endphp
+            <article class="card overflow-hidden p-0">
+                <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                    <div class="min-w-0">
+                        <p class="truncate text-base font-semibold text-slate-900">{{ $salary->employee?->name }}</p>
+                        <p class="text-[11px] text-slate-400">{{ $salary->employee?->employee_code }}</p>
+                    </div>
+                    <span class="badge shrink-0 {{ $salary->status->badgeClass() }}">{{ $salary->status->label() }}</span>
+                </div>
+
+                <div class="bg-brand-50/70 px-4 py-3">
+                    <p class="text-[11px] font-medium uppercase tracking-wide text-brand-800/70">Total bulan ini</p>
+                    <p class="mt-0.5 text-2xl font-bold tabular-nums text-brand-900">{{ $format::rupiah($salary->total) }}</p>
+                </div>
+
+                @if ($hasDailyColumns ?? true)
+                    <div class="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
+                        <div class="px-3 py-3 text-center">
+                            <p class="text-[10px] uppercase tracking-wide text-slate-400">Hadir</p>
+                            <p class="mt-1 text-sm font-semibold tabular-nums text-slate-900">{{ $workDays }}</p>
+                            <p class="text-[10px] text-slate-400">hari</p>
+                        </div>
+                        <div class="px-3 py-3 text-center">
+                            <p class="text-[10px] uppercase tracking-wide text-slate-400">Akumulasi</p>
+                            <p class="mt-1 text-sm font-semibold tabular-nums text-slate-900">{{ $format::rupiah($dailyTotal) }}</p>
+                            <p class="text-[10px] text-slate-400">harian × hadir</p>
+                        </div>
+                        <div class="px-3 py-3 text-center">
+                            <p class="text-[10px] uppercase tracking-wide text-slate-400">/ minggu</p>
+                            <p class="mt-1 text-sm font-semibold tabular-nums text-slate-900">{{ $format::rupiah($weeklyEst) }}</p>
+                            <p class="text-[10px] text-slate-400">{{ $daysWeek }} hari jadwal</p>
+                        </div>
+                    </div>
                 @endif
-            </table>
-        </div>
+
+                <dl class="space-y-2 px-4 py-3 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500">Pokok bulanan</dt>
+                        <dd class="font-medium tabular-nums text-slate-900">{{ $format::rupiah($salary->base_salary) }}</dd>
+                    </div>
+                    @if ($hasDailyColumns ?? true)
+                        <div class="flex items-center justify-between gap-3">
+                            <dt class="text-slate-500">Gaji harian</dt>
+                            <dd class="text-right font-medium tabular-nums text-slate-900">
+                                {{ $format::rupiah($dailyRate) }}
+                                <span class="block text-[11px] font-normal text-slate-400">× {{ $workDays }} hari hadir</span>
+                            </dd>
+                        </div>
+                    @endif
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500">Tunjangan</dt>
+                        <dd class="font-medium tabular-nums text-slate-900">{{ $format::rupiah($salary->allowance) }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-slate-500">Potongan</dt>
+                        <dd class="font-medium tabular-nums text-red-600">− {{ $format::rupiah($salary->deduction) }}</dd>
+                    </div>
+                </dl>
+
+                @if ($userNote !== '')
+                    <p class="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">{{ $userNote }}</p>
+                @endif
+
+                <div class="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/80 p-3 sm:flex-row sm:justify-end">
+                    @if ($salary->status->value === 'draft')
+                        <form action="{{ route('admin.salaries.paid', $salary) }}" method="POST" class="w-full sm:w-auto">
+                            @csrf
+                            <button type="submit" class="btn-sm btn-primary w-full">Tandai Lunas</button>
+                        </form>
+                    @endif
+                    <form action="{{ route('admin.salaries.destroy', $salary) }}" method="POST" class="w-full sm:w-auto" onsubmit="return confirm('Hapus data gaji?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn-sm btn-outline-danger w-full">Hapus</button>
+                    </form>
+                </div>
+            </article>
+        @empty
+            <div class="card px-4 py-10 text-center text-sm text-slate-500">
+                Belum ada data gaji bulan ini. Pilih karyawan lalu Simpan, atau klik
+                <strong>Hitung semua karyawan</strong>.
+            </div>
+        @endforelse
     </div>
 
     <script>
