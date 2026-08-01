@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\EmployeeAttendance;
 use App\Services\AttendanceService;
 use App\Support\ShopSettings;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -59,15 +60,20 @@ class AttendanceController extends Controller
                 $row->check_out_lat,
                 $row->check_out_lng,
             );
+            $row->suggested_check_out = $this->suggestedCheckoutTime($row, $attendanceService);
 
             return $row;
         });
+
+        $pendingCheckout = $attendances
+            ->filter(fn (EmployeeAttendance $r) => filled($r->check_in) && ! filled($r->check_out))
+            ->values();
 
         $summary = [
             'total' => $attendances->count(),
             'hadir' => $attendances->where('status', AttendanceStatus::Hadir)->count(),
             'late' => $attendances->where('is_late', true)->count(),
-            'no_checkout' => $attendances->filter(fn (EmployeeAttendance $r) => filled($r->check_in) && ! filled($r->check_out))->count(),
+            'no_checkout' => $pendingCheckout->count(),
             'izin' => $attendances->where('status', AttendanceStatus::Izin)->count(),
             'sakit' => $attendances->where('status', AttendanceStatus::Sakit)->count(),
             'alpha' => $attendances->where('status', AttendanceStatus::Alpha)->count(),
@@ -98,6 +104,7 @@ class AttendanceController extends Controller
 
         return view($view, [
             'attendances' => $attendances,
+            'pendingCheckout' => $pendingCheckout,
             'from' => $from,
             'to' => $to,
             'date' => $from,
@@ -130,15 +137,84 @@ class AttendanceController extends Controller
             ]);
         }
 
-        EmployeeAttendance::query()->updateOrCreate(
-            [
+        $payload = [
+            'status' => $validated['status'],
+        ];
+
+        if (filled($validated['check_in'] ?? null)) {
+            $payload['check_in'] = $this->normalizeTime($validated['check_in']);
+        }
+        if (filled($validated['check_out'] ?? null)) {
+            $payload['check_out'] = $this->normalizeTime($validated['check_out']);
+        }
+        if (filled($validated['notes'] ?? null)) {
+            $payload['notes'] = $validated['notes'];
+        }
+
+        $existing = EmployeeAttendance::query()
+            ->where('employee_id', $validated['employee_id'])
+            ->whereDate('work_date', $validated['work_date'])
+            ->first();
+
+        if ($existing) {
+            // Jangan hapus jam masuk yang sudah ada jika form jam masuk dikosongkan.
+            $existing->update($payload);
+        } else {
+            EmployeeAttendance::query()->create([
                 'employee_id' => $validated['employee_id'],
                 'work_date' => $validated['work_date'],
-            ],
-            $validated,
-        );
+                'is_late' => false,
+                ...$payload,
+            ]);
+        }
 
         return back()->with('success', 'Absensi berhasil dicatat.');
+    }
+
+    /**
+     * Admin mencatatkan absen pulang untuk pegawai yang lupa.
+     */
+    public function checkout(Request $request, EmployeeAttendance $attendance): RedirectResponse
+    {
+        if (! filled($attendance->check_in)) {
+            return back()->withErrors([
+                'check_out' => 'Pegawai belum absen masuk; tidak bisa absen pulang.',
+            ]);
+        }
+
+        if (filled($attendance->check_out)) {
+            return back()->with('error', 'Pegawai ini sudah absen pulang.');
+        }
+
+        $validated = $request->validate([
+            'check_out' => ['required', 'date_format:H:i'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ], [
+            'check_out.required' => 'Jam pulang wajib diisi.',
+        ]);
+
+        $adminNote = 'Pulang dicatat admin';
+        $extra = trim((string) ($validated['notes'] ?? ''));
+        $existingNotes = trim((string) ($attendance->notes ?? ''));
+
+        if ($existingNotes !== '' && str_contains($existingNotes, $adminNote)) {
+            $parts = array_filter([$existingNotes, $extra !== '' ? $extra : null]);
+        } else {
+            $parts = array_filter([
+                $existingNotes !== '' ? $existingNotes : null,
+                $adminNote,
+                $extra !== '' ? $extra : null,
+            ]);
+        }
+
+        $attendance->update([
+            'check_out' => $this->normalizeTime($validated['check_out']),
+            'notes' => implode(' · ', $parts),
+        ]);
+
+        $name = $attendance->employee?->name ?? 'Pegawai';
+
+        return back()->with('success', "Absen pulang berhasil dicatat untuk {$name}.");
     }
 
     public function destroy(EmployeeAttendance $attendance): RedirectResponse
@@ -179,6 +255,35 @@ class AttendanceController extends Controller
         }
 
         return Storage::disk('public')->response($path);
+    }
+
+    private function suggestedCheckoutTime(EmployeeAttendance $row, AttendanceService $attendanceService): string
+    {
+        $workDate = $row->work_date instanceof Carbon
+            ? $row->work_date->copy()
+            : Carbon::parse((string) $row->work_date);
+
+        $schedule = $attendanceService->scheduleFor($row->employee, $workDate);
+        $suggested = $schedule['clock_out'] ?? (string) ShopSettings::get('attendance_clock_out', '23:59');
+
+        return $this->normalizeClockHm($suggested);
+    }
+
+    private function normalizeTime(string $time): string
+    {
+        $hm = $this->normalizeClockHm($time);
+
+        return strlen($hm) === 5 ? $hm.':00' : $hm;
+    }
+
+    private function normalizeClockHm(string $time): string
+    {
+        $value = trim($time);
+        if (preg_match('/^(\d{1,2}):(\d{2})/', $value, $m)) {
+            return sprintf('%02d:%02d', min(23, (int) $m[1]), min(59, (int) $m[2]));
+        }
+
+        return '23:59';
     }
 
     private function distanceOrNull(

@@ -102,6 +102,49 @@
             </div>
         @endif
 
+        @if (($pendingCheckout ?? collect())->isNotEmpty())
+            <div class="card mb-4 border border-brand-200 bg-brand-50/50 p-4 no-print">
+                <div class="mb-3">
+                    <p class="font-semibold text-brand-900">Belum absen pulang ({{ $pendingCheckout->count() }})</p>
+                    <p class="mt-1 text-xs text-brand-800/80">
+                        Pegawai sudah masuk tapi lupa pulang. Isi jam lalu klik <strong>Absen pulang</strong>.
+                    </p>
+                </div>
+                <div class="space-y-3">
+                    @foreach ($pendingCheckout as $row)
+                        <form
+                            method="POST"
+                            action="{{ route('admin.attendances.checkout', $row) }}"
+                            class="rounded-xl border border-brand-100 bg-white p-3"
+                        >
+                            @csrf
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-semibold text-slate-900">{{ $row->employee?->name }}</p>
+                                    <p class="text-[11px] text-slate-500">
+                                        {{ $row->work_date?->translatedFormat('d M Y') }}
+                                        · masuk {{ $row->check_in ? substr((string) $row->check_in, 0, 5) : '—' }}
+                                    </p>
+                                </div>
+                                <div class="w-full sm:w-40">
+                                    <label class="form-label" for="checkout_time_{{ $row->id }}">Jam pulang</label>
+                                    <x-time-24-picker
+                                        name="check_out"
+                                        :id="'checkout_time_'.$row->id"
+                                        :value="$row->suggested_check_out ?? '23:59'"
+                                        required
+                                    />
+                                </div>
+                                <button type="submit" class="btn-primary w-full sm:w-auto shrink-0">
+                                    Absen pulang
+                                </button>
+                            </div>
+                        </form>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="card att-report-table-wrap p-0">
             <p class="att-report-scroll-hint no-print">Geser ke samping untuk melihat semua kolom</p>
             <div class="att-report-table-scroll">
@@ -196,11 +239,22 @@
                                     @endif
                                 </td>
                                 <td class="no-print">
-                                    <form action="{{ route('admin.attendances.destroy', $row) }}" method="POST" onsubmit="return confirm('Hapus absensi?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn-sm btn-outline-danger">Hapus</button>
-                                    </form>
+                                    <div class="flex flex-col items-stretch gap-1.5 min-w-[7.5rem]">
+                                        @if (filled($row->check_in) && ! filled($row->check_out))
+                                            <form action="{{ route('admin.attendances.checkout', $row) }}" method="POST" class="space-y-1">
+                                                @csrf
+                                                <input type="hidden" name="check_out" value="{{ $row->suggested_check_out ?? '23:59' }}">
+                                                <button type="submit" class="btn-sm btn-primary w-full" title="Pakai jam jadwal: {{ $row->suggested_check_out ?? '23:59' }}">
+                                                    Absen pulang
+                                                </button>
+                                            </form>
+                                        @endif
+                                        <form action="{{ route('admin.attendances.destroy', $row) }}" method="POST" onsubmit="return confirm('Hapus absensi?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn-sm btn-outline-danger w-full">Hapus</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -219,6 +273,10 @@
             <summary class="att-report-manual-summary">Catat absensi manual</summary>
             <form method="POST" action="{{ route('admin.attendances.store') }}" class="att-report-manual-form">
                 @csrf
+                <p class="mb-3 text-xs text-slate-500">
+                    Untuk pegawai lupa pulang, lebih cepat pakai panel <strong>Belum absen pulang</strong> di atas.
+                    Form ini untuk catat masuk/pulang/izin manual.
+                </p>
                 <div class="att-report-manual-grid">
                     <div>
                         <label class="form-label" for="employee_id">Karyawan</label>
