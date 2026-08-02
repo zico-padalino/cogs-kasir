@@ -91,12 +91,13 @@ class AttendanceApiController extends Controller
         }
 
         $expected = $attendanceService->actionForEmployee($employee);
-        if ($expected !== $validated['mode']) {
+        $available = $attendanceService->availableActionsForEmployee($employee);
+        if (! in_array($validated['mode'], $available, true)) {
             return response()->json([
-                'message' => match ($expected) {
-                    'check_in' => 'Saat ini yang tersedia: Absen Masuk.',
-                    'check_out' => 'Saat ini yang tersedia: Absen Pulang.',
-                    'done' => 'Anda sudah absen masuk & pulang hari ini.',
+                'message' => match (true) {
+                    in_array('check_in', $available, true) => 'Saat ini yang tersedia: Absen Masuk.',
+                    in_array('check_out', $available, true) => 'Saat ini yang tersedia: Absen Pulang.',
+                    $expected === 'done' => 'Anda sudah absen masuk & pulang hari ini.',
                     default => 'Di luar jam absensi untuk pegawai ini.',
                 },
             ], 422);
@@ -112,6 +113,7 @@ class AttendanceApiController extends Controller
                 );
                 $message = 'Absen pulang berhasil — '.$employee->name;
             } else {
+                $hadMissed = $attendanceService->missedCheckoutAttendance($employee) !== null;
                 $attendanceService->checkIn(
                     $employee,
                     (float) $validated['latitude'],
@@ -119,6 +121,9 @@ class AttendanceApiController extends Controller
                     $validated['photo'],
                 );
                 $message = 'Absen masuk berhasil — '.$employee->name;
+                if ($hadMissed) {
+                    $message .= '. Catatan: ketidakhadiran absen pulang shift sebelumnya telah tercatat.';
+                }
             }
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

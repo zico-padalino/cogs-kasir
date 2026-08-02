@@ -6,7 +6,7 @@
 @section('content')
     <div class="barcode-print-page attendance-qr-page">
         <p class="barcode-print-hint no-print">
-            Tampilkan QR ini di toko. Pegawai scan dari HP → isi nama, selfie, lalu absen (GPS wajib sesuai koordinat).
+            Tampilkan QR ini di toko. Pegawai scan dari HP → pilih Absen Masuk atau Absen Pulang → isi nama + selfie (GPS wajib).
         </p>
 
         <div class="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 no-print sm:grid-cols-3">
@@ -55,6 +55,8 @@
             <p class="barcode-print-cta">Arahkan kamera HP ke kode ini</p>
             <p class="barcode-print-flow">
                 <span>Scan</span>
+                <span aria-hidden="true">→</span>
+                <span>Masuk / Pulang</span>
                 <span aria-hidden="true">→</span>
                 <span>Pilih nama</span>
                 <span aria-hidden="true">→</span>

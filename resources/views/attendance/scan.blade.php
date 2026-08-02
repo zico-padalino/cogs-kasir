@@ -52,7 +52,27 @@
             <input type="hidden" name="latitude" data-scan-lat>
             <input type="hidden" name="longitude" data-scan-lng>
             <input type="hidden" name="photo" data-scan-photo>
-            <input type="hidden" name="mode" value="check_in" data-scan-mode>
+            <input type="hidden" name="mode" value="{{ old('mode', 'check_in') }}" data-scan-mode>
+
+            <div>
+                <p class="form-label">Jenis absen</p>
+                <div class="scan-mode-toggle" role="group" aria-label="Jenis absen">
+                    <button
+                        type="button"
+                        class="scan-mode-btn is-active"
+                        data-scan-mode-btn="check_in"
+                    >
+                        Absen Masuk
+                    </button>
+                    <button
+                        type="button"
+                        class="scan-mode-btn"
+                        data-scan-mode-btn="check_out"
+                    >
+                        Absen Pulang
+                    </button>
+                </div>
+            </div>
 
             <div>
                 <label class="form-label" for="employee_id">Nama pegawai</label>
@@ -71,6 +91,8 @@
                         <option
                             value="{{ $row['id'] }}"
                             data-action="{{ $row['action'] }}"
+                            data-actions="{{ implode(',', $row['actions'] ?? []) }}"
+                            data-missed-checkout="{{ ! empty($row['missed_checkout']) ? '1' : '0' }}"
                             data-clock-in="{{ $row['clock_in'] ?? '' }}"
                             data-clock-out="{{ $row['clock_out'] ?? '' }}"
                             data-is-off="{{ ! empty($row['is_off']) ? '1' : '0' }}"
@@ -80,9 +102,17 @@
                         </option>
                     @endforeach
                 </select>
+                <p class="mt-1 text-xs text-slate-500" data-scan-employee-hint>
+                    Pilih jenis absen dulu, lalu pilih nama.
+                </p>
             </div>
 
-            <p class="scan-mode-pill" data-scan-mode-label>Pilih pegawai dulu</p>
+            <p class="scan-mode-pill" data-scan-mode-label>Pilih Absen Masuk atau Absen Pulang</p>
+
+            <div class="scan-alert scan-alert-warn hidden" data-scan-missed-warn role="status">
+                Anda belum absen pulang shift sebelumnya.
+                Jika lanjut <strong>Absen Masuk</strong>, ketidakhadiran absen pulang akan tercatat.
+            </div>
 
             <div class="scan-camera">
                 <div class="scan-camera-preview">
@@ -95,7 +125,7 @@
             <p class="scan-gps" data-scan-gps>Membaca lokasi GPS…</p>
 
             <button type="submit" class="btn-primary w-full py-3.5 text-base" data-scan-submit disabled>
-                Absen
+                Absen Masuk
             </button>
         </form>
     </div>

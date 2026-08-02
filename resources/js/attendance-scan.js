@@ -1,5 +1,5 @@
 /**
- * Public QR attendance: live clock, employee select, selfie camera, GPS.
+ * Public QR attendance: mode (masuk/pulang), employee select, selfie camera, GPS.
  */
 
 function setText(el, text, isError = false) {
@@ -61,7 +61,6 @@ function capturePhoto(video, canvas) {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    // mirror selfie to match preview
     ctx.translate(width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, width, height);
@@ -86,8 +85,8 @@ function actionLabel(action) {
     return {
         check_in: 'Absen Masuk',
         check_out: 'Absen Pulang',
-        done: 'Sudah absen hari ini',
-        closed: 'Di luar jam absen',
+        done: 'Sudah absen masuk & pulang',
+        closed: 'Belum waktunya / di luar jam',
     }[action] || 'Pilih pegawai';
 }
 
@@ -100,6 +99,14 @@ function scheduleHint(option) {
     return `Jadwal ${clockIn} – ${clockOut}`;
 }
 
+function optionActions(option) {
+    const raw = option?.dataset?.actions || '';
+    const listed = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (listed.length) return listed;
+    const legacy = option?.dataset?.action || '';
+    return (legacy === 'check_in' || legacy === 'check_out') ? [legacy] : [];
+}
+
 function bindScan(root) {
     const form = root.querySelector('[data-scan-form]');
     const video = root.querySelector('[data-scan-video]');
@@ -107,6 +114,9 @@ function bindScan(root) {
     const employeeSelect = root.querySelector('[data-scan-employee]');
     const modeInput = root.querySelector('[data-scan-mode]');
     const modeLabel = root.querySelector('[data-scan-mode-label]');
+    const employeeHint = root.querySelector('[data-scan-employee-hint]');
+    const missedWarn = root.querySelector('[data-scan-missed-warn]');
+    const modeButtons = root.querySelectorAll('[data-scan-mode-btn]');
     const latInput = root.querySelector('[data-scan-lat]');
     const lngInput = root.querySelector('[data-scan-lng]');
     const photoInput = root.querySelector('[data-scan-photo]');
@@ -121,31 +131,105 @@ function bindScan(root) {
 
     let cameraReady = false;
     let gpsReady = false;
+    let selectedMode = modeInput?.value === 'check_out' ? 'check_out' : 'check_in';
 
     bindClock(clockEl);
 
+    const setMode = (mode, { preserveEmployee = false } = {}) => {
+        selectedMode = mode === 'check_out' ? 'check_out' : 'check_in';
+        if (modeInput) modeInput.value = selectedMode;
+
+        modeButtons.forEach((btn) => {
+            const active = btn.getAttribute('data-scan-mode-btn') === selectedMode;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+        const currentId = employeeSelect.value;
+        Array.from(employeeSelect.options).forEach((opt) => {
+            if (! opt.value) {
+                opt.hidden = false;
+                return;
+            }
+            const actions = optionActions(opt);
+            const matches = actions.includes(selectedMode);
+            opt.hidden = ! matches && (! preserveEmployee || opt.value !== currentId);
+        });
+
+        refreshSubmit();
+    };
+
     const refreshSubmit = () => {
         const option = employeeSelect.selectedOptions[0];
-        const action = option?.dataset?.action || '';
-        const canAct = action === 'check_in' || action === 'check_out';
+        const actions = optionActions(option);
+        const hasEmployee = !!(option && option.value);
+        const canAct = hasEmployee && actions.includes(selectedMode);
+        const missed = hasEmployee && option.dataset.missedCheckout === '1';
+        const showMissedWarn = canAct && selectedMode === 'check_in' && missed;
 
-        if (modeInput) modeInput.value = canAct ? action : '';
+        if (modeInput) modeInput.value = selectedMode;
+
+        if (missedWarn) {
+            missedWarn.classList.toggle('hidden', ! showMissedWarn);
+        }
+
         if (modeLabel) {
-            const base = option?.value ? actionLabel(action) : 'Pilih pegawai dulu';
-            const hint = scheduleHint(option);
-            modeLabel.textContent = hint ? `${base} · ${hint}` : base;
-            modeLabel.classList.toggle('is-in', action === 'check_in');
-            modeLabel.classList.toggle('is-out', action === 'check_out');
-            modeLabel.classList.toggle('is-blocked', option?.value && ! canAct);
+            let text = actionLabel(selectedMode);
+            if (! hasEmployee) {
+                text = `${actionLabel(selectedMode)} · pilih nama pegawai`;
+            } else if (canAct) {
+                const hint = scheduleHint(option);
+                text = hint ? `${actionLabel(selectedMode)} · ${hint}` : actionLabel(selectedMode);
+                if (showMissedWarn) {
+                    text += ' · belum absen pulang sebelumnya';
+                }
+            } else if (actions.includes('check_out') && selectedMode === 'check_in') {
+                text = 'Pilih Absen Pulang, atau Absen Masuk (pulang terlewat akan tercatat)';
+            } else if (actions.includes('check_in') && selectedMode === 'check_out') {
+                text = 'Pegawai ini belum absen masuk / belum waktunya pulang';
+            } else if ((option?.dataset?.action || '') === 'done') {
+                text = 'Sudah absen masuk & pulang hari ini';
+            } else {
+                text = actionLabel(option?.dataset?.action || 'closed');
+            }
+
+            modeLabel.textContent = text;
+            modeLabel.classList.toggle('is-in', selectedMode === 'check_in' && canAct);
+            modeLabel.classList.toggle('is-out', selectedMode === 'check_out' && canAct);
+            modeLabel.classList.toggle('is-blocked', hasEmployee && ! canAct);
+        }
+
+        if (employeeHint) {
+            if (selectedMode === 'check_in') {
+                employeeHint.textContent = 'Daftar: pegawai yang bisa absen masuk (termasuk yang belum pulang kemarin).';
+            } else {
+                employeeHint.textContent = 'Daftar: pegawai yang siap absen pulang.';
+            }
         }
 
         if (submit) {
             submit.disabled = ! (canAct && cameraReady && gpsReady && hasLocation);
-            submit.textContent = canAct ? actionLabel(action) : 'Absen';
+            submit.textContent = actionLabel(selectedMode);
+            submit.classList.toggle('scan-submit-out', selectedMode === 'check_out');
         }
     };
 
-    employeeSelect.addEventListener('change', refreshSubmit);
+    modeButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            setMode(btn.getAttribute('data-scan-mode-btn'));
+        });
+    });
+
+    employeeSelect.addEventListener('change', () => {
+        const option = employeeSelect.selectedOptions[0];
+        const actions = optionActions(option);
+        // Jika mode saat ini tidak tersedia, pindah ke aksi yang tersedia.
+        if (actions.length && ! actions.includes(selectedMode)) {
+            setMode(actions[0], { preserveEmployee: true });
+            return;
+        }
+        refreshSubmit();
+    });
 
     const bootCamera = async () => {
         try {
@@ -188,10 +272,28 @@ function bindScan(root) {
         event.preventDefault();
 
         const option = employeeSelect.selectedOptions[0];
-        const action = option?.dataset?.action || '';
-        if (action !== 'check_in' && action !== 'check_out') {
-            setText(gpsStatus, 'Pegawai ini tidak bisa absen sekarang.', true);
+        const actions = optionActions(option);
+        if (! actions.includes(selectedMode)) {
+            setText(
+                gpsStatus,
+                selectedMode === 'check_in'
+                    ? 'Pegawai ini tidak bisa Absen Masuk sekarang.'
+                    : 'Pegawai ini tidak bisa Absen Pulang sekarang.',
+                true,
+            );
             return;
+        }
+
+        if (selectedMode === 'check_in' && option.dataset.missedCheckout === '1') {
+            const ok = window.confirm(
+                'Anda belum absen pulang shift sebelumnya.\n\n'
+                + 'Jika lanjut Absen Masuk, ketidakhadiran absen pulang akan tercatat.\n\n'
+                + 'Lanjutkan Absen Masuk?',
+            );
+            if (! ok) {
+                refreshSubmit();
+                return;
+            }
         }
 
         if (submit) {
@@ -207,7 +309,7 @@ function bindScan(root) {
             }
 
             photoInput.value = capturePhoto(video, canvas);
-            modeInput.value = action;
+            modeInput.value = selectedMode;
             stopCamera(video);
             form.submit();
         } catch (error) {
@@ -232,7 +334,15 @@ function bindScan(root) {
         if (cameraReady) startCamera(video).catch(() => {});
     });
 
-    refreshSubmit();
+    const prefillOption = employeeSelect.selectedOptions[0];
+    const prefillActions = optionActions(prefillOption);
+    if (prefillActions.includes(selectedMode)) {
+        setMode(selectedMode, { preserveEmployee: true });
+    } else if (prefillActions.length) {
+        setMode(prefillActions[0], { preserveEmployee: true });
+    } else {
+        setMode(selectedMode);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

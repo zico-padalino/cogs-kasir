@@ -216,6 +216,63 @@ class AttendanceService
     }
 
     /**
+     * Absensi masuk di hari sebelumnya yang belum absen pulang
+     * (meski jam pulang sudah lewat / tidak bisa absen pulang lagi lewat QR).
+     */
+    public function missedCheckoutAttendance(Employee $employee): ?EmployeeAttendance
+    {
+        return EmployeeAttendance::query()
+            ->where('employee_id', $employee->id)
+            ->whereNotNull('check_in')
+            ->whereNull('check_out')
+            ->whereDate('work_date', '<', today()->toDateString())
+            ->orderByDesc('work_date')
+            ->first();
+    }
+
+    /**
+     * Aksi yang tersedia di halaman QR (bisa lebih dari satu).
+     *
+     * @return list<'check_in'|'check_out'>
+     */
+    public function availableActionsForEmployee(Employee $employee): array
+    {
+        $actions = [];
+
+        if ($this->openCheckoutAttendance($employee)) {
+            $actions[] = 'check_out';
+        }
+
+        if ($this->canCheckInNow($this->todayAttendance($employee), $employee)) {
+            $actions[] = 'check_in';
+        }
+
+        return $actions;
+    }
+
+    /**
+     * Tandai absensi sebelumnya sebagai tidak absen pulang.
+     */
+    public function markMissedCheckout(EmployeeAttendance $attendance): void
+    {
+        if (filled($attendance->check_out)) {
+            return;
+        }
+
+        $label = 'Tidak absen pulang';
+        $existing = trim((string) ($attendance->notes ?? ''));
+        if ($existing !== '' && str_contains($existing, $label)) {
+            return;
+        }
+
+        $attendance->update([
+            'notes' => $existing !== ''
+                ? $existing.' · '.$label
+                : $label,
+        ]);
+    }
+
+    /**
      * @return 'check_in'|'check_out'|null
      */
     public function requiredAction(User $user): ?string
@@ -233,15 +290,17 @@ class AttendanceService
             return null;
         }
 
-        if ($this->openCheckoutAttendance($employee)) {
+        $actions = $this->availableActionsForEmployee($employee);
+        if ($actions === []) {
+            return null;
+        }
+
+        // Prioritas reminder pulang, tapi absen masuk tetap tersedia di QR.
+        if (in_array('check_out', $actions, true)) {
             return 'check_out';
         }
 
-        if ($this->canCheckInNow($this->todayAttendance($employee), $employee)) {
-            return 'check_in';
-        }
-
-        return null;
+        return $actions[0];
     }
 
     public function canCheckInNow(?EmployeeAttendance $attendance, ?Employee $employee = null): bool
@@ -327,6 +386,12 @@ class AttendanceService
             throw new RuntimeException('Belum waktunya absen masuk, atau Anda sudah absen masuk hari ini.');
         }
 
+        // Jika masih ada absensi sebelumnya tanpa pulang, catat sebagai tidak absen pulang.
+        $missed = $this->missedCheckoutAttendance($employee);
+        if ($missed) {
+            $this->markMissedCheckout($missed);
+        }
+
         $this->assertWithinRadius($lat, $lng);
         $photoPath = $photoBase64 ? $this->storePhoto($employee, $photoBase64, 'in') : null;
 
@@ -334,6 +399,10 @@ class AttendanceService
         $clockIn = $this->todayAt($schedule['clock_in']);
         $isLate = now()->greaterThan($clockIn);
         $notes = $isLate ? 'Terlambat' : null;
+        if ($missed) {
+            $missLabel = 'Shift sebelumnya tidak absen pulang';
+            $notes = $notes ? $notes.' · '.$missLabel : $missLabel;
+        }
 
         return EmployeeAttendance::query()->updateOrCreate(
             [
@@ -381,16 +450,19 @@ class AttendanceService
      */
     public function actionForEmployee(Employee $employee): string
     {
-        // Prioritas: selesaikan pulang shift kemarin (lintas tengah malam) dulu.
-        if ($this->openCheckoutAttendance($employee)) {
+        $actions = $this->availableActionsForEmployee($employee);
+        if (in_array('check_out', $actions, true) && in_array('check_in', $actions, true)) {
+            // Keduanya tersedia — default UI tetap bisa pilih; primary = pulang.
             return 'check_out';
+        }
+        if (in_array('check_out', $actions, true)) {
+            return 'check_out';
+        }
+        if (in_array('check_in', $actions, true)) {
+            return 'check_in';
         }
 
         $attendance = $this->todayAttendance($employee);
-
-        if ($this->canCheckInNow($attendance, $employee)) {
-            return 'check_in';
-        }
 
         if ($attendance?->check_in && $attendance?->check_out) {
             return 'done';
@@ -403,7 +475,7 @@ class AttendanceService
         return 'closed';
     }
 
-    /** @return list<array{id:int,name:string,code:string,action:string}> */
+    /** @return list<array{id:int,name:string,code:string,action:string,actions:list<string>,missed_checkout:bool,clock_in:string,clock_out:string,is_off:bool}> */
     public function activeEmployeesForScan(): array
     {
         $requiredIds = $this->requiredEmployeeIds();
@@ -418,12 +490,15 @@ class AttendanceService
             ->get()
             ->map(function (Employee $employee) {
                 $schedule = $this->scheduleFor($employee);
+                $actions = $this->availableActionsForEmployee($employee);
 
                 return [
                     'id' => $employee->id,
                     'name' => $employee->name,
                     'code' => $employee->employee_code,
                     'action' => $this->actionForEmployee($employee),
+                    'actions' => $actions,
+                    'missed_checkout' => $this->missedCheckoutAttendance($employee) !== null,
                     'clock_in' => $schedule['clock_in'],
                     'clock_out' => $schedule['clock_out'],
                     'is_off' => $schedule['is_off'],

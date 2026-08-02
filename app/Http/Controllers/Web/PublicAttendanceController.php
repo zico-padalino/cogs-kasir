@@ -63,11 +63,14 @@ class PublicAttendanceController extends Controller
         }
 
         $expected = $attendanceService->actionForEmployee($employee);
-        if ($expected !== $validated['mode']) {
-            return back()->withInput()->with('error', match ($expected) {
-                'check_in' => 'Saat ini yang tersedia: Absen Masuk.',
-                'check_out' => 'Saat ini yang tersedia: Absen Pulang.',
-                'done' => 'Anda sudah absen masuk & pulang hari ini.',
+        $available = $attendanceService->availableActionsForEmployee($employee);
+        if (! in_array($validated['mode'], $available, true)) {
+            return back()->withInput()->with('error', match (true) {
+                $validated['mode'] === 'check_in' && in_array('check_out', $available, true)
+                    => 'Saat ini Anda perlu Absen Pulang dulu, atau pilih Absen Masuk jika ingin lanjut (ketidakhadiran pulang akan tercatat).',
+                in_array('check_in', $available, true) => 'Saat ini yang tersedia: Absen Masuk.',
+                in_array('check_out', $available, true) => 'Saat ini yang tersedia: Absen Pulang.',
+                $expected === 'done' => 'Anda sudah absen masuk & pulang hari ini.',
                 default => 'Di luar jam absensi untuk pegawai ini.',
             });
         }
@@ -82,6 +85,7 @@ class PublicAttendanceController extends Controller
                 );
                 $message = 'Absen pulang berhasil — '.$employee->name;
             } else {
+                $hadMissed = $attendanceService->missedCheckoutAttendance($employee) !== null;
                 $attendanceService->checkIn(
                     $employee,
                     (float) $validated['latitude'],
@@ -89,6 +93,9 @@ class PublicAttendanceController extends Controller
                     $validated['photo'],
                 );
                 $message = 'Absen masuk berhasil — '.$employee->name;
+                if ($hadMissed) {
+                    $message .= '. Catatan: ketidakhadiran absen pulang shift sebelumnya telah tercatat.';
+                }
             }
         } catch (RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
