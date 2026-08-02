@@ -19,14 +19,24 @@ class LegalPageController extends Controller
     }
 
     /**
-     * @return array{shopName: string, siteUrl: string, contactEmail: string}
+     * @return array{
+     *     shopName: string,
+     *     siteUrl: string,
+     *     contactName: string,
+     *     contactWhatsapp: string,
+     *     whatsappUrl: string
+     * }
      */
     private function shared(): array
     {
+        $whatsapp = '085161852230';
+
         return [
             'shopName' => (string) ShopSettings::get('shop_name', config('pos.shop_name', 'Kedai Tjoan')),
             'siteUrl' => url('/pesan'),
-            'contactEmail' => 'admin@kedaitjoan.online',
+            'contactName' => 'Zico Padalino',
+            'contactWhatsapp' => $whatsapp,
+            'whatsappUrl' => 'https://wa.me/6285161852230',
         ];
     }
 }

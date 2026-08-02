@@ -66,8 +66,9 @@
         <section>
             <h2>7. Kontak</h2>
             <p>
-                Untuk pertanyaan terkait privasi, hubungi
-                <a href="mailto:{{ $contactEmail }}" class="legal-inline-link">{{ $contactEmail }}</a>.
+                Untuk pertanyaan terkait privasi, silakan menghubungi
+                <strong>{{ $contactName }}</strong> selaku developer melalui WhatsApp
+                <a href="{{ $whatsappUrl }}" class="legal-inline-link" target="_blank" rel="noopener noreferrer">{{ $contactWhatsapp }}</a>.
                 Lihat juga
                 <a href="{{ route('legal.terms') }}" class="legal-inline-link">Syarat &amp; Ketentuan</a>.
             </p>

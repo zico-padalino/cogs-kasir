@@ -5,13 +5,6 @@
 
 @section('content')
     <article class="legal-article">
-        <p class="legal-lead">
-            Dokumen ini diadaptasi dari template Syarat &amp; Ketentuan Midtrans (Retail)
-            untuk situs pemesanan <strong>{{ $shopName }}</strong>
-            (<a href="{{ $siteUrl }}" class="legal-inline-link">{{ $siteUrl }}</a>).
-            Dengan menggunakan situs ini, Anda dianggap menyetujui ketentuan berikut.
-        </p>
-
         <section>
             <h2>1. Kondisi Penggunaan</h2>
             <p>
@@ -142,8 +135,9 @@
             <h2>14. Pertanyaan dan Masukan</h2>
             <p>
                 Kami menerima pertanyaan, komentar, dan masukan terkait privasi atau informasi yang
-                dikumpulkan dari Anda. Hubungi kami di
-                <a href="mailto:{{ $contactEmail }}" class="legal-inline-link">{{ $contactEmail }}</a>.
+                dikumpulkan dari Anda. Silakan menghubungi
+                <strong>{{ $contactName }}</strong> selaku developer melalui WhatsApp
+                <a href="{{ $whatsappUrl }}" class="legal-inline-link" target="_blank" rel="noopener noreferrer">{{ $contactWhatsapp }}</a>.
             </p>
         </section>
 

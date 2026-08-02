@@ -26,6 +26,8 @@ class LegalPagesTest extends TestCase
         $this->get(route('legal.terms'))
             ->assertOk()
             ->assertSee('Syarat & Ketentuan')
+            ->assertSee('Zico Padalino')
+            ->assertSee('085161852230')
             ->assertSee('Harga dalam Rupiah')
             ->assertSee(route('order.menu'), false);
     }
@@ -35,7 +37,8 @@ class LegalPagesTest extends TestCase
         $this->get(route('legal.privacy'))
             ->assertOk()
             ->assertSee('Kebijakan Privasi')
-            ->assertSee('admin@kedaitjoan.online')
+            ->assertSee('Zico Padalino')
+            ->assertSee('085161852230')
             ->assertSee(route('legal.terms'), false);
     }
 
