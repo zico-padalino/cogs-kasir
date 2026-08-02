@@ -34,6 +34,7 @@ use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\ProductionOrderController;
 use App\Http\Controllers\Web\PwaController;
 use App\Http\Controllers\Web\ResetDataController;
+use App\Http\Controllers\Web\LegalPageController;
 use App\Http\Controllers\Web\TableOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,6 +65,9 @@ Route::redirect('meja/{token}', '/pesan');
 
 Route::get('absensi', [PublicAttendanceController::class, 'show'])->name('attendance.scan');
 Route::post('absensi', [PublicAttendanceController::class, 'store'])->name('attendance.scan.store');
+
+Route::get('syarat-ketentuan', [LegalPageController::class, 'terms'])->name('legal.terms');
+Route::get('kebijakan-privasi', [LegalPageController::class, 'privacy'])->name('legal.privacy');
 
 Route::get('pesan', [TableOrderController::class, 'show'])->name('order.menu');
 Route::post('pesan/new-order', [TableOrderController::class, 'newOrder'])->name('order.menu.new');

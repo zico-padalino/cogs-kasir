@@ -192,7 +192,13 @@
         </main>
 
         <footer class="order-table-footer">
+            <p>{{ config('pos.shop_name') }} · Harga dalam Rupiah (IDR)</p>
             <p>Pilih menu · Tipe & nama · Kirim · Bayar di kasir</p>
+            <p class="order-table-footer-links">
+                <a href="{{ route('legal.terms') }}">Syarat &amp; Ketentuan</a>
+                <span aria-hidden="true">·</span>
+                <a href="{{ route('legal.privacy') }}">Kebijakan Privasi</a>
+            </p>
         </footer>
     </div>
 @endsection

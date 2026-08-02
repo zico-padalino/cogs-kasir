@@ -100,6 +100,12 @@
             </form>
 
             <p class="mt-5 text-center text-sm text-slate-500">
+                Lihat menu &amp; pesan?
+                <a href="{{ route('order.menu') }}" class="font-semibold text-brand-700 underline hover:text-brand-800">
+                    Buka {{ $shopName }}
+                </a>
+            </p>
+            <p class="mt-2 text-center text-sm text-slate-500">
                 Hanya ingin absen?
                 <a href="{{ route('attendance.scan') }}" class="font-semibold text-teal-700 underline hover:text-teal-800">
                     Buka absensi tanpa login
