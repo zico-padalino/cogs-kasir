@@ -114,19 +114,25 @@
                     </form>
                 @endif
                 @if ($order->isOpenBill())
-                    <div class="pos-station-print-actions">
+                    <div class="pos-station-print-actions" role="group" aria-label="Cetak struk stasiun">
                         <a
                             href="{{ route('kasir.receipt.kitchen-print', $order) }}"
                             target="_blank"
                             rel="noopener"
-                            class="pos-station-print-btn"
-                        >Cetak Dapur</a>
+                            class="pos-station-print-btn pos-station-print-btn-kitchen"
+                        >
+                            <span aria-hidden="true">🍳</span>
+                            <span>Cetak Dapur</span>
+                        </a>
                         <a
                             href="{{ route('kasir.receipt.bar-print', $order) }}"
                             target="_blank"
                             rel="noopener"
-                            class="pos-station-print-btn"
-                        >Cetak Bar</a>
+                            class="pos-station-print-btn pos-station-print-btn-bar"
+                        >
+                            <span aria-hidden="true">🥤</span>
+                            <span>Cetak Bar</span>
+                        </a>
                     </div>
                 @endif
             </div>

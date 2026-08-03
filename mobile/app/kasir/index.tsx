@@ -1184,15 +1184,19 @@ export default function KasirPosScreen() {
                   <View style={styles.stationPrintRow}>
                     <Pressable
                       onPress={() => void printStationTicket(order.id, 'kitchen')}
-                      style={styles.stationPrintBtn}
+                      style={[styles.stationPrintBtn, styles.stationPrintBtnKitchen]}
                     >
-                      <Text style={styles.stationPrintText}>Cetak Dapur</Text>
+                      <Text style={[styles.stationPrintText, styles.stationPrintTextKitchen]}>
+                        🍳 Cetak Dapur
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => void printStationTicket(order.id, 'bar')}
-                      style={styles.stationPrintBtn}
+                      style={[styles.stationPrintBtn, styles.stationPrintBtnBar]}
                     >
-                      <Text style={styles.stationPrintText}>Cetak Bar</Text>
+                      <Text style={[styles.stationPrintText, styles.stationPrintTextBar]}>
+                        🥤 Cetak Bar
+                      </Text>
                     </Pressable>
                   </View>
                 ) : null}
@@ -1884,19 +1888,30 @@ const styles = StyleSheet.create({
   },
   stationPrintBtn: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.slate300,
-    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
+  stationPrintBtnKitchen: {
+    borderColor: '#fdba74',
+    backgroundColor: '#fff7ed',
+  },
+  stationPrintBtnBar: {
+    borderColor: '#7dd3fc',
+    backgroundColor: '#f0f9ff',
+  },
   stationPrintText: {
     fontSize: 13,
-    color: colors.slate700,
     ...font('600'),
+  },
+  stationPrintTextKitchen: {
+    color: '#9a3412',
+  },
+  stationPrintTextBar: {
+    color: '#075985',
   },
   holdBtnText: { color: colors.amber800, fontSize: 12, ...font('700'), textAlign: 'center' },
   search: {

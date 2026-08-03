@@ -47,10 +47,6 @@
                     $isOpenBill = $pending->status === PosOrderStatus::Unpaid;
                     $isAwaitingServe = $pending->status === PosOrderStatus::Paid;
                     $canOpen = ! $isCurrent && ! $isAwaitingServe;
-                    $actionCols = $isAwaitingServe ? 1 : ($isCurrent ? 1 : 2);
-                    if ($isOpenBill) {
-                        $actionCols += 2;
-                    }
                     $openLabel = match (true) {
                         $isOpenBill => 'Lanjut isi',
                         $pending->status === PosOrderStatus::Confirmed => 'Buka di kasir',
@@ -65,6 +61,10 @@
                     $deliveredCount = $pending->items->where('is_delivered', true)->count();
                     $showDeliverProgress = $itemCount > 0 && ($isOpenBill || $isAwaitingServe);
                     $canChecklist = $pending->canChecklistDelivered() && $itemCount > 0;
+                    $actionCols = $isAwaitingServe ? 1 : ($isCurrent ? 1 : 2);
+                    if ($canChecklist) {
+                        $actionCols += 1;
+                    }
                     $deliverItems = $canChecklist
                         ? $pending->items->map(fn ($item) => [
                             'id' => (int) $item->id,
@@ -150,75 +150,92 @@
                         </p>
                     @endif
 
-                    <div
-                        class="pos-pending-card-actions"
-                        style="--pos-pending-actions: {{ $actionCols + ($canChecklist ? 1 : 0) }}"
-                    >
+                    <div class="pos-pending-actions-stack">
                         @if ($isOpenBill)
-                            <a
-                                href="{{ route('kasir.receipt.kitchen-print', $pending) }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="pos-pending-action pos-pending-action-print"
-                            >Cetak Dapur</a>
-                            <a
-                                href="{{ route('kasir.receipt.bar-print', $pending) }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="pos-pending-action pos-pending-action-print"
-                            >Cetak Bar</a>
-                        @endif
-                        @if ($canChecklist)
-                            <button
-                                type="button"
-                                class="pos-pending-action pos-pending-action-deliver"
-                                data-deliver-open
-                                data-deliver-title="{{ $pending->customer_note ?: $pending->order_number }}"
-                            >
-                                <span hidden data-deliver-payload>@json($deliverItems)</span>
-                                Ceklis antar
-                            </button>
-                        @endif
-                        @if ($isAwaitingServe)
-                            <form action="{{ route('kasir.orders.serve', $pending) }}" method="POST" class="pos-pending-action-form">
-                                @csrf
-                                <button
-                                    type="submit"
-                                    class="pos-pending-action pos-pending-action-serve"
-                                    onclick="return confirm({{ json_encode($serveConfirm) }})"
+                            <div class="pos-pending-print-row" role="group" aria-label="Cetak struk stasiun">
+                                <a
+                                    href="{{ route('kasir.receipt.kitchen-print', $pending) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="pos-pending-action pos-pending-action-print-kitchen"
                                 >
-                                    Tandai selesai
-                                </button>
-                            </form>
-                        @elseif ($isCurrent)
-                            <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form">
-                                @csrf
-                                <button
-                                    type="submit"
-                                    class="pos-pending-action pos-pending-action-delete"
-                                    onclick="return confirm({{ json_encode($deleteConfirm) }})"
+                                    <span class="pos-pending-action-icon" aria-hidden="true">🍳</span>
+                                    <span class="pos-pending-action-label">
+                                        <span class="pos-pending-action-label-short">Dapur</span>
+                                        <span class="pos-pending-action-label-full">Cetak Dapur</span>
+                                    </span>
+                                </a>
+                                <a
+                                    href="{{ route('kasir.receipt.bar-print', $pending) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="pos-pending-action pos-pending-action-print-bar"
                                 >
-                                    {{ $isOpenBill ? 'Hapus tagihan' : 'Hapus pesanan' }}
-                                </button>
-                            </form>
-                        @else
-                            <form action="{{ route('kasir.load-order', $pending) }}" method="POST" class="pos-pending-action-form">
-                                @csrf
-                                <button type="submit" class="pos-pending-action pos-pending-action-open">
-                                    {{ $openLabel }}
-                                </button>
-                            </form>
-                            <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form">
-                                @csrf
-                                <button
-                                    type="submit"
-                                    class="pos-pending-action pos-pending-action-delete"
-                                    onclick="return confirm({{ json_encode($deleteConfirm) }})"
-                                >
-                                    {{ $deleteLabel }}
-                                </button>
-                            </form>
+                                    <span class="pos-pending-action-icon" aria-hidden="true">🥤</span>
+                                    <span class="pos-pending-action-label">
+                                        <span class="pos-pending-action-label-short">Bar</span>
+                                        <span class="pos-pending-action-label-full">Cetak Bar</span>
+                                    </span>
+                                </a>
+                            </div>
                         @endif
+
+                        <div
+                            class="pos-pending-card-actions"
+                            style="--pos-pending-actions: {{ max(1, $actionCols) }}"
+                        >
+                            @if ($canChecklist)
+                                <button
+                                    type="button"
+                                    class="pos-pending-action pos-pending-action-deliver"
+                                    data-deliver-open
+                                    data-deliver-title="{{ $pending->customer_note ?: $pending->order_number }}"
+                                >
+                                    <span hidden data-deliver-payload>@json($deliverItems)</span>
+                                    Ceklis antar
+                                </button>
+                            @endif
+                            @if ($isAwaitingServe)
+                                <form action="{{ route('kasir.orders.serve', $pending) }}" method="POST" class="pos-pending-action-form">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="pos-pending-action pos-pending-action-serve"
+                                        onclick="return confirm({{ json_encode($serveConfirm) }})"
+                                    >
+                                        Tandai selesai
+                                    </button>
+                                </form>
+                            @elseif ($isCurrent)
+                                <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="pos-pending-action pos-pending-action-delete"
+                                        onclick="return confirm({{ json_encode($deleteConfirm) }})"
+                                    >
+                                        {{ $isOpenBill ? 'Hapus tagihan' : 'Hapus pesanan' }}
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('kasir.load-order', $pending) }}" method="POST" class="pos-pending-action-form">
+                                    @csrf
+                                    <button type="submit" class="pos-pending-action pos-pending-action-open">
+                                        {{ $openLabel }}
+                                    </button>
+                                </form>
+                                <form action="{{ route('kasir.orders.cancel', $pending) }}" method="POST" class="pos-pending-action-form">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="pos-pending-action pos-pending-action-delete"
+                                        onclick="return confirm({{ json_encode($deleteConfirm) }})"
+                                    >
+                                        {{ $deleteLabel }}
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endforeach

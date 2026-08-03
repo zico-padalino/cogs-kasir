@@ -2846,9 +2846,17 @@
         @apply col-start-2 row-start-2 ml-auto w-fit justify-self-end text-[10px];
     }
 
+    .pos-pending-actions-stack {
+        @apply mt-0.5 flex flex-col gap-1.5;
+    }
+
+    .pos-pending-print-row {
+        @apply grid grid-cols-2 gap-1.5;
+    }
+
     .pos-pending-card-actions {
         @apply grid gap-1.5;
-        grid-template-columns: repeat(var(--pos-pending-actions, 3), minmax(0, 1fr));
+        grid-template-columns: repeat(var(--pos-pending-actions, 2), minmax(0, 1fr));
     }
 
     .pos-pending-card.is-current {
@@ -2860,7 +2868,19 @@
     }
 
     .pos-pending-action {
-        @apply min-h-9 w-full touch-manipulation rounded-lg px-2 py-1.5 text-xs font-semibold transition active:scale-[0.98];
+        @apply inline-flex min-h-9 w-full touch-manipulation items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold leading-tight transition active:scale-[0.98];
+    }
+
+    .pos-pending-action-icon {
+        @apply text-[13px] leading-none;
+    }
+
+    .pos-pending-action-label-short {
+        @apply inline;
+    }
+
+    .pos-pending-action-label-full {
+        @apply hidden;
     }
 
     .pos-pending-action-confirm {
@@ -2881,6 +2901,14 @@
 
     .pos-pending-action-delete {
         @apply border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100;
+    }
+
+    .pos-pending-action-print-kitchen {
+        @apply border border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100;
+    }
+
+    .pos-pending-action-print-bar {
+        @apply border border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100;
     }
 
     .pos-deliver-open-btn {
@@ -4087,11 +4115,15 @@
     }
 
     .pos-station-print-btn {
-        @apply relative z-10 flex min-h-10 touch-manipulation items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98];
+        @apply relative z-10 flex min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition active:scale-[0.98];
     }
 
-    .pos-pending-action-print {
-        @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+    .pos-station-print-btn-kitchen {
+        @apply border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100;
+    }
+
+    .pos-station-print-btn-bar {
+        @apply border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100;
     }
 
     .pos-open-bill-hint {
@@ -4706,8 +4738,24 @@
             grid-template-columns: 1fr;
         }
 
+        .pos-pending-card-actions[style*="--pos-pending-actions: 3"] {
+            grid-template-columns: 1fr;
+        }
+
+        .pos-pending-print-row {
+            @apply gap-2;
+        }
+
         .pos-pending-action {
-            @apply min-h-10 px-2.5 text-[11px] leading-snug;
+            @apply min-h-11 px-2.5 text-[12px] leading-snug;
+        }
+
+        .pos-pending-action-label-short {
+            @apply inline;
+        }
+
+        .pos-pending-action-label-full {
+            @apply hidden;
         }
 
         .pos-pending-btn-name {
@@ -5230,8 +5278,8 @@
         }
 
         .pos-pending-card {
-            width: min(78vw, 14rem);
-            min-width: min(78vw, 10.5rem);
+            width: min(82vw, 16rem);
+            min-width: min(82vw, 12.5rem);
         }
 
         .pos-view-tab-total {
@@ -5250,8 +5298,16 @@
     /* Tablet portrait / lebar menengah di bawah breakpoint desktop POS */
     @media (min-width: 640px) and (max-width: 1023px) {
         .pos-pending-card {
-            width: min(42vw, 17rem);
-            min-width: 13rem;
+            width: min(42vw, 18.5rem);
+            min-width: 14.5rem;
+        }
+
+        .pos-pending-action-label-short {
+            @apply hidden;
+        }
+
+        .pos-pending-action-label-full {
+            @apply inline;
         }
 
         .pos-product-grid {
