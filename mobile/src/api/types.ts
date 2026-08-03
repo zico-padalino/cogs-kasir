@@ -95,6 +95,7 @@ export type PosOrder = {
   is_editable?: boolean;
   can_reopen_for_edit?: boolean;
   is_open_bill?: boolean;
+  can_print_station_ticket?: boolean;
   can_checklist_delivered?: boolean;
   can_mark_served?: boolean;
   is_served?: boolean;

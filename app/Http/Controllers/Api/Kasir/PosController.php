@@ -553,53 +553,66 @@ class PosController extends Controller
 
     public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf, EscPosReceiptService $escPos): JsonResponse
     {
-        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+        $variant = is_string(request()->query('variant')) ? (string) request()->query('variant') : 'customer';
+        $variant = strtolower(trim($variant));
+        $isStation = in_array($variant, ['kitchen', 'bar'], true);
+
+        if ($isStation) {
+            if (! $order->canPrintStationTicket()) {
+                return response()->json(['message' => 'Struk dapur/bar tidak tersedia untuk status ini.'], 422);
+            }
+        } elseif (! $order->canPrintCustomerReceipt()) {
             return response()->json(['message' => 'Order belum dibayar.'], 422);
         }
 
         $order->load(['items.product', 'table', 'cashier']);
-        $pdf = $receiptPdf->store($order);
-        $kitchenPdf = $receiptPdf->storeKitchen($order);
-        $barPdf = $receiptPdf->storeBar($order);
         $paper = request()->query('paper');
-        $variant = request()->query('variant', 'customer');
         $thermal = $escPos->payload(
             $order,
             is_string($paper) ? $paper : null,
-            is_string($variant) ? $variant : 'customer',
+            $variant,
         );
 
-        return response()->json([
-            'data' => [
-                'order' => new PosOrderResource($order),
-                'pdf_url' => $pdf['url'],
-                'kitchen_pdf_url' => $kitchenPdf['url'],
-                'bar_pdf_url' => $barPdf['url'],
-                'wa_message' => $receiptPdf->whatsappMessage($order, $pdf['url']),
-                'shop_name' => config('pos.shop_name'),
-                'thermal' => [
-                    'paper' => $thermal['paper'],
-                    'width' => $thermal['width'],
-                    'variant' => $thermal['variant'],
-                    'base64' => $thermal['base64'],
-                    'thermer_url' => $thermal['thermer_url'],
-                    'thermer_browser_url' => $thermal['thermer_browser_url'],
-                    'intent_url' => $thermal['intent_url'],
-                    'thermer_share_text' => $thermal['thermer_share_text'],
-                    'thermer_baf_text' => $thermal['thermer_baf_text'],
-                    'thermer_play_store' => $thermal['thermer_play_store'],
-                    'thermer_json' => $thermal['thermer_json'],
-                    // Alias lama
-                    'rawbt_url' => $thermal['thermer_url'],
-                    'rawbt_play_store' => $thermal['thermer_play_store'],
-                ],
+        $kitchenPdf = $receiptPdf->storeKitchen($order);
+        $barPdf = $receiptPdf->storeBar($order);
+
+        $payload = [
+            'order' => new PosOrderResource($order),
+            'kitchen_pdf_url' => $kitchenPdf['url'],
+            'bar_pdf_url' => $barPdf['url'],
+            'shop_name' => config('pos.shop_name'),
+            'thermal' => [
+                'paper' => $thermal['paper'],
+                'width' => $thermal['width'],
+                'variant' => $thermal['variant'],
+                'base64' => $thermal['base64'],
+                'thermer_url' => $thermal['thermer_url'],
+                'thermer_browser_url' => $thermal['thermer_browser_url'],
+                'intent_url' => $thermal['intent_url'],
+                'thermer_share_text' => $thermal['thermer_share_text'],
+                'thermer_baf_text' => $thermal['thermer_baf_text'],
+                'thermer_play_store' => $thermal['thermer_play_store'],
+                'thermer_json' => $thermal['thermer_json'],
+                'rawbt_url' => $thermal['thermer_url'],
+                'rawbt_play_store' => $thermal['thermer_play_store'],
             ],
-        ]);
+        ];
+
+        if ($order->canPrintCustomerReceipt()) {
+            $pdf = $receiptPdf->store($order);
+            $payload['pdf_url'] = $pdf['url'];
+            $payload['wa_message'] = $receiptPdf->whatsappMessage($order, $pdf['url']);
+        } else {
+            $payload['pdf_url'] = null;
+            $payload['wa_message'] = '';
+        }
+
+        return response()->json(['data' => $payload]);
     }
 
     public function receiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): \Symfony\Component\HttpFoundation\Response
     {
-        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+        if (! $order->canPrintCustomerReceipt()) {
             abort(404);
         }
 
@@ -615,7 +628,7 @@ class PosController extends Controller
 
     public function receiptKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): \Symfony\Component\HttpFoundation\Response
     {
-        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -631,7 +644,7 @@ class PosController extends Controller
 
     public function receiptBarPdf(PosOrder $order, ReceiptPdfService $receiptPdf): \Symfony\Component\HttpFoundation\Response
     {
-        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -647,16 +660,23 @@ class PosController extends Controller
 
     public function receiptThermal(PosOrder $order, EscPosReceiptService $escPos): \Symfony\Component\HttpFoundation\Response
     {
-        if ($order->status !== PosOrderStatus::Paid && $order->status !== PosOrderStatus::Served) {
+        $paper = request()->query('paper');
+        $variant = is_string(request()->query('variant')) ? (string) request()->query('variant') : 'customer';
+        $variant = strtolower(trim($variant));
+        $isStation = in_array($variant, ['kitchen', 'bar'], true);
+
+        if ($isStation) {
+            if (! $order->canPrintStationTicket()) {
+                abort(404);
+            }
+        } elseif (! $order->canPrintCustomerReceipt()) {
             abort(404);
         }
 
-        $paper = request()->query('paper');
-        $variant = request()->query('variant', 'customer');
         $thermal = $escPos->payload(
             $order,
             is_string($paper) ? $paper : null,
-            is_string($variant) ? $variant : 'customer',
+            $variant,
         );
         $filename = 'struk-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $order->order_number).'.bin';
 

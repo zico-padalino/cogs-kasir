@@ -4,7 +4,10 @@
     $isStation = in_array($variant, ['kitchen', 'bar'], true);
     $stationTitle = $variant === 'bar' ? 'Struk Bar' : 'Struk Dapur';
     $emptyStationLabel = $variant === 'bar' ? 'Tidak ada item minuman' : 'Tidak ada item dapur';
-    $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
+    $paidAt = $order->paid_at?->format('d/m/Y H:i')
+        ?? $order->updated_at?->format('d/m/Y H:i')
+        ?? now()->format('d/m/Y H:i');
+    $isOpenBill = method_exists($order, 'isOpenBill') && $order->isOpenBill();
 
     // Karakter aneh sering bikin driver thermal corrupt di struk panjang.
     $clean = static function (?string $text): string {
@@ -216,6 +219,9 @@
             <div class="eyebrow">{{ $isStation ? $stationTitle : 'Struk Pembayaran' }}</div>
             <div class="order-no">{{ $clean($order->order_number) }}</div>
             <div class="meta">{{ $paidAt }}</div>
+            @if ($isOpenBill)
+                <div class="meta"><strong>TAGIHAN TERBUKA</strong></div>
+            @endif
             @if ($order->order_type)
                 <div class="meta">{{ $clean($order->order_type->label()) }}</div>
             @endif

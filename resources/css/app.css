@@ -4082,6 +4082,18 @@
         @apply relative z-10 flex w-full min-h-10 touch-manipulation cursor-pointer items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98];
     }
 
+    .pos-station-print-actions {
+        @apply grid grid-cols-2 gap-2;
+    }
+
+    .pos-station-print-btn {
+        @apply relative z-10 flex min-h-10 touch-manipulation items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98];
+    }
+
+    .pos-pending-action-print {
+        @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+    }
+
     .pos-open-bill-hint {
         @apply mx-3 mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900;
     }

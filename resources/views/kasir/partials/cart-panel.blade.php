@@ -113,6 +113,22 @@
                         </button>
                     </form>
                 @endif
+                @if ($order->isOpenBill())
+                    <div class="pos-station-print-actions">
+                        <a
+                            href="{{ route('kasir.receipt.kitchen-print', $order) }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="pos-station-print-btn"
+                        >Cetak Dapur</a>
+                        <a
+                            href="{{ route('kasir.receipt.bar-print', $order) }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="pos-station-print-btn"
+                        >Cetak Bar</a>
+                    </div>
+                @endif
             </div>
         </div>
     @elseif ($order->items->isNotEmpty())

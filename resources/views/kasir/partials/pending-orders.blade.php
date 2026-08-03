@@ -48,6 +48,9 @@
                     $isAwaitingServe = $pending->status === PosOrderStatus::Paid;
                     $canOpen = ! $isCurrent && ! $isAwaitingServe;
                     $actionCols = $isAwaitingServe ? 1 : ($isCurrent ? 1 : 2);
+                    if ($isOpenBill) {
+                        $actionCols += 2;
+                    }
                     $openLabel = match (true) {
                         $isOpenBill => 'Lanjut isi',
                         $pending->status === PosOrderStatus::Confirmed => 'Buka di kasir',
@@ -151,6 +154,20 @@
                         class="pos-pending-card-actions"
                         style="--pos-pending-actions: {{ $actionCols + ($canChecklist ? 1 : 0) }}"
                     >
+                        @if ($isOpenBill)
+                            <a
+                                href="{{ route('kasir.receipt.kitchen-print', $pending) }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="pos-pending-action pos-pending-action-print"
+                            >Cetak Dapur</a>
+                            <a
+                                href="{{ route('kasir.receipt.bar-print', $pending) }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="pos-pending-action pos-pending-action-print"
+                            >Cetak Bar</a>
+                        @endif
                         @if ($canChecklist)
                             <button
                                 type="button"

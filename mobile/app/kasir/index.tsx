@@ -31,6 +31,7 @@ import {
 } from '@/components/AppScaffold';
 import { consumePendingOpenOrderId, seedPendingIds } from '@/kasir/pendingOrderTracker';
 import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
+import { getThermalPaper, printThermalViaThermer } from '@/kasir/thermalPrint';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
 
@@ -465,9 +466,28 @@ export default function KasirPosScreen() {
                 await saveOrderContext(orderType, name);
               }
               const res = await kasirApi.openBill();
+              const held = res.data.held_order;
               applyOrder(res.data.active_order);
               await refresh();
-              Alert.alert('Disimpan', res.message || 'Tagihan disimpan.');
+              Alert.alert(
+                'Disimpan',
+                res.message || 'Tagihan disimpan.',
+                [
+                  {
+                    text: 'Cetak Dapur',
+                    onPress: () => {
+                      void printStationTicket(held.id, 'kitchen');
+                    },
+                  },
+                  {
+                    text: 'Cetak Bar',
+                    onPress: () => {
+                      void printStationTicket(held.id, 'bar');
+                    },
+                  },
+                  { text: 'Tutup', style: 'cancel' },
+                ],
+              );
             } catch (err) {
               handleApiError(err);
             } finally {
@@ -498,6 +518,27 @@ export default function KasirPosScreen() {
         },
       },
     ]);
+  };
+
+  const printStationTicket = async (orderId: number, variant: 'kitchen' | 'bar') => {
+    try {
+      const paper = await getThermalPaper();
+      const res = await kasirApi.receipt(orderId, paper, variant);
+      const payload = res.data.thermal ?? null;
+      if (!payload?.thermer_share_text && !payload?.thermer_url && !payload?.intent_url) {
+        Alert.alert('Belum siap', 'Data cetak thermal belum tersedia.');
+        return;
+      }
+      const result = await printThermalViaThermer(payload);
+      if (result === 'failed' || result === 'store') {
+        Alert.alert(
+          'Gagal cetak',
+          'Pastikan Thermer terpasang, lalu coba lagi dari tagihan terbuka.',
+        );
+      }
+    } catch (err) {
+      handleApiError(err);
+    }
   };
 
   const cashChange = useMemo(() => {
@@ -1117,26 +1158,44 @@ export default function KasirPosScreen() {
             </View>
 
             {itemCount > 0 && order?.can_checkout !== false ? (
-              <View style={styles.cartFooterActions}>
-                {order?.source === 'kasir' ? (
-                  <Pressable onPress={submitOpenBill} disabled={holding} style={styles.holdBtn}>
-                    <Text style={styles.holdBtnText}>
-                      {holding ? '…' : isActiveOpenBill ? 'Update tagihan' : 'Simpan dulu'}
-                    </Text>
+              <View style={styles.cartFooterActionsCol}>
+                <View style={styles.cartFooterActions}>
+                  {order?.source === 'kasir' ? (
+                    <Pressable onPress={submitOpenBill} disabled={holding} style={styles.holdBtn}>
+                      <Text style={styles.holdBtnText}>
+                        {holding ? '…' : isActiveOpenBill ? 'Update tagihan' : 'Simpan dulu'}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    onPress={() => {
+                      if (!ensureCustomerName('membayar')) return;
+                      setPayMethod('cash');
+                      setAmountReceived(formatRupiahInput(Math.ceil(total)));
+                      setProofUri(null);
+                      setPayOpen(true);
+                    }}
+                    style={styles.payBtnGreen}
+                  >
+                    <Text style={styles.payBtnText}>Bayar {formatRupiah(total)}</Text>
                   </Pressable>
+                </View>
+                {isActiveOpenBill && order?.id ? (
+                  <View style={styles.stationPrintRow}>
+                    <Pressable
+                      onPress={() => void printStationTicket(order.id, 'kitchen')}
+                      style={styles.stationPrintBtn}
+                    >
+                      <Text style={styles.stationPrintText}>Cetak Dapur</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => void printStationTicket(order.id, 'bar')}
+                      style={styles.stationPrintBtn}
+                    >
+                      <Text style={styles.stationPrintText}>Cetak Bar</Text>
+                    </Pressable>
+                  </View>
                 ) : null}
-                <Pressable
-                  onPress={() => {
-                    if (!ensureCustomerName('membayar')) return;
-                    setPayMethod('cash');
-                    setAmountReceived(formatRupiahInput(Math.ceil(total)));
-                    setProofUri(null);
-                    setPayOpen(true);
-                  }}
-                  style={styles.payBtnGreen}
-                >
-                  <Text style={styles.payBtnText}>Bayar {formatRupiah(total)}</Text>
-                </Pressable>
               </View>
             ) : (
               <Pressable onPress={newOrder} style={styles.outlineBtn}>
@@ -1432,6 +1491,7 @@ const styles = StyleSheet.create({
   },
   cartFooterAmount: { color: colors.slate800, fontSize: 13, ...font('600') },
   cartFooterActions: { flexDirection: 'row', gap: 8, marginTop: spacing.sm },
+  cartFooterActionsCol: { gap: 8, marginTop: spacing.sm },
   payBtnGreen: {
     flex: 1,
     minHeight: 48,
@@ -1817,6 +1877,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
+  },
+  stationPrintRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  stationPrintBtn: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate300,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  stationPrintText: {
+    fontSize: 13,
+    color: colors.slate700,
+    ...font('600'),
   },
   holdBtnText: { color: colors.amber800, fontSize: 12, ...font('700'), textAlign: 'center' },
   search: {

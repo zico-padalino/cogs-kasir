@@ -178,4 +178,20 @@
             @include('kasir.partials.pay-modal', ['order' => $order, 'format' => $format])
         </div>
     </div>
+
+    @if (session('print_kitchen_url') || session('print_bar_url'))
+        <script>
+            (function () {
+                var kitchenUrl = @json(session('print_kitchen_url'));
+                var barUrl = @json(session('print_bar_url'));
+                function openPrint(url) {
+                    if (! url) return;
+                    window.open(url, '_blank', 'noopener');
+                }
+                // Cetak dapur dulu, lalu bar sebentar kemudian.
+                setTimeout(function () { openPrint(kitchenUrl); }, 250);
+                setTimeout(function () { openPrint(barUrl); }, 900);
+            })();
+        </script>
+    @endif
 @endsection

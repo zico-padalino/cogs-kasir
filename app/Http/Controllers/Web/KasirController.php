@@ -301,7 +301,10 @@ class KasirController extends Controller
 
         return redirect()
             ->route('kasir.index')
-            ->with('success', $message);
+            ->with('success', $message)
+            ->with('print_station_order_id', $held->id)
+            ->with('print_kitchen_url', route('kasir.receipt.kitchen-print', $held))
+            ->with('print_bar_url', route('kasir.receipt.bar-print', $held));
     }
 
     public function confirmOrder(PosOrder $order, PosOrderService $posService)
@@ -694,7 +697,7 @@ class KasirController extends Controller
 
     public function receipt(PosOrder $order, ReceiptPdfService $receiptPdf, EscPosReceiptService $escPos)
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintCustomerReceipt()) {
             return redirect()->route('kasir.index');
         }
 
@@ -732,7 +735,7 @@ class KasirController extends Controller
 
     public function receiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintCustomerReceipt()) {
             abort(404);
         }
 
@@ -748,7 +751,7 @@ class KasirController extends Controller
 
     public function receiptPrint(PosOrder $order)
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintCustomerReceipt()) {
             abort(404);
         }
 
@@ -767,7 +770,7 @@ class KasirController extends Controller
 
     public function receiptKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -783,7 +786,7 @@ class KasirController extends Controller
 
     public function receiptKitchenPrint(PosOrder $order, PosOrderService $posService)
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -802,7 +805,7 @@ class KasirController extends Controller
 
     public function receiptBarPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -818,7 +821,7 @@ class KasirController extends Controller
 
     public function receiptBarPrint(PosOrder $order, PosOrderService $posService)
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -840,7 +843,7 @@ class KasirController extends Controller
      */
     public function publicReceiptPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintCustomerReceipt()) {
             abort(404);
         }
 
@@ -860,16 +863,14 @@ class KasirController extends Controller
      */
     public function publicThermerJson(PosOrder $order, EscPosReceiptService $escPos): \Illuminate\Http\Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
-            abort(404);
-        }
-
         $paper = request()->query('paper');
-        $variant = request()->query('variant', 'customer');
+        $variant = is_string(request()->query('variant')) ? (string) request()->query('variant') : 'customer';
+        $this->assertThermalAccess($order, $variant);
+
         $thermal = $escPos->payload(
             $order,
             is_string($paper) ? $paper : null,
-            is_string($variant) ? $variant : 'customer',
+            $variant,
         );
 
         return response($thermal['thermer_json'], 200, [
@@ -880,7 +881,7 @@ class KasirController extends Controller
 
     public function publicKitchenPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -896,7 +897,7 @@ class KasirController extends Controller
 
     public function publicBarPdf(PosOrder $order, ReceiptPdfService $receiptPdf): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
+        if (! $order->canPrintStationTicket()) {
             abort(404);
         }
 
@@ -912,16 +913,14 @@ class KasirController extends Controller
 
     public function receiptThermal(PosOrder $order, EscPosReceiptService $escPos): Response
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
-            abort(404);
-        }
-
         $paper = request()->query('paper');
-        $variant = request()->query('variant', 'customer');
+        $variant = is_string(request()->query('variant')) ? (string) request()->query('variant') : 'customer';
+        $this->assertThermalAccess($order, $variant);
+
         $thermal = $escPos->payload(
             $order,
             is_string($paper) ? $paper : null,
-            is_string($variant) ? $variant : 'customer',
+            $variant,
         );
         $filename = 'struk-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $order->order_number).'.bin';
 
@@ -935,16 +934,14 @@ class KasirController extends Controller
 
     public function receiptThermalJson(PosOrder $order, EscPosReceiptService $escPos): \Illuminate\Http\JsonResponse
     {
-        if (! in_array($order->status, [PosOrderStatus::Paid, PosOrderStatus::Served], true)) {
-            abort(404);
-        }
-
         $paper = request()->query('paper');
-        $variant = request()->query('variant', 'customer');
+        $variant = is_string(request()->query('variant')) ? (string) request()->query('variant') : 'customer';
+        $this->assertThermalAccess($order, $variant);
+
         $thermal = $escPos->payload(
             $order,
             is_string($paper) ? $paper : null,
-            is_string($variant) ? $variant : 'customer',
+            $variant,
         );
 
         return response()->json([
@@ -960,6 +957,24 @@ class KasirController extends Controller
             'thermer_play_store' => $thermal['thermer_play_store'],
             'thermer_json' => $thermal['thermer_json'],
         ]);
+    }
+
+    private function assertThermalAccess(PosOrder $order, string $variant): void
+    {
+        $variant = strtolower(trim($variant));
+        $isStation = in_array($variant, ['kitchen', 'bar'], true);
+
+        if ($isStation) {
+            if (! $order->canPrintStationTicket()) {
+                abort(404);
+            }
+
+            return;
+        }
+
+        if (! $order->canPrintCustomerReceipt()) {
+            abort(404);
+        }
     }
 
     private function activeKasirOrder(): ?PosOrder

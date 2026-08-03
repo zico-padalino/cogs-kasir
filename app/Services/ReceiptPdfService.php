@@ -186,7 +186,17 @@ class ReceiptPdfService
         $pdf->line($title, 28, false, 'C');
         $pdf->spacer(12);
         $pdf->line($order->order_number, 30, true, 'C');
-        $pdf->line($order->paid_at?->format('d/m/Y H:i') ?? '-', 26, false, 'C');
+        $pdf->line(
+            $order->paid_at?->format('d/m/Y H:i')
+                ?? $order->updated_at?->format('d/m/Y H:i')
+                ?? now()->format('d/m/Y H:i'),
+            26,
+            false,
+            'C',
+        );
+        if ($order->isOpenBill()) {
+            $pdf->line('TAGIHAN TERBUKA', 26, true, 'C');
+        }
 
         if ($order->order_type) {
             $pdf->line($order->order_type->label(), 26, false, 'C');

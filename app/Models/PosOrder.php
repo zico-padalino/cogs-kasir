@@ -158,6 +158,18 @@ class PosOrder extends Model
             && $this->status === PosOrderStatus::Unpaid;
     }
 
+    /** Struk dapur/bar: open bill atau sudah lunas. */
+    public function canPrintStationTicket(): bool
+    {
+        return $this->isOpenBill() || $this->isSettled();
+    }
+
+    /** Struk pelanggan: hanya setelah bayar. */
+    public function canPrintCustomerReceipt(): bool
+    {
+        return $this->isSettled();
+    }
+
     /** Boleh ceklis item antar: open bill, sudah bayar, atau selesai. */
     public function canChecklistDelivered(): bool
     {

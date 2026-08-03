@@ -42,6 +42,7 @@ class PosOrderResource extends JsonResource
             'is_editable' => $this->isKasirEditable(),
             'can_reopen_for_edit' => $this->canReopenForEdit(),
             'is_open_bill' => $this->isOpenBill(),
+            'can_print_station_ticket' => $this->canPrintStationTicket(),
             'can_checklist_delivered' => $this->canChecklistDelivered(),
             'can_mark_served' => $this->canMarkServed(),
             'is_served' => $this->isServed(),

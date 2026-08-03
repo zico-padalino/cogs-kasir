@@ -243,7 +243,17 @@ class EscPosReceiptService
         $lines[] = $this->textLine($title, bold: 0, align: 1, format: 0);
         $lines[] = $this->blankLine();
         $lines[] = $this->textLine($this->sanitize($order->order_number), bold: 1, align: 1, format: 0);
-        $lines[] = $this->textLine($order->paid_at?->format('d/m/Y H:i') ?? '-', bold: 0, align: 1, format: 0);
+        $lines[] = $this->textLine(
+            $order->paid_at?->format('d/m/Y H:i')
+                ?? $order->updated_at?->format('d/m/Y H:i')
+                ?? now()->format('d/m/Y H:i'),
+            bold: 0,
+            align: 1,
+            format: 0,
+        );
+        if ($order->isOpenBill()) {
+            $lines[] = $this->textLine('TAGIHAN TERBUKA', bold: 1, align: 1, format: 0);
+        }
 
         if ($order->order_type) {
             $lines[] = $this->textLine($this->sanitize($order->order_type->label()), bold: 0, align: 1, format: 0);
