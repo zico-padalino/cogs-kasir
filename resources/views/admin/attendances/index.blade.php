@@ -274,10 +274,11 @@
             <form method="POST" action="{{ route('admin.attendances.store') }}" class="att-report-manual-form">
                 @csrf
                 <p class="mb-3 text-xs text-slate-500">
-                    Untuk pegawai lupa pulang, lebih cepat pakai panel <strong>Belum absen pulang</strong> di atas.
-                    Form ini untuk catat masuk/pulang/izin manual.
+                    Pilih jenis di dropdown: <strong>Hadir</strong> menampilkan jam masuk,
+                    <strong>Pulang</strong> menampilkan jam pulang.
+                    Untuk lupa pulang, bisa juga pakai panel <strong>Belum absen pulang</strong> di atas.
                 </p>
-                <div class="att-report-manual-grid">
+                <div class="att-report-manual-grid" data-att-manual-form>
                     <div>
                         <label class="form-label" for="employee_id">Karyawan</label>
                         <select id="employee_id" name="employee_id" class="form-input" required>
@@ -292,24 +293,28 @@
                         <input id="work_date" type="date" name="work_date" value="{{ $to->toDateString() }}" class="form-input" required>
                     </div>
                     <div>
-                        <label class="form-label" for="status_manual">Status</label>
-                        <select id="status_manual" name="status" class="form-input">
+                        <label class="form-label" for="attendance_kind">Jenis</label>
+                        <select id="attendance_kind" name="attendance_kind" class="form-input" data-att-manual-kind required>
+                            <option value="hadir" @selected(old('attendance_kind', 'hadir') === 'hadir')>Hadir</option>
+                            <option value="pulang" @selected(old('attendance_kind') === 'pulang')>Pulang</option>
                             @foreach ($statuses as $status)
-                                <option value="{{ $status->value }}">{{ $status->label() }}</option>
+                                @continue($status->value === 'hadir')
+                                <option value="{{ $status->value }}" @selected(old('attendance_kind') === $status->value)>{{ $status->label() }}</option>
                             @endforeach
                         </select>
+                        <input type="hidden" name="status" id="status_manual" value="{{ old('status', 'hadir') }}" data-att-manual-status>
                     </div>
-                    <div>
+                    <div data-att-manual-field="check_in">
                         <label class="form-label" for="check_in">Jam masuk</label>
-                        <x-time-24-picker name="check_in" id="check_in" value="" />
+                        <x-time-24-picker name="check_in" id="check_in" value="{{ old('check_in') }}" />
                     </div>
-                    <div>
+                    <div data-att-manual-field="check_out" class="hidden">
                         <label class="form-label" for="check_out">Jam pulang</label>
-                        <x-time-24-picker name="check_out" id="check_out" value="" />
+                        <x-time-24-picker name="check_out" id="check_out" value="{{ old('check_out') }}" />
                     </div>
                     <div>
                         <label class="form-label" for="notes">Catatan</label>
-                        <input id="notes" name="notes" class="form-input" placeholder="Opsional">
+                        <input id="notes" name="notes" class="form-input" placeholder="Opsional" value="{{ old('notes') }}">
                     </div>
                 </div>
                 <button type="submit" class="btn-primary w-full sm:w-auto">Simpan Absensi</button>
@@ -320,12 +325,54 @@
         (function () {
             var panel = document.getElementById('att-report-manual');
             if (!panel) return;
+
             panel.addEventListener('toggle', function () {
                 if (!panel.open) return;
                 requestAnimationFrame(function () {
                     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
             });
+
+            var kindSelect = panel.querySelector('[data-att-manual-kind]');
+            var statusInput = panel.querySelector('[data-att-manual-status]');
+            var checkInField = panel.querySelector('[data-att-manual-field="check_in"]');
+            var checkOutField = panel.querySelector('[data-att-manual-field="check_out"]');
+            if (!kindSelect || !statusInput || !checkInField || !checkOutField) return;
+
+            function clearTimePicker(root) {
+                root.querySelectorAll('select, input').forEach(function (el) {
+                    if (el.tagName === 'SELECT') {
+                        el.selectedIndex = 0;
+                    } else if (el.type !== 'hidden') {
+                        el.value = '';
+                    } else if (el.name === 'check_in' || el.name === 'check_out') {
+                        el.value = '';
+                    }
+                });
+            }
+
+            function setFieldEnabled(root, enabled) {
+                root.classList.toggle('hidden', !enabled);
+                root.querySelectorAll('select, input').forEach(function (el) {
+                    el.disabled = !enabled;
+                });
+                if (!enabled) {
+                    clearTimePicker(root);
+                }
+            }
+
+            function syncKind() {
+                var kind = kindSelect.value || 'hadir';
+                var showIn = kind === 'hadir';
+                var showOut = kind === 'pulang';
+
+                statusInput.value = kind === 'pulang' ? 'hadir' : kind;
+                setFieldEnabled(checkInField, showIn);
+                setFieldEnabled(checkOutField, showOut);
+            }
+
+            kindSelect.addEventListener('change', syncKind);
+            syncKind();
         })();
     </script>
 @endsection

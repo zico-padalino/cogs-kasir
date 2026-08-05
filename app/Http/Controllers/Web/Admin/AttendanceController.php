@@ -124,11 +124,30 @@ class AttendanceController extends Controller
         $validated = $request->validate([
             'employee_id' => ['required', 'exists:employees,id'],
             'work_date' => ['required', 'date'],
+            'attendance_kind' => ['nullable', 'in:hadir,pulang,izin,sakit,alpha,cuti'],
             'check_in' => ['nullable', 'date_format:H:i'],
             'check_out' => ['nullable', 'date_format:H:i'],
             'status' => ['required', 'in:hadir,izin,sakit,alpha,cuti'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $kind = (string) ($validated['attendance_kind'] ?? $validated['status']);
+        if ($kind === 'pulang') {
+            $validated['status'] = 'hadir';
+        } elseif (in_array($kind, ['hadir', 'izin', 'sakit', 'alpha', 'cuti'], true)) {
+            $validated['status'] = $kind;
+        }
+
+        if ($kind === 'hadir' && blank($validated['check_in'] ?? null)) {
+            return back()->withInput()->withErrors([
+                'check_in' => 'Jam masuk wajib diisi untuk absen Hadir.',
+            ]);
+        }
+        if ($kind === 'pulang' && blank($validated['check_out'] ?? null)) {
+            return back()->withInput()->withErrors([
+                'check_out' => 'Jam pulang wajib diisi untuk absen Pulang.',
+            ]);
+        }
 
         $employee = Employee::query()->forAttendance()->find($validated['employee_id']);
         if (! $employee) {
@@ -141,12 +160,14 @@ class AttendanceController extends Controller
             'status' => $validated['status'],
         ];
 
-        if (filled($validated['check_in'] ?? null)) {
+        if ($kind === 'hadir' && filled($validated['check_in'] ?? null)) {
             $payload['check_in'] = $this->normalizeTime($validated['check_in']);
-        }
-        if (filled($validated['check_out'] ?? null)) {
+        } elseif ($kind === 'pulang' && filled($validated['check_out'] ?? null)) {
             $payload['check_out'] = $this->normalizeTime($validated['check_out']);
+        } elseif (! in_array($kind, ['hadir', 'pulang'], true)) {
+            // Izin / sakit / alpha / cuti: jangan paksa jam.
         }
+
         if (filled($validated['notes'] ?? null)) {
             $payload['notes'] = $validated['notes'];
         }
