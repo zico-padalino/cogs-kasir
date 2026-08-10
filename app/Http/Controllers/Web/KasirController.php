@@ -34,6 +34,22 @@ class KasirController extends Controller
         return KasirPin::cashierAttribution();
     }
 
+    /** @return '58mm'|'80mm' */
+    private function resolveThermalPaper(?string $paper = null): string
+    {
+        $paper = strtolower(trim((string) ($paper ?? request()->query('paper', ''))));
+        if ($paper === '80mm' || $paper === '80') {
+            return '80mm';
+        }
+        if ($paper === '58mm' || $paper === '58') {
+            return '58mm';
+        }
+
+        $configured = strtolower(trim((string) config('pos.thermal.paper', '58mm')));
+
+        return $configured === '80mm' ? '80mm' : '58mm';
+    }
+
     public function index(PosOrderService $posService)
     {
         $activeOrder = $this->activeKasirOrder();
@@ -756,6 +772,7 @@ class KasirController extends Controller
         }
 
         $order->load(['items.product', 'table', 'cashier']);
+        $paper = $this->resolveThermalPaper();
 
         return response()
             ->view('kasir.receipt-print', [
@@ -763,6 +780,7 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'customer',
                 'title' => 'Cetak Pesanan',
+                'paper' => $paper,
                 'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
@@ -791,6 +809,7 @@ class KasirController extends Controller
         }
 
         $ticket = $posService->orderForStation($order, 'kitchen');
+        $paper = $this->resolveThermalPaper();
 
         return response()
             ->view('kasir.receipt-print', [
@@ -798,6 +817,7 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'kitchen',
                 'title' => 'Cetak Dapur',
+                'paper' => $paper,
                 'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');
@@ -826,6 +846,7 @@ class KasirController extends Controller
         }
 
         $ticket = $posService->orderForStation($order, 'bar');
+        $paper = $this->resolveThermalPaper();
 
         return response()
             ->view('kasir.receipt-print', [
@@ -833,6 +854,7 @@ class KasirController extends Controller
                 'format' => Format::class,
                 'variant' => 'bar',
                 'title' => 'Cetak Bar',
+                'paper' => $paper,
                 'thermalJsonRoute' => route('kasir.receipt.thermal-json', $order),
             ])
             ->header('Cache-Control', 'private, max-age=0, must-revalidate');

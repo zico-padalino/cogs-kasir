@@ -119,6 +119,7 @@
                             href="{{ route('kasir.receipt.kitchen-print', $order) }}"
                             target="_blank"
                             rel="noopener"
+                            data-thermal-print-link
                             class="pos-station-print-btn pos-station-print-btn-kitchen"
                         >
                             <span aria-hidden="true">🍳</span>
@@ -128,6 +129,7 @@
                             href="{{ route('kasir.receipt.bar-print', $order) }}"
                             target="_blank"
                             rel="noopener"
+                            data-thermal-print-link
                             class="pos-station-print-btn pos-station-print-btn-bar"
                         >
                             <span aria-hidden="true">🥤</span>

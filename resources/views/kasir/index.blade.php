@@ -184,9 +184,22 @@
             (function () {
                 var kitchenUrl = @json(session('print_kitchen_url'));
                 var barUrl = @json(session('print_bar_url'));
+                var PAPER_KEY = 'pos-thermal-paper';
+                function selectedPaper() {
+                    try {
+                        var saved = localStorage.getItem(PAPER_KEY);
+                        if (saved === '58mm' || saved === '80mm') return saved;
+                    } catch (e) {}
+                    return @json(config('pos.thermal.paper', '58mm') === '80mm' ? '80mm' : '58mm');
+                }
+                function withPaper(url) {
+                    if (! url) return url;
+                    var joiner = url.indexOf('?') >= 0 ? '&' : '?';
+                    return url + joiner + 'paper=' + encodeURIComponent(selectedPaper());
+                }
                 function openPrint(url) {
                     if (! url) return;
-                    window.open(url, '_blank', 'noopener');
+                    window.open(withPaper(url), '_blank', 'noopener');
                 }
                 // Cetak dapur dulu, lalu bar sebentar kemudian.
                 setTimeout(function () { openPrint(kitchenUrl); }, 250);

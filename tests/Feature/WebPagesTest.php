@@ -28,7 +28,10 @@ class WebPagesTest extends TestCase
     {
         $this->actingAsCogsUser();
 
-        $this->get(route('dashboard'))->assertOk();
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Perkiraan Pengeluaran')
+            ->assertSee('Perkiraan gaji karyawan aktif');
     }
 
     public function test_product_pages_are_accessible(): void

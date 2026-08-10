@@ -35,6 +35,7 @@ class DashboardController extends Controller
             'dailyRevenue' => $this->dailyRevenue(now()->subDays(6)->startOfDay(), $todayEnd),
             'fundToday' => $fundService->dayReport($todayStart),
             'fundBalance' => $fundService->balance(),
+            'expenseForecast' => $fundService->expenseForecast(),
             'snapshot' => $this->businessSnapshot(),
             'topMenus' => $this->topSellingMenus($monthStart, $monthEnd, 5),
             'summary' => $cogsService->getSummaryReport(),

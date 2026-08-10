@@ -1681,7 +1681,51 @@ function initPosCashPayment(root) {
 document.addEventListener('DOMContentLoaded', () => {
     initKasirPos();
     initDeliverModal(document);
+    initThermalPrintLinks();
 });
+
+const THERMAL_PAPER_KEY = 'pos-thermal-paper';
+
+function resolveThermalPaperPreference() {
+    try {
+        const saved = localStorage.getItem(THERMAL_PAPER_KEY);
+        if (saved === '58mm' || saved === '80mm') {
+            return saved;
+        }
+    } catch {
+        // ignore
+    }
+
+    return '58mm';
+}
+
+function withThermalPaper(url) {
+    if (! url) {
+        return url;
+    }
+
+    try {
+        const parsed = new URL(url, window.location.origin);
+        parsed.searchParams.set('paper', resolveThermalPaperPreference());
+        return parsed.toString();
+    } catch {
+        const joiner = url.includes('?') ? '&' : '?';
+        return `${url}${joiner}paper=${encodeURIComponent(resolveThermalPaperPreference())}`;
+    }
+}
+
+/** Append ?paper=58mm|80mm ke link cetak dapur/bar agar cocok POS-58 & Rongta. */
+function initThermalPrintLinks() {
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest?.('[data-thermal-print-link]');
+        if (! link || ! link.href) {
+            return;
+        }
+
+        event.preventDefault();
+        window.open(withThermalPaper(link.href), '_blank', 'noopener');
+    });
+}
 
 let kasirSetPanel = null;
 

@@ -125,7 +125,15 @@ class OpenBillStationPrintTest extends TestCase
             ->assertOk()
             ->assertSee('Struk Dapur')
             ->assertSee('TAGIHAN TERBUKA')
-            ->assertSee('Nasi Goreng');
+            ->assertSee('Nasi Goreng')
+            ->assertSee('data-paper="58mm"', false)
+            ->assertSee('58mm (POS-58)')
+            ->assertSee('80mm (Rongta)');
+
+        $this->actingAs($kasir)
+            ->get(route('kasir.receipt.kitchen-print', $order).'?paper=80mm')
+            ->assertOk()
+            ->assertSee('data-paper="80mm"', false);
 
         $this->actingAs($kasir)
             ->get(route('kasir.receipt.bar-print', $order))
@@ -133,6 +141,11 @@ class OpenBillStationPrintTest extends TestCase
             ->assertSee('Struk Bar')
             ->assertSee('TAGIHAN TERBUKA')
             ->assertSee('Es Teh');
+
+        $this->actingAs($kasir)
+            ->get(route('kasir.receipt.bar-print', $order).'?paper=80mm')
+            ->assertOk()
+            ->assertSee('data-paper="80mm"', false);
 
         $this->actingAs($kasir)
             ->get(route('kasir.receipt.kitchen', $order))
@@ -182,6 +195,7 @@ class OpenBillStationPrintTest extends TestCase
 
         $this->assertStringContainsString('Cetak Dapur', $html);
         $this->assertStringContainsString('Cetak Bar', $html);
+        $this->assertStringContainsString('data-thermal-print-link', $html);
         $this->assertStringContainsString(route('kasir.receipt.kitchen-print', $order), $html);
         $this->assertStringContainsString(route('kasir.receipt.bar-print', $order), $html);
     }

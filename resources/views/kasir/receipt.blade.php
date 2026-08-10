@@ -90,15 +90,15 @@
             <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                     <input type="radio" name="thermal-paper" value="58mm" data-thermal-paper @checked(($thermal['paper'] ?? '58mm') === '58mm') class="accent-brand-600">
-                    58mm
+                    58mm (POS-58)
                 </label>
                 <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                     <input type="radio" name="thermal-paper" value="80mm" data-thermal-paper @checked(($thermal['paper'] ?? '') === '80mm') class="accent-brand-600">
-                    80mm
+                    80mm (Rongta)
                 </label>
             </div>
             <p class="text-xs text-slate-500" data-thermal-hint>
-                Di Android: tombol cetak langsung buka Thermer (bukan dialog printer sistem).
+                Pilih 58mm (POS-58) atau 80mm (Rongta). Android: Thermer. Laptop: dialog printer Windows.
             </p>
             <button type="button" class="btn-secondary w-full" data-receipt-print data-thermal-variant="customer">
                 Cetak Pesanan
@@ -445,7 +445,8 @@
                     bar: @json(route('kasir.receipt.bar-print', $order)),
                 };
                 var desktopUrl = desktopRoutes[variant] || desktopRoutes.customer;
-                window.open(desktopUrl, '_blank', 'noopener');
+                var joiner = desktopUrl.indexOf('?') >= 0 ? '&' : '?';
+                window.open(desktopUrl + joiner + 'paper=' + encodeURIComponent(paper), '_blank', 'noopener');
             }
 
             if (thermalBtn) {

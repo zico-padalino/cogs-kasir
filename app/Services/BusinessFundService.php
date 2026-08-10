@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\EmployeeStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
 use App\Models\BusinessExpense;
+use App\Models\Employee;
 use App\Models\PosOrder;
 use App\Models\User;
 use Carbon\Carbon;
@@ -50,6 +52,64 @@ class BusinessFundService
     public function balance(?Carbon $until = null): float
     {
         return $this->balanceAt($until ?? now());
+    }
+
+    /**
+     * Perkiraan pengeluaran untuk dashboard COGS.
+     *
+     * @return array{
+     *     month_label: string,
+     *     month_to_date: float,
+     *     avg_daily_30: float,
+     *     projected_month: float,
+     *     remaining_estimate: float,
+     *     estimated_salary: float,
+     *     days_elapsed: int,
+     *     days_in_month: int
+     * }
+     */
+    public function expenseForecast(?Carbon $asOf = null): array
+    {
+        $asOf = ($asOf ?? now())->copy();
+        $monthStart = $asOf->copy()->startOfMonth();
+        $daysInMonth = (int) $asOf->daysInMonth;
+        $daysElapsed = max(1, (int) $asOf->day);
+
+        $monthToDate = round((float) BusinessExpense::query()
+            ->whereBetween('occurred_at', [$monthStart, $asOf->copy()->endOfDay()])
+            ->sum('amount'), 4);
+
+        $windowStart = $asOf->copy()->subDays(29)->startOfDay();
+        $last30Total = round((float) BusinessExpense::query()
+            ->whereBetween('occurred_at', [$windowStart, $asOf->copy()->endOfDay()])
+            ->sum('amount'), 4);
+        $avgDaily30 = round($last30Total / 30, 4);
+
+        $projectedFromMtd = round(($monthToDate / $daysElapsed) * $daysInMonth, 4);
+        $projectedFromAvg = round($avgDaily30 * $daysInMonth, 4);
+        $projectedMonth = $monthToDate > 0
+            ? max($monthToDate, $projectedFromMtd)
+            : $projectedFromAvg;
+
+        $remainingEstimate = max(0, round($projectedMonth - $monthToDate, 4));
+
+        $estimatedSalary = round((float) Employee::query()
+            ->where('status', EmployeeStatus::Active)
+            ->get(['base_salary', 'daily_salary', 'id'])
+            ->sum(function (Employee $employee) {
+                return (float) $employee->base_salary + $employee->estimatedMonthlyFromDaily();
+            }), 4);
+
+        return [
+            'month_label' => $asOf->translatedFormat('F Y'),
+            'month_to_date' => $monthToDate,
+            'avg_daily_30' => $avgDaily30,
+            'projected_month' => $projectedMonth,
+            'remaining_estimate' => $remainingEstimate,
+            'estimated_salary' => $estimatedSalary,
+            'days_elapsed' => $daysElapsed,
+            'days_in_month' => $daysInMonth,
+        ];
     }
 
     public function balanceBefore(Carbon $date): float

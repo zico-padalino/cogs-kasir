@@ -157,6 +157,7 @@
                                     href="{{ route('kasir.receipt.kitchen-print', $pending) }}"
                                     target="_blank"
                                     rel="noopener"
+                                    data-thermal-print-link
                                     class="pos-pending-action pos-pending-action-print-kitchen"
                                 >
                                     <span class="pos-pending-action-icon" aria-hidden="true">🍳</span>
@@ -169,6 +170,7 @@
                                     href="{{ route('kasir.receipt.bar-print', $pending) }}"
                                     target="_blank"
                                     rel="noopener"
+                                    data-thermal-print-link
                                     class="pos-pending-action pos-pending-action-print-bar"
                                 >
                                     <span class="pos-pending-action-icon" aria-hidden="true">🥤</span>

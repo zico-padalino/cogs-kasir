@@ -42,6 +42,34 @@ class BusinessFundTest extends TestCase
         $this->assertSame(550_000.0, $report['closing']);
     }
 
+    public function test_expense_forecast_projects_month_from_mtd_pace(): void
+    {
+        $asOf = Carbon::parse('2026-07-10 15:00:00');
+
+        BusinessExpense::query()->create([
+            'amount' => 100_000,
+            'category' => 'operasional',
+            'payment_method' => PaymentMethod::Cash,
+            'note' => 'Belanja awal bulan',
+            'occurred_at' => Carbon::parse('2026-07-01 10:00:00'),
+        ]);
+        BusinessExpense::query()->create([
+            'amount' => 200_000,
+            'category' => 'utilitas',
+            'payment_method' => PaymentMethod::Transfer,
+            'note' => 'Bayar listrik',
+            'occurred_at' => Carbon::parse('2026-07-05 10:00:00'),
+        ]);
+
+        $forecast = app(BusinessFundService::class)->expenseForecast($asOf);
+
+        $this->assertSame(300_000.0, $forecast['month_to_date']);
+        $this->assertSame(10, $forecast['days_elapsed']);
+        $this->assertSame(31, $forecast['days_in_month']);
+        $this->assertSame(930_000.0, $forecast['projected_month']);
+        $this->assertSame(630_000.0, $forecast['remaining_estimate']);
+    }
+
     public function test_expense_cannot_exceed_available_business_fund(): void
     {
         $date = Carbon::parse('2026-07-26 12:00:00');

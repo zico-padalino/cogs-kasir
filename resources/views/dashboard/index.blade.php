@@ -109,6 +109,53 @@
     </section>
 
     <section class="mb-10">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Perkiraan Pengeluaran</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Proyeksi {{ $expenseForecast['month_label'] }} dari riwayat Dana Usaha
+                    (hari ke-{{ $expenseForecast['days_elapsed'] }} dari {{ $expenseForecast['days_in_month'] }}).
+                </p>
+            </div>
+            <a href="{{ route('business-funds.index') }}" class="text-sm font-semibold text-brand-700 hover:underline">Catat pengeluaran →</a>
+        </div>
+        <div class="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <x-stat-card
+                label="Sudah keluar bulan ini"
+                :value="$format::rupiah($expenseForecast['month_to_date'])"
+                color="rose"
+            />
+            <x-stat-card
+                label="Rata-rata harian (30 hari)"
+                :value="$format::rupiah($expenseForecast['avg_daily_30'])"
+                color="amber"
+            />
+            <x-stat-card
+                label="Perkiraan akhir bulan"
+                :value="$format::rupiah($expenseForecast['projected_month'])"
+                color="brand"
+            />
+            <x-stat-card
+                label="Sisa perkiraan bulan ini"
+                :value="$format::rupiah($expenseForecast['remaining_estimate'])"
+                color="slate"
+            />
+        </div>
+        <div class="card border-slate-200 bg-slate-50/60">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p class="text-sm font-medium text-slate-800">Perkiraan gaji karyawan aktif</p>
+                    <p class="mt-1 text-sm text-slate-500">
+                        Gaji pokok + estimasi dari gaji harian. Belum otomatis mengurangi Dana Usaha
+                        sampai dicatat sebagai pengeluaran.
+                    </p>
+                </div>
+                <p class="text-xl font-bold text-slate-900">{{ $format::rupiah($expenseForecast['estimated_salary']) }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-10">
         <div class="mb-4">
             <h2 class="text-lg font-semibold text-slate-900">Data Usaha</h2>
             <p class="mt-1 text-sm text-slate-500">Ringkas jumlah menu dan bahan yang sudah dicatat.</p>
