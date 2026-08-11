@@ -100,50 +100,51 @@
             </div>
         </div>
 
-        <div class="card space-y-5">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="min-w-0">
+        <div class="card space-y-4" data-qris-settings>
+            <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
                     <h2 class="text-lg font-semibold text-slate-900">QR pembayaran (QRIS)</h2>
                     <p class="mt-1 text-sm text-slate-500">
-                        Muncul di kasir saat pelanggan bayar QRIS. Format PNG/JPG/WebP, maks. 4 MB.
+                        Muncul di kasir saat bayar QRIS. PNG/JPG/WebP, maks. 4 MB.
                     </p>
                 </div>
                 @if ($hasCustomQris)
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                    <span class="inline-flex shrink-0 items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
                         QR kustom aktif
                     </span>
                 @else
-                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                    <span class="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
                         QR bawaan
                     </span>
                 @endif
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
-                <div class="mx-auto w-36 max-w-full sm:mx-0">
-                    <div class="aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            <div class="qris-settings-row">
+                <div class="qris-settings-preview">
+                    <div class="qris-settings-frame" style="width:5.75rem;height:5.75rem;max-width:100%;overflow:hidden">
                         <img
                             src="{{ $qrisUrl }}"
                             alt="QRIS pembayaran"
-                            class="h-full w-full object-contain"
+                            class="qris-settings-image"
+                            style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;display:block"
                             data-qris-preview
                             data-original-src="{{ $qrisUrl }}"
                         >
                     </div>
-                    <p class="mt-2 text-center text-[11px] text-slate-400">Preview di kasir</p>
+                    <p class="qris-settings-caption">Preview</p>
                 </div>
 
-                <div class="min-w-0 space-y-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+                <div class="qris-settings-actions min-w-0 flex-1">
                     <div>
                         <p class="text-sm font-medium text-slate-800">Ganti gambar QR</p>
-                        <p class="mt-0.5 text-xs text-slate-500">Pilih file baru untuk mengganti. Simpan di bawah agar langsung dipakai kasir.</p>
+                        <p class="mt-0.5 text-xs text-slate-500">Pilih file, lalu klik Simpan pengaturan di bawah.</p>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        <label for="qris" class="btn-primary btn-sm cursor-pointer">
+                    <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <label for="qris" class="btn-primary btn-sm cursor-pointer shrink-0">
                             Unggah QR baru
                         </label>
-                        <span class="truncate text-xs text-slate-500" data-qris-filename>Belum ada file dipilih</span>
+                        <span class="min-w-0 truncate text-xs text-slate-500" data-qris-filename>Belum ada file dipilih</span>
                     </div>
                     <input
                         type="file"
@@ -162,7 +163,7 @@
                             <input type="checkbox" name="remove_qris" value="1" class="mt-0.5 rounded border-slate-300 text-brand-600" data-qris-remove>
                             <span>
                                 <span class="font-medium text-slate-900">Kembalikan ke QR bawaan</span>
-                                <span class="mt-0.5 block text-xs text-slate-500">Centang lalu simpan untuk menghapus QR kustom.</span>
+                                <span class="mt-0.5 block text-xs text-slate-500">Centang lalu simpan.</span>
                             </span>
                         </label>
                     @endif
