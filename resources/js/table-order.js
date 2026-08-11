@@ -399,7 +399,147 @@ function initOrderPayChoice() {
         }
     });
 
+    initOrderQrisAppLinks(root);
     showMethod('qris');
+}
+
+function initOrderQrisAppLinks(root) {
+    const box = root.querySelector('[data-order-qris-apps]');
+    if (! box) {
+        return;
+    }
+
+    const payload = box.getAttribute('data-qris-payload') || '';
+    const imagePath = box.getAttribute('data-qris-image') || '';
+    const hint = box.querySelector('[data-qris-app-hint]');
+    const imageUrl = imagePath ? `${window.location.origin}/${imagePath.replace(/^\//, '')}` : '';
+
+    const setHint = (text) => {
+        if (! hint) {
+            return;
+        }
+        hint.textContent = text || '';
+        hint.hidden = ! text;
+    };
+
+    const openScheme = (scheme, label) => {
+        if (! scheme) {
+            return;
+        }
+
+        // Android Chrome: coba intent agar app terbuka dari browser.
+        const isAndroid = /Android/i.test(navigator.userAgent || '');
+        if (isAndroid && scheme.includes('://')) {
+            const [proto, rest = ''] = scheme.split('://');
+            const path = rest.replace(/^\/+/, '');
+            const intent = `intent://${path}#Intent;scheme=${proto};end`;
+            window.location.href = intent;
+        } else {
+            window.location.href = scheme;
+        }
+
+        setHint(
+            `${label || 'Aplikasi'} dibuka (jika terpasang). Scan QR di atas, lalu kembali ke sini untuk upload bukti.`,
+        );
+    };
+
+    box.querySelectorAll('[data-qris-open-app]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            openScheme(
+                btn.getAttribute('data-qris-scheme') || '',
+                btn.textContent?.trim() || 'Aplikasi',
+            );
+        });
+    });
+
+    const copyBtn = box.querySelector('[data-qris-copy]');
+    copyBtn?.addEventListener('click', async () => {
+        if (! payload) {
+            setHint('Kode QRIS belum tersedia.');
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(payload);
+            setHint('Kode QRIS disalin. Tempel di aplikasi pembayaran jika mendukung, atau scan QR di atas.');
+        } catch {
+            setHint('Gagal menyalin. Long-press QR atau gunakan tombol bagikan.');
+        }
+    });
+
+    const shareBtn = box.querySelector('[data-qris-share]');
+    shareBtn?.addEventListener('click', async () => {
+        try {
+            const file = imageUrl ? await qrisImageAsFile(imageUrl, root) : null;
+            if (file && navigator.canShare?.({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'QRIS pembayaran',
+                    text: 'Scan QRIS ini untuk bayar pesanan.',
+                });
+                setHint('QR dibagikan. Selesai bayar, kembali ke sini lalu upload bukti.');
+                return;
+            }
+
+            if (navigator.share && payload) {
+                await navigator.share({
+                    title: 'Kode QRIS',
+                    text: payload,
+                });
+                setHint('Kode QRIS dibagikan. Selesai bayar, kembali upload bukti.');
+                return;
+            }
+
+            if (payload) {
+                await navigator.clipboard.writeText(payload);
+                setHint('Perangkat tidak mendukung bagikan. Kode QRIS sudah disalin.');
+                return;
+            }
+
+            setHint('Bagikan tidak tersedia di perangkat ini. Scan QR di atas dengan aplikasi e-wallet.');
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+            setHint('Gagal membagikan. Scan QR di atas dengan aplikasi e-wallet/bank.');
+        }
+    });
+}
+
+async function qrisImageAsFile(imageUrl, root) {
+    const img = root.querySelector('[data-qris-image]');
+    try {
+        if (img?.complete && img.naturalWidth > 0) {
+            const canvas = document.createElement('canvas');
+            const size = Math.max(img.naturalWidth, 480);
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, size, size);
+                ctx.drawImage(img, 0, 0, size, size);
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+                if (blob) {
+                    return new File([blob], 'qris-pembayaran.png', { type: 'image/png' });
+                }
+            }
+        }
+    } catch {
+        // fallback fetch di bawah
+    }
+
+    try {
+        const response = await fetch(imageUrl, { credentials: 'same-origin' });
+        if (! response.ok) {
+            return null;
+        }
+        const blob = await response.blob();
+        const type = blob.type || 'image/svg+xml';
+        const ext = type.includes('svg') ? 'svg' : 'png';
+        return new File([blob], `qris-pembayaran.${ext}`, { type });
+    } catch {
+        return null;
+    }
 }
 
 function initOrderKasirConfirmation() {

@@ -36,10 +36,44 @@
                 <x-qris-dynamic :qris="$qrisPay" />
             </div>
             @if (! empty($savedQr['path']))
-                <div class="mt-3 flex justify-center">
+                <div class="mt-3 flex flex-wrap justify-center gap-2">
                     <a href="{{ url('/'.$savedQr['path']) }}" download="qris-{{ $order->order_number }}.svg" class="btn-secondary btn-sm">
                         Simpan gambar QRIS
                     </a>
+                </div>
+            @endif
+
+            @if (! empty($qrisPay['payload']))
+                <div
+                    class="order-qris-apps mt-4"
+                    data-order-qris-apps
+                    data-qris-payload="{{ e($qrisPay['payload']) }}"
+                    data-qris-amount="{{ (int) ($qrisPay['amount'] ?? 0) }}"
+                    data-qris-image="{{ $savedQr['path'] ?? '' }}"
+                >
+                    <p class="text-sm font-semibold text-slate-900">Bayar lewat aplikasi di HP</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        Buka e-wallet/bank, scan QR di atas (atau bagikan QR). Setelah lunas, upload bukti di bawah.
+                    </p>
+
+                    <div class="order-qris-app-grid" role="group" aria-label="Buka aplikasi pembayaran">
+                        <button type="button" class="order-qris-app-btn" data-qris-open-app="gopay" data-qris-scheme="gopay://">GoPay</button>
+                        <button type="button" class="order-qris-app-btn" data-qris-open-app="dana" data-qris-scheme="dana://">DANA</button>
+                        <button type="button" class="order-qris-app-btn" data-qris-open-app="ovo" data-qris-scheme="ovovalue://">OVO</button>
+                        <button type="button" class="order-qris-app-btn" data-qris-open-app="shopeepay" data-qris-scheme="shopeeid://main">ShopeePay</button>
+                        <button type="button" class="order-qris-app-btn" data-qris-open-app="linkaja" data-qris-scheme="linkaja://">LinkAja</button>
+                        <button type="button" class="order-qris-app-btn" data-qris-open-app="bca" data-qris-scheme="bca://">BCA</button>
+                    </div>
+
+                    <div class="order-qris-app-actions">
+                        <button type="button" class="btn-primary btn-sm flex-1" data-qris-share>
+                            Bagikan QR ke aplikasi
+                        </button>
+                        <button type="button" class="btn-secondary btn-sm flex-1" data-qris-copy>
+                            Salin kode QRIS
+                        </button>
+                    </div>
+                    <p class="mt-2 text-[11px] leading-relaxed text-slate-500" data-qris-app-hint hidden></p>
                 </div>
             @endif
         @else
