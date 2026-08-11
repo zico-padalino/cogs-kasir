@@ -3486,6 +3486,35 @@
         background: #fff;
     }
 
+    .order-pay-method-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .order-pay-method {
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        border-radius: 0.75rem;
+        padding: 0.7rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .order-pay-method.is-active {
+        background: #5c4033;
+        border-color: #5c4033;
+        color: #fff;
+    }
+
+    .order-pay-cash-panel,
+    .order-pay-qris-panel {
+        min-width: 0;
+    }
+
     /* Admin settings — preview QRIS tetap kecil & responsif */
     .qris-settings-row {
         display: flex;

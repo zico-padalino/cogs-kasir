@@ -46,12 +46,14 @@
                     $isCurrent = $currentOrderId && (int) $pending->id === (int) $currentOrderId;
                     $isOpenBill = $pending->status === PosOrderStatus::Unpaid;
                     $isAwaitingServe = $pending->status === PosOrderStatus::Paid;
+                    $paidOnlineQris = $isAwaitingServe && $pending->paidByCustomerOnline();
                     $canOpen = ! $isCurrent && ! $isAwaitingServe;
                     $openLabel = match (true) {
                         $isOpenBill => 'Lanjut isi',
                         $pending->status === PosOrderStatus::Confirmed => 'Buka di kasir',
                         default => 'Masuk kasir',
                     };
+                    $statusLabel = $paidOnlineQris ? 'Lunas QRIS · antar' : $pending->status->label();
                     $deleteLabel = $isOpenBill ? 'Hapus tagihan' : 'Hapus';
                     $deleteConfirm = $isOpenBill
                         ? 'Hapus tagihan terbuka '.($pending->customer_note ?: $pending->order_number).'?'
@@ -111,7 +113,7 @@
                                     · {{ $pending->table->label }}
                                 @endif
                             </span>
-                            <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $pending->status->label() }}</span>
+                            <span class="badge {{ $pending->status->badgeClass() }} pos-pending-status">{{ $statusLabel }}</span>
                         </a>
                     @elseif ($isCurrent && $isOpenBill)
                         <button

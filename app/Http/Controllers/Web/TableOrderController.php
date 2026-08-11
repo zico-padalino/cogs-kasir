@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PosOrderSource;
 use App\Enums\PosOrderStatus;
 use App\Http\Controllers\Controller;
@@ -243,9 +244,64 @@ class TableOrderController extends Controller
             ], 404);
         }
 
+        $data = $qrisDynamic->forAmount($order->total);
+        $saved = $qrisDynamic->persistDynamicImage($order->total, 'order-'.$order->id);
+        if ($saved) {
+            $data['saved_url'] = $saved['url'];
+            $data['qr_data_uri'] = $saved['url'];
+        }
+
         return response()->json([
-            'data' => $qrisDynamic->forAmount($order->total),
+            'data' => $data,
         ]);
+    }
+
+    public function pay(Request $request, PosOrderService $posService): RedirectResponse
+    {
+        $order = $this->currentOrder($posService);
+
+        if ($order->source !== PosOrderSource::Online) {
+            return back()->with('error', 'Pesanan tidak valid.');
+        }
+
+        if (! in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true)) {
+            return redirect()
+                ->to(route('order.menu').'#ke-kasir')
+                ->with('error', 'Pesanan sudah dibayar atau belum siap dibayar.');
+        }
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'in:qris'],
+            'payment_proof' => [
+                'required',
+                'image',
+                'max:5120',
+                'mimes:jpg,jpeg,png,webp,heic,heif',
+            ],
+        ], [
+            'payment_proof.required' => 'Unggah bukti pembayaran QRIS dulu.',
+            'payment_proof.image' => 'Bukti pembayaran harus berupa gambar.',
+            'payment_proof.max' => 'Ukuran bukti maksimal 5 MB.',
+        ]);
+
+        try {
+            $posService->payOrder(
+                $order,
+                PaymentMethod::Qris,
+                null,
+                null,
+                $request->file('payment_proof'),
+                [
+                    'cashier_name' => 'Pelanggan (QRIS meja)',
+                ],
+            );
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->to(route('order.menu').'#ke-kasir')
+            ->with('success', 'Bukti diterima. Pembayaran tercatat lunas. Mohon tunggu pesanan diantar.');
     }
 
     private function currentOrder(PosOrderService $posService): PosOrder

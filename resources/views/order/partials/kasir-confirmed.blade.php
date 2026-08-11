@@ -10,10 +10,10 @@
 >
     <div class="order-kasir-confirmation-hero">
         <div class="order-kasir-confirmation-icon" aria-hidden="true">💳</div>
-        <p class="order-kasir-confirmation-eyebrow">Sudah di kasir</p>
-        <h2 class="order-kasir-confirmation-title">Silakan Bayar di Kasir</h2>
+        <p class="order-kasir-confirmation-eyebrow">Siap dibayar</p>
+        <h2 class="order-kasir-confirmation-title">Bayar pesanan Anda</h2>
         <p class="order-kasir-confirmation-lead">
-            Pesanan Anda sudah masuk ke kasir. Selesaikan pembayaran untuk menyelesaikan pesanan.
+            Pesanan sudah di kasir. Bayar via QRIS di bawah, atau tunai langsung di kasir.
         </p>
     </div>
 
@@ -28,7 +28,7 @@
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">3</span>
-            <span>Bayar di kasir</span>
+            <span>Bayar</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
@@ -59,18 +59,7 @@
         </div>
     </div>
 
-    @php
-        $qrisPay = app(\App\Services\QrisDynamicService::class)->forAmount($order->total);
-    @endphp
-    @if ($qrisPay['enabled'] || ($qrisPay['fallback_image_url'] ?? null))
-        <div class="order-qris-pay card mt-4 p-4">
-            <p class="text-sm font-semibold text-slate-900">Bayar dengan QRIS</p>
-            <p class="mt-1 text-xs text-slate-500">Scan dari HP Anda. Nominal mengikuti total pesanan.</p>
-            <div class="mt-3 flex justify-center">
-                <x-qris-dynamic :qris="$qrisPay" />
-            </div>
-        </div>
-    @endif
+    @include('order.partials.payment-choice', ['order' => $order, 'format' => $format])
 
     <div class="order-kasir-notice order-kasir-notice-confirmed">
         <p class="font-semibold text-brand-900">Menunggu pembayaran</p>
@@ -81,7 +70,7 @@
 
     @include('order.partials.new-order-button', [
         'label' => 'Buat pesanan baru',
-        'hint' => 'Ingin pesan lagi? Selesaikan dulu pembayaran pesanan ini di kasir, atau buat pesanan baru terpisah.',
-        'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap menunggu pembayaran di kasir.',
+        'hint' => 'Ingin pesan lagi? Selesaikan dulu pembayaran pesanan ini, atau buat pesanan baru terpisah.',
+        'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap menunggu pembayaran.',
     ])
 </section>

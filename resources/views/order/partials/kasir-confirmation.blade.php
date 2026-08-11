@@ -11,9 +11,9 @@
     <div class="order-kasir-confirmation-hero">
         <div class="order-kasir-confirmation-icon" aria-hidden="true">🏪</div>
         <p class="order-kasir-confirmation-eyebrow">Pesanan terkirim</p>
-        <h2 class="order-kasir-confirmation-title">Silakan ke Kasir</h2>
+        <h2 class="order-kasir-confirmation-title">Bayar sekarang</h2>
         <p class="order-kasir-confirmation-lead">
-            Tunjukkan nomor pesanan & nama Anda. Kasir akan memproses pembayaran hingga pesanan selesai.
+            Pilih QRIS untuk bayar dari meja, atau datang ke kasir jika bayar tunai.
         </p>
     </div>
 
@@ -24,11 +24,11 @@
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">2</span>
-            <span>Datang ke kasir · sebutkan nomor & nama</span>
+            <span>Bayar (QRIS / tunai kasir)</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">3</span>
-            <span>Bayar di kasir</span>
+            <span>Pesanan diproses</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
@@ -59,25 +59,12 @@
         </div>
     </div>
 
-    @php
-        $qrisPay = app(\App\Services\QrisDynamicService::class)->forAmount($order->total);
-    @endphp
-    @if ($qrisPay['enabled'] || ($qrisPay['fallback_image_url'] ?? null))
-        <div class="order-qris-pay card mt-4 p-4">
-            <p class="text-sm font-semibold text-slate-900">Bayar dengan QRIS</p>
-            <p class="mt-1 text-xs text-slate-500">
-                Bisa dibayar sekarang. Sebutkan nomor pesanan ke kasir setelah transfer.
-            </p>
-            <div class="mt-3 flex justify-center">
-                <x-qris-dynamic :qris="$qrisPay" />
-            </div>
-        </div>
-    @endif
+    @include('order.partials.payment-choice', ['order' => $order, 'format' => $format])
 
     <div class="order-kasir-notice">
-        <p class="font-semibold text-amber-900">Menunggu kasir</p>
+        <p class="font-semibold text-amber-900">Menunggu pembayaran</p>
         <p class="mt-1 text-sm leading-relaxed text-amber-800">
-            Halaman ini berubah otomatis setelah kasir menerima dan menyelesaikan pembayaran.
+            Halaman ini berubah otomatis setelah pembayaran selesai.
         </p>
     </div>
 

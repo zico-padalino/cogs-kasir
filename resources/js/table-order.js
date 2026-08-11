@@ -13,7 +13,7 @@ function initOrderSubmit() {
             return;
         }
 
-        if (! window.confirm('Kirim pesanan ke kasir? Setelah ini, silakan ke kasir untuk konfirmasi dan pembayaran.')) {
+        if (! window.confirm('Kirim pesanan? Setelah ini Anda bisa bayar QRIS dari meja atau tunai di kasir.')) {
             return;
         }
 
@@ -333,8 +333,67 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderCheckoutTypeCards();
     initOrderItemNotes();
     initOrderSubmit();
+    initOrderPayChoice();
     initOrderKasirConfirmation();
 });
+
+function initOrderPayChoice() {
+    const root = document.querySelector('[data-order-pay-choice]');
+    if (! root) {
+        return;
+    }
+
+    const buttons = root.querySelectorAll('[data-order-pay-method]');
+    const panels = root.querySelectorAll('[data-order-pay-panel]');
+    const proofInput = root.querySelector('[data-order-payment-proof]');
+    const preview = root.querySelector('[data-order-proof-preview]');
+    const previewImg = root.querySelector('[data-order-proof-preview-img]');
+    const form = root.querySelector('[data-order-qris-pay-form]');
+    let objectUrl = null;
+
+    const showMethod = (method) => {
+        buttons.forEach((btn) => {
+            btn.classList.toggle('is-active', btn.getAttribute('data-order-pay-method') === method);
+        });
+        panels.forEach((panel) => {
+            panel.classList.toggle('hidden', panel.getAttribute('data-order-pay-panel') !== method);
+        });
+    };
+
+    buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            showMethod(btn.getAttribute('data-order-pay-method') || 'qris');
+        });
+    });
+
+    proofInput?.addEventListener('change', () => {
+        const file = proofInput.files?.[0];
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+        if (! file || ! previewImg || ! preview) {
+            preview?.classList.add('hidden');
+            return;
+        }
+        objectUrl = URL.createObjectURL(file);
+        previewImg.src = objectUrl;
+        preview.classList.remove('hidden');
+    });
+
+    form?.addEventListener('submit', (event) => {
+        if (! proofInput?.files?.length) {
+            event.preventDefault();
+            window.alert('Unggah bukti pembayaran dulu.');
+            return;
+        }
+        if (! window.confirm('Kirim bukti pembayaran? Pesanan akan dicatat lunas.')) {
+            event.preventDefault();
+        }
+    });
+
+    showMethod('qris');
+}
 
 function initOrderKasirConfirmation() {
     const section = document.querySelector('[data-order-waiting-kasir]');

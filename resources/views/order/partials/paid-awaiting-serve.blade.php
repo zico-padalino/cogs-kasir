@@ -13,7 +13,11 @@
         <p class="order-kasir-confirmation-eyebrow">Pembayaran diterima</p>
         <h2 class="order-kasir-confirmation-title">Menunggu Diantar / Selesai</h2>
         <p class="order-kasir-confirmation-lead">
-            Terima kasih! Pesanan Anda sudah dibayar. Mohon tunggu hingga kasir mengantar atau menandai pesanan selesai.
+            @if ($order->paidByCustomerOnline())
+                Terima kasih! Pembayaran QRIS Anda sudah diterima. Mohon tunggu hingga kasir mengantar atau menandai pesanan selesai.
+            @else
+                Terima kasih! Pesanan Anda sudah dibayar. Mohon tunggu hingga kasir mengantar atau menandai pesanan selesai.
+            @endif
         </p>
     </div>
 
@@ -24,7 +28,7 @@
         </li>
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">2</span>
-            <span>Sudah bayar di kasir</span>
+            <span>{{ $order->paidByCustomerOnline() ? 'Sudah bayar QRIS' : 'Sudah bayar di kasir' }}</span>
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">3</span>
@@ -58,6 +62,15 @@
             <p class="order-kasir-ticket-value text-brand-600">{{ $format::rupiah($order->total) }}</p>
         </div>
     </div>
+
+    @if ($order->paymentProofUrl())
+        <div class="mt-4 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+            <p class="text-sm font-semibold text-emerald-900">Bukti pembayaran Anda</p>
+            <a href="{{ $order->paymentProofUrl() }}" target="_blank" rel="noopener" class="mt-2 block overflow-hidden rounded-lg border border-emerald-100 bg-white">
+                <img src="{{ $order->paymentProofUrl() }}" alt="Bukti pembayaran" class="mx-auto max-h-48 w-full object-contain">
+            </a>
+        </div>
+    @endif
 
     <div class="order-kasir-notice order-kasir-notice-confirmed">
         <p class="font-semibold text-brand-900">Menunggu konfirmasi kasir</p>

@@ -80,6 +80,7 @@ Route::post('pesan/kirim', [TableOrderController::class, 'submit'])->name('order
 Route::post('pesan/submit', [TableOrderController::class, 'submit']); // alias lama
 Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
 Route::get('pesan/qris', [TableOrderController::class, 'qrisDynamic'])->name('order.menu.qris');
+Route::post('pesan/bayar', [TableOrderController::class, 'pay'])->name('order.menu.pay');
 
 // Public signed receipt PDF (WhatsApp / share) — avoids /storage 403 on shared hosting.
 Route::get('/struk/{order}/pdf', [KasirController::class, 'publicReceiptPdf'])

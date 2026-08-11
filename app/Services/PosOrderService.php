@@ -19,7 +19,9 @@ use App\Support\PosDiscount;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class PosOrderService
@@ -388,7 +390,12 @@ class PosOrderService
 
         $proofPath = null;
         if ($allowsProof && $paymentProof) {
-            $proofPath = $paymentProof->store('payment-proofs/'.now()->format('Y/m'), 'public');
+            $proofPath = $this->storePaymentProof($paymentProof);
+        }
+
+        if ($allowsProof && $paymentMethod === PaymentMethod::Qris && $order->source === PosOrderSource::Online && ! $proofPath && ! $cashier) {
+            // Bayar mandiri dari meja: bukti wajib.
+            throw new RuntimeException('Unggah bukti pembayaran QRIS dulu.');
         }
 
         try {
@@ -466,7 +473,14 @@ class PosOrderService
             });
         } catch (\Throwable $e) {
             if ($proofPath) {
-                Storage::disk('public')->delete($proofPath);
+                if (str_starts_with($proofPath, 'uploads/')) {
+                    $full = public_path($proofPath);
+                    if (is_file($full)) {
+                        @unlink($full);
+                    }
+                } else {
+                    Storage::disk('public')->delete($proofPath);
+                }
             }
 
             throw $e;
@@ -757,7 +771,14 @@ class PosOrderService
             ]);
 
             if ($proofPath) {
-                Storage::disk('public')->delete($proofPath);
+                if (str_starts_with($proofPath, 'uploads/')) {
+                    $full = public_path($proofPath);
+                    if (is_file($full)) {
+                        @unlink($full);
+                    }
+                } else {
+                    Storage::disk('public')->delete($proofPath);
+                }
             }
 
             $fresh = $order->fresh(['items.product', 'table', 'cashier']);
@@ -1121,6 +1142,25 @@ class PosOrderService
      * @param  array{user_id?: ?int, cashier_employee_id?: ?int, cashier_name?: ?string}|null  $attribution
      * @return array{user_id: ?int, cashier_employee_id: ?int, cashier_name: ?string}
      */
+    private function storePaymentProof(UploadedFile $paymentProof): string
+    {
+        $dirRelative = 'uploads/payment-proofs/'.now()->format('Y/m');
+        $dir = public_path($dirRelative);
+        if (! is_dir($dir)) {
+            File::ensureDirectoryExists($dir, 0755);
+        }
+
+        $ext = strtolower($paymentProof->getClientOriginalExtension() ?: 'jpg');
+        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'], true)) {
+            $ext = 'jpg';
+        }
+
+        $name = Str::uuid()->toString().'.'.$ext;
+        $paymentProof->move($dir, $name);
+
+        return $dirRelative.'/'.$name;
+    }
+
     private function resolveCashierAttribution(?User $cashier, ?array $attribution): array
     {
         if (is_array($attribution)) {

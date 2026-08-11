@@ -92,7 +92,14 @@ class VoidPosOrderCommand extends Command
             $order->delete();
 
             if ($proofPath) {
-                Storage::disk('public')->delete($proofPath);
+                if (str_starts_with($proofPath, 'uploads/')) {
+                    $full = public_path($proofPath);
+                    if (is_file($full)) {
+                        @unlink($full);
+                    }
+                } else {
+                    Storage::disk('public')->delete($proofPath);
+                }
             }
         });
 

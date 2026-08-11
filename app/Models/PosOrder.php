@@ -204,7 +204,26 @@ class PosOrder extends Model
             return null;
         }
 
-        return asset('storage/'.$this->payment_proof_path);
+        $path = ltrim(str_replace('\\', '/', (string) $this->payment_proof_path), '/');
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'uploads/')) {
+            return url('/'.$path);
+        }
+
+        return asset('storage/'.$path);
+    }
+
+    /** Pesanan online yang sudah dilunasi pelanggan (QRIS + bukti). */
+    public function paidByCustomerOnline(): bool
+    {
+        return $this->source === PosOrderSource::Online
+            && $this->isSettled()
+            && $this->payment_method === PaymentMethod::Qris
+            && filled($this->payment_proof_path);
     }
 
     public function requiresPaymentProof(): bool

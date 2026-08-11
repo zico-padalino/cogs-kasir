@@ -32,7 +32,13 @@
             <div class="kds-ticket-head-side">
                 <span class="kds-ticket-elapsed" data-dapur-elapsed>—</span>
                 <span @class(['kds-ticket-badge', 'is-bill' => $isOpenBill, 'is-paid' => ! $isOpenBill])>
-                    {{ $isOpenBill ? 'Tagihan terbuka' : 'Sudah bayar' }}
+                    @if ($isOpenBill)
+                        Tagihan terbuka
+                    @elseif ($order->paidByCustomerOnline())
+                        Lunas QRIS
+                    @else
+                        Sudah bayar
+                    @endif
                 </span>
             </div>
         </header>

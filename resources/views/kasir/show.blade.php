@@ -157,6 +157,21 @@
                     <dd>{{ $order->paid_at?->format('d/m/Y H:i') ?? '-' }}</dd>
                 </div>
             </dl>
+
+            @if ($order->paymentProofUrl())
+                <div class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
+                    <p class="text-sm font-semibold text-emerald-900">
+                        @if ($order->paidByCustomerOnline())
+                            Sudah bayar (QRIS meja + bukti)
+                        @else
+                            Bukti pembayaran
+                        @endif
+                    </p>
+                    <a href="{{ $order->paymentProofUrl() }}" target="_blank" rel="noopener" class="mt-2 block overflow-hidden rounded-lg border border-emerald-100 bg-white">
+                        <img src="{{ $order->paymentProofUrl() }}" alt="Bukti pembayaran" class="mx-auto max-h-64 w-full object-contain">
+                    </a>
+                </div>
+            @endif
         </div>
     </div>
 

@@ -7,6 +7,7 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Throwable;
 
@@ -212,6 +213,42 @@ class QrisDynamicService
         $svg = $writer->writeString($payload);
 
         return 'data:image/svg+xml;base64,'.base64_encode($svg);
+    }
+
+    /**
+     * Simpan QR dinamis ke public/uploads agar bisa diunduh pelanggan.
+     *
+     * @return array{path: string, url: string}|null
+     */
+    public function persistDynamicImage(float|int|string $amount, string $slug = 'order'): ?array
+    {
+        $result = $this->forAmount($amount);
+        if (! ($result['enabled'] ?? false) || empty($result['payload'])) {
+            return null;
+        }
+
+        $dir = public_path('uploads/qris-dynamic');
+        if (! is_dir($dir)) {
+            File::ensureDirectoryExists($dir, 0755);
+        }
+
+        $amountInt = (int) $result['amount'];
+        $safeSlug = preg_replace('/[^a-zA-Z0-9_-]+/', '-', $slug) ?: 'order';
+        $filename = $safeSlug.'-'.$amountInt.'.svg';
+        $relative = 'uploads/qris-dynamic/'.$filename;
+        $full = public_path($relative);
+
+        $renderer = new ImageRenderer(
+            new RendererStyle(480, 1),
+            new SvgImageBackEnd
+        );
+        $writer = new Writer($renderer);
+        file_put_contents($full, $writer->writeString($result['payload']));
+
+        return [
+            'path' => $relative,
+            'url' => url('/'.$relative).'?v='.filemtime($full),
+        ];
     }
 
     public function looksLikeQris(string $value): bool
