@@ -47,23 +47,52 @@
         <div class="card space-y-5">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Logo</h2>
-                <p class="mt-1 text-sm text-slate-500">PNG/JPG/WebP, maks. 2 MB. Disarankan kotak 512×512. Logo ini juga dipakai sebagai ikon tab browser.</p>
+                <p class="mt-1 text-sm text-slate-500">PNG/JPG/WebP, maks. 2 MB. Disarankan kotak 512×512. Juga dipakai sebagai ikon tab browser.</p>
             </div>
 
-            <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                     @if ($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="Logo toko" class="h-full w-full object-contain p-1.5">
+                        <img
+                            src="{{ $logoUrl }}"
+                            alt="Logo toko"
+                            class="h-full w-full object-contain p-1.5"
+                            data-logo-preview
+                            data-original-src="{{ $logoUrl }}"
+                        >
                     @else
-                        <span class="text-2xl font-bold text-brand-600">{{ \App\Support\ShopSettings::initial() }}</span>
+                        <span class="text-2xl font-bold text-brand-600" data-logo-fallback>{{ \App\Support\ShopSettings::initial() }}</span>
+                        <img
+                            src=""
+                            alt="Logo toko"
+                            class="hidden h-full w-full object-contain p-1.5"
+                            data-logo-preview
+                            data-original-src=""
+                        >
                     @endif
                 </div>
 
                 <div class="min-w-0 flex-1 space-y-3">
-                    <input type="file" name="logo" id="logo" accept="image/png,image/jpeg,image/webp" class="form-input file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label for="logo" class="btn-secondary btn-sm cursor-pointer">
+                            Pilih logo
+                        </label>
+                        <span class="truncate text-xs text-slate-500" data-logo-filename>Belum ada file baru</span>
+                    </div>
+                    <input
+                        type="file"
+                        name="logo"
+                        id="logo"
+                        accept="image/png,image/jpeg,image/webp"
+                        class="sr-only"
+                        data-logo-input
+                    >
+                    @error('logo')
+                        <p class="text-sm text-rose-600">{{ $message }}</p>
+                    @enderror
                     @if ($logoUrl)
                         <label class="flex items-center gap-2 text-sm text-slate-600">
-                            <input type="checkbox" name="remove_logo" value="1" class="rounded border-slate-300 text-brand-600">
+                            <input type="checkbox" name="remove_logo" value="1" class="rounded border-slate-300 text-brand-600" data-logo-remove>
                             Hapus logo saat ini
                         </label>
                     @endif
@@ -72,37 +101,70 @@
         </div>
 
         <div class="card space-y-5">
-            <div>
-                <h2 class="text-lg font-semibold text-slate-900">QR pembayaran (QRIS)</h2>
-                <p class="mt-1 text-sm text-slate-500">
-                    Gambar yang ditampilkan di kasir saat metode QRIS. PNG/JPG/WebP, maks. 4 MB.
-                    Unggah ulang untuk mengganti; centang hapus untuk kembali ke QR bawaan.
-                </p>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h2 class="text-lg font-semibold text-slate-900">QR pembayaran (QRIS)</h2>
+                    <p class="mt-1 text-sm text-slate-500">
+                        Muncul di kasir saat pelanggan bayar QRIS. Format PNG/JPG/WebP, maks. 4 MB.
+                    </p>
+                </div>
+                @if ($hasCustomQris)
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                        QR kustom aktif
+                    </span>
+                @else
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                        QR bawaan
+                    </span>
+                @endif
             </div>
 
-            <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-start">
-                <div class="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-2">
-                    <img src="{{ $qrisUrl }}" alt="QRIS pembayaran" class="h-full w-full object-contain">
+            <div class="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
+                <div class="mx-auto w-36 max-w-full sm:mx-0">
+                    <div class="aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+                        <img
+                            src="{{ $qrisUrl }}"
+                            alt="QRIS pembayaran"
+                            class="h-full w-full object-contain"
+                            data-qris-preview
+                            data-original-src="{{ $qrisUrl }}"
+                        >
+                    </div>
+                    <p class="mt-2 text-center text-[11px] text-slate-400">Preview di kasir</p>
                 </div>
 
-                <div class="min-w-0 flex-1 space-y-3">
+                <div class="min-w-0 space-y-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">Ganti gambar QR</p>
+                        <p class="mt-0.5 text-xs text-slate-500">Pilih file baru untuk mengganti. Simpan di bawah agar langsung dipakai kasir.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label for="qris" class="btn-primary btn-sm cursor-pointer">
+                            Unggah QR baru
+                        </label>
+                        <span class="truncate text-xs text-slate-500" data-qris-filename>Belum ada file dipilih</span>
+                    </div>
                     <input
                         type="file"
                         name="qris"
                         id="qris"
                         accept="image/png,image/jpeg,image/webp"
-                        class="form-input file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700"
+                        class="sr-only"
+                        data-qris-input
                     >
                     @error('qris')
                         <p class="text-sm text-rose-600">{{ $message }}</p>
                     @enderror
+
                     @if ($hasCustomQris)
-                        <label class="flex items-center gap-2 text-sm text-slate-600">
-                            <input type="checkbox" name="remove_qris" value="1" class="rounded border-slate-300 text-brand-600">
-                            Kembalikan ke QR bawaan
+                        <label class="flex items-start gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-slate-700 ring-1 ring-slate-200">
+                            <input type="checkbox" name="remove_qris" value="1" class="mt-0.5 rounded border-slate-300 text-brand-600" data-qris-remove>
+                            <span>
+                                <span class="font-medium text-slate-900">Kembalikan ke QR bawaan</span>
+                                <span class="mt-0.5 block text-xs text-slate-500">Centang lalu simpan untuk menghapus QR kustom.</span>
+                            </span>
                         </label>
-                    @else
-                        <p class="text-xs text-slate-500">Sedang memakai QR bawaan. Unggah file untuk menggantinya.</p>
                     @endif
                 </div>
             </div>
@@ -338,6 +400,73 @@
             }, function () {
                 alert('Gagal membaca lokasi. Izinkan akses lokasi di browser.');
             }, { enableHighAccuracy: true, timeout: 15000 });
+        });
+
+        function bindImagePicker(options) {
+            var input = document.querySelector(options.input);
+            var preview = document.querySelector(options.preview);
+            var filename = document.querySelector(options.filename);
+            var remove = options.remove ? document.querySelector(options.remove) : null;
+            var fallback = options.fallback ? document.querySelector(options.fallback) : null;
+            if (! input || ! preview) return;
+
+            var objectUrl = null;
+
+            function revoke() {
+                if (objectUrl) {
+                    URL.revokeObjectURL(objectUrl);
+                    objectUrl = null;
+                }
+            }
+
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+                if (! file) {
+                    if (filename) filename.textContent = 'Belum ada file dipilih';
+                    return;
+                }
+                if (remove) remove.checked = false;
+                if (filename) filename.textContent = file.name;
+                revoke();
+                objectUrl = URL.createObjectURL(file);
+                preview.src = objectUrl;
+                preview.classList.remove('hidden');
+                if (fallback) fallback.classList.add('hidden');
+            });
+
+            if (remove) {
+                remove.addEventListener('change', function () {
+                    if (! remove.checked) return;
+                    input.value = '';
+                    revoke();
+                    var original = preview.getAttribute('data-original-src') || '';
+                    if (original) {
+                        preview.src = original;
+                        preview.classList.remove('hidden');
+                        if (fallback) fallback.classList.add('hidden');
+                    } else {
+                        preview.removeAttribute('src');
+                        preview.classList.add('hidden');
+                        if (fallback) fallback.classList.remove('hidden');
+                    }
+                    if (filename) filename.textContent = 'Belum ada file dipilih';
+                });
+            }
+        }
+
+        bindImagePicker({
+            input: '[data-logo-input]',
+            preview: '[data-logo-preview]',
+            filename: '[data-logo-filename]',
+            remove: '[data-logo-remove]',
+            fallback: '[data-logo-fallback]',
+        });
+
+        bindImagePicker({
+            input: '[data-qris-input]',
+            preview: '[data-qris-preview]',
+            filename: '[data-qris-filename]',
+            remove: '[data-qris-remove]',
         });
     </script>
 @endsection
