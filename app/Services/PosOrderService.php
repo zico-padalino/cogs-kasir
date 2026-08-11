@@ -132,6 +132,7 @@ class PosOrderService
 
             if ($order && in_array($order->status, [
                 PosOrderStatus::Open,
+                PosOrderStatus::PendingPayment,
                 PosOrderStatus::Submitted,
                 PosOrderStatus::Confirmed,
                 PosOrderStatus::Paid,
@@ -284,11 +285,32 @@ class PosOrderService
         }
 
         if (! filled($order->customer_note)) {
-            throw new RuntimeException('Isi nama pemesan dulu sebelum kirim ke kasir.');
+            throw new RuntimeException('Isi nama pemesan dulu sebelum lanjut bayar.');
         }
 
         if ($order->order_type === null) {
             throw new RuntimeException('Pilih Take Away atau Dine In dulu.');
+        }
+
+        // Belum masuk antrean kasir — pelanggan pilih QRIS atau tunai dulu.
+        $order->update(['status' => PosOrderStatus::PendingPayment]);
+
+        return $order->fresh(['items.product', 'table']);
+    }
+
+    /** Pelanggan pilih bayar tunai → baru masuk antrean kasir. */
+    public function sendCashOrderToKasir(PosOrder $order): PosOrder
+    {
+        if ($order->source !== PosOrderSource::Online) {
+            throw new RuntimeException('Hanya pesanan online yang bisa dikirim ke kasir.');
+        }
+
+        if ($order->status !== PosOrderStatus::PendingPayment) {
+            throw new RuntimeException('Pesanan sudah dikirim atau belum siap.');
+        }
+
+        if ($order->items()->count() === 0) {
+            throw new RuntimeException('Pesanan masih kosong.');
         }
 
         $order->update(['status' => PosOrderStatus::Submitted]);
@@ -310,7 +332,7 @@ class PosOrderService
             return $order->fresh(['items.product', 'table']);
         }
 
-        if ($order->status !== PosOrderStatus::Submitted) {
+        if (! in_array($order->status, [PosOrderStatus::PendingPayment, PosOrderStatus::Submitted], true)) {
             throw new RuntimeException('Pesanan tidak bisa dimasukkan ke kasir.');
         }
 
@@ -351,7 +373,7 @@ class PosOrderService
         $attr = $this->resolveCashierAttribution($cashier, $attribution);
 
         if ($order->source === PosOrderSource::Online) {
-            if ($order->status === PosOrderStatus::Submitted) {
+            if (in_array($order->status, [PosOrderStatus::PendingPayment, PosOrderStatus::Submitted], true)) {
                 $order = $this->confirmOrder($order, $cashier, $attr);
             }
 
@@ -491,6 +513,12 @@ class PosOrderService
         }
 
         KitchenBoardCache::forget();
+
+        // QRIS mandiri dari meja: baru masuk radar kasir saat sudah lunas.
+        if ($result['order']->source === PosOrderSource::Online && ! $cashier) {
+            $this->kasirPushNotifier->notifyNewOnlineOrder($result['order']);
+        }
+
         $this->kasirPushNotifier->notifyKitchenOrder($result['order']);
 
         return $result;
@@ -719,7 +747,11 @@ class PosOrderService
     public function cancelPendingOnlineOrder(PosOrder $order): void
     {
         $isOnlineWaiting = $order->source === PosOrderSource::Online
-            && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true);
+            && in_array($order->status, [
+                PosOrderStatus::PendingPayment,
+                PosOrderStatus::Submitted,
+                PosOrderStatus::Confirmed,
+            ], true);
 
         $isOpenBill = $order->source === PosOrderSource::Kasir
             && $order->status === PosOrderStatus::Unpaid;

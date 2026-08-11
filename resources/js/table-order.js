@@ -13,7 +13,7 @@ function initOrderSubmit() {
             return;
         }
 
-        if (! window.confirm('Kirim pesanan? Setelah ini Anda bisa bayar QRIS dari meja atau tunai di kasir.')) {
+        if (! window.confirm('Lanjut ke pembayaran? Setelah ini pilih QRIS atau tunai di kasir.')) {
             return;
         }
 
@@ -387,7 +387,14 @@ function initOrderPayChoice() {
             window.alert('Unggah bukti pembayaran dulu.');
             return;
         }
-        if (! window.confirm('Kirim bukti pembayaran? Pesanan akan dicatat lunas.')) {
+        if (! window.confirm('Kirim bukti pembayaran? Pesanan akan dicatat lunas dan masuk ke kasir.')) {
+            event.preventDefault();
+        }
+    });
+
+    const cashForm = root.querySelector('[data-order-cash-send-form]');
+    cashForm?.addEventListener('submit', (event) => {
+        if (! window.confirm('Kirim pesanan ke kasir untuk bayar tunai?')) {
             event.preventDefault();
         }
     });

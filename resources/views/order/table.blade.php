@@ -41,7 +41,13 @@
         @endif
 
         <main class="order-table-main">
-            @if ($order->status->value === 'submitted')
+            @if ($order->status->value === 'pending_payment')
+                @include('order.partials.payment-pending', ['order' => $order, 'format' => $format])
+
+                <div class="order-layout-single">
+                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
+                </div>
+            @elseif ($order->status->value === 'submitted')
                 @include('order.partials.kasir-confirmation', ['order' => $order, 'format' => $format])
 
                 <div class="order-layout-single">

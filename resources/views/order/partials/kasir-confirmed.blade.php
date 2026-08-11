@@ -11,9 +11,9 @@
     <div class="order-kasir-confirmation-hero">
         <div class="order-kasir-confirmation-icon" aria-hidden="true">💳</div>
         <p class="order-kasir-confirmation-eyebrow">Siap dibayar</p>
-        <h2 class="order-kasir-confirmation-title">Bayar pesanan Anda</h2>
+        <h2 class="order-kasir-confirmation-title">Bayar di kasir</h2>
         <p class="order-kasir-confirmation-lead">
-            Pesanan sudah di kasir. Bayar via QRIS di bawah, atau tunai langsung di kasir.
+            Pesanan sudah di kasir. Bayar tunai di kasir, atau gunakan QRIS di bawah lalu upload bukti.
         </p>
     </div>
 

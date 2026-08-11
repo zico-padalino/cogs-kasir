@@ -78,6 +78,7 @@ Route::match(['delete', 'post'], 'pesan/items/{item}/hapus', [TableOrderControll
 // Hindari path /submit — sering diblok WAF/hosting (405).
 Route::post('pesan/kirim', [TableOrderController::class, 'submit'])->name('order.menu.submit');
 Route::post('pesan/submit', [TableOrderController::class, 'submit']); // alias lama
+Route::post('pesan/bayar-tunai', [TableOrderController::class, 'sendCash'])->name('order.menu.pay-cash');
 Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
 Route::get('pesan/qris', [TableOrderController::class, 'qrisDynamic'])->name('order.menu.qris');
 Route::post('pesan/bayar', [TableOrderController::class, 'pay'])->name('order.menu.pay');

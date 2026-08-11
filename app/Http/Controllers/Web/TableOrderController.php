@@ -29,7 +29,7 @@ class TableOrderController extends Controller
 
         $order->load(['items.product', 'table']);
 
-        // Setelah dikirim ke kasir, tidak perlu load katalog menu (berat + sering reload dari poll).
+        // Setelah checkout / dikirim, tidak perlu load katalog menu.
         $needsMenu = $order->status === PosOrderStatus::Open;
 
         $products = $needsMenu ? $posService->sellableProducts() : collect();
@@ -178,7 +178,26 @@ class TableOrderController extends Controller
 
         return redirect()
             ->to(route('order.menu').'#ke-kasir')
-            ->with('success', 'Pesanan terkirim. Silakan ke kasir untuk konfirmasi dan pembayaran.');
+            ->with('success', 'Pesanan siap. Pilih QRIS atau bayar tunai di kasir.');
+    }
+
+    public function sendCash(PosOrderService $posService): RedirectResponse
+    {
+        $order = $this->currentOrder($posService);
+
+        if ($order->source !== PosOrderSource::Online) {
+            return back()->with('error', 'Pesanan tidak valid.');
+        }
+
+        try {
+            $posService->sendCashOrderToKasir($order);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->to(route('order.menu').'#ke-kasir')
+            ->with('success', 'Pesanan dikirim ke kasir. Silakan bayar tunai di kasir.');
     }
 
     public function status(): JsonResponse
@@ -216,6 +235,7 @@ class TableOrderController extends Controller
             'order_number' => $order->order_number,
             'customer_note' => $order->customer_note,
             'total' => (float) $order->total,
+            'is_pending_payment' => $status === 'pending_payment',
             'is_submitted' => $status === 'submitted',
             'is_confirmed' => $status === 'confirmed',
             'is_paid' => $status === 'paid',
@@ -237,7 +257,11 @@ class TableOrderController extends Controller
                 ->first();
         }
 
-        if (! $order || ! in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true)) {
+        if (! $order || ! in_array($order->status, [
+            PosOrderStatus::PendingPayment,
+            PosOrderStatus::Submitted,
+            PosOrderStatus::Confirmed,
+        ], true)) {
             return response()->json([
                 'message' => 'Pesanan belum siap dibayar.',
                 'data' => $qrisDynamic->forAmount(0),
@@ -264,7 +288,11 @@ class TableOrderController extends Controller
             return back()->with('error', 'Pesanan tidak valid.');
         }
 
-        if (! in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true)) {
+        if (! in_array($order->status, [
+            PosOrderStatus::PendingPayment,
+            PosOrderStatus::Submitted,
+            PosOrderStatus::Confirmed,
+        ], true)) {
             return redirect()
                 ->to(route('order.menu').'#ke-kasir')
                 ->with('error', 'Pesanan sudah dibayar atau belum siap dibayar.');

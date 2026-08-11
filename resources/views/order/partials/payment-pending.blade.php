@@ -4,16 +4,16 @@
     id="ke-kasir"
     class="order-kasir-confirmation"
     data-order-waiting-kasir
-    data-order-initial-status="submitted"
+    data-order-initial-status="pending_payment"
     data-order-status-url="{{ route('order.menu.status') }}"
     data-order-poll-interval="{{ max(90, (int) config('pos.notifications.poll_interval_seconds', 90)) }}"
 >
     <div class="order-kasir-confirmation-hero">
-        <div class="order-kasir-confirmation-icon" aria-hidden="true">🏪</div>
-        <p class="order-kasir-confirmation-eyebrow">Sudah dikirim</p>
-        <h2 class="order-kasir-confirmation-title">Bayar tunai di kasir</h2>
+        <div class="order-kasir-confirmation-icon" aria-hidden="true">💳</div>
+        <p class="order-kasir-confirmation-eyebrow">Pesanan siap</p>
+        <h2 class="order-kasir-confirmation-title">Pilih cara bayar</h2>
         <p class="order-kasir-confirmation-lead">
-            Pesanan Anda sudah masuk antrean kasir. Datang ke kasir dan sebutkan nomor pesanan.
+            Bayar QRIS dari meja (upload bukti), atau pilih tunai agar pesanan dikirim ke kasir.
         </p>
     </div>
 
@@ -24,7 +24,7 @@
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">2</span>
-            <span>Bayar tunai di kasir</span>
+            <span>Bayar (QRIS / tunai)</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">3</span>
@@ -59,28 +59,18 @@
         </div>
     </div>
 
-    <div class="rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm text-brand-900">
-        <p class="font-semibold">Menunggu di kasir</p>
-        <p class="mt-1 text-xs leading-relaxed text-brand-800">
-            Sebutkan nomor
-            <strong class="font-mono">{{ $order->order_number }}</strong>
-            @if ($order->customer_note)
-                atas nama <strong>{{ $order->customer_note }}</strong>
-            @endif
-            . Kasir akan memproses pembayaran tunai.
-        </p>
-    </div>
+    @include('order.partials.payment-choice', ['order' => $order, 'format' => $format])
 
-    <div class="order-kasir-notice mt-4">
-        <p class="font-semibold text-amber-900">Menunggu pembayaran di kasir</p>
+    <div class="order-kasir-notice">
+        <p class="font-semibold text-amber-900">Belum masuk kasir</p>
         <p class="mt-1 text-sm leading-relaxed text-amber-800">
-            Halaman ini berubah otomatis setelah kasir menerima pembayaran.
+            Pesanan baru muncul di kasir setelah Anda upload bukti QRIS atau menekan “Kirim ke kasir” untuk tunai.
         </p>
     </div>
 
     @include('order.partials.new-order-button', [
         'label' => 'Buat pesanan baru',
-        'hint' => 'Ingin pesan lagi? Pesanan ini tetap menunggu di kasir.',
-        'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap diproses kasir.',
+        'hint' => 'Ingin pesan lagi? Selesaikan dulu pembayaran pesanan ini, atau buat pesanan baru terpisah.',
+        'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap menunggu pembayaran.',
     ])
 </section>

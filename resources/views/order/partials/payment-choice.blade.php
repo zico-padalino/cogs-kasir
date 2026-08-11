@@ -87,16 +87,33 @@
         <div class="rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm text-brand-900">
             <p class="font-semibold">Bayar tunai di kasir</p>
             <p class="mt-1 text-xs leading-relaxed text-brand-800">
-                Datang ke kasir, sebutkan nomor
+                @if ($order->status->value === 'pending_payment')
+                    Setelah dikirim, datang ke kasir dan sebutkan nomor
+                @else
+                    Datang ke kasir dan sebutkan nomor
+                @endif
                 <strong class="font-mono">{{ $order->order_number }}</strong>
                 @if ($order->customer_note)
                     atas nama <strong>{{ $order->customer_note }}</strong>
                 @endif
-                . Kasir akan memproses pembayaran tunai.
+                .
             </p>
         </div>
         <p class="mt-3 text-center text-xs text-slate-500">
             Total: <strong class="text-brand-700">{{ $format::rupiah($order->total) }}</strong>
         </p>
+        @if ($order->status->value === 'pending_payment')
+            <form
+                action="{{ route('order.menu.pay-cash') }}"
+                method="POST"
+                class="mt-4"
+                data-order-cash-send-form
+            >
+                @csrf
+                <button type="submit" class="btn-primary w-full">
+                    Kirim ke kasir (bayar tunai)
+                </button>
+            </form>
+        @endif
     </div>
 </div>

@@ -143,7 +143,7 @@ class OnlineQrisSelfPayTest extends TestCase
             'order_day' => now()->toDateString(),
             'source' => PosOrderSource::Online,
             'order_type' => PosOrderType::Takeaway,
-            'status' => PosOrderStatus::Submitted,
+            'status' => PosOrderStatus::PendingPayment,
             'customer_note' => 'Budi',
             'subtotal' => 15000,
             'total' => 15000,
@@ -176,5 +176,69 @@ class OnlineQrisSelfPayTest extends TestCase
         $this->assertFileExists(public_path($order->payment_proof_path));
 
         @unlink(public_path($order->payment_proof_path));
+    }
+
+    public function test_cash_choice_sends_order_to_kasir_queue(): void
+    {
+        $product = Product::query()->create([
+            'name' => 'Teh Tes',
+            'sku' => 'TEH-TES',
+            'type' => ProductType::FinishedGood,
+            'unit' => 'pcs',
+            'selling_price' => 10000,
+            'is_active' => true,
+            'is_menu_item' => true,
+            'is_sold_out' => false,
+        ]);
+
+        $order = PosOrder::query()->create([
+            'order_number' => 'T-CASH-001',
+            'order_day' => now()->toDateString(),
+            'source' => PosOrderSource::Online,
+            'order_type' => PosOrderType::Takeaway,
+            'status' => PosOrderStatus::PendingPayment,
+            'customer_note' => 'Siti',
+            'subtotal' => 10000,
+            'total' => 10000,
+        ]);
+
+        PosOrderItem::query()->create([
+            'pos_order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unit_price' => 10000,
+            'line_total' => 10000,
+        ]);
+
+        $waitingBefore = app(\App\Services\PosOrderService::class)->waitingOrders();
+        $this->assertFalse($waitingBefore->contains('id', $order->id));
+
+        $this->withSession(['online_order_id' => $order->id])
+            ->post(route('order.menu.pay-cash'))
+            ->assertRedirect()
+            ->assertSessionMissing('error');
+
+        $order->refresh();
+        $this->assertSame(PosOrderStatus::Submitted, $order->status);
+
+        $waitingAfter = app(\App\Services\PosOrderService::class)->waitingOrders();
+        $this->assertTrue($waitingAfter->contains('id', $order->id));
+    }
+
+    public function test_pending_payment_not_in_kasir_queue(): void
+    {
+        $order = PosOrder::query()->create([
+            'order_number' => 'T-WAIT-001',
+            'order_day' => now()->toDateString(),
+            'source' => PosOrderSource::Online,
+            'order_type' => PosOrderType::Takeaway,
+            'status' => PosOrderStatus::PendingPayment,
+            'customer_note' => 'Ani',
+            'subtotal' => 8000,
+            'total' => 8000,
+        ]);
+
+        $waiting = app(\App\Services\PosOrderService::class)->waitingOrders();
+        $this->assertFalse($waiting->contains('id', $order->id));
     }
 }

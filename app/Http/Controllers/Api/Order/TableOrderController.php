@@ -196,7 +196,7 @@ class TableOrderController extends Controller
         $order->refresh()->load(['items.product', 'table']);
 
         return response()->json([
-            'message' => 'Pesanan terkirim. Silakan ke kasir untuk konfirmasi dan pembayaran.',
+            'message' => 'Pesanan siap. Pilih QRIS atau bayar tunai di kasir.',
             'data' => new PosOrderResource($order),
         ]);
     }
@@ -211,6 +211,7 @@ class TableOrderController extends Controller
                 'order_number' => $order->order_number,
                 'customer_note' => $order->customer_note,
                 'total' => (float) $order->total,
+                'is_pending_payment' => $order->status->value === 'pending_payment',
                 'is_submitted' => $order->status->value === 'submitted',
                 'is_confirmed' => $order->status->value === 'confirmed',
                 'is_paid' => $order->status->value === 'paid',
