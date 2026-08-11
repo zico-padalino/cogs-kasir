@@ -158,6 +158,21 @@ export const kasirApi = {
   pos() {
     return apiRequest<Envelope<PosBootstrap>>('/kasir/pos');
   },
+  qris(orderId: number, amount?: number) {
+    const qs = amount != null ? `?amount=${encodeURIComponent(String(amount))}` : '';
+    return apiRequest<
+      Envelope<{
+        enabled: boolean;
+        amount: number;
+        amount_label: string;
+        payload?: string | null;
+        qr_data_uri?: string | null;
+        merchant_name?: string | null;
+        fallback_image_url?: string;
+        mode: 'dynamic' | 'static';
+      }>
+    >(`/kasir/orders/${orderId}/qris${qs}`);
+  },
   poll() {
     return apiRequest<
       Envelope<

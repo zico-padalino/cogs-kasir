@@ -1180,6 +1180,48 @@ function updateOrderTotalsDisplay(root, data) {
         }
     });
 
+    // Segarkan QRIS dinamis jika panel QRIS sedang terbuka / metode QRIS terpilih.
+    const openPayForm = root.querySelector('[data-pos-pay-form-modal]');
+    const qrisSelected = openPayForm?.querySelector('[data-pos-payment-method][value="qris"]:checked');
+    if (qrisSelected && data.total !== undefined) {
+        const panel = openPayForm.querySelector('[data-pos-qris-panel]');
+        const url = panel?.getAttribute('data-qris-refresh-url');
+        if (url) {
+            fetch(`${url}?amount=${encodeURIComponent(data.total)}`, {
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((json) => {
+                    const payload = json?.data || json;
+                    if (! payload || ! panel) {
+                        return;
+                    }
+                    const img = panel.querySelector('[data-qris-image]');
+                    const amountLabel = panel.querySelector('[data-qris-amount-label]');
+                    const hint = panel.querySelector('[data-qris-hint]');
+                    const src = payload.enabled
+                        ? (payload.qr_data_uri || payload.fallback_image_url)
+                        : payload.fallback_image_url;
+                    if (img && src) {
+                        img.src = src;
+                    }
+                    if (amountLabel && payload.amount_label) {
+                        amountLabel.textContent = payload.amount_label;
+                    }
+                    if (hint) {
+                        hint.textContent = payload.enabled
+                            ? 'Scan QRIS — nominal sudah terisi otomatis.'
+                            : 'Scan QRIS lalu masukkan nominal manual (belum ada payload dinamis).';
+                    }
+                })
+                .catch(() => {});
+        }
+    }
+
     const payDiscount = root.querySelector('[data-kasir-pay-modal-discount]');
     const payDiscountAmount = root.querySelector('[data-kasir-pay-modal-discount-amount]');
     if (payDiscount) {
@@ -1532,6 +1574,78 @@ function initPosCashPayment(root) {
             }
         };
 
+        const applyQrisPayload = (payload) => {
+            if (! payload || ! qrisPanel) {
+                return;
+            }
+
+            const box = qrisPanel.querySelector('[data-qris-dynamic]');
+            const img = qrisPanel.querySelector('[data-qris-image]');
+            const amountLabel = qrisPanel.querySelector('[data-qris-amount-label]');
+            const hint = qrisPanel.querySelector('[data-qris-hint]');
+            const src = payload.enabled
+                ? (payload.qr_data_uri || payload.fallback_image_url)
+                : (payload.fallback_image_url || img?.getAttribute('src'));
+
+            if (img && src) {
+                img.src = src;
+            }
+
+            if (box) {
+                box.dataset.qrisMode = payload.mode || (payload.enabled ? 'dynamic' : 'static');
+                if (payload.amount !== undefined) {
+                    box.dataset.qrisAmount = String(payload.amount);
+                }
+            }
+
+            if (amountLabel && payload.amount_label) {
+                amountLabel.textContent = payload.amount_label;
+            }
+
+            if (hint) {
+                hint.textContent = payload.enabled
+                    ? 'Scan QRIS — nominal sudah terisi otomatis.'
+                    : 'Scan QRIS lalu masukkan nominal manual (belum ada payload dinamis).';
+            }
+        };
+
+        let qrisRefreshToken = 0;
+        const refreshQrisDynamic = async () => {
+            if (! qrisPanel) {
+                return;
+            }
+
+            const url = qrisPanel.getAttribute('data-qris-refresh-url');
+            if (! url) {
+                return;
+            }
+
+            const totalEl = form.querySelector('[data-pos-order-total]')
+                || root.querySelector('[data-kasir-pay-modal-total]');
+            const amount = Number(totalEl?.dataset?.posOrderTotal || 0);
+            const token = ++qrisRefreshToken;
+
+            try {
+                const res = await fetch(`${url}?amount=${encodeURIComponent(amount)}`, {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                if (! res.ok) {
+                    return;
+                }
+                const json = await res.json();
+                if (token !== qrisRefreshToken) {
+                    return;
+                }
+                applyQrisPayload(json.data || json);
+            } catch (e) {
+                // biarkan QR lama
+            }
+        };
+
         const syncPaymentMethod = () => {
             const method = form.querySelector('[data-pos-payment-method]:checked')?.value;
             const isCash = method === 'cash';
@@ -1551,6 +1665,10 @@ function initPosCashPayment(root) {
 
             if (! showsProof) {
                 clearProofPreview();
+            }
+
+            if (isQris) {
+                void refreshQrisDynamic();
             }
         };
 

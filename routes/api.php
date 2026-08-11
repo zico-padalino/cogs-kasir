@@ -100,6 +100,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('items/{item}', [PosController::class, 'updateItem'])->name('items.update');
                 Route::delete('items/{item}', [PosController::class, 'removeItem'])->name('items.destroy');
                 Route::post('pay', [PosController::class, 'pay'])->name('pay');
+                Route::get('orders/{order}/qris', [PosController::class, 'qrisDynamic'])->name('orders.qris');
                 Route::post('open-bill', [PosController::class, 'openBill'])->name('open-bill');
                 Route::get('orders/{order}/receipt', [PosController::class, 'receipt'])->name('orders.receipt');
                 Route::get('orders/{order}/receipt/pdf', [PosController::class, 'receiptPdf'])->name('orders.receipt.pdf');

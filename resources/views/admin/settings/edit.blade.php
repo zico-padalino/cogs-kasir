@@ -105,17 +105,48 @@
                 <div class="min-w-0 flex-1">
                     <h2 class="text-lg font-semibold text-slate-900">QR pembayaran (QRIS)</h2>
                     <p class="mt-1 text-sm text-slate-500">
-                        Muncul di kasir saat bayar QRIS. PNG/JPG/WebP, maks. 4 MB.
+                        Simpan string QRIS <strong>statis</strong> agar kasir &amp; meja menampilkan QRIS <strong>dinamis</strong> sesuai total pesanan.
+                        Gambar preview tetap dipakai sebagai cadangan.
                     </p>
                 </div>
-                @if ($hasCustomQris)
+                @if ($hasQrisPayload ?? false)
                     <span class="inline-flex shrink-0 items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
-                        QR kustom aktif
+                        Dinamis siap
+                    </span>
+                @elseif ($hasCustomQris)
+                    <span class="inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                        Gambar saja
                     </span>
                 @else
                     <span class="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
-                        QR bawaan
+                        Belum diatur
                     </span>
+                @endif
+            </div>
+
+            <div>
+                <label class="form-label" for="qris_payload">String QRIS statis (wajib untuk dinamis)</label>
+                <textarea
+                    name="qris_payload"
+                    id="qris_payload"
+                    rows="3"
+                    class="form-input font-mono text-xs leading-relaxed"
+                    placeholder="00020101021126...6304XXXX"
+                >{{ old('qris_payload', $qrisPayload ?? ($settings['qris_payload'] ?? '')) }}</textarea>
+                <p class="mt-1.5 text-xs text-slate-500">
+                    Cara dapatkan: scan QR merchant Anda dengan pembaca QR, salin teksnya (biasanya diawali <code>000201</code>), lalu tempel di sini.
+                    Kosongkan untuk nonaktifkan mode dinamis.
+                </p>
+                @error('qris_payload')
+                    <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
+                @enderror
+                @if (($qrisPayloadValid ?? null) === true && ! empty($qrisPayloadSummary['merchant_name']))
+                    <p class="mt-1 text-xs text-emerald-700">
+                        Terdeteksi: {{ $qrisPayloadSummary['merchant_name'] }}
+                        @if (! empty($qrisPayloadSummary['merchant_city']))
+                            · {{ $qrisPayloadSummary['merchant_city'] }}
+                        @endif
+                    </p>
                 @endif
             </div>
 
@@ -131,18 +162,18 @@
                             data-original-src="{{ $qrisUrl }}"
                         >
                     </div>
-                    <p class="qris-settings-caption">Preview</p>
+                    <p class="qris-settings-caption">Fallback</p>
                 </div>
 
                 <div class="qris-settings-actions min-w-0 flex-1">
                     <div>
-                        <p class="text-sm font-medium text-slate-800">Ganti gambar QR</p>
-                        <p class="mt-0.5 text-xs text-slate-500">Pilih file, lalu klik Simpan pengaturan di bawah.</p>
+                        <p class="text-sm font-medium text-slate-800">Gambar cadangan (opsional)</p>
+                        <p class="mt-0.5 text-xs text-slate-500">Dipakai jika payload kosong / error. PNG/JPG/WebP, maks. 4 MB.</p>
                     </div>
 
                     <div class="flex min-w-0 flex-wrap items-center gap-2">
-                        <label for="qris" class="btn-primary btn-sm cursor-pointer shrink-0">
-                            Unggah QR baru
+                        <label for="qris" class="btn-secondary btn-sm cursor-pointer shrink-0">
+                            Unggah gambar
                         </label>
                         <span class="min-w-0 truncate text-xs text-slate-500" data-qris-filename>Belum ada file dipilih</span>
                     </div>
@@ -162,7 +193,7 @@
                         <label class="flex items-start gap-2 rounded-xl bg-white px-3 py-2.5 text-sm text-slate-700 ring-1 ring-slate-200">
                             <input type="checkbox" name="remove_qris" value="1" class="mt-0.5 rounded border-slate-300 text-brand-600" data-qris-remove>
                             <span>
-                                <span class="font-medium text-slate-900">Kembalikan ke QR bawaan</span>
+                                <span class="font-medium text-slate-900">Kembalikan gambar bawaan</span>
                                 <span class="mt-0.5 block text-xs text-slate-500">Centang lalu simpan.</span>
                             </span>
                         </label>

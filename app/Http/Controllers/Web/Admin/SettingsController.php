@@ -6,6 +6,7 @@ use App\Enums\EmployeeStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
+use App\Services\QrisDynamicService;
 use App\Support\Format;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
@@ -14,15 +15,21 @@ use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function edit(AttendanceService $attendanceService): View
+    public function edit(AttendanceService $attendanceService, QrisDynamicService $qrisDynamic): View
     {
         $settings = ShopSettings::all();
+        $payload = ShopSettings::qrisPayload();
+        $payloadCheck = $payload !== '' ? $qrisDynamic->validate($payload) : null;
 
         return view('admin.settings.edit', [
             'settings' => $settings,
             'logoUrl' => ShopSettings::logoUrl(),
             'qrisUrl' => ShopSettings::qrisUrl(),
             'hasCustomQris' => ShopSettings::hasCustomQris(),
+            'hasQrisPayload' => ShopSettings::hasQrisPayload(),
+            'qrisPayload' => $payload,
+            'qrisPayloadValid' => $payloadCheck['valid'] ?? null,
+            'qrisPayloadSummary' => $payloadCheck['summary'] ?? null,
             'employees' => Employee::query()
                 ->with('user:id,name,email,is_root')
                 ->forAttendance()
@@ -32,7 +39,7 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request, AttendanceService $attendanceService): RedirectResponse
+    public function update(Request $request, AttendanceService $attendanceService, QrisDynamicService $qrisDynamic): RedirectResponse
     {
         $request->merge([
             'attendance_latitude' => $request->filled('attendance_latitude')
@@ -44,6 +51,7 @@ class SettingsController extends Controller
             // type=time kadang kirim HH:mm:ss — simpan sebagai HH:mm
             'attendance_clock_in' => $this->normalizeClockInput($request->input('attendance_clock_in')),
             'attendance_clock_out' => $this->normalizeClockInput($request->input('attendance_clock_out')),
+            'qris_payload' => preg_replace('/[\r\n\t]+/', '', trim((string) $request->input('qris_payload', ''))) ?? '',
         ]);
 
         $validated = $request->validate([
@@ -53,6 +61,7 @@ class SettingsController extends Controller
             'remove_logo' => ['sometimes', 'boolean'],
             'qris' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
             'remove_qris' => ['sometimes', 'boolean'],
+            'qris_payload' => ['nullable', 'string', 'max:2000'],
             'attendance_enabled' => ['sometimes', 'boolean'],
             'attendance_clock_in' => ['required', 'date_format:H:i'],
             'attendance_clock_out' => ['required', 'date_format:H:i'],
@@ -77,6 +86,19 @@ class SettingsController extends Controller
             'attendance_clock_in.date_format' => 'Format jam masuk tidak valid.',
             'attendance_clock_out.date_format' => 'Format jam pulang tidak valid.',
         ]);
+
+        $qrisPayload = (string) ($validated['qris_payload'] ?? '');
+        if ($qrisPayload !== '') {
+            $check = $qrisDynamic->validate($qrisPayload);
+            if (! ($check['valid'] ?? false)) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->withErrors([
+                        'qris_payload' => implode(' ', $check['errors'] ?? ['String QRIS tidak valid.']),
+                    ]);
+            }
+        }
 
         $requiredEmployeeIds = collect($validated['attendance_required_employee_ids'] ?? [])
             ->map(fn ($id) => (int) $id)
@@ -106,6 +128,7 @@ class SettingsController extends Controller
         $payload = [
             'shop_name' => trim($validated['shop_name']),
             'shop_title' => trim((string) ($validated['shop_title'] ?? '')),
+            'qris_payload' => $qrisPayload,
             'attendance_enabled' => $request->boolean('attendance_enabled') ? '1' : '0',
             'attendance_clock_in' => $validated['attendance_clock_in'],
             'attendance_clock_out' => $validated['attendance_clock_out'],

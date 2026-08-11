@@ -15,6 +15,7 @@ use App\Models\PosOrderItem;
 use App\Models\Product;
 use App\Services\PosOrderService;
 use App\Services\EscPosReceiptService;
+use App\Services\QrisDynamicService;
 use App\Services\ReceiptPdfService;
 use App\Support\KasirActiveOrder;
 use App\Support\KasirPin;
@@ -70,6 +71,7 @@ class PosController extends Controller
                 'pending_orders' => PosOrderResource::collection($pendingOrders),
                 'shop_name' => config('pos.shop_name'),
                 'qris_url' => ShopSettings::qrisUrl(),
+                'qris' => app(QrisDynamicService::class)->forAmount($activeOrder->total),
                 'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 60),
                 'kasir_poll_enabled' => (bool) config('pos.notifications.kasir_poll_enabled', false),
                 'dapur_poll_enabled' => (bool) config('pos.notifications.dapur_poll_enabled', false),
@@ -469,6 +471,17 @@ class PosController extends Controller
         return response()->json([
             'message' => 'Item dihapus.',
             'data' => $order ? new PosOrderResource($order) : null,
+        ]);
+    }
+
+    public function qrisDynamic(PosOrder $order, Request $request, QrisDynamicService $qrisDynamic): JsonResponse
+    {
+        $amount = $request->filled('amount')
+            ? (float) $request->input('amount')
+            : (float) $order->total;
+
+        return response()->json([
+            'data' => $qrisDynamic->forAmount($amount),
         ]);
     }
 

@@ -3434,6 +3434,58 @@
         @apply text-[11px] leading-snug text-slate-500;
     }
 
+    .qris-dynamic {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        max-width: 16rem;
+        margin-inline: auto;
+    }
+
+    .qris-dynamic-frame {
+        width: min(100%, 14rem);
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        border-radius: 0.875rem;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        padding: 0.5rem;
+    }
+
+    .qris-dynamic-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .qris-dynamic-amount {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #5c4033;
+        text-align: center;
+    }
+
+    .qris-dynamic-hint {
+        margin: 0;
+        font-size: 0.7rem;
+        line-height: 1.35;
+        color: #64748b;
+        text-align: center;
+    }
+
+    .qris-dynamic--compact .qris-dynamic-frame {
+        width: min(100%, 10rem);
+    }
+
+    .order-qris-pay {
+        border: 1px solid #e7e0d8;
+        background: #fff;
+    }
+
     /* Admin settings — preview QRIS tetap kecil & responsif */
     .qris-settings-row {
         display: flex;

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
 use App\Services\PosOrderService;
+use App\Services\QrisDynamicService;
 use App\Support\Format;
 use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
@@ -219,6 +220,32 @@ class TableOrderController extends Controller
             'is_paid' => $status === 'paid',
             'is_served' => $status === 'served',
         ])->header('Cache-Control', 'private, max-age=10');
+    }
+
+    public function qrisDynamic(QrisDynamicService $qrisDynamic): JsonResponse
+    {
+        $orderId = session(self::SESSION_KEY);
+        SessionPressure::releaseEarly();
+
+        $order = null;
+        if (is_numeric($orderId)) {
+            $order = PosOrder::query()
+                ->select(['id', 'total', 'status', 'source'])
+                ->whereKey((int) $orderId)
+                ->where('source', PosOrderSource::Online)
+                ->first();
+        }
+
+        if (! $order || ! in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true)) {
+            return response()->json([
+                'message' => 'Pesanan belum siap dibayar.',
+                'data' => $qrisDynamic->forAmount(0),
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => $qrisDynamic->forAmount($order->total),
+        ]);
     }
 
     private function currentOrder(PosOrderService $posService): PosOrder

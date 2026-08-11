@@ -35,6 +35,7 @@ import { getThermalPaper, printThermalViaThermer } from '@/kasir/thermalPrint';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
+import QRCode from 'react-native-qrcode-svg';
 
 type TabKey = 'menu' | 'cart';
 type PayMethod = 'cash' | 'qris' | 'transfer';
@@ -77,6 +78,9 @@ export default function KasirPosScreen() {
   const [pending, setPending] = useState<PosOrder[]>([]);
   const [shopName, setShopName] = useState('Kasir');
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
+  const [qrisPayload, setQrisPayload] = useState<string | null>(null);
+  const [qrisAmountLabel, setQrisAmountLabel] = useState<string | null>(null);
+  const [qrisDynamicEnabled, setQrisDynamicEnabled] = useState(false);
   const [pollMs, setPollMs] = useState(60000);
   const [continuousPoll, setContinuousPoll] = useState(false);
 
@@ -156,7 +160,18 @@ export default function KasirPosScreen() {
       applyOrder(data.order);
       setPending(data.pending_orders || []);
       setShopName(data.shop_name);
-      setQrisUrl(resolveMediaUrl(data.qris_url));
+      const qris = data.qris;
+      if (qris?.enabled && qris.payload) {
+        setQrisPayload(qris.payload);
+        setQrisDynamicEnabled(true);
+        setQrisAmountLabel(qris.amount_label || null);
+        setQrisUrl(resolveMediaUrl(qris.qr_data_uri || qris.fallback_image_url || data.qris_url));
+      } else {
+        setQrisPayload(null);
+        setQrisDynamicEnabled(false);
+        setQrisAmountLabel(null);
+        setQrisUrl(resolveMediaUrl(qris?.fallback_image_url || data.qris_url));
+      }
       setPollMs(Math.max(30, data.poll_interval_seconds || 60) * 1000);
       setContinuousPoll(!!data.kasir_poll_enabled);
       setPin(data.pin);
@@ -187,6 +202,36 @@ export default function KasirPosScreen() {
       })();
     }, [refresh, applyOrder, handleApiError]),
   );
+
+  useEffect(() => {
+    if (!payOpen || payMethod !== 'qris' || !order?.id) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await kasirApi.qris(order.id, Number(order.total || 0));
+        if (cancelled) return;
+        const qris = res.data;
+        if (qris?.enabled && qris.payload) {
+          setQrisPayload(qris.payload);
+          setQrisDynamicEnabled(true);
+          setQrisAmountLabel(qris.amount_label || null);
+          setQrisUrl(resolveMediaUrl(qris.qr_data_uri || qris.fallback_image_url));
+        } else {
+          setQrisPayload(null);
+          setQrisDynamicEnabled(false);
+          setQrisAmountLabel(null);
+          setQrisUrl(resolveMediaUrl(qris?.fallback_image_url));
+        }
+      } catch {
+        // keep previous QR
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [payOpen, payMethod, order?.id, order?.total]);
 
   useEffect(() => {
     const syncPending = async () => {
@@ -1395,14 +1440,23 @@ export default function KasirPosScreen() {
                     <>
                       <Text style={styles.sectionLabel}>Scan QRIS</Text>
                       <View style={styles.qrisFrame}>
-                        <Image
-                          source={qrisUrl ? { uri: qrisUrl } : QRIS_FALLBACK}
-                          style={styles.qrisImage}
-                          resizeMode="contain"
-                        />
+                        {qrisDynamicEnabled && qrisPayload ? (
+                          <QRCode value={qrisPayload} size={220} backgroundColor="#ffffff" color="#000000" />
+                        ) : (
+                          <Image
+                            source={qrisUrl ? { uri: qrisUrl } : QRIS_FALLBACK}
+                            style={styles.qrisImage}
+                            resizeMode="contain"
+                          />
+                        )}
                       </View>
+                      {qrisAmountLabel ? (
+                        <Text style={[styles.sectionLabel, { textAlign: 'center' }]}>{qrisAmountLabel}</Text>
+                      ) : null}
                       <Text style={styles.muted}>
-                        Minta pelanggan scan kode di atas. Foto bukti opsional.
+                        {qrisDynamicEnabled
+                          ? 'Nominal sudah terisi otomatis. Foto bukti opsional.'
+                          : 'Minta pelanggan scan kode di atas. Foto bukti opsional.'}
                       </Text>
                     </>
                   ) : null}

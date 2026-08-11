@@ -12,12 +12,14 @@ use App\Models\PosTable;
 use App\Models\Product;
 use App\Services\PosOrderService;
 use App\Services\EscPosReceiptService;
+use App\Services\QrisDynamicService;
 use App\Services\ReceiptPdfService;
 use App\Support\Format;
 use App\Support\KasirPin;
 use App\Support\KitchenBoardCache;
 use App\Support\PosMenu;
 use App\Support\SessionPressure;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -657,6 +659,17 @@ class KasirController extends Controller
         }
 
         return back()->with('success', 'Item dihapus.');
+    }
+
+    public function qrisDynamic(PosOrder $order, Request $request, QrisDynamicService $qrisDynamic): JsonResponse
+    {
+        $amount = $request->filled('amount')
+            ? (float) $request->input('amount')
+            : (float) $order->total;
+
+        return response()->json([
+            'data' => $qrisDynamic->forAmount($amount),
+        ]);
     }
 
     public function pay(Request $request, PosOrderService $posService)

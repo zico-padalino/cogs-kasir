@@ -69,22 +69,22 @@
                     </p>
                 </div>
 
-                <div class="pos-qris-panel hidden" data-pos-qris-panel>
+                <div
+                    class="pos-qris-panel hidden"
+                    data-pos-qris-panel
+                    data-qris-refresh-url="{{ route('kasir.orders.qris', $order) }}"
+                    data-qris-order-id="{{ $order->id }}"
+                >
                     <ol class="pos-qris-steps" aria-label="Langkah bayar QRIS">
                         <li><span>1</span> Pelanggan scan QR</li>
                         <li><span>2</span> Foto bukti (opsional)</li>
                         <li><span>3</span> Konfirmasi bayar</li>
                     </ol>
                     <p class="pos-pay-label">1 · Kode QRIS</p>
-                    <div class="pos-qris-frame">
-                        <img
-                            src="{{ \App\Support\ShopSettings::qrisUrl() }}"
-                            alt="Kode QRIS {{ \App\Support\ShopSettings::get('shop_name', config('pos.shop_name')) }}"
-                            class="pos-qris-image"
-                            data-pos-qris-image
-                        >
-                    </div>
-                    <p class="pos-qris-hint">Tunjukkan kode ke pelanggan. Foto bukti di bawah bersifat opsional.</p>
+                    @php
+                        $qrisPay = app(\App\Services\QrisDynamicService::class)->forAmount($order->total);
+                    @endphp
+                    <x-qris-dynamic :qris="$qrisPay" />
                 </div>
 
                 <div class="pos-proof-panel hidden" data-pos-proof-panel>

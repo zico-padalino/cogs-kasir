@@ -13,13 +13,14 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v10';
+    public const CACHE_KEY = 'shop_settings.v11';
 
     public const KEYS = [
         'shop_name',
         'shop_title',
         'logo_path',
         'qris_path',
+        'qris_payload',
         'attendance_enabled',
         'attendance_clock_in',
         'attendance_clock_out',
@@ -44,6 +45,7 @@ class ShopSettings
             'shop_title' => (string) config('pos.shop_title', 'Menu & pesanan dari HP'),
             'logo_path' => null,
             'qris_path' => null,
+            'qris_payload' => '',
             'attendance_enabled' => '1',
             'attendance_clock_in' => '08:00',
             'attendance_clock_out' => '17:00',
@@ -151,7 +153,21 @@ class ShopSettings
             'pos.shop_title' => $settings['shop_title'],
             'pos.logo_path' => $settings['logo_path'],
             'pos.qris_path' => $settings['qris_path'],
+            'pos.qris_payload' => $settings['qris_payload'],
         ]);
+    }
+
+    /** String QRIS statis merchant (untuk convert ke dinamis). */
+    public static function qrisPayload(): string
+    {
+        return preg_replace('/[\r\n\t]+/', '', trim((string) self::get('qris_payload', ''))) ?? '';
+    }
+
+    public static function hasQrisPayload(): bool
+    {
+        $payload = self::qrisPayload();
+
+        return $payload !== '' && str_starts_with($payload, '000201');
     }
 
     public static function logoUrl(?string $path = null): ?string

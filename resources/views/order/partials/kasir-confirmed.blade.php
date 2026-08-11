@@ -59,6 +59,19 @@
         </div>
     </div>
 
+    @php
+        $qrisPay = app(\App\Services\QrisDynamicService::class)->forAmount($order->total);
+    @endphp
+    @if ($qrisPay['enabled'] || ($qrisPay['fallback_image_url'] ?? null))
+        <div class="order-qris-pay card mt-4 p-4">
+            <p class="text-sm font-semibold text-slate-900">Bayar dengan QRIS</p>
+            <p class="mt-1 text-xs text-slate-500">Scan dari HP Anda. Nominal mengikuti total pesanan.</p>
+            <div class="mt-3 flex justify-center">
+                <x-qris-dynamic :qris="$qrisPay" />
+            </div>
+        </div>
+    @endif
+
     <div class="order-kasir-notice order-kasir-notice-confirmed">
         <p class="font-semibold text-brand-900">Menunggu pembayaran</p>
         <p class="mt-1 text-sm leading-relaxed text-brand-800">

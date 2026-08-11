@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Services\AttendanceService;
+use App\Services\QrisDynamicService;
 use App\Support\Format;
 use App\Support\ShopSettings;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,7 @@ class SettingsApiController extends Controller
                 'logo_url' => ShopSettings::logoUrl(),
                 'qris_url' => ShopSettings::qrisUrl(),
                 'has_custom_qris' => ShopSettings::hasCustomQris(),
+                'has_qris_payload' => ShopSettings::hasQrisPayload(),
                 'employees' => Employee::query()
                     ->with('user:id,name,email,is_root')
                     ->forAttendance()
@@ -33,7 +35,7 @@ class SettingsApiController extends Controller
         ]);
     }
 
-    public function update(Request $request, AttendanceService $attendanceService): JsonResponse
+    public function update(Request $request, AttendanceService $attendanceService, QrisDynamicService $qrisDynamic): JsonResponse
     {
         $request->merge([
             'attendance_latitude' => $request->filled('attendance_latitude')
@@ -44,6 +46,7 @@ class SettingsApiController extends Controller
                 : null,
             'attendance_clock_in' => $this->normalizeClockInput($request->input('attendance_clock_in')),
             'attendance_clock_out' => $this->normalizeClockInput($request->input('attendance_clock_out')),
+            'qris_payload' => preg_replace('/[\r\n\t]+/', '', trim((string) $request->input('qris_payload', ''))) ?? '',
         ]);
 
         $validated = $request->validate([
@@ -53,6 +56,7 @@ class SettingsApiController extends Controller
             'remove_logo' => ['sometimes', 'boolean'],
             'qris' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
             'remove_qris' => ['sometimes', 'boolean'],
+            'qris_payload' => ['nullable', 'string', 'max:2000'],
             'attendance_enabled' => ['sometimes', 'boolean'],
             'attendance_clock_in' => ['required', 'date_format:H:i'],
             'attendance_clock_out' => ['required', 'date_format:H:i'],
@@ -78,6 +82,16 @@ class SettingsApiController extends Controller
             'attendance_clock_out.date_format' => 'Format jam pulang tidak valid.',
         ]);
 
+        $qrisPayload = (string) ($validated['qris_payload'] ?? '');
+        if ($qrisPayload !== '') {
+            $check = $qrisDynamic->validate($qrisPayload);
+            if (! ($check['valid'] ?? false)) {
+                return response()->json([
+                    'message' => implode(' ', $check['errors'] ?? ['String QRIS tidak valid.']),
+                    'errors' => ['qris_payload' => $check['errors'] ?? ['String QRIS tidak valid.']],
+                ], 422);
+            }
+        }
         $requiredEmployeeIds = collect($validated['attendance_required_employee_ids'] ?? [])
             ->map(fn ($id) => (int) $id)
             ->filter(fn (int $id) => $id > 0)
@@ -104,6 +118,7 @@ class SettingsApiController extends Controller
         $payload = [
             'shop_name' => trim($validated['shop_name']),
             'shop_title' => trim((string) ($validated['shop_title'] ?? '')),
+            'qris_payload' => $qrisPayload,
             'attendance_enabled' => $request->boolean('attendance_enabled') ? '1' : '0',
             'attendance_clock_in' => $validated['attendance_clock_in'],
             'attendance_clock_out' => $validated['attendance_clock_out'],
@@ -158,6 +173,7 @@ class SettingsApiController extends Controller
                 'logo_url' => ShopSettings::logoUrl(),
                 'qris_url' => ShopSettings::qrisUrl(),
                 'has_custom_qris' => ShopSettings::hasCustomQris(),
+                'has_qris_payload' => ShopSettings::hasQrisPayload(),
                 'required_employee_ids' => $attendanceService->requiredEmployeeIds(),
             ],
         ]);

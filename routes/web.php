@@ -79,6 +79,7 @@ Route::match(['delete', 'post'], 'pesan/items/{item}/hapus', [TableOrderControll
 Route::post('pesan/kirim', [TableOrderController::class, 'submit'])->name('order.menu.submit');
 Route::post('pesan/submit', [TableOrderController::class, 'submit']); // alias lama
 Route::get('pesan/status', [TableOrderController::class, 'status'])->name('order.menu.status');
+Route::get('pesan/qris', [TableOrderController::class, 'qrisDynamic'])->name('order.menu.qris');
 
 // Public signed receipt PDF (WhatsApp / share) — avoids /storage 403 on shared hosting.
 Route::get('/struk/{order}/pdf', [KasirController::class, 'publicReceiptPdf'])
@@ -167,6 +168,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
         Route::post('/kas-tunai/float', [KasTunaiController::class, 'storeFloat'])->name('kas-tunai.float');
         Route::post('/kas-tunai/expense', [KasTunaiController::class, 'storeExpense'])->name('kas-tunai.expense');
         Route::post('/pay', [KasirController::class, 'pay'])->name('pay');
+        Route::get('/orders/{order}/qris', [KasirController::class, 'qrisDynamic'])->name('orders.qris');
         Route::post('/open-bill', [KasirController::class, 'openBill'])->name('open-bill');
         Route::get('/receipt/{order}', [KasirController::class, 'receipt'])->name('receipt');
         Route::get('/receipt/{order}/pdf', [KasirController::class, 'receiptPdf'])->name('receipt.pdf');
