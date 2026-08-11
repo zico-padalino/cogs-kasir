@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Support\ShopSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminSettingsTest extends TestCase
@@ -35,13 +34,16 @@ class AdminSettingsTest extends TestCase
 
     public function test_admin_can_update_shop_identity_and_logo(): void
     {
-        Storage::fake('public');
         $admin = User::factory()->admin()->create();
 
         $response = $this->actingAs($admin)->put(route('admin.settings.update'), [
             'shop_name' => 'Kedai Joan',
             'shop_title' => 'Kopi & Cemilan',
             'logo' => UploadedFile::fake()->image('logo.png', 256, 256),
+            'attendance_clock_in' => '08:00',
+            'attendance_clock_out' => '17:00',
+            'attendance_early_minutes' => 60,
+            'attendance_radius_meters' => 100,
         ]);
 
         $response->assertRedirect(route('admin.settings.edit'));
@@ -50,12 +52,46 @@ class AdminSettingsTest extends TestCase
 
         $this->assertSame('Kedai Joan', ShopSettings::get('shop_name'));
         $this->assertSame('Kopi & Cemilan', ShopSettings::get('shop_title'));
-        $this->assertNotEmpty(ShopSettings::get('logo_path'));
-        Storage::disk('public')->assertExists(ShopSettings::get('logo_path'));
+        $logoPath = ShopSettings::get('logo_path');
+        $this->assertNotEmpty($logoPath);
+        $this->assertFileExists(public_path($logoPath));
+        $this->assertNotEmpty(ShopSettings::faviconUrl());
 
-        $this->get(route('home'))
+        ShopSettings::deleteLogoFile($logoPath);
+        ShopSettings::put(['logo_path' => null]);
+    }
+
+    public function test_admin_can_replace_qris_payment_image(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->put(route('admin.settings.update'), [
+            'shop_name' => 'Kedai Joan',
+            'shop_title' => 'Kopi & Cemilan',
+            'qris' => UploadedFile::fake()->image('qris-baru.png', 512, 512),
+            'attendance_clock_in' => '08:00',
+            'attendance_clock_out' => '17:00',
+            'attendance_early_minutes' => 60,
+            'attendance_radius_meters' => 100,
+        ]);
+
+        $response->assertRedirect(route('admin.settings.edit'));
+
+        ShopSettings::forgetCache();
+
+        $qrisPath = ShopSettings::get('qris_path');
+        $this->assertNotEmpty($qrisPath);
+        $this->assertTrue(ShopSettings::hasCustomQris());
+        $this->assertFileExists(public_path($qrisPath));
+        $this->assertStringContainsString('/uploads/qris/', ShopSettings::qrisUrl());
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit'))
             ->assertOk()
-            ->assertSee('Kedai Joan')
-            ->assertSee(ShopSettings::faviconUrl(), false);
+            ->assertSee('QR pembayaran (QRIS)');
+
+        // Bersihkan file uji agar tidak menumpuk di public/uploads.
+        ShopSettings::deleteQrisFile($qrisPath);
+        ShopSettings::put(['qris_path' => null]);
     }
 }

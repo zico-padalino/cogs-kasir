@@ -21,6 +21,8 @@ class SettingsApiController extends Controller
             'data' => [
                 'settings' => $settings,
                 'logo_url' => ShopSettings::logoUrl(),
+                'qris_url' => ShopSettings::qrisUrl(),
+                'has_custom_qris' => ShopSettings::hasCustomQris(),
                 'employees' => Employee::query()
                     ->with('user:id,name,email,is_root')
                     ->forAttendance()
@@ -49,6 +51,8 @@ class SettingsApiController extends Controller
             'shop_title' => ['nullable', 'string', 'max:120'],
             'logo' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
             'remove_logo' => ['sometimes', 'boolean'],
+            'qris' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
+            'remove_qris' => ['sometimes', 'boolean'],
             'attendance_enabled' => ['sometimes', 'boolean'],
             'attendance_clock_in' => ['required', 'date_format:H:i'],
             'attendance_clock_out' => ['required', 'date_format:H:i'],
@@ -68,6 +72,8 @@ class SettingsApiController extends Controller
             'shop_name.required' => 'Nama toko wajib diisi.',
             'logo.image' => 'Logo harus berupa gambar.',
             'logo.max' => 'Ukuran logo maksimal 2 MB.',
+            'qris.mimes' => 'QR pembayaran harus berupa gambar JPG/PNG/WebP.',
+            'qris.max' => 'Ukuran QR pembayaran maksimal 4 MB.',
             'attendance_clock_in.date_format' => 'Format jam masuk tidak valid.',
             'attendance_clock_out.date_format' => 'Format jam pulang tidak valid.',
         ]);
@@ -131,6 +137,18 @@ class SettingsApiController extends Controller
             $payload['logo_path'] = ShopSettings::storeLogo($request->file('logo'));
         }
 
+        $currentQris = ShopSettings::get('qris_path');
+
+        if ($request->boolean('remove_qris') && $currentQris) {
+            ShopSettings::deleteQrisFile($currentQris);
+            $payload['qris_path'] = null;
+        } elseif ($request->hasFile('qris')) {
+            if ($currentQris) {
+                ShopSettings::deleteQrisFile($currentQris);
+            }
+            $payload['qris_path'] = ShopSettings::storeQris($request->file('qris'));
+        }
+
         ShopSettings::put($payload);
 
         return response()->json([
@@ -138,6 +156,8 @@ class SettingsApiController extends Controller
             'data' => [
                 'settings' => ShopSettings::all(),
                 'logo_url' => ShopSettings::logoUrl(),
+                'qris_url' => ShopSettings::qrisUrl(),
+                'has_custom_qris' => ShopSettings::hasCustomQris(),
                 'required_employee_ids' => $attendanceService->requiredEmployeeIds(),
             ],
         ]);

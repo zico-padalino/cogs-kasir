@@ -34,11 +34,12 @@ import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
 import { getThermalPaper, printThermalViaThermer } from '@/kasir/thermalPrint';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
+import { resolveMediaUrl } from '@/utils/mediaUrl';
 
 type TabKey = 'menu' | 'cart';
 type PayMethod = 'cash' | 'qris' | 'transfer';
 
-const QRIS_IMAGE = require('../../assets/qris.jpeg');
+const QRIS_FALLBACK = require('../../assets/qris.jpeg');
 
 const PRODUCT_GAP = spacing.sm;
 const PRODUCT_PAD = spacing.md;
@@ -75,6 +76,7 @@ export default function KasirPosScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [pending, setPending] = useState<PosOrder[]>([]);
   const [shopName, setShopName] = useState('Kasir');
+  const [qrisUrl, setQrisUrl] = useState<string | null>(null);
   const [pollMs, setPollMs] = useState(60000);
   const [continuousPoll, setContinuousPoll] = useState(false);
 
@@ -154,6 +156,7 @@ export default function KasirPosScreen() {
       applyOrder(data.order);
       setPending(data.pending_orders || []);
       setShopName(data.shop_name);
+      setQrisUrl(resolveMediaUrl(data.qris_url));
       setPollMs(Math.max(30, data.poll_interval_seconds || 60) * 1000);
       setContinuousPoll(!!data.kasir_poll_enabled);
       setPin(data.pin);
@@ -1392,7 +1395,11 @@ export default function KasirPosScreen() {
                     <>
                       <Text style={styles.sectionLabel}>Scan QRIS</Text>
                       <View style={styles.qrisFrame}>
-                        <Image source={QRIS_IMAGE} style={styles.qrisImage} resizeMode="contain" />
+                        <Image
+                          source={qrisUrl ? { uri: qrisUrl } : QRIS_FALLBACK}
+                          style={styles.qrisImage}
+                          resizeMode="contain"
+                        />
                       </View>
                       <Text style={styles.muted}>
                         Minta pelanggan scan kode di atas. Foto bukti opsional.

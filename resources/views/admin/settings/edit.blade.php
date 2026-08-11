@@ -2,7 +2,7 @@
 
 @section('title', 'Pengaturan')
 @section('heading', 'Pengaturan')
-@section('subheading', 'Nama toko, judul, dan logo yang tampil di kasir, login, dan stiker QR')
+@section('subheading', 'Nama toko, logo, QR pembayaran, absensi, dan potongan gaji')
 
 @section('content')
     <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data" class="mx-auto max-w-2xl space-y-6">
@@ -66,6 +66,43 @@
                             <input type="checkbox" name="remove_logo" value="1" class="rounded border-slate-300 text-brand-600">
                             Hapus logo saat ini
                         </label>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="card space-y-5">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">QR pembayaran (QRIS)</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Gambar yang ditampilkan di kasir saat metode QRIS. PNG/JPG/WebP, maks. 4 MB.
+                    Unggah ulang untuk mengganti; centang hapus untuk kembali ke QR bawaan.
+                </p>
+            </div>
+
+            <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-start">
+                <div class="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-2">
+                    <img src="{{ $qrisUrl }}" alt="QRIS pembayaran" class="h-full w-full object-contain">
+                </div>
+
+                <div class="min-w-0 flex-1 space-y-3">
+                    <input
+                        type="file"
+                        name="qris"
+                        id="qris"
+                        accept="image/png,image/jpeg,image/webp"
+                        class="form-input file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700"
+                    >
+                    @error('qris')
+                        <p class="text-sm text-rose-600">{{ $message }}</p>
+                    @enderror
+                    @if ($hasCustomQris)
+                        <label class="flex items-center gap-2 text-sm text-slate-600">
+                            <input type="checkbox" name="remove_qris" value="1" class="rounded border-slate-300 text-brand-600">
+                            Kembalikan ke QR bawaan
+                        </label>
+                    @else
+                        <p class="text-xs text-slate-500">Sedang memakai QR bawaan. Unggah file untuk menggantinya.</p>
                     @endif
                 </div>
             </div>

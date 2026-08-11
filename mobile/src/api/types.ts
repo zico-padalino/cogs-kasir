@@ -113,6 +113,7 @@ export type PosBootstrap = {
   order_types: { value: string; label: string; icon: string }[];
   pending_orders: PosOrder[];
   shop_name: string;
+  qris_url?: string | null;
   poll_interval_seconds: number;
   kasir_poll_enabled?: boolean;
   dapur_poll_enabled?: boolean;

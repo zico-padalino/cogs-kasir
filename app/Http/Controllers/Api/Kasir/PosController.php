@@ -18,6 +18,7 @@ use App\Services\EscPosReceiptService;
 use App\Services\ReceiptPdfService;
 use App\Support\KasirActiveOrder;
 use App\Support\KasirPin;
+use App\Support\ShopSettings;
 use App\Support\KitchenBoardCache;
 use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
@@ -68,6 +69,7 @@ class PosController extends Controller
                 ])->values(),
                 'pending_orders' => PosOrderResource::collection($pendingOrders),
                 'shop_name' => config('pos.shop_name'),
+                'qris_url' => ShopSettings::qrisUrl(),
                 'poll_interval_seconds' => (int) config('pos.notifications.poll_interval_seconds', 60),
                 'kasir_poll_enabled' => (bool) config('pos.notifications.kasir_poll_enabled', false),
                 'dapur_poll_enabled' => (bool) config('pos.notifications.dapur_poll_enabled', false),

@@ -78,8 +78,8 @@
                     <p class="pos-pay-label">1 · Kode QRIS</p>
                     <div class="pos-qris-frame">
                         <img
-                            src="{{ asset('qris.jpeg') }}"
-                            alt="Kode QRIS Kedai Tjoan"
+                            src="{{ \App\Support\ShopSettings::qrisUrl() }}"
+                            alt="Kode QRIS {{ \App\Support\ShopSettings::get('shop_name', config('pos.shop_name')) }}"
                             class="pos-qris-image"
                             data-pos-qris-image
                         >
