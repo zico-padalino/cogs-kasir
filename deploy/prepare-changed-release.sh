@@ -113,10 +113,43 @@ for f in "${CHANGED[@]}"; do
 done
 
 if [ "$INCLUDE_VENDOR" = "1" ] && [ -d "$ROOT/vendor" ]; then
-  echo "INCLUDE_VENDOR=1 → salin vendor/"
-  mkdir -p "$RELEASE_DIR/vendor"
-  cp -a "$ROOT/vendor/." "$RELEASE_DIR/vendor/"
+  echo "INCLUDE_VENDOR=1 → zip vendor/ (1 file, bukan ribuan FTP)"
+  rm -rf "$RELEASE_DIR/vendor"
+  export ROOT RELEASE_DIR
+  (
+    cd "$ROOT"
+    if command -v zip >/dev/null 2>&1; then
+      zip -r -q -9 "$RELEASE_DIR/vendor-deploy.zip" vendor \
+        -x "vendor/*/tests/*" "vendor/*/Tests/*" "vendor/*/docs/*" "vendor/*/doc/*" \
+           "vendor/*/test/*" "vendor/*/Test/*" "vendor/*/.git/*"
+    else
+      python3 - <<'PY'
+import os, zipfile
+root = os.environ["ROOT"]
+out = os.path.join(os.environ["RELEASE_DIR"], "vendor-deploy.zip")
+skip_names = {".git", "tests", "Tests", "docs", "doc", "test", "Test"}
+with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+    for dirpath, dirnames, filenames in os.walk(os.path.join(root, "vendor")):
+        dirnames[:] = [d for d in dirnames if d not in skip_names]
+        for name in filenames:
+            full = os.path.join(dirpath, name)
+            rel = os.path.relpath(full, root).replace("\\", "/")
+            zf.write(full, rel)
+print("zipped", out)
+PY
+    fi
+  )
+  TOKEN="${VENDOR_EXTRACT_TOKEN:-${DEPLOY_EXTRACT_TOKEN:-}}"
+  if [ -z "$TOKEN" ]; then
+    TOKEN="$(openssl rand -hex 16 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+  fi
+  sed "s/__VENDOR_EXTRACT_TOKEN__/${TOKEN}/g" \
+    "$ROOT/deploy/extract-vendor.php" > "$RELEASE_DIR/extract-vendor.php"
+  printf '%s' "$TOKEN" > "$RELEASE_DIR/.vendor-extract-token"
   NEED_DEPLOY=1
+  COPIED=$((COPIED + 2))
+  echo "  + vendor-deploy.zip ($(du -h "$RELEASE_DIR/vendor-deploy.zip" | cut -f1))"
+  echo "  + extract-vendor.php"
 fi
 
 # Selalu kirim package discovery aman (hindari Sanctum / require-dev yang absen di vendor shared hosting)

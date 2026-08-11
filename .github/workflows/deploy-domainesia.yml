@@ -5,10 +5,12 @@ name: Deploy to Domainesia
 #   FTP_USERNAME    = akun FTP yang Directory = public_html
 #   FTP_PASSWORD    = (password)
 #   FTP_SERVER_DIR  = ./
+#   DEPLOY_SITE_URL = https://kedaitjoan.online  (opsional, untuk extract vendor.zip)
 #
 # HANYA upload file dari commit/push terbaru.
 # CSS/JS berubah → npm build + upload build/.
-# vendor/ di-skip (kecuali Run workflow → Include vendor).
+# vendor/ TIDAK di-push ke git. Jika composer berubah → zip 1 file + extract di server.
+# Jangan centang Include vendor kecuali benar-benar perlu sync penuh.
 
 on:
   push:
@@ -18,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       include_vendor:
-        description: "Upload vendor/ juga (jika composer berubah)"
+        description: "Paksa upload vendor (zip+extract). Auto ON jika composer.json/lock berubah."
         type: boolean
         default: false
 
@@ -30,9 +32,11 @@ jobs:
   deploy:
     name: Deploy changed files
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
     env:
       INCLUDE_VENDOR: ${{ github.event_name == 'workflow_dispatch' && inputs.include_vendor && '1' || '0' }}
+      DEPLOY_SITE_URL: ${{ secrets.DEPLOY_SITE_URL }}
+      VENDOR_EXTRACT_TOKEN: ${{ secrets.VENDOR_EXTRACT_TOKEN }}
 
     steps:
       - name: Checkout
@@ -82,14 +86,14 @@ jobs:
           echo "Deploy range: $RANGE"
           git log --oneline "$RANGE" || git log -1 --oneline
 
-          # Auto-upload vendor jika composer berubah (hindari HTTP 500 di shared hosting)
+          # Auto-upload vendor (sebagai ZIP) jika composer berubah — perlu paket baru di hosting
           if git diff --name-only "$RANGE" | grep -Eq '^(composer\.json|composer\.lock)$'; then
             echo "composer_changed=1" >> "$GITHUB_OUTPUT"
           else
             echo "composer_changed=0" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Setup PHP (vendor)
+      - name: Setup PHP (vendor zip)
         if: env.INCLUDE_VENDOR == '1' || steps.range.outputs.composer_changed == '1'
         uses: shivammathur/setup-php@v2
         with:
@@ -98,7 +102,7 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install Composer (vendor)
+      - name: Install Composer (untuk zip vendor)
         if: env.INCLUDE_VENDOR == '1' || steps.range.outputs.composer_changed == '1'
         run: |
           composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
@@ -132,7 +136,10 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER_DIR: ${{ steps.ftp.outputs.dir }}
-        run: bash deploy/upload-release-ftp.sh
+          DEPLOY_SITE_URL: ${{ secrets.DEPLOY_SITE_URL }}
+        run: |
+          export DEPLOY_SITE_URL="${DEPLOY_SITE_URL:-https://kedaitjoan.online}"
+          bash deploy/upload-release-ftp.sh
 
       - name: Nothing to deploy
         if: steps.prep.outputs.need_deploy != '1' && steps.prep.outputs.need_frontend != '1'
@@ -141,6 +148,10 @@ jobs:
       - name: Summary
         run: |
           echo "Selesai — https://kedaitjoan.online"
-          echo "Mode: hanya file dari commit/push terbaru"
+          echo "Mode: hanya file dari commit/push terbaru (+ vendor sebagai ZIP jika composer berubah)"
           echo "Copied: ${{ steps.prep.outputs.copied }}"
           echo "Frontend build: ${{ steps.prep.outputs.need_frontend }}"
+          echo "Vendor zip: $INCLUDE_VENDOR"
+          if [ -f release/vendor-deploy.zip ]; then
+            echo "Vendor archive: $(du -h release/vendor-deploy.zip | cut -f1)"
+          fi
