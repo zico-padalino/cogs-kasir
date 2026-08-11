@@ -3515,44 +3515,9 @@
         min-width: 0;
     }
 
-    .order-qris-apps {
+    .order-qris-save {
         border-top: 1px solid #eef2f7;
         padding-top: 1rem;
-    }
-
-    .order-qris-app-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-    }
-
-    .order-qris-app-btn {
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        color: #334155;
-        border-radius: 0.75rem;
-        padding: 0.65rem 0.4rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        line-height: 1.2;
-        cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    }
-
-    .order-qris-app-btn:hover,
-    .order-qris-app-btn:focus-visible {
-        border-color: #5c4033;
-        color: #5c4033;
-        background: #faf7f4;
-        outline: none;
-    }
-
-    .order-qris-app-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
     }
 
     /* Admin settings — preview QRIS tetap kecil & responsif */
