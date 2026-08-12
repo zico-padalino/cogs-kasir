@@ -124,19 +124,15 @@ class AttendanceController extends Controller
         $validated = $request->validate([
             'employee_id' => ['required', 'exists:employees,id'],
             'work_date' => ['required', 'date'],
-            'attendance_kind' => ['nullable', 'in:hadir,pulang,izin,sakit,alpha,cuti'],
+            'attendance_kind' => ['required', 'in:hadir,pulang'],
             'check_in' => ['nullable', 'date_format:H:i'],
             'check_out' => ['nullable', 'date_format:H:i'],
-            'status' => ['required', 'in:hadir,izin,sakit,alpha,cuti'],
+            'status' => ['nullable', 'in:hadir'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $kind = (string) ($validated['attendance_kind'] ?? $validated['status']);
-        if ($kind === 'pulang') {
-            $validated['status'] = 'hadir';
-        } elseif (in_array($kind, ['hadir', 'izin', 'sakit', 'alpha', 'cuti'], true)) {
-            $validated['status'] = $kind;
-        }
+        $kind = (string) $validated['attendance_kind'];
+        $validated['status'] = 'hadir';
 
         if ($kind === 'hadir' && blank($validated['check_in'] ?? null)) {
             return back()->withInput()->withErrors([
@@ -157,15 +153,13 @@ class AttendanceController extends Controller
         }
 
         $payload = [
-            'status' => $validated['status'],
+            'status' => 'hadir',
         ];
 
-        if ($kind === 'hadir' && filled($validated['check_in'] ?? null)) {
+        if ($kind === 'hadir') {
             $payload['check_in'] = $this->normalizeTime($validated['check_in']);
-        } elseif ($kind === 'pulang' && filled($validated['check_out'] ?? null)) {
+        } else {
             $payload['check_out'] = $this->normalizeTime($validated['check_out']);
-        } elseif (! in_array($kind, ['hadir', 'pulang'], true)) {
-            // Izin / sakit / alpha / cuti: jangan paksa jam.
         }
 
         if (filled($validated['notes'] ?? null)) {

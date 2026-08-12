@@ -375,8 +375,7 @@
             <form method="POST" action="{{ route('admin.attendances.store') }}" class="att-report-manual-form">
                 @csrf
                 <p class="mb-3 text-xs text-slate-500">
-                    Pilih jenis di dropdown: <strong>Hadir</strong> menampilkan jam masuk,
-                    <strong>Pulang</strong> menampilkan jam pulang.
+                    Pilih <strong>Hadir</strong> atau <strong>Pulang</strong>.
                     Untuk lupa pulang, bisa juga pakai panel <strong>Belum absen pulang</strong> di atas.
                 </p>
                 <div class="att-report-manual-grid" data-att-manual-form>
@@ -398,10 +397,6 @@
                         <select id="attendance_kind" name="attendance_kind" class="form-input" data-att-manual-kind required>
                             <option value="hadir" @selected(old('attendance_kind', 'hadir') === 'hadir')>Hadir</option>
                             <option value="pulang" @selected(old('attendance_kind') === 'pulang')>Pulang</option>
-                            @foreach ($statuses as $status)
-                                @continue($status->value === 'hadir')
-                                <option value="{{ $status->value }}" @selected(old('attendance_kind') === $status->value)>{{ $status->label() }}</option>
-                            @endforeach
                         </select>
                         <input type="hidden" name="status" id="status_manual" value="{{ old('status', 'hadir') }}" data-att-manual-status>
                     </div>
