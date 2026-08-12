@@ -40,40 +40,36 @@
             <div class="order-flash order-flash-error">{{ session('error') }}</div>
         @endif
 
-        <main class="order-table-main">
+        <main class="order-table-main {{ in_array($order->status->value, ['pending_payment', 'submitted', 'confirmed', 'paid', 'served'], true) ? 'is-waiting' : '' }}">
             @if ($order->status->value === 'pending_payment')
-                @include('order.partials.payment-pending', ['order' => $order, 'format' => $format])
-
-                <div class="order-layout-single">
+                <div class="order-waiting-layout">
+                    @include('order.partials.payment-pending', ['order' => $order, 'format' => $format])
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
             @elseif ($order->status->value === 'submitted')
-                @include('order.partials.kasir-confirmation', ['order' => $order, 'format' => $format])
-
-                <div class="order-layout-single">
+                <div class="order-waiting-layout">
+                    @include('order.partials.kasir-confirmation', ['order' => $order, 'format' => $format])
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
             @elseif ($order->status->value === 'confirmed')
-                @include('order.partials.kasir-confirmed', ['order' => $order, 'format' => $format])
-
-                <div class="order-layout-single">
+                <div class="order-waiting-layout">
+                    @include('order.partials.kasir-confirmed', ['order' => $order, 'format' => $format])
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
             @elseif ($order->status->value === 'paid')
-                @include('order.partials.paid-awaiting-serve', ['order' => $order, 'format' => $format])
-
-                <div class="order-layout-single">
+                <div class="order-waiting-layout">
+                    @include('order.partials.paid-awaiting-serve', ['order' => $order, 'format' => $format])
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
             @elseif ($order->status->value === 'served')
-                <div class="order-status-card order-status-paid">
-                    <div class="order-status-icon">✅</div>
-                    <h2 class="text-lg font-bold text-green-900">Pesanan Selesai</h2>
-                    <p class="mt-2 text-sm text-green-800">Terima kasih! Pesanan Anda sudah diantar / selesai.</p>
-                    <p class="mt-3 font-mono text-xs text-green-700">{{ $order->order_number }}</p>
-                </div>
+                <div class="order-waiting-layout">
+                    <div class="order-status-card order-status-paid">
+                        <div class="order-status-icon">✅</div>
+                        <h2 class="text-lg font-bold text-green-900">Pesanan Selesai</h2>
+                        <p class="mt-2 text-sm text-green-800">Terima kasih! Pesanan Anda sudah diantar / selesai.</p>
+                        <p class="mt-3 font-mono text-xs text-green-700">{{ $order->order_number }}</p>
+                    </div>
 
-                <div class="order-layout-single">
                     @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
                 </div>
 

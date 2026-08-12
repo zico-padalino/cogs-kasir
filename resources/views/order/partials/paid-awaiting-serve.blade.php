@@ -9,79 +9,79 @@
     data-order-poll-interval="{{ max(90, (int) config('pos.notifications.poll_interval_seconds', 90)) }}"
 >
     <div class="order-kasir-confirmation-hero">
-        <div class="order-kasir-confirmation-icon" aria-hidden="true">💳</div>
-        <p class="order-kasir-confirmation-eyebrow">Pembayaran diterima</p>
-        <h2 class="order-kasir-confirmation-title">Menunggu Diantar / Selesai</h2>
+        <div class="order-kasir-confirmation-icon" aria-hidden="true">✅</div>
+        <p class="order-kasir-confirmation-eyebrow">Sudah dibayar</p>
+        <h2 class="order-kasir-confirmation-title">Menunggu diantar</h2>
         <p class="order-kasir-confirmation-lead">
             @if ($order->paidByCustomerOnline())
-                Terima kasih! Pembayaran QRIS Anda sudah diterima. Mohon tunggu hingga kasir mengantar atau menandai pesanan selesai.
+                Pembayaran QRIS diterima. Kasir sedang menyiapkan pesanan Anda.
             @else
-                Terima kasih! Pesanan Anda sudah dibayar. Mohon tunggu hingga kasir mengantar atau menandai pesanan selesai.
+                Pembayaran diterima. Kasir sedang menyiapkan pesanan Anda.
             @endif
         </p>
     </div>
 
-    <ol class="order-kasir-steps">
+    <ol class="order-kasir-steps" aria-label="Status pesanan">
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">1</span>
-            <span>Anda sudah pesan</span>
+            <span>Pesan</span>
         </li>
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">2</span>
-            <span>{{ $order->paidByCustomerOnline() ? 'Sudah bayar QRIS' : 'Sudah bayar di kasir' }}</span>
+            <span>Bayar</span>
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">3</span>
-            <span>Diantar / diselesaikan</span>
+            <span>Diantar</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
-            <span>Pesanan selesai</span>
+            <span>Selesai</span>
         </li>
     </ol>
 
     <div class="order-kasir-ticket">
         <div class="order-kasir-ticket-row">
-            <p class="order-kasir-ticket-label">Nomor Pesanan</p>
+            <p class="order-kasir-ticket-label">Nomor</p>
             <p class="order-kasir-ticket-value font-mono">{{ $order->order_number }}</p>
         </div>
         @if ($order->order_type)
             <div class="order-kasir-ticket-row">
-                <p class="order-kasir-ticket-label">Tipe Pesanan</p>
+                <p class="order-kasir-ticket-label">Tipe</p>
                 <p class="order-kasir-ticket-value">{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</p>
             </div>
         @endif
         @if ($order->customer_note)
             <div class="order-kasir-ticket-row">
-                <p class="order-kasir-ticket-label">Nama Pemesan</p>
+                <p class="order-kasir-ticket-label">Nama</p>
                 <p class="order-kasir-ticket-value">{{ $order->customer_note }}</p>
             </div>
         @endif
         <div class="order-kasir-ticket-row order-kasir-ticket-total">
-            <p class="order-kasir-ticket-label">Total Dibayar</p>
+            <p class="order-kasir-ticket-label">Total dibayar</p>
             <p class="order-kasir-ticket-value text-brand-600">{{ $format::rupiah($order->total) }}</p>
         </div>
     </div>
 
     @if ($order->paymentProofUrl())
-        <div class="mt-4 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
-            <p class="text-sm font-semibold text-emerald-900">Bukti pembayaran Anda</p>
-            <a href="{{ $order->paymentProofUrl() }}" target="_blank" rel="noopener" class="mt-2 block overflow-hidden rounded-lg border border-emerald-100 bg-white">
-                <img src="{{ $order->paymentProofUrl() }}" alt="Bukti pembayaran" class="mx-auto max-h-48 w-full object-contain">
+        <div class="order-proof-card">
+            <p class="order-proof-card-title">Bukti pembayaran</p>
+            <a href="{{ $order->paymentProofUrl() }}" target="_blank" rel="noopener" class="order-proof-card-frame">
+                <img src="{{ $order->paymentProofUrl() }}" alt="Bukti pembayaran">
             </a>
         </div>
     @endif
 
     <div class="order-kasir-notice order-kasir-notice-confirmed">
-        <p class="font-semibold text-brand-900">Menunggu konfirmasi kasir</p>
-        <p class="mt-1 text-sm leading-relaxed text-brand-800">
-            Halaman ini berubah otomatis setelah pesanan diantar / ditandai selesai.
+        <p class="font-semibold">Menunggu kasir</p>
+        <p class="mt-1 text-sm leading-relaxed">
+            Halaman ini berubah otomatis setelah pesanan diantar.
         </p>
     </div>
 
     @include('order.partials.new-order-button', [
         'label' => 'Buat pesanan baru',
-        'hint' => 'Ingin pesan lagi sambil menunggu? Pesanan yang sudah dibayar tetap diproses.',
+        'hint' => 'Pesanan yang sudah dibayar tetap diproses.',
         'confirm' => 'Buat pesanan baru? Pesanan '.$order->order_number.' tetap menunggu diantar.',
     ])
 </section>

@@ -5783,7 +5783,32 @@
     }
 
     .order-layout-single {
-        @apply max-w-xl;
+        @apply max-w-xl min-w-0;
+    }
+
+    .order-waiting-layout {
+        display: grid;
+        gap: 0.75rem;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .order-waiting-layout > * {
+        min-width: 0;
+    }
+
+    @media (min-width: 768px) {
+        .order-waiting-layout {
+            grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.85fr);
+            align-items: start;
+            gap: 1rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .order-waiting-layout {
+            gap: 1.25rem;
+        }
     }
 
     .order-panel {
@@ -6329,73 +6354,233 @@
     }
 
     .order-kasir-confirmation {
-        @apply overflow-hidden rounded-2xl border border-brand-200 bg-gradient-to-b from-brand-50 to-white shadow-sm;
+        @apply min-w-0 overflow-hidden rounded-2xl border border-brand-200 bg-gradient-to-b from-brand-50 to-white shadow-sm;
+    }
+
+    .order-awaiting-serve {
+        border-color: #bbf7d0;
+        background: linear-gradient(to bottom, #ecfdf5, #fff);
     }
 
     .order-kasir-confirmation-hero {
-        @apply px-4 py-5 text-center sm:px-6;
+        @apply px-3 py-4 text-center sm:px-6 sm:py-5;
     }
 
     .order-kasir-confirmation-icon {
-        @apply text-4xl;
+        @apply text-3xl sm:text-4xl;
     }
 
     .order-kasir-confirmation-eyebrow {
-        @apply mt-2 text-xs font-bold uppercase tracking-wider text-brand-600;
+        @apply mt-1.5 text-[10px] font-bold uppercase tracking-wider text-brand-600 sm:mt-2 sm:text-xs;
     }
 
     .order-kasir-confirmation-title {
-        @apply mt-1 text-xl font-bold text-slate-900 sm:text-2xl;
+        @apply mt-1 text-lg font-bold leading-tight text-slate-900 sm:text-2xl;
     }
 
     .order-kasir-confirmation-lead {
-        @apply mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600;
+        @apply mx-auto mt-1.5 max-w-md px-1 text-xs leading-relaxed text-slate-600 sm:mt-2 sm:text-sm;
     }
 
     .order-kasir-steps {
-        @apply mx-4 space-y-2 border-t border-brand-100 px-1 py-4 sm:mx-6;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.15rem;
+        margin: 0 0.75rem;
+        padding: 0.75rem 0.15rem 1rem;
+        border-top: 1px solid rgb(92 64 51 / 0.12);
+        list-style: none;
+    }
+
+    @media (min-width: 640px) {
+        .order-kasir-steps {
+            margin-inline: 1.5rem;
+            gap: 0.35rem;
+            padding-inline: 0.25rem;
+        }
     }
 
     .order-kasir-step {
-        @apply flex items-start gap-3 text-sm text-slate-500;
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        text-align: center;
+        font-size: 0.65rem;
+        font-weight: 600;
+        line-height: 1.2;
+        color: #94a3b8;
+    }
+
+    .order-kasir-step > span:last-child {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .order-kasir-step.is-done,
     .order-kasir-step.is-current {
-        @apply text-slate-800;
+        color: #1e293b;
+    }
+
+    .order-kasir-step.is-current {
+        color: #5c4033;
     }
 
     .order-kasir-step-num {
-        @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-500;
+        display: flex;
+        height: 1.6rem;
+        width: 1.6rem;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: #e2e8f0;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
     }
 
     .order-kasir-step.is-done .order-kasir-step-num,
     .order-kasir-step.is-current .order-kasir-step-num {
-        @apply bg-brand-600 text-white;
+        background: #5c4033;
+        color: #fff;
+    }
+
+    .order-kasir-step.is-current .order-kasir-step-num {
+        box-shadow: 0 0 0 3px rgb(92 64 51 / 0.18);
+    }
+
+    .order-awaiting-serve .order-kasir-step.is-done .order-kasir-step-num,
+    .order-awaiting-serve .order-kasir-step.is-current .order-kasir-step-num {
+        background: #047857;
+    }
+
+    .order-awaiting-serve .order-kasir-step.is-current {
+        color: #047857;
+    }
+
+    .order-awaiting-serve .order-kasir-step.is-current .order-kasir-step-num {
+        box-shadow: 0 0 0 3px rgb(4 120 87 / 0.18);
     }
 
     .order-kasir-ticket {
-        @apply mx-4 mb-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:mx-6;
+        @apply mx-3 mb-3 space-y-2 rounded-xl border border-slate-200 bg-white p-3 sm:mx-6 sm:mb-4 sm:space-y-3 sm:p-4;
     }
 
     .order-kasir-ticket-row {
-        @apply flex items-start justify-between gap-3;
+        @apply flex min-w-0 items-start justify-between gap-3;
     }
 
     .order-kasir-ticket-label {
-        @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
+        @apply shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs;
     }
 
     .order-kasir-ticket-value {
-        @apply text-right text-sm font-bold text-slate-900;
+        @apply min-w-0 text-right text-sm font-bold text-slate-900;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .order-kasir-ticket-total .order-kasir-ticket-value {
-        @apply text-lg;
+        @apply text-base sm:text-lg;
+    }
+
+    .order-proof-card {
+        margin: 0 0.75rem 0.75rem;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        border: 1px solid #a7f3d0;
+        background: rgb(236 253 245 / 0.7);
+        padding: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+        .order-proof-card {
+            margin-inline: 1.5rem;
+            margin-bottom: 1rem;
+        }
+    }
+
+    .order-proof-card-title {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #064e3b;
+    }
+
+    .order-proof-card-frame {
+        display: block;
+        margin-top: 0.5rem;
+        overflow: hidden;
+        border-radius: 0.5rem;
+        border: 1px solid #d1fae5;
+        background: #fff;
+    }
+
+    .order-proof-card-frame img {
+        display: block;
+        width: 100%;
+        max-height: 8.5rem;
+        margin-inline: auto;
+        object-fit: contain;
+    }
+
+    @media (min-width: 640px) {
+        .order-proof-card-frame img {
+            max-height: 12rem;
+        }
     }
 
     .order-kasir-notice {
-        @apply border-t border-amber-200 bg-amber-50 px-4 py-4 sm:px-6;
+        @apply border-t border-amber-200 bg-amber-50 px-3 py-3 text-sm sm:px-6 sm:py-4;
+    }
+
+    .order-kasir-confirmation .order-new-order-wrap {
+        margin: 0;
+        max-width: none;
+        padding: 0.75rem 0.75rem 1rem;
+        border-top: 1px solid rgb(226 232 240 / 0.9);
+    }
+
+    @media (min-width: 640px) {
+        .order-kasir-confirmation .order-new-order-wrap {
+            padding: 0.85rem 1.5rem 1.15rem;
+        }
+    }
+
+    .order-kasir-confirmation .order-pay-choice {
+        margin: 0 0.75rem 0.75rem;
+        padding: 0.85rem;
+    }
+
+    @media (min-width: 640px) {
+        .order-kasir-confirmation .order-pay-choice {
+            margin: 0 1.5rem 1rem;
+            padding: 1rem;
+        }
+    }
+
+    .order-table-main.is-waiting {
+        padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    @media (max-width: 639px) {
+        .order-table-main.is-waiting .qris-dynamic {
+            max-width: 12.5rem;
+        }
+
+        .order-table-main.is-waiting .qris-dynamic-frame {
+            width: min(100%, 11.5rem);
+        }
+
+        .order-table-main.is-waiting .order-pay-method,
+        .order-table-main.is-waiting .order-proof-pick-btn {
+            min-height: 2.6rem;
+            padding: 0.55rem 0.5rem;
+            font-size: 0.8rem;
+        }
     }
 
     .order-submit-note {

@@ -15,7 +15,7 @@
     }
 @endphp
 
-<div class="order-pay-choice card mt-4 space-y-4 p-4" data-order-pay-choice>
+<div class="order-pay-choice card space-y-3 p-3 sm:space-y-4 sm:p-4" data-order-pay-choice>
     <div>
         <p class="text-sm font-semibold text-slate-900">Cara bayar</p>
         <p class="mt-1 text-xs text-slate-500">Pilih QRIS untuk bayar dari meja, atau tunai di kasir.</p>

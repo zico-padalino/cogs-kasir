@@ -13,18 +13,18 @@
         <p class="order-kasir-confirmation-eyebrow">Siap dibayar</p>
         <h2 class="order-kasir-confirmation-title">Bayar di kasir</h2>
         <p class="order-kasir-confirmation-lead">
-            Pesanan sudah di kasir. Bayar tunai di kasir, atau gunakan QRIS di bawah lalu upload bukti.
+            Bayar tunai di kasir, atau QRIS di bawah lalu unggah bukti.
         </p>
     </div>
 
-    <ol class="order-kasir-steps">
+    <ol class="order-kasir-steps" aria-label="Status pesanan">
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">1</span>
-            <span>Anda sudah pesan</span>
+            <span>Pesan</span>
         </li>
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">2</span>
-            <span>Masuk ke kasir</span>
+            <span>Kasir</span>
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">3</span>
@@ -32,7 +32,7 @@
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
-            <span>Pesanan selesai</span>
+            <span>Selesai</span>
         </li>
     </ol>
 

@@ -13,26 +13,26 @@
         <p class="order-kasir-confirmation-eyebrow">Sudah dikirim</p>
         <h2 class="order-kasir-confirmation-title">Bayar tunai di kasir</h2>
         <p class="order-kasir-confirmation-lead">
-            Pesanan Anda sudah masuk antrean kasir. Datang ke kasir dan sebutkan nomor pesanan.
+            Pesanan sudah di antrean kasir. Sebutkan nomor pesanan saat bayar tunai.
         </p>
     </div>
 
-    <ol class="order-kasir-steps">
+    <ol class="order-kasir-steps" aria-label="Status pesanan">
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">1</span>
-            <span>Anda sudah pesan</span>
+            <span>Pesan</span>
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">2</span>
-            <span>Bayar tunai di kasir</span>
+            <span>Kasir</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">3</span>
-            <span>Pesanan diproses</span>
+            <span>Proses</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
-            <span>Pesanan selesai</span>
+            <span>Selesai</span>
         </li>
     </ol>
 

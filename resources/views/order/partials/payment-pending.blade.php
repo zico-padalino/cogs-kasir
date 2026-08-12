@@ -13,26 +13,26 @@
         <p class="order-kasir-confirmation-eyebrow">Pesanan siap</p>
         <h2 class="order-kasir-confirmation-title">Pilih cara bayar</h2>
         <p class="order-kasir-confirmation-lead">
-            Bayar QRIS dari meja (upload bukti), atau pilih tunai agar pesanan dikirim ke kasir.
+            Bayar QRIS dari meja, atau tunai agar pesanan masuk kasir.
         </p>
     </div>
 
-    <ol class="order-kasir-steps">
+    <ol class="order-kasir-steps" aria-label="Status pesanan">
         <li class="order-kasir-step is-done">
             <span class="order-kasir-step-num">1</span>
-            <span>Anda sudah pesan</span>
+            <span>Pesan</span>
         </li>
         <li class="order-kasir-step is-current">
             <span class="order-kasir-step-num">2</span>
-            <span>Bayar (QRIS / tunai)</span>
+            <span>Bayar</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">3</span>
-            <span>Pesanan diproses</span>
+            <span>Proses</span>
         </li>
         <li class="order-kasir-step">
             <span class="order-kasir-step-num">4</span>
-            <span>Pesanan selesai</span>
+            <span>Selesai</span>
         </li>
     </ol>
 
