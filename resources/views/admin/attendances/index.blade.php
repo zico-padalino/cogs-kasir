@@ -145,8 +145,109 @@
             </div>
         @endif
 
+        {{-- Mobile: kartu penuh layar (hindari tabel lebar yang bikin scroll ketahan & UI kepotong) --}}
+        <div class="att-report-cards no-print">
+            @forelse ($attendances as $row)
+                <article class="att-report-card">
+                    <div class="att-report-card-top">
+                        <div class="min-w-0">
+                            <p class="att-report-card-date">{{ $row->work_date?->translatedFormat('d M Y') }}</p>
+                            <p class="att-report-card-name">{{ $row->employee?->name }}</p>
+                            <p class="att-report-card-code">{{ $row->employee?->employee_code }}</p>
+                        </div>
+                        <div class="att-report-card-badges">
+                            <span class="att-status">{{ $row->status->label() }}</span>
+                            @if ($row->is_late)
+                                <span class="att-badge-late">Terlambat</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="att-report-card-grid">
+                        <div class="att-report-card-block">
+                            <p class="att-report-card-label">Masuk</p>
+                            <div class="att-report-card-row">
+                                <p class="att-report-card-time">
+                                    {{ $row->check_in ? substr((string) $row->check_in, 0, 5) : '—' }}
+                                </p>
+                                @if ($row->checkInPhotoUrl())
+                                    <a href="{{ $row->checkInPhotoUrl() }}" target="_blank" rel="noopener" class="att-selfie">
+                                        <img src="{{ $row->checkInPhotoUrl() }}" alt="Selfie masuk">
+                                    </a>
+                                @endif
+                            </div>
+                            @if ($row->check_in_lat !== null)
+                                <a
+                                    class="att-report-card-loc"
+                                    target="_blank"
+                                    rel="noopener"
+                                    href="https://www.google.com/maps?q={{ $row->check_in_lat }},{{ $row->check_in_lng }}"
+                                >
+                                    Lokasi masuk
+                                    @if ($row->check_in_distance !== null)
+                                        · {{ number_format($row->check_in_distance, 0) }} m
+                                    @endif
+                                </a>
+                            @endif
+                        </div>
+                        <div class="att-report-card-block">
+                            <p class="att-report-card-label">Pulang</p>
+                            <div class="att-report-card-row">
+                                <p class="att-report-card-time">
+                                    {{ $row->check_out ? substr((string) $row->check_out, 0, 5) : '—' }}
+                                </p>
+                                @if ($row->checkOutPhotoUrl())
+                                    <a href="{{ $row->checkOutPhotoUrl() }}" target="_blank" rel="noopener" class="att-selfie">
+                                        <img src="{{ $row->checkOutPhotoUrl() }}" alt="Selfie pulang">
+                                    </a>
+                                @endif
+                            </div>
+                            @if ($row->check_out_lat !== null)
+                                <a
+                                    class="att-report-card-loc"
+                                    target="_blank"
+                                    rel="noopener"
+                                    href="https://www.google.com/maps?q={{ $row->check_out_lat }},{{ $row->check_out_lng }}"
+                                >
+                                    Lokasi pulang
+                                    @if ($row->check_out_distance !== null)
+                                        · {{ number_format($row->check_out_distance, 0) }} m
+                                    @endif
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+
+                    @if ($row->notes)
+                        <p class="att-report-card-notes">{{ $row->notes }}</p>
+                    @endif
+
+                    <div class="att-report-card-actions">
+                        @if (filled($row->check_in) && ! filled($row->check_out))
+                            <form action="{{ route('admin.attendances.checkout', $row) }}" method="POST" class="flex-1">
+                                @csrf
+                                <input type="hidden" name="check_out" value="{{ $row->suggested_check_out ?? '23:59' }}">
+                                <button type="submit" class="btn-sm btn-primary w-full" title="Pakai jam jadwal: {{ $row->suggested_check_out ?? '23:59' }}">
+                                    Absen pulang
+                                </button>
+                            </form>
+                        @endif
+                        <form action="{{ route('admin.attendances.destroy', $row) }}" method="POST" class="flex-1" onsubmit="return confirm('Hapus absensi?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-sm btn-outline-danger w-full">Hapus</button>
+                        </form>
+                    </div>
+                </article>
+            @empty
+                <div class="att-report-cards-empty">
+                    Belum ada data absensi pada filter ini.
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Desktop: tabel penuh --}}
         <div class="card att-report-table-wrap p-0">
-            <p class="att-report-scroll-hint no-print">Geser ke samping untuk melihat semua kolom</p>
             <div class="att-report-table-scroll">
                 <table class="att-report-table">
                     <thead>
