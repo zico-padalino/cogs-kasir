@@ -19,9 +19,21 @@
         <div>
             <label class="form-label">Bahan baku</label>
             @if ($mode === 'edit')
-                <select class="form-input" data-addon-edit-material>
+                <select
+                    class="form-input"
+                    data-addon-edit-material
+                    data-searchable-select
+                    data-search-placeholder="{{ $rawEmpty }}"
+                    data-search-input-placeholder="Cari bahan baku..."
+                >
             @else
-                <select class="form-input" data-addon-material>
+                <select
+                    class="form-input"
+                    data-addon-material
+                    data-searchable-select
+                    data-search-placeholder="{{ $rawEmpty }}"
+                    data-search-input-placeholder="Cari bahan baku..."
+                >
             @endif
                 <option value="">{{ $rawEmpty }}</option>
                 @foreach ($rawMaterials as $p)
@@ -34,9 +46,21 @@
         <div>
             <label class="form-label">Bahan jadi</label>
             @if ($mode === 'edit')
-                <select class="form-input" data-addon-edit-material>
+                <select
+                    class="form-input"
+                    data-addon-edit-material
+                    data-searchable-select
+                    data-search-placeholder="{{ $jadiEmpty }}"
+                    data-search-input-placeholder="Cari bahan jadi..."
+                >
             @else
-                <select class="form-input" data-addon-material>
+                <select
+                    class="form-input"
+                    data-addon-material
+                    data-searchable-select
+                    data-search-placeholder="{{ $jadiEmpty }}"
+                    data-search-input-placeholder="Cari bahan jadi..."
+                >
             @endif
                 <option value="">{{ $jadiEmpty }}</option>
                 @foreach ($semiFinishedMaterials as $p)

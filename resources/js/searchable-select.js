@@ -169,16 +169,24 @@ function enhanceSelect(select) {
         let lastGroup = null;
 
         const appendOption = (option, groupLabel) => {
-            if (! option.value || seenValues.has(option.value)) {
+            if (option.hidden || option.disabled) {
+                return;
+            }
+
+            const valueKey = option.value === '' ? '__empty__' : option.value;
+            if (seenValues.has(valueKey)) {
                 return;
             }
 
             const label = optionLabel(option);
+            if (! label) {
+                return;
+            }
             if (query && ! normalize(label).includes(query)) {
                 return;
             }
 
-            seenValues.add(option.value);
+            seenValues.add(valueKey);
 
             if (groupLabel && groupLabel !== lastGroup) {
                 const header = document.createElement('li');
@@ -229,6 +237,9 @@ function enhanceSelect(select) {
 
     trigger.addEventListener('click', (event) => {
         event.preventDefault();
+        if (select.disabled) {
+            return;
+        }
         setOpen(! open);
     });
 
@@ -283,6 +294,23 @@ function enhanceSelect(select) {
 
     select.addEventListener('change', syncTrigger);
     syncTrigger();
+
+    const syncDisabled = () => {
+        const isDisabled = select.disabled;
+        trigger.disabled = isDisabled;
+        wrap.classList.toggle('is-disabled', isDisabled);
+        if (isDisabled && open) {
+            setOpen(false);
+        }
+    };
+
+    syncDisabled();
+
+    const attrObserver = new MutationObserver(() => {
+        syncDisabled();
+        syncTrigger();
+    });
+    attrObserver.observe(select, { attributes: true, attributeFilter: ['disabled', 'required'] });
 }
 
 function initSearchableSelects(root = document) {

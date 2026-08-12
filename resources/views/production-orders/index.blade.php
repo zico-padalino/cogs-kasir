@@ -21,7 +21,14 @@
 
                     <div class="field-name sm:col-span-2">
                         <label class="form-label">Menu yang dibuat</label>
-                        <select name="product_id" class="form-input text-base" required>
+                        <select
+                            name="product_id"
+                            class="form-input text-base"
+                            required
+                            data-searchable-select
+                            data-search-placeholder="Pilih menu..."
+                            data-search-input-placeholder="Cari menu..."
+                        >
                             <option value="">Pilih menu...</option>
                             @foreach ($products as $p)
                                 <option value="{{ $p->id }}" @selected(old('product_id') == $p->id)>{{ $p->name }}</option>
@@ -42,7 +49,14 @@
                     <form action="{{ route('production-orders.store') }}" method="POST" class="mt-3 space-y-3">
                         @csrf
                         <input type="hidden" name="langsung_hitung" value="1">
-                        <select name="product_id" class="form-input text-sm" required>
+                        <select
+                            name="product_id"
+                            class="form-input text-sm"
+                            required
+                            data-searchable-select
+                            data-search-placeholder="Pilih menu..."
+                            data-search-input-placeholder="Cari menu..."
+                        >
                             <option value="">Pilih menu...</option>
                             @foreach ($products as $p)
                                 <option value="{{ $p->id }}">{{ $p->name }}</option>

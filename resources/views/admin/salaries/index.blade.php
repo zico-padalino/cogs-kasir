@@ -69,7 +69,7 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="form-label" for="employee_id">Karyawan</label>
-                    <select id="employee_id" name="employee_id" class="form-input" required data-salary-employee>
+                    <select id="employee_id" name="employee_id" class="form-input" required data-salary-employee data-searchable-select data-search-placeholder="Pilih karyawan" data-search-input-placeholder="Cari karyawan...">
                         <option value="">Pilih karyawan</option>
                         @foreach ($employees as $employee)
                             @php $p = $previews[$employee->id] ?? null; @endphp

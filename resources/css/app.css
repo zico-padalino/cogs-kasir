@@ -826,6 +826,10 @@
         @apply rotate-180 border-t-brand-600;
     }
 
+    .searchable-select.is-disabled .searchable-select__trigger {
+        @apply cursor-not-allowed bg-slate-50 text-slate-400 opacity-70;
+    }
+
     .searchable-select__panel {
         position: fixed !important;
         z-index: 9999 !important;

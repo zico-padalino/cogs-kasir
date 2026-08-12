@@ -55,7 +55,16 @@
                 </div>
                 <div class="sm:col-span-2" data-waste-field="product" @class(['hidden' => $oldItemType !== 'product'])>
                     <label class="form-label">Produk</label>
-                    <select name="product_id" class="form-input" data-waste-select="product" @disabled($oldItemType !== 'product') @required($oldItemType === 'product')>
+                    <select
+                        name="product_id"
+                        class="form-input"
+                        data-waste-select="product"
+                        data-searchable-select
+                        data-search-placeholder="— Pilih produk —"
+                        data-search-input-placeholder="Cari produk..."
+                        @disabled($oldItemType !== 'product')
+                        @required($oldItemType === 'product')
+                    >
                         <option value="">— Pilih produk —</option>
                         @foreach ($menuProducts as $product)
                             <option value="{{ $product->id }}" @selected($oldItemType === 'product' && (string) $oldProductId === (string) $product->id)>
@@ -66,7 +75,16 @@
                 </div>
                 <div class="sm:col-span-2" data-waste-field="material" @class(['hidden' => $oldItemType !== 'material'])>
                     <label class="form-label">Bahan baku</label>
-                    <select name="product_id" class="form-input" data-waste-select="material" @disabled($oldItemType !== 'material') @required($oldItemType === 'material')>
+                    <select
+                        name="product_id"
+                        class="form-input"
+                        data-waste-select="material"
+                        data-searchable-select
+                        data-search-placeholder="— Pilih bahan —"
+                        data-search-input-placeholder="Cari bahan..."
+                        @disabled($oldItemType !== 'material')
+                        @required($oldItemType === 'material')
+                    >
                         <option value="">— Pilih bahan —</option>
                         @foreach ($materials as $product)
                             <option value="{{ $product->id }}" @selected($oldItemType === 'material' && (string) $oldProductId === (string) $product->id)>
@@ -252,7 +270,10 @@
             if (!select) return;
             select.disabled = !match;
             select.required = match;
-            if (!match) select.value = '';
+            if (!match && select.value !== '') {
+                select.value = '';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         });
     };
 

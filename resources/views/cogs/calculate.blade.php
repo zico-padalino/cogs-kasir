@@ -13,7 +13,14 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label class="form-label">Produk</label>
-                        <select name="product_id" class="form-input" required>
+                        <select
+                            name="product_id"
+                            class="form-input"
+                            required
+                            data-searchable-select
+                            data-search-placeholder="Pilih produk..."
+                            data-search-input-placeholder="Cari produk..."
+                        >
                             <option value="">Pilih produk...</option>
                             @foreach ($products as $p)
                                 <option value="{{ $p->id }}" @selected(old('product_id') == $p->id)>{{ $p->name }}</option>

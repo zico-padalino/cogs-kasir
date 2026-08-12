@@ -82,6 +82,9 @@
                     class="form-input scan-select"
                     required
                     data-scan-employee
+                    data-searchable-select
+                    data-search-placeholder="— Pilih nama —"
+                    data-search-input-placeholder="Cari nama..."
                 >
                     <option value="">— Pilih nama —</option>
                     @php

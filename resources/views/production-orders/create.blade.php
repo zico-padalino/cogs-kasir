@@ -15,7 +15,14 @@
 
                 <div>
                     <label class="form-label">Produk yang dibuat</label>
-                    <select name="product_id" class="form-input" required>
+                    <select
+                        name="product_id"
+                        class="form-input"
+                        required
+                        data-searchable-select
+                        data-search-placeholder="Pilih produk jadi..."
+                        data-search-input-placeholder="Cari produk..."
+                    >
                         <option value="">Pilih produk jadi...</option>
                         @foreach ($products as $p)
                             <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku }})</option>

@@ -33,7 +33,14 @@
             </div>
             <div>
                 <label class="form-label" for="employee_id_filter">Pegawai</label>
-                <select id="employee_id_filter" name="employee_id" class="form-input">
+                <select
+                    id="employee_id_filter"
+                    name="employee_id"
+                    class="form-input"
+                    data-searchable-select
+                    data-search-placeholder="Semua pegawai"
+                    data-search-input-placeholder="Cari pegawai..."
+                >
                     <option value="">Semua pegawai</option>
                     @foreach ($employees as $employee)
                         <option value="{{ $employee->id }}" @selected((int) $employeeId === (int) $employee->id)>
@@ -381,7 +388,15 @@
                 <div class="att-report-manual-grid" data-att-manual-form>
                     <div>
                         <label class="form-label" for="employee_id">Karyawan</label>
-                        <select id="employee_id" name="employee_id" class="form-input" required>
+                        <select
+                            id="employee_id"
+                            name="employee_id"
+                            class="form-input"
+                            required
+                            data-searchable-select
+                            data-search-placeholder="Pilih karyawan"
+                            data-search-input-placeholder="Cari karyawan..."
+                        >
                             <option value="">Pilih karyawan</option>
                             @foreach ($employees as $employee)
                                 <option value="{{ $employee->id }}">{{ $employee->name }}</option>

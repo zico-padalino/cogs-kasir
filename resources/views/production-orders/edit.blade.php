@@ -14,7 +14,14 @@
 
                 <div>
                     <label class="form-label">Produk</label>
-                    <select name="product_id" class="form-input" required>
+                    <select
+                        name="product_id"
+                        class="form-input"
+                        required
+                        data-searchable-select
+                        data-search-placeholder="Pilih produk..."
+                        data-search-input-placeholder="Cari produk..."
+                    >
                         @foreach ($products as $p)
                             <option value="{{ $p->id }}" @selected(old('product_id', $order->product_id) == $p->id)>{{ $p->name }}</option>
                         @endforeach
