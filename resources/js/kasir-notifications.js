@@ -42,6 +42,20 @@ let lastSpeakAt = 0;
 let lastPushWakeAt = 0;
 let audioUnlocked = false;
 let audioContext = null;
+let voiceAudio = null;
+
+const ORDER_VOICE_URL = '/sounds/pesanan-masuk.mp3';
+const ORDER_VOICE_TEXT = 'Pesanan masuk';
+
+function getVoiceAudio() {
+    if (! voiceAudio) {
+        voiceAudio = new Audio(ORDER_VOICE_URL);
+        voiceAudio.preload = 'auto';
+        voiceAudio.volume = 1;
+    }
+
+    return voiceAudio;
+}
 
 function unlockKasirAudio() {
     audioUnlocked = true;
@@ -56,6 +70,22 @@ function unlockKasirAudio() {
         if (audioContext?.state === 'suspended') {
             audioContext.resume();
         }
+
+        const audio = getVoiceAudio();
+        audio.muted = true;
+        const play = audio.play();
+        if (play && typeof play.then === 'function') {
+            play.then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+                audio.muted = false;
+            }).catch(() => {
+                audio.muted = false;
+            });
+        } else {
+            audio.muted = false;
+        }
+
         if ('speechSynthesis' in window) {
             window.speechSynthesis.resume();
             window.speechSynthesis.getVoices();
@@ -65,64 +95,53 @@ function unlockKasirAudio() {
     }
 }
 
-function playKasirChime() {
-    try {
-        if (! audioContext) {
-            const Ctx = window.AudioContext || window.webkitAudioContext;
-            if (! Ctx) {
-                return;
+function playVoiceClip() {
+    return new Promise((resolve) => {
+        try {
+            const audio = getVoiceAudio();
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = false;
+            audio.volume = 1;
+
+            const done = (ok) => {
+                audio.onended = null;
+                audio.onerror = null;
+                resolve(ok);
+            };
+
+            audio.onended = () => done(true);
+            audio.onerror = () => done(false);
+
+            const play = audio.play();
+            if (play && typeof play.catch === 'function') {
+                play.catch(() => done(false));
             }
-            audioContext = new Ctx();
+        } catch {
+            resolve(false);
         }
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-
-        const now = audioContext.currentTime;
-        const beep = (start, freq) => {
-            const osc = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.0001, start);
-            gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
-            osc.connect(gain);
-            gain.connect(audioContext.destination);
-            osc.start(start);
-            osc.stop(start + 0.24);
-        };
-
-        beep(now, 880);
-        beep(now + 0.18, 1174);
-    } catch {
-        //
-    }
+    });
 }
 
-function speakNewOrder(text = 'Pesanan baru masuk') {
-    const now = Date.now();
-    if (now - lastSpeakAt < 3500) {
-        return;
-    }
-    lastSpeakAt = now;
-
-    playKasirChime();
-
+function speakWithBrowserTts(text) {
     if (! ('speechSynthesis' in window)) {
         return;
     }
 
     try {
         window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'id-ID';
-        utterance.rate = 0.95;
-        utterance.pitch = 1;
+        utterance.rate = 0.92;
+        utterance.pitch = 1.05;
         utterance.volume = 1;
 
         const voices = window.speechSynthesis.getVoices?.() || [];
-        const idVoice = voices.find((voice) => (voice.lang || '').toLowerCase().startsWith('id'));
+        const idVoice = voices.find((voice) => {
+            const lang = (voice.lang || '').toLowerCase().replace('_', '-');
+            return lang === 'id-id' || lang.startsWith('id') || lang.startsWith('in');
+        });
         if (idVoice) {
             utterance.voice = idVoice;
         }
@@ -131,6 +150,24 @@ function speakNewOrder(text = 'Pesanan baru masuk') {
     } catch {
         //
     }
+}
+
+async function speakNewOrder(text = ORDER_VOICE_TEXT) {
+    const now = Date.now();
+    if (now - lastSpeakAt < 3500) {
+        return;
+    }
+    lastSpeakAt = now;
+
+    const first = await playVoiceClip();
+    if (first) {
+        window.setTimeout(() => {
+            playVoiceClip();
+        }, 280);
+        return;
+    }
+
+    speakWithBrowserTts(text || ORDER_VOICE_TEXT);
 }
 
 function showKasirBrowserNotification(title, body) {
@@ -168,7 +205,7 @@ function showKasirBrowserNotification(title, body) {
 function alertNewOrder(toast, options = {}) {
     const title = options.title || 'Pesanan baru masuk';
     const body = options.body || toast || 'Ada pesanan online baru. Buka kasir untuk memproses.';
-    const speakText = options.speakText || 'Pesanan baru masuk';
+    const speakText = options.speakText || ORDER_VOICE_TEXT;
 
     if (toast) {
         showKasirToast(toast);
@@ -267,7 +304,7 @@ function flushDeferredOrderAlertIfIdle() {
 
     if (wasTransactionActive && ! busy && deferredOrderAlert) {
         alertNewOrder('Ada pesanan baru menunggu — buka dari banner atas', {
-            speakText: 'Pesanan baru masuk',
+            speakText: ORDER_VOICE_TEXT,
         });
         flashPendingPanel();
         deferredOrderAlert = false;
@@ -329,7 +366,7 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
         body: preserveKasirDraft
             ? 'Ada pesanan online baru. Selesaikan transaksi kasir dulu, lalu buka dari antrian.'
             : 'Ada pesanan online baru. Buka kasir untuk memproses.',
-        speakText: 'Pesanan baru masuk',
+        speakText: ORDER_VOICE_TEXT,
     });
 
     updatePendingPanel(data.html ?? '');
@@ -424,7 +461,7 @@ async function pollPendingOrders(pollUrl, shell) {
     if (newIds.length > 0) {
         if (pinPollOnly) {
             alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir', {
-                speakText: 'Pesanan baru masuk',
+                speakText: ORDER_VOICE_TEXT,
             });
             knownOrderIds = currentIds;
 
@@ -759,6 +796,7 @@ function initKasirNotifications() {
     };
 
     window.__kasirPullPending = pullOnce;
+    getVoiceAudio();
 
     const requestKasirNotifyPermission = async () => {
         if (! ('Notification' in window) || Notification.permission !== 'default') {
@@ -803,7 +841,7 @@ function initKasirNotifications() {
             const reason = event.data?.reason || event.data?.data?.type;
             if (reason === 'new_order' || event.data?.data?.type === 'new_order' || ! reason) {
                 lastPushWakeAt = Date.now();
-                speakNewOrder(event.data?.data?.speak_text || 'Pesanan baru masuk');
+                speakNewOrder(ORDER_VOICE_TEXT);
             }
         });
     }
