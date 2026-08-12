@@ -337,6 +337,125 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderKasirConfirmation();
 });
 
+async function compressProofImage(file) {
+    if (! file) {
+        return null;
+    }
+
+    const type = (file.type || '').toLowerCase();
+    const alreadySmall = file.size <= 1.5 * 1024 * 1024
+        && (type === 'image/jpeg' || type === 'image/jpg' || type === 'image/png' || type === 'image/webp');
+    if (alreadySmall) {
+        return file;
+    }
+
+    const bitmap = await loadProofBitmap(file);
+    if (! bitmap) {
+        return file.size <= 10 * 1024 * 1024 ? file : null;
+    }
+
+    const maxSide = 1600;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (! ctx) {
+        return file;
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    if (typeof bitmap.close === 'function') {
+        bitmap.close();
+    }
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+    if (! blob) {
+        return file;
+    }
+
+    return new File([blob], 'bukti-pembayaran.jpg', { type: 'image/jpeg' });
+}
+
+async function loadProofBitmap(file) {
+    if (typeof createImageBitmap === 'function') {
+        try {
+            return await createImageBitmap(file);
+        } catch {
+            // HEIC / beberapa galeri Android gagal di sini.
+        }
+    }
+
+    const url = URL.createObjectURL(file);
+    try {
+        const image = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('load failed'));
+            img.src = url;
+        });
+        return image;
+    } catch {
+        return null;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
+async function submitProofWithFetch(form, file, submitBtn, showProofError) {
+    if (! (form instanceof HTMLFormElement) || ! file) {
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+
+    try {
+        const body = new FormData(form);
+        body.set('payment_proof', file, file.name || 'bukti-pembayaran.jpg');
+        const token = form.querySelector('input[name="_token"]')?.value;
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body,
+            credentials: 'same-origin',
+            redirect: 'manual',
+            headers: {
+                Accept: 'text/html',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+            },
+        });
+
+        const location = response.headers.get('Location');
+        if (location) {
+            window.location.href = location;
+            return;
+        }
+
+        if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 301 || response.status === 302) {
+            window.location.href = form.action.replace(/\/bayar.*$/, '') + '#ke-kasir';
+            return;
+        }
+
+        if (response.ok) {
+            window.location.reload();
+            return;
+        }
+
+        showProofError?.('Gagal mengunggah bukti. Coba foto lebih kecil, atau pilih ulang dari galeri.');
+    } catch {
+        showProofError?.('Gagal mengunggah bukti. Periksa koneksi lalu coba lagi.');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
+    }
+}
+
 function initOrderPayChoice() {
     const root = document.querySelector('[data-order-pay-choice]');
     if (! root) {
@@ -349,7 +468,77 @@ function initOrderPayChoice() {
     const preview = root.querySelector('[data-order-proof-preview]');
     const previewImg = root.querySelector('[data-order-proof-preview-img]');
     const form = root.querySelector('[data-order-qris-pay-form]');
+    const proofError = root.querySelector('[data-order-proof-error]');
+    const submitBtn = root.querySelector('[data-order-qris-pay-submit]');
+    const pickers = root.querySelectorAll('[data-order-payment-proof-pick]');
     let objectUrl = null;
+    let selectedProof = null;
+
+    const showProofError = (text) => {
+        if (! proofError) {
+            return;
+        }
+        proofError.textContent = text || '';
+        proofError.classList.toggle('hidden', ! text);
+    };
+
+    const assignProofToInput = (file) => {
+        if (! (proofInput instanceof HTMLInputElement) || ! file) {
+            return false;
+        }
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            proofInput.files = dt.files;
+            return proofInput.files.length > 0;
+        } catch {
+            return false;
+        }
+    };
+
+    const showProofPreview = (file) => {
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+        if (! file || ! previewImg || ! preview) {
+            preview?.classList.add('hidden');
+            return;
+        }
+        objectUrl = URL.createObjectURL(file);
+        previewImg.src = objectUrl;
+        preview.classList.remove('hidden');
+    };
+
+    const handlePickedProof = async (file) => {
+        if (! file) {
+            return;
+        }
+        showProofError('');
+        selectedProof = file;
+        showProofPreview(file);
+
+        try {
+            const compressed = await compressProofImage(file);
+            if (compressed) {
+                selectedProof = compressed;
+                assignProofToInput(compressed);
+                showProofPreview(compressed);
+            } else {
+                assignProofToInput(file);
+            }
+        } catch {
+            assignProofToInput(file);
+        }
+    };
+
+    pickers.forEach((picker) => {
+        picker.addEventListener('change', () => {
+            const file = picker.files?.[0];
+            handlePickedProof(file);
+            picker.value = '';
+        });
+    });
 
     const showMethod = (method) => {
         buttons.forEach((btn) => {
@@ -368,27 +557,26 @@ function initOrderPayChoice() {
 
     proofInput?.addEventListener('change', () => {
         const file = proofInput.files?.[0];
-        if (objectUrl) {
-            URL.revokeObjectURL(objectUrl);
-            objectUrl = null;
+        if (file) {
+            handlePickedProof(file);
         }
-        if (! file || ! previewImg || ! preview) {
-            preview?.classList.add('hidden');
-            return;
-        }
-        objectUrl = URL.createObjectURL(file);
-        previewImg.src = objectUrl;
-        preview.classList.remove('hidden');
     });
 
     form?.addEventListener('submit', (event) => {
-        if (! proofInput?.files?.length) {
+        const file = selectedProof || proofInput?.files?.[0];
+        if (! file) {
             event.preventDefault();
-            window.alert('Unggah bukti pembayaran dulu.');
+            showProofError('Pilih bukti dari galeri atau ambil foto dulu.');
             return;
         }
         if (! window.confirm('Kirim bukti pembayaran? Pesanan akan dicatat lunas dan masuk ke kasir.')) {
             event.preventDefault();
+            return;
+        }
+
+        if (! proofInput?.files?.length) {
+            event.preventDefault();
+            submitProofWithFetch(form, file, submitBtn, showProofError);
         }
     });
 

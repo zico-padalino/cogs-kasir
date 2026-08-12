@@ -68,18 +68,38 @@
             @csrf
             <input type="hidden" name="payment_method" value="qris">
             <div>
-                <label class="form-label" for="order-payment-proof">Upload bukti pembayaran</label>
+                <p class="form-label">Bukti pembayaran</p>
+                <div class="order-proof-pick">
+                    <label class="order-proof-pick-btn">
+                        <input
+                            type="file"
+                            accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                            class="sr-only"
+                            data-order-payment-proof-pick="gallery"
+                        >
+                        <span>Dari galeri</span>
+                    </label>
+                    <label class="order-proof-pick-btn">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            class="sr-only"
+                            data-order-payment-proof-pick="camera"
+                        >
+                        <span>Ambil foto</span>
+                    </label>
+                </div>
                 <input
                     id="order-payment-proof"
                     type="file"
                     name="payment_proof"
-                    accept="image/*"
-                    capture="environment"
-                    required
-                    class="form-input file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700"
+                    accept="image/*,.heic,.heif"
+                    class="sr-only"
                     data-order-payment-proof
+                    tabindex="-1"
                 >
-                <p class="mt-1.5 text-xs text-slate-500">Wajib. Setelah diunggah, pesanan langsung tercatat lunas.</p>
+                <p class="mt-1.5 text-xs text-slate-500">Wajib. Pilih dari galeri atau kamera. Setelah diunggah, pesanan langsung tercatat lunas.</p>
                 @error('payment_proof')
                     <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
                 @enderror
@@ -87,6 +107,7 @@
             <div class="hidden overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-order-proof-preview>
                 <img src="" alt="Pratinjau bukti" class="max-h-48 w-full object-contain" data-order-proof-preview-img>
             </div>
+            <p class="hidden text-sm text-rose-600" data-order-proof-error></p>
             <button type="submit" class="btn-primary w-full" data-order-qris-pay-submit>
                 Saya sudah bayar — kirim bukti
             </button>

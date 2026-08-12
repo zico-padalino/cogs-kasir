@@ -3520,6 +3520,35 @@
         padding-top: 1rem;
     }
 
+    .order-proof-pick {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+
+    .order-proof-pick-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        background: #fff;
+        color: #334155;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .order-proof-pick-btn:hover,
+    .order-proof-pick-btn:focus-within {
+        border-color: #5c4033;
+        color: #5c4033;
+        background: #faf7f4;
+    }
+
     /* Admin settings — preview QRIS tetap kecil & responsif */
     .qris-settings-row {
         display: flex;

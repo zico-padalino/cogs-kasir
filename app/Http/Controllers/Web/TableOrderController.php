@@ -15,6 +15,7 @@ use App\Support\SessionPressure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\View\View;
 
 class TableOrderController extends Controller
@@ -298,19 +299,29 @@ class TableOrderController extends Controller
                 ->with('error', 'Pesanan sudah dibayar atau belum siap dibayar.');
         }
 
-        $validated = $request->validate([
+        if (! $request->hasFile('payment_proof') && (int) $request->server('CONTENT_LENGTH') > 0 && $request->all() === []) {
+            return back()->with('error', 'File terlalu besar untuk diunggah. Pilih foto lebih kecil, atau ambil ulang dengan kamera.');
+        }
+
+        $request->validate([
             'payment_method' => ['required', 'in:qris'],
             'payment_proof' => [
                 'required',
-                'image',
-                'max:5120',
-                'mimes:jpg,jpeg,png,webp,heic,heif',
+                'file',
+                'max:10240',
             ],
         ], [
-            'payment_proof.required' => 'Unggah bukti pembayaran QRIS dulu.',
-            'payment_proof.image' => 'Bukti pembayaran harus berupa gambar.',
-            'payment_proof.max' => 'Ukuran bukti maksimal 5 MB.',
+            'payment_proof.required' => 'Unggah bukti pembayaran QRIS dulu. Pilih dari galeri atau ambil foto.',
+            'payment_proof.file' => 'Bukti pembayaran harus berupa file gambar.',
+            'payment_proof.max' => 'Ukuran bukti maksimal 10 MB.',
         ]);
+
+        $proof = $request->file('payment_proof');
+        if (! $proof || ! $this->looksLikePaymentProof($proof)) {
+            return back()->withErrors([
+                'payment_proof' => 'Bukti harus berupa gambar (JPG, PNG, WEBP, atau HEIC).',
+            ]);
+        }
 
         try {
             $posService->payOrder(
@@ -342,5 +353,18 @@ class TableOrderController extends Controller
         }
 
         return $order;
+    }
+
+    private function looksLikePaymentProof(UploadedFile $file): bool
+    {
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+        $mime = strtolower((string) ($file->getMimeType() ?: $file->getClientMimeType()));
+
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'gif'], true)) {
+            return true;
+        }
+
+        return str_starts_with($mime, 'image/')
+            || in_array($mime, ['application/octet-stream', 'application/heic', 'application/heif'], true);
     }
 }
