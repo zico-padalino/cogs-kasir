@@ -794,7 +794,10 @@ function initOrderKasirConfirmation() {
             intervalSec = baseIntervalSec;
             const data = await response.json();
 
-            if (data.is_served || data.is_paid || (initialStatus && data.status !== initialStatus)) {
+            // Hanya reload jika status benar-benar berubah.
+            // Jangan pakai data.is_paid saja: halaman "Menunggu diantar" sudah paid,
+            // sehingga is_paid=true akan memicu refresh berulang.
+            if (initialStatus && data.status && data.status !== initialStatus) {
                 stopped = true;
                 window.location.reload();
             }
