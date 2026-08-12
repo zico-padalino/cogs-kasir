@@ -38,10 +38,144 @@ function showKasirToast(message) {
     });
 }
 
-function alertNewOrder(toast) {
+let lastSpeakAt = 0;
+let lastPushWakeAt = 0;
+let audioUnlocked = false;
+let audioContext = null;
+
+function unlockKasirAudio() {
+    audioUnlocked = true;
+
+    try {
+        if (! audioContext) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (Ctx) {
+                audioContext = new Ctx();
+            }
+        }
+        if (audioContext?.state === 'suspended') {
+            audioContext.resume();
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.resume();
+            window.speechSynthesis.getVoices();
+        }
+    } catch {
+        //
+    }
+}
+
+function playKasirChime() {
+    try {
+        if (! audioContext) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (! Ctx) {
+                return;
+            }
+            audioContext = new Ctx();
+        }
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+
+        const now = audioContext.currentTime;
+        const beep = (start, freq) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(start);
+            osc.stop(start + 0.24);
+        };
+
+        beep(now, 880);
+        beep(now + 0.18, 1174);
+    } catch {
+        //
+    }
+}
+
+function speakNewOrder(text = 'Pesanan baru masuk') {
+    const now = Date.now();
+    if (now - lastSpeakAt < 3500) {
+        return;
+    }
+    lastSpeakAt = now;
+
+    playKasirChime();
+
+    if (! ('speechSynthesis' in window)) {
+        return;
+    }
+
+    try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'id-ID';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        const voices = window.speechSynthesis.getVoices?.() || [];
+        const idVoice = voices.find((voice) => (voice.lang || '').toLowerCase().startsWith('id'));
+        if (idVoice) {
+            utterance.voice = idVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+    } catch {
+        //
+    }
+}
+
+function showKasirBrowserNotification(title, body) {
+    if (! ('Notification' in window) || Notification.permission !== 'granted') {
+        return;
+    }
+
+    // Push lewat service worker sudah menampilkan notifikasi OS.
+    if (Date.now() - lastPushWakeAt < 5000) {
+        return;
+    }
+
+    try {
+        const notification = new Notification(title, {
+            body,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: 'kasir-new-order',
+            renotify: true,
+            silent: true,
+        });
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+            const indexUrl = document.body?.dataset?.kasirIndexUrl || '/kasir';
+            if (! window.location.pathname.startsWith('/kasir')) {
+                window.location.assign(indexUrl);
+            }
+        };
+    } catch {
+        //
+    }
+}
+
+function alertNewOrder(toast, options = {}) {
+    const title = options.title || 'Pesanan baru masuk';
+    const body = options.body || toast || 'Ada pesanan online baru. Buka kasir untuk memproses.';
+    const speakText = options.speakText || 'Pesanan baru masuk';
+
     if (toast) {
         showKasirToast(toast);
     }
+
+    showKasirBrowserNotification(title, body);
+    speakNewOrder(speakText);
 }
 
 function updatePendingPanel(html) {
@@ -132,7 +266,9 @@ function flushDeferredOrderAlertIfIdle() {
     const busy = isKasirTransactionActive();
 
     if (wasTransactionActive && ! busy && deferredOrderAlert) {
-        alertNewOrder('Ada pesanan baru menunggu — buka dari banner atas');
+        alertNewOrder('Ada pesanan baru menunggu — buka dari banner atas', {
+            speakText: 'Pesanan baru masuk',
+        });
         flashPendingPanel();
         deferredOrderAlert = false;
     }
@@ -188,7 +324,13 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
         ? 'Pesanan online baru masuk — cek banner atas, lanjutkan transaksi kasir dulu'
         : (autoLoad
             ? 'Pesanan baru masuk ke kasir'
-            : 'Pesanan baru menunggu — buka dari daftar online'));
+            : 'Pesanan baru menunggu — buka dari daftar online'), {
+        title: 'Pesanan baru masuk',
+        body: preserveKasirDraft
+            ? 'Ada pesanan online baru. Selesaikan transaksi kasir dulu, lalu buka dari antrian.'
+            : 'Ada pesanan online baru. Buka kasir untuk memproses.',
+        speakText: 'Pesanan baru masuk',
+    });
 
     updatePendingPanel(data.html ?? '');
     flashPendingPanel();
@@ -281,7 +423,9 @@ async function pollPendingOrders(pollUrl, shell) {
 
     if (newIds.length > 0) {
         if (pinPollOnly) {
-            alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir');
+            alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir', {
+                speakText: 'Pesanan baru masuk',
+            });
             knownOrderIds = currentIds;
 
             return;
@@ -615,6 +759,54 @@ function initKasirNotifications() {
     };
 
     window.__kasirPullPending = pullOnce;
+
+    const requestKasirNotifyPermission = async () => {
+        if (! ('Notification' in window) || Notification.permission !== 'default') {
+            return;
+        }
+        try {
+            await Notification.requestPermission();
+        } catch {
+            //
+        }
+    };
+
+    const onFirstKasirGesture = () => {
+        unlockKasirAudio();
+        requestKasirNotifyPermission();
+        document.removeEventListener('pointerdown', onFirstKasirGesture, true);
+        document.removeEventListener('keydown', onFirstKasirGesture, true);
+    };
+
+    document.addEventListener('pointerdown', onFirstKasirGesture, { capture: true, passive: true });
+    document.addEventListener('keydown', onFirstKasirGesture, { capture: true });
+
+    if ('Notification' in window && Notification.permission === 'default' && ! pinPollOnly) {
+        const prompt = document.createElement('button');
+        prompt.type = 'button';
+        prompt.className = 'kasir-notify-prompt';
+        prompt.setAttribute('data-kasir-notify-prompt', '');
+        prompt.textContent = 'Aktifkan notifikasi & suara pesanan baru';
+        prompt.addEventListener('click', async () => {
+            unlockKasirAudio();
+            await requestKasirNotifyPermission();
+            prompt.remove();
+        });
+        document.body.append(prompt);
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event?.data?.type !== 'kasir-wake') {
+                return;
+            }
+            const reason = event.data?.reason || event.data?.data?.type;
+            if (reason === 'new_order' || event.data?.data?.type === 'new_order' || ! reason) {
+                lastPushWakeAt = Date.now();
+                speakNewOrder(event.data?.data?.speak_text || 'Pesanan baru masuk');
+            }
+        });
+    }
 
     // Seed antrian sekali saat buka kasir (bukan loop kecuali continuous poll ON).
     if (continuousPoll) {
