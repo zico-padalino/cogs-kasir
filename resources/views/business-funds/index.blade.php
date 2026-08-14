@@ -9,7 +9,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Uang usaha yang tersedia sekarang</p>
-                <p class="mt-1 text-3xl font-bold text-espresso">{{ $format::rupiah($balance) }}</p>
+                <p class="mt-1 text-3xl font-bold {{ $balance < 0 ? 'text-rose-700' : 'text-espresso' }}">{{ $format::rupiah($balance) }}</p>
                 <p class="mt-1 text-sm text-slate-500">Gabungan omzet bersih dikurangi seluruh pengeluaran yang sudah dicatat.</p>
             </div>
             <div class="rounded-xl border border-brand-100 bg-white/80 px-4 py-3 text-sm text-slate-600">
@@ -65,10 +65,12 @@
                 <p class="mt-2 text-xl font-bold text-rose-700">− {{ $format::rupiah($expense) }}</p>
                 <p class="mt-1 text-xs text-rose-700">Uang usaha yang dipakai</p>
             </div>
-            <div class="rounded-2xl border border-brand-200 bg-brand-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-brand-700">Uang tersisa</p>
-                <p class="mt-2 text-xl font-bold text-espresso">= {{ $format::rupiah($closing) }}</p>
-                <p class="mt-1 text-xs text-brand-700">Dibawa ke hari berikutnya</p>
+            <div class="rounded-2xl border {{ $closing < 0 ? 'border-rose-200 bg-rose-50' : 'border-brand-200 bg-brand-50' }} p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide {{ $closing < 0 ? 'text-rose-700' : 'text-brand-700' }}">Uang tersisa</p>
+                <p class="mt-2 text-xl font-bold {{ $closing < 0 ? 'text-rose-700' : 'text-espresso' }}">= {{ $format::rupiah($closing) }}</p>
+                <p class="mt-1 text-xs {{ $closing < 0 ? 'text-rose-700' : 'text-brand-700' }}">
+                    {{ $closing < 0 ? 'Minus, dibawa ke hari berikutnya' : 'Dibawa ke hari berikutnya' }}
+                </p>
             </div>
         </div>
         <p class="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
@@ -83,7 +85,7 @@
                     {{ $editExpense ? 'Ubah uang keluar' : 'Catat uang keluar' }}
                 </h2>
                 <p class="mt-1 text-xs text-slate-500">
-                    Isi setiap kali uang usaha dipakai. Pencatatan ini tidak mengubah saldo Kas Tunai.
+                    Isi setiap kali uang usaha dipakai, termasuk jika uang tersisa jadi minus. Saldo akhir menyesuaikan dari total sisa. Pencatatan ini tidak mengubah saldo Kas Tunai.
                 </p>
             </div>
             @if ($editExpense)

@@ -126,7 +126,7 @@ class BusinessFundService
         ?User $user = null,
     ): BusinessExpense {
         return DB::transaction(function () use ($amount, $category, $paymentMethod, $note, $occurredAt, $user) {
-            $this->validateExpense($amount, $category, $note, $occurredAt);
+            $this->validateExpense($amount, $category, $note);
 
             return BusinessExpense::query()->create([
                 'amount' => round($amount, 4),
@@ -148,7 +148,7 @@ class BusinessFundService
         Carbon $occurredAt,
     ): BusinessExpense {
         return DB::transaction(function () use ($expense, $amount, $category, $paymentMethod, $note, $occurredAt) {
-            $this->validateExpense($amount, $category, $note, $occurredAt, $expense->id);
+            $this->validateExpense($amount, $category, $note);
 
             $expense->update([
                 'amount' => round($amount, 4),
@@ -166,8 +166,6 @@ class BusinessFundService
         float $amount,
         string $category,
         string $note,
-        Carbon $occurredAt,
-        ?int $excludeExpenseId = null,
     ): void {
         $amount = round($amount, 4);
 
@@ -180,22 +178,13 @@ class BusinessFundService
         if (trim($note) === '') {
             throw new RuntimeException('Keterangan pengeluaran wajib diisi.');
         }
-
-        $available = $this->balanceAt($occurredAt->copy()->endOfDay(), $excludeExpenseId);
-        if ($amount > $available + 0.0001) {
-            throw new RuntimeException(
-                'Saldo dana usaha tidak cukup. Saldo tersedia pada tanggal tersebut Rp '.
-                number_format($available, 0, ',', '.').'.'
-            );
-        }
     }
 
-    private function balanceAt(Carbon $until, ?int $excludeExpenseId = null): float
+    private function balanceAt(Carbon $until): float
     {
         $revenue = $this->revenueUntil($until);
         $expense = (float) BusinessExpense::query()
             ->where('occurred_at', '<=', $until)
-            ->when($excludeExpenseId, fn ($query) => $query->where('id', '!=', $excludeExpenseId))
             ->sum('amount');
 
         return round($revenue - $expense, 4);

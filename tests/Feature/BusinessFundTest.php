@@ -70,14 +70,11 @@ class BusinessFundTest extends TestCase
         $this->assertSame(630_000.0, $forecast['remaining_estimate']);
     }
 
-    public function test_expense_cannot_exceed_available_business_fund(): void
+    public function test_expense_can_exceed_available_business_fund_and_closing_goes_negative(): void
     {
         $date = Carbon::parse('2026-07-26 12:00:00');
         $user = User::factory()->cogs()->create();
         $this->paidOrder('TRX-010', 100_000, 80_000, PaymentMethod::Qris, $date);
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Saldo dana usaha tidak cukup');
 
         app(BusinessFundService::class)->addExpense(
             amount: 80_001,
@@ -87,6 +84,12 @@ class BusinessFundTest extends TestCase
             occurredAt: $date,
             user: $user,
         );
+
+        $report = app(BusinessFundService::class)->dayReport($date);
+
+        $this->assertSame(80_001.0, $report['expense']);
+        $this->assertSame(-1.0, $report['closing']);
+        $this->assertSame(-1.0, app(BusinessFundService::class)->balance($date->copy()->endOfDay()));
     }
 
     public function test_cogs_user_can_create_update_and_delete_expense(): void
