@@ -12,7 +12,7 @@
 
     <div class="card p-0 overflow-hidden">
         @foreach ($users as $user)
-            <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
+            <div class="entity-row border-b border-slate-100 px-4 py-3 last:border-b-0">
                 <div class="min-w-0">
                     <p class="font-semibold text-slate-900">
                         {{ $user->name }}
@@ -27,7 +27,7 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="flex shrink-0 flex-wrap justify-end gap-1">
+                <div class="entity-row__actions">
                     @if (! $user->isRoot() || auth()->user()->isRoot())
                         <a href="{{ route('admin.users.edit', $user) }}" class="btn-sm btn-outline">Edit</a>
                         <form

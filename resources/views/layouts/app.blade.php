@@ -9,6 +9,7 @@
     <title>@yield('title', 'Panduan') — {{ config('pos.shop_name', 'Hitung Modal Menu') }}</title>
     @include('layouts.partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('layouts.partials.visual-viewport')
 </head>
 <body class="app-body min-h-screen bg-[#f6f1ea] font-sans text-slate-900 antialiased">
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>

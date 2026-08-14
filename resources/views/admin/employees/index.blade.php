@@ -11,7 +11,7 @@
 
     <div class="card p-0 overflow-hidden">
         @forelse ($employees as $employee)
-            <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
+            <div class="entity-row border-b border-slate-100 px-4 py-3 last:border-b-0">
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
                         <p class="font-semibold text-slate-900">{{ $employee->name }}</p>
@@ -32,7 +32,7 @@
                         · Absen cukup selfie + GPS
                     </p>
                 </div>
-                <div class="flex shrink-0 gap-1">
+                <div class="entity-row__actions">
                     <a href="{{ route('admin.employees.edit', $employee) }}" class="btn-sm btn-outline">Edit</a>
                     <form action="{{ route('admin.employees.destroy', $employee) }}" method="POST" onsubmit="return confirm('Hapus karyawan ini?')">
                         @csrf

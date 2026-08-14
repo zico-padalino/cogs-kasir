@@ -148,10 +148,26 @@ export function initMobileNav() {
 export function initResponsiveTables() {
     document.querySelectorAll('.table-default').forEach((table) => {
         const headers = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+        const isActionHeader = (text) => /^(aksi|action)$/i.test(text);
 
         table.querySelectorAll('tbody tr').forEach((row) => {
-            row.querySelectorAll('td').forEach((cell, index) => {
-                if (headers[index] && ! cell.classList.contains('col-actions')) {
+            const cells = [...row.querySelectorAll('td')];
+            if (cells.length === 1 && cells[0].hasAttribute('colspan')) {
+                return;
+            }
+
+            cells.forEach((cell, index) => {
+                if (cell.hasAttribute('colspan')) {
+                    return;
+                }
+
+                if (isActionHeader(headers[index]) || cell.classList.contains('col-actions')) {
+                    cell.classList.add('col-actions');
+                    cell.removeAttribute('data-label');
+                    return;
+                }
+
+                if (headers[index]) {
                     cell.setAttribute('data-label', headers[index]);
                 }
             });

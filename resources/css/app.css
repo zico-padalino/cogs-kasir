@@ -1088,6 +1088,7 @@
     /* ── Modul COGS: card system (5 langkah) ── */
     .module-page {
         @apply space-y-5;
+        padding-bottom: 0.25rem;
     }
 
     .module-step-badge {
@@ -1683,6 +1684,7 @@
 
     .app-sidebar-foot {
         @apply relative z-[1] border-t border-brand-200/70 bg-white/40 px-3 py-4 backdrop-blur-sm;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     }
 
     .app-sidebar-user {
@@ -1763,29 +1765,66 @@
         @apply md:pb-6;
     }
 
+    .entity-row {
+        @apply flex items-start justify-between gap-3;
+    }
+
+    .entity-row__actions {
+        @apply flex shrink-0 flex-wrap justify-end gap-1;
+    }
+
     @media (max-width: 767px) {
-        .app-body {
+        html {
+            overflow-x: clip;
+        }
+
+        /*
+         * Admin / COGS: scroll dokumen (bukan tinggi terkunci).
+         * Tinggi 100dvh + overflow:hidden membuat konten bawah tertutup toolbar HP.
+         */
+        .app-body:not(.is-kasir-pos) {
+            display: block;
+            height: auto;
+            max-height: none;
+            min-height: 100svh;
+            overflow: visible;
+        }
+
+        .app-body:not(.is-kasir-pos) .app-shell,
+        .app-body:not(.is-kasir-pos) .app-frame,
+        .app-body:not(.is-kasir-pos) .app-content {
             display: flex;
             flex-direction: column;
-            height: var(--vvh, 100dvh);
-            max-height: var(--vvh, 100dvh);
-            overflow: hidden;
+            height: auto;
+            max-height: none;
+            min-height: 0;
+            overflow: visible;
         }
 
-        .app-shell {
+        .app-body:not(.is-kasir-pos) .mobile-topbar {
+            position: sticky;
+            top: 0;
+        }
+
+        .app-body:not(.is-kasir-pos) .app-scroll {
             flex: 1 1 auto;
             min-height: 0;
-            overflow: hidden;
+            overflow: visible;
+            padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+            scroll-padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
         }
 
-        .app-frame {
+        .app-body.is-kasir-pos {
             display: flex;
-            flex: 1 1 auto;
-            min-height: 0;
+            flex-direction: column;
+            height: var(--vvh, 100svh);
+            max-height: var(--vvh, 100svh);
             overflow: hidden;
         }
 
-        .app-content {
+        .app-body.is-kasir-pos .app-shell,
+        .app-body.is-kasir-pos .app-frame,
+        .app-body.is-kasir-pos .app-content {
             display: flex;
             flex-direction: column;
             flex: 1 1 auto;
@@ -1793,15 +1832,37 @@
             overflow: hidden;
         }
 
-        .app-scroll {
+        .app-body.is-kasir-pos .app-scroll {
             flex: 1 1 auto;
             min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
-            /* Ruang bawah: home indicator + chrome browser (Android sering safe-area=0) */
             padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .entity-row {
+            @apply flex-col items-stretch;
+        }
+
+        .entity-row__actions {
+            @apply w-full;
+        }
+
+        .entity-row__actions > a,
+        .entity-row__actions > form {
+            @apply min-w-0 flex-1;
+        }
+
+        .entity-row__actions .btn-sm,
+        .entity-row__actions button {
+            @apply w-full justify-center;
+        }
+
+        .table-stacked td.col-actions,
+        .table-stacked td:last-child {
+            flex-wrap: wrap;
         }
     }
 
@@ -2136,6 +2197,15 @@
 
         .table-stacked td.col-actions::before {
             content: none;
+        }
+
+        .table-stacked td.col-actions .inline-flex,
+        .table-stacked td.col-actions .flex {
+            @apply w-full flex-wrap justify-stretch;
+        }
+
+        .table-stacked tbody tr:last-child {
+            @apply mb-1;
         }
 
         .table-scroll {

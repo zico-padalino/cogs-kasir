@@ -10,33 +10,7 @@
     <title>@yield('title', 'Admin') — {{ config('pos.shop_name', 'POS') }}</title>
     @include('layouts.partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script>
-        (function () {
-            var frame = 0;
-            function syncVvh() {
-                var vv = window.visualViewport;
-                var h = vv ? Math.round(vv.height) : window.innerHeight;
-                document.documentElement.style.setProperty('--vvh', Math.max(240, h) + 'px');
-            }
-            function scheduleSync() {
-                if (frame) return;
-                frame = window.requestAnimationFrame(function () {
-                    frame = 0;
-                    syncVvh();
-                });
-            }
-            syncVvh();
-            window.addEventListener('resize', scheduleSync);
-            window.addEventListener('orientationchange', function () {
-                window.setTimeout(syncVvh, 100);
-                window.setTimeout(syncVvh, 350);
-            });
-            if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', scheduleSync);
-                window.visualViewport.addEventListener('scroll', scheduleSync);
-            }
-        })();
-    </script>
+    @include('layouts.partials.visual-viewport')
 </head>
 <body class="app-body min-h-screen bg-[#f6f1ea] font-sans text-slate-900 antialiased">
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
