@@ -60,6 +60,11 @@
                         <span class="app-sidebar-link-icon">🔐</span>
                         Akses Akun
                     </a>
+                    <a href="{{ route('admin.activity-logs.index') }}"
+                       class="app-sidebar-link {{ request()->routeIs('admin.activity-logs.*') ? 'is-active' : '' }}">
+                        <span class="app-sidebar-link-icon">📜</span>
+                        Log Aktivitas
+                    </a>
                     <a href="{{ route('admin.settings.edit') }}"
                        class="app-sidebar-link {{ request()->routeIs('admin.settings.*') ? 'is-active' : '' }}">
                         <span class="app-sidebar-link-icon">⚙</span>

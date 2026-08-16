@@ -295,7 +295,15 @@ class PosOrderService
         // Belum masuk antrean kasir — pelanggan pilih QRIS atau tunai dulu.
         $order->update(['status' => PosOrderStatus::PendingPayment]);
 
-        return $order->fresh(['items.product', 'table']);
+        $fresh = $order->fresh(['items.product', 'table']);
+        $this->activity()->orderEvent(
+            'order_submitted',
+            'Pesanan meja '.$fresh->order_number.' siap dibayar'.($fresh->customer_note ? ' oleh '.$fresh->customer_note : '').'.',
+            $fresh,
+            ['actor_name' => $fresh->customer_note],
+        );
+
+        return $fresh;
     }
 
     /** Pelanggan pilih bayar tunai → baru masuk antrean kasir. */
@@ -318,6 +326,12 @@ class PosOrderService
         $fresh = $order->fresh(['items.product', 'table']);
         KitchenBoardCache::forget();
         $this->kasirPushNotifier->notifyNewOnlineOrder($fresh);
+        $this->activity()->orderEvent(
+            'order_cash_kasir',
+            'Pesanan meja '.$fresh->order_number.' dikirim ke kasir (tunai)'.($fresh->customer_note ? ' oleh '.$fresh->customer_note : '').'.',
+            $fresh,
+            ['actor_name' => $fresh->customer_note],
+        );
 
         return $fresh;
     }
@@ -351,7 +365,14 @@ class PosOrderService
             'cashier_name' => $attr['cashier_name'] ?? $order->cashier_name,
         ]);
 
-        return $order->fresh(['items.product', 'table']);
+        $fresh = $order->fresh(['items.product', 'table']);
+        $this->activity()->orderEvent(
+            'order_confirmed',
+            'Pesanan '.$fresh->order_number.' dikonfirmasi kasir'.($fresh->cashier_name ? ' ('.$fresh->cashier_name.')' : '').'.',
+            $fresh,
+        );
+
+        return $fresh;
     }
 
     /**
@@ -520,6 +541,19 @@ class PosOrderService
         }
 
         $this->kasirPushNotifier->notifyKitchenOrder($result['order']);
+
+        $paid = $result['order'];
+        $this->activity()->orderEvent(
+            'order_paid',
+            'Transaksi '.$paid->order_number.' lunas Rp '.number_format((float) $paid->total, 0, ',', '.').
+            ($paid->payment_method ? ' via '.$paid->payment_method->label() : '').'.',
+            $paid,
+            [
+                'invoice' => $result['invoice'] ?? null,
+                'amount_received' => $paid->amount_received,
+                'change_amount' => $paid->change_amount,
+            ],
+        );
 
         return $result;
     }
@@ -742,6 +776,15 @@ class PosOrderService
             $this->stockReservationService->releaseForOrder($order);
             $order->update(['status' => PosOrderStatus::Cancelled]);
         });
+
+        $fresh = $order->fresh(['items.product', 'table']);
+        if ($fresh) {
+            $this->activity()->orderEvent(
+                'order_cancelled',
+                'Pesanan '.$fresh->order_number.' dibatalkan.',
+                $fresh,
+            );
+        }
     }
 
     public function cancelPendingOnlineOrder(PosOrder $order): void
@@ -772,7 +815,7 @@ class PosOrderService
             throw new RuntimeException('Hanya pesanan yang sudah dibayar yang bisa diedit ulang.');
         }
 
-        return DB::transaction(function () use ($order) {
+        $fresh = DB::transaction(function () use ($order) {
             $order = PosOrder::query()->lockForUpdate()->findOrFail($order->id);
             $order->load(['salesTransactions.product']);
 
@@ -821,6 +864,14 @@ class PosOrderService
 
             return $fresh->fresh(['items.product', 'table', 'cashier']);
         });
+
+        $this->activity()->orderEvent(
+            'order_reopened',
+            'Transaksi '.$fresh->order_number.' dibuka ulang untuk diedit.',
+            $fresh,
+        );
+
+        return $fresh;
     }
 
     /** Konfirmasi pesanan sudah diantar / selesai (setelah bayar). */
@@ -1208,5 +1259,10 @@ class PosOrderService
             'cashier_employee_id' => null,
             'cashier_name' => $cashier?->name,
         ];
+    }
+
+    private function activity(): ActivityLogger
+    {
+        return app(ActivityLogger::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Kasir;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use App\Support\KasirPin;
 use App\Support\SessionPressure;
 use App\Support\ShopSettings;
@@ -72,12 +73,29 @@ class KasirPinController extends Controller
         $operator = KasirPin::findByPin($validated['pin']);
 
         if (! $operator) {
+            app(ActivityLogger::class)->record(
+                'kasir',
+                'pin_unlock_failed',
+                'Percobaan buka PIN kasir gagal.',
+                $request->user(),
+            );
+
             throw ValidationException::withMessages([
                 'pin' => 'PIN tidak dikenali. Coba lagi.',
             ]);
         }
 
         KasirPin::unlock($operator);
+
+        app(ActivityLogger::class)->record(
+            'kasir',
+            'pin_unlock',
+            'Kasir dibuka oleh '.$operator->name.'.',
+            $request->user(),
+            $operator,
+            ['operator_name' => $operator->name, 'operator_id' => $operator->id],
+            actorName: $operator->name,
+        );
 
         $intended = $request->session()->pull('url.intended', route('kasir.index'));
 
@@ -90,6 +108,14 @@ class KasirPinController extends Controller
     {
         $name = KasirPin::operatorName();
         KasirPin::lock();
+
+        app(ActivityLogger::class)->record(
+            'kasir',
+            'pin_lock',
+            'Sesi kasir dikunci'.($name ? ' ('.$name.')' : '').'.',
+            $request->user(),
+            properties: ['operator_name' => $name],
+        );
 
         return redirect()
             ->route('kasir.pin.unlock')

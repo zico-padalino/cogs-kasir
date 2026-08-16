@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Auth;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use App\Support\CogsNavigation;
 use App\Support\KasirPin;
 use Illuminate\Http\Request;
@@ -35,6 +36,14 @@ class ModuleHubController extends Controller
         }
 
         $request->session()->put('auth_module', $role->value);
+
+        app(ActivityLogger::class)->record(
+            'auth',
+            'module_switch',
+            $user->name.' pindah ke modul '.$role->label().'.',
+            $user,
+            properties: ['module' => $role->value],
+        );
 
         if ($role === UserRole::Kasir) {
             KasirPin::lock();

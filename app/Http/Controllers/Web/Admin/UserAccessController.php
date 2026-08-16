@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,6 +51,15 @@ class UserAccessController extends Controller
             'modules' => $modules,
         ]);
 
+        app(ActivityLogger::class)->record(
+            'akun',
+            'user_created',
+            $request->user()->name.' membuat akun '.$user->name.'.',
+            $request->user(),
+            $user,
+            ['target_email' => $user->email, 'modules' => $modules],
+        );
+
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'Akun '.$user->name.' berhasil dibuat. Password sementara: '.$defaultPassword.'. Saat login pertama, user wajib mengganti password.');
@@ -94,6 +104,15 @@ class UserAccessController extends Controller
 
         $user->save();
 
+        app(ActivityLogger::class)->record(
+            'akun',
+            'user_updated',
+            $request->user()->name.' mengubah akun '.$user->name.'.',
+            $request->user(),
+            $user,
+            ['target_email' => $user->email, 'modules' => $user->moduleValues()],
+        );
+
         return redirect()->route('admin.users.index')->with('success', 'Akses akun berhasil diperbarui.');
     }
 
@@ -107,7 +126,17 @@ class UserAccessController extends Controller
             return back()->with('error', 'Hanya akun root yang dapat menghapus akun root.');
         }
 
+        $name = $user->name;
+        $email = $user->email;
         $user->delete();
+
+        app(ActivityLogger::class)->record(
+            'akun',
+            'user_deleted',
+            $request->user()->name.' menghapus akun '.$name.'.',
+            $request->user(),
+            properties: ['target_name' => $name, 'target_email' => $email],
+        );
 
         return redirect()->route('admin.users.index')->with('success', 'Akun dihapus.');
     }
@@ -125,6 +154,15 @@ class UserAccessController extends Controller
         $user->password = $defaultPassword;
         $user->must_change_password = true;
         $user->save();
+
+        app(ActivityLogger::class)->record(
+            'akun',
+            'password_reset',
+            $request->user()->name.' mereset password '.$user->name.'.',
+            $request->user(),
+            $user,
+            ['target_email' => $user->email],
+        );
 
         return redirect()
             ->route('admin.users.index')

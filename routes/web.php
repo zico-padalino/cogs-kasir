@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\AdminDashboardController;
+use App\Http\Controllers\Web\Admin\ActivityLogController;
 use App\Http\Controllers\Web\Admin\AttendanceController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\SalaryController;
@@ -120,6 +121,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
     Route::resource('users', UserAccessController::class);
     Route::post('users/{user}/reset-password', [UserAccessController::class, 'resetPassword'])->name('users.reset-password');
+    Route::get('log-aktivitas', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
 });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Support\KasirPin;
 use App\Support\ShopSettings;
 use Illuminate\Http\JsonResponse;
@@ -34,12 +35,32 @@ class TokenAuthController extends Controller
         $user = User::query()->where('email', $request->string('email')->toString())->first();
 
         if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
+            app(ActivityLogger::class)->record(
+                'auth',
+                'login_failed',
+                'Percobaan login API gagal untuk '.$request->string('email')->toString().'.',
+                $user,
+                $user,
+                ['email' => $request->string('email')->toString()],
+                actorEmail: $request->string('email')->toString(),
+                channel: 'api',
+            );
+
             throw ValidationException::withMessages([
                 'email' => 'Email atau password salah.',
             ]);
         }
 
         if ($user->accessibleModules() === []) {
+            app(ActivityLogger::class)->record(
+                'auth',
+                'login_rejected',
+                $user->name.' login API ditolak karena belum punya akses modul.',
+                $user,
+                $user,
+                channel: 'api',
+            );
+
             throw ValidationException::withMessages([
                 'email' => 'Akun ini belum memiliki akses modul.',
             ]);
@@ -69,6 +90,16 @@ class TokenAuthController extends Controller
         } catch (Throwable) {
             // abaikan — login tetap sukses
         }
+
+        app(ActivityLogger::class)->record(
+            'auth',
+            'login',
+            $user->name.' masuk lewat aplikasi (API).',
+            $user,
+            $user,
+            ['channel_hint' => 'mobile'],
+            channel: 'api',
+        );
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -121,6 +152,15 @@ class TokenAuthController extends Controller
         /** @var User $user */
         $user = $request->user();
         $user->currentAccessToken()?->delete();
+
+        app(ActivityLogger::class)->record(
+            'auth',
+            'logout',
+            $user->name.' keluar dari aplikasi (API).',
+            $user,
+            $user,
+            channel: 'api',
+        );
 
         return response()->json([
             'message' => 'Logout berhasil.',

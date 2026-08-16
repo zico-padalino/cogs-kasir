@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Support\KasirPin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,14 @@ class LoginController extends Controller
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+
+            app(ActivityLogger::class)->record(
+                'auth',
+                'login_rejected',
+                $user->name.' login ditolak karena belum punya akses modul.',
+                $user,
+                $user,
+            );
 
             throw ValidationException::withMessages([
                 'email' => 'Akun ini belum memiliki akses modul.',

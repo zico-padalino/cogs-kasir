@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Services\ActivityLogger;
 use App\Services\AttendanceService;
 use App\Support\ShopSettings;
 use Illuminate\Http\RedirectResponse;
@@ -100,6 +101,23 @@ class PublicAttendanceController extends Controller
         } catch (RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
+
+        app(ActivityLogger::class)->record(
+            'absensi',
+            $validated['mode'] === 'check_out' ? 'attendance_out' : 'attendance_in',
+            $message,
+            $request->user(),
+            $employee,
+            [
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->name,
+                'employee_code' => $employee->employee_code,
+                'mode' => $validated['mode'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+            ],
+            actorName: $employee->name,
+        );
 
         return redirect()
             ->route('attendance.scan')
