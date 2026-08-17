@@ -4,6 +4,7 @@
 import { refreshKasirOrderUi, initItemDeliverToggle } from './kasir';
 
 let knownOrderIds = null;
+let knownNotifyIds = null;
 let isHandlingNewOrder = false;
 let deferredOrderAlert = false;
 let wasTransactionActive = false;
@@ -250,9 +251,7 @@ async function unlockKasirAudio() {
             window.speechSynthesis.getVoices();
         }
 
-        if (isPinUnlockPage()) {
-            startKasirAudioKeepAlive();
-        }
+        startKasirAudioKeepAlive();
 
         hideKasirSoundPrompt();
 
@@ -512,7 +511,7 @@ function showKasirBrowserNotification(title, body) {
     void showKasirSystemNotification(title, body);
 }
 
-function alertNewOrder(toast, options = {}) {
+async function alertNewOrder(toast, options = {}) {
     const title = options.title || 'Pesanan baru masuk';
     const body = options.body || toast || 'Ada pesanan online baru. Buka kasir untuk memproses.';
     const speakText = options.speakText || ORDER_VOICE_TEXT;
@@ -521,8 +520,8 @@ function alertNewOrder(toast, options = {}) {
         showKasirToast(toast);
     }
 
-    showKasirBrowserNotification(title, body);
-    speakNewOrder(speakText);
+    await showKasirSystemNotification(title, body);
+    await speakNewOrder(speakText);
 }
 
 function updatePendingPanel(html) {
@@ -649,32 +648,26 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
         return;
     }
 
-    if (isKasirTransactionActive()) {
-        deferredOrderAlert = true;
-        updatePendingPanel(data.html ?? '');
-        knownOrderIds = currentIds;
-        flushDeferredOrderAlertIfIdle();
-
-        return;
-    }
-
-    isHandlingNewOrder = true;
-
-    const autoLoadWanted = shell.dataset.kasirAutoLoad !== '0';
+    const customer = String(data.latest_customer || '').trim();
     const preserveKasirDraft = hasActiveKasirDraftWithItems();
-    const autoLoad = autoLoadWanted && ! preserveKasirDraft;
+    const busy = isKasirTransactionActive();
+    const autoLoadWanted = shell.dataset.kasirAutoLoad !== '0';
+    const autoLoad = autoLoadWanted && ! preserveKasirDraft && ! busy;
     const orderId = newIds.includes(Number(data.latest_order_id))
         ? Number(data.latest_order_id)
         : Math.max(...newIds);
 
-    alertNewOrder(preserveKasirDraft
-        ? 'Pesanan online baru masuk — cek banner atas, lanjutkan transaksi kasir dulu'
-        : (autoLoad
-            ? 'Pesanan baru masuk ke kasir'
-            : 'Pesanan baru menunggu — buka dari daftar online'), {
+    // Suara + notifikasi sistem selalu langsung, sama seperti halaman PIN.
+    await alertNewOrder(busy || preserveKasirDraft
+        ? (customer
+            ? `Pesanan baru atas nama ${customer} — cek antrian atas`
+            : 'Pesanan online baru masuk — cek antrian atas')
+        : (customer
+            ? `Pesanan baru atas nama ${customer}`
+            : 'Pesanan baru masuk ke kasir'), {
         title: 'Pesanan baru masuk',
-        body: preserveKasirDraft
-            ? 'Ada pesanan online baru. Selesaikan transaksi kasir dulu, lalu buka dari antrian.'
+        body: customer
+            ? `Atas nama ${customer}. Buka kasir untuk memproses.`
             : 'Ada pesanan online baru. Buka kasir untuk memproses.',
         speakText: ORDER_VOICE_TEXT,
     });
@@ -682,6 +675,13 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
     updatePendingPanel(data.html ?? '');
     flashPendingPanel();
     knownOrderIds = currentIds;
+    deferredOrderAlert = false;
+
+    if (busy) {
+        return;
+    }
+
+    isHandlingNewOrder = true;
 
     if (autoLoad && orderId) {
         try {
@@ -711,7 +711,7 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
 }
 
 function updatePinOrderAlert(count, customer, isNew) {
-    const box = document.querySelector('[data-kasir-pin-alert]');
+    const box = document.querySelector('[data-kasir-order-alert], [data-kasir-pin-alert]');
     if (! box) {
         return;
     }
@@ -727,9 +727,10 @@ function updatePinOrderAlert(count, customer, isNew) {
     box.hidden = false;
     box.classList.toggle('is-new-alert', Boolean(isNew));
 
-    const title = box.querySelector('[data-kasir-pin-alert-title]');
-    const body = box.querySelector('[data-kasir-pin-alert-body]');
+    const title = box.querySelector('[data-kasir-order-alert-title], [data-kasir-pin-alert-title]');
+    const body = box.querySelector('[data-kasir-order-alert-body], [data-kasir-pin-alert-body]');
     const who = String(customer || '').trim();
+    const pinPage = isPinUnlockPage();
 
     if (title) {
         title.textContent = waiting === 1
@@ -739,8 +740,12 @@ function updatePinOrderAlert(count, customer, isNew) {
 
     if (body) {
         body.textContent = who
-            ? `Atas nama ${who}. Masukkan PIN untuk membuka kasir.`
-            : 'Masukkan PIN untuk membuka kasir.';
+            ? (pinPage
+                ? `Atas nama ${who}. Masukkan PIN untuk membuka kasir.`
+                : `Atas nama ${who}. Cek antrian pesanan di atas.`)
+            : (pinPage
+                ? 'Masukkan PIN untuk membuka kasir.'
+                : 'Cek antrian pesanan di atas.');
     }
 }
 
@@ -784,33 +789,29 @@ async function pollPendingOrders(pollUrl, shell) {
     }
 
     const currentIds = new Set((data.order_ids ?? []).map((id) => Number(id)));
-    const notifyIds = new Set((data.notify_order_ids ?? data.order_ids ?? []).map((id) => Number(id)));
+    const notifyIds = new Set((data.notify_order_ids ?? []).map((id) => Number(id)));
     const notifyCount = Number(data.notify_count ?? notifyIds.size);
     const latestCustomer = data.latest_customer || '';
 
-    if (knownOrderIds === null) {
+    if (knownNotifyIds === null) {
+        knownNotifyIds = notifyIds;
         knownOrderIds = currentIds;
+        updatePinOrderAlert(notifyCount, latestCustomer, false);
 
-        if (pinPollOnly) {
-            updatePinOrderAlert(notifyCount, latestCustomer, notifyCount > 0);
-            if (notifyCount > 0) {
-                alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir', {
-                    speakText: ORDER_VOICE_TEXT,
-                });
-            }
-        } else {
+        if (! pinPollOnly) {
             updatePendingPanel(data.html ?? '');
         }
 
         return;
     }
 
-    const newIds = [...notifyIds].filter((id) => ! knownOrderIds.has(id));
+    const newIds = [...notifyIds].filter((id) => ! knownNotifyIds.has(id));
+    knownNotifyIds = notifyIds;
+    updatePinOrderAlert(notifyCount, latestCustomer, newIds.length > 0);
 
     if (pinPollOnly) {
-        updatePinOrderAlert(notifyCount, latestCustomer, newIds.length > 0);
         if (newIds.length > 0) {
-            alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir', {
+            await alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir', {
                 speakText: ORDER_VOICE_TEXT,
             });
         }
@@ -873,6 +874,12 @@ function isPinUnlockPage() {
     const path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
 
     return path.endsWith('/kasir/pin') || path === '/kasir/pin';
+}
+
+function isPinManagementPage() {
+    const path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+
+    return path === '/pin';
 }
 
 function isPinPollOnly(shell) {
@@ -1073,10 +1080,10 @@ function initKasirNotifications() {
 
     const pollUrl = shell.dataset.kasirPollUrl;
     const pinPollOnly = isPinPollOnly(shell);
-    const minPollSeconds = pinPollOnly ? 8 : 15;
+    const minPollSeconds = 4;
     let intervalSeconds = Math.max(
         minPollSeconds,
-        parseInt(shell.dataset.kasirPollInterval || String(pinPollOnly ? 8 : 20), 10) || minPollSeconds,
+        parseInt(shell.dataset.kasirPollInterval || '5', 10) || minPollSeconds,
     );
     const continuousPoll = shell.dataset.kasirContinuousPoll !== '0';
     let pollTimer = null;
@@ -1116,12 +1123,6 @@ function initKasirNotifications() {
             return;
         }
 
-        // Halaman PIN tetap poll saat tab di background / minimize.
-        if (document.visibilityState === 'hidden' && ! pinPollOnly) {
-            schedulePoll();
-            return;
-        }
-
         pollInFlight = true;
         pollPendingOrders(pollUrl, shell)
             .then(() => {
@@ -1145,9 +1146,6 @@ function initKasirNotifications() {
     /** Pull sekali — dipanggil saat web push / tab fokus. */
     const pullOnce = () => {
         if (isHandlingNewOrder || pollInFlight) {
-            return;
-        }
-        if (document.visibilityState === 'hidden' && ! pinPollOnly) {
             return;
         }
         pollInFlight = true;
@@ -1245,4 +1243,10 @@ function initKasirNotifications() {
     window.addEventListener('kasir:pull-pending', pullOnce);
 }
 
-document.addEventListener('DOMContentLoaded', initKasirNotifications);
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        initKasirNotifications();
+    } catch (error) {
+        console.error('kasir notifications failed to start', error);
+    }
+});
