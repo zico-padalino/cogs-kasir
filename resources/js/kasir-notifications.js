@@ -85,7 +85,7 @@ function showKasirSoundPrompt() {
     prompt.type = 'button';
     prompt.className = 'kasir-notify-prompt';
     prompt.setAttribute('data-kasir-notify-prompt', '');
-    prompt.textContent = 'Ketuk untuk mengaktifkan suara pesanan baru';
+        prompt.textContent = 'Aktifkan notifikasi sistem (seperti WhatsApp)';
     prompt.addEventListener('click', () => {
         void enableKasirOrderAlerts();
     });
@@ -96,9 +96,7 @@ async function enableKasirOrderAlerts() {
     const buttons = document.querySelectorAll('[data-kasir-notify-prompt], [data-kasir-sound-enable]');
     buttons.forEach((button) => {
         button.disabled = true;
-        if (button.matches('[data-kasir-notify-prompt], [data-kasir-sound-enable]')) {
-            button.textContent = 'Mengaktifkan suara…';
-        }
+        button.textContent = 'Mengaktifkan notifikasi…';
     });
 
     await unlockKasirAudio();
@@ -111,13 +109,20 @@ async function enableKasirOrderAlerts() {
         }
     }
 
+    let pushResult = { ok: false };
     if (typeof window.__kasirInitPush === 'function') {
         try {
-            await window.__kasirInitPush();
+            pushResult = (await window.__kasirInitPush()) || { ok: false };
         } catch {
-            //
+            pushResult = { ok: false };
         }
     }
+
+    await showKasirSystemNotification(
+        'Notifikasi kasir aktif',
+        'Pesanan baru akan muncul di sini seperti WhatsApp, meski tab sedang di aplikasi lain.',
+        { force: true, requireInteraction: true, tag: 'kasir-notify-test' },
+    );
 
     const clipOk = await playVoiceClip();
     if (! clipOk) {
@@ -126,9 +131,17 @@ async function enableKasirOrderAlerts() {
     }
 
     hideKasirSoundPrompt();
+
+    const denied = ('Notification' in window) && Notification.permission === 'denied';
+    const label = denied
+        ? 'Notifikasi diblokir — buka gembok URL browser, pilih Izinkan'
+        : (pushResult.ok
+            ? 'Notifikasi sistem aktif — ketuk untuk tes ulang'
+            : 'Suara aktif — ketuk untuk tes notifikasi lagi');
+
     document.querySelectorAll('[data-kasir-sound-enable]').forEach((button) => {
         button.disabled = false;
-        button.textContent = 'Suara pesanan aktif — ketuk untuk tes ulang';
+        button.textContent = label;
     });
 }
 
@@ -433,26 +446,24 @@ function kasirNotificationTargetUrl() {
     return document.body?.dataset?.kasirIndexUrl || '/kasir';
 }
 
-function showKasirBrowserNotification(title, body) {
+function showKasirSystemNotification(title, body, extra = {}) {
     if (! ('Notification' in window) || Notification.permission !== 'granted') {
-        return;
+        return Promise.resolve(false);
     }
 
-    // Push lewat service worker sudah menampilkan notifikasi OS.
-    if (Date.now() - lastPushWakeAt < 5000) {
-        return;
+    const force = Boolean(extra.force);
+    if (! force && Date.now() - lastPushWakeAt < 5000) {
+        return Promise.resolve(false);
     }
-
-    const tabHidden = isKasirTabBackground();
 
     const options = {
         body,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
-        tag: 'kasir-new-order',
+        tag: extra.tag || 'kasir-new-order',
         renotify: true,
         silent: false,
-        requireInteraction: tabHidden,
+        requireInteraction: extra.requireInteraction ?? isKasirTabBackground(),
         vibrate: [200, 100, 200],
         data: { url: kasirNotificationTargetUrl() },
     };
@@ -465,26 +476,23 @@ function showKasirBrowserNotification(title, body) {
         }
     };
 
-    const viaServiceWorker = navigator.serviceWorker?.ready
-        ?.then((registration) => registration.showNotification(title, options))
-        .catch(() => false);
-
-    if (viaServiceWorker) {
-        viaServiceWorker.then((result) => {
-            if (result === false) {
+    if (navigator.serviceWorker?.ready) {
+        return navigator.serviceWorker.ready
+            .then((registration) => registration.showNotification(title, options))
+            .then(() => true)
+            .catch(() => {
                 try {
                     const notification = new Notification(title, options);
                     notification.onclick = () => {
                         openKasir();
                         notification.close();
                     };
-                } catch {
-                    //
-                }
-            }
-        });
 
-        return;
+                    return true;
+                } catch {
+                    return false;
+                }
+            });
     }
 
     try {
@@ -493,9 +501,15 @@ function showKasirBrowserNotification(title, body) {
             openKasir();
             notification.close();
         };
+
+        return Promise.resolve(true);
     } catch {
-        //
+        return Promise.resolve(false);
     }
+}
+
+function showKasirBrowserNotification(title, body) {
+    void showKasirSystemNotification(title, body);
 }
 
 function alertNewOrder(toast, options = {}) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\DevicePushToken;
+use App\Services\WebPushService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,6 +49,30 @@ class KasirPushController extends Controller
         return response()->json([
             'message' => 'Langganan notifikasi web aktif.',
             'data' => ['id' => $token->id],
+        ]);
+    }
+
+    public function test(Request $request, WebPushService $webPush): JsonResponse
+    {
+        $validated = $request->validate([
+            'endpoint' => ['required', 'url', 'max:2048'],
+        ]);
+
+        $subscription = DevicePushToken::query()
+            ->where('platform', DevicePushToken::PLATFORM_WEB)
+            ->where('token_hash', DevicePushToken::hashToken($validated['endpoint']))
+            ->first();
+
+        if (! $subscription) {
+            return response()->json([
+                'message' => 'Langganan notifikasi belum tersimpan.',
+            ], 422);
+        }
+
+        $webPush->sendWakeUp([$subscription]);
+
+        return response()->json([
+            'message' => 'Notifikasi tes dikirim ke sistem.',
         ]);
     }
 

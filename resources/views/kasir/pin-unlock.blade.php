@@ -75,9 +75,9 @@
         </form>
 
         <button type="button" class="btn-outline mt-3 w-full min-h-10 border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100" data-kasir-sound-enable>
-            Aktifkan suara & notifikasi pesanan
+            Aktifkan notifikasi sistem (seperti WhatsApp)
         </button>
-        <p class="mt-1.5 text-center text-[11px] text-slate-500">Wajib diketuk sekali supaya bunyi meski tab sedang di aplikasi lain.</p>
+        <p class="mt-1.5 text-center text-[11px] text-slate-500">Ketuk, lalu pilih <strong>Izinkan</strong>. Contoh notifikasi akan muncul di pojok layar / laci notifikasi HP.</p>
 
         <div class="mt-3 space-y-1 text-center text-[11px] text-slate-500">
             <p>Stasiun aktif: <span class="font-semibold text-slate-700">{{ $currentUser->name }}</span></p>

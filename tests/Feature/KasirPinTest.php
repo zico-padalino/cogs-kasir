@@ -51,7 +51,7 @@ class KasirPinTest extends TestCase
             ->assertSee('data-kasir-pin-poll-only="1"', false)
             ->assertSee('data-kasir-continuous-poll="1"', false)
             ->assertSee('data-kasir-poll-interval="8"', false)
-            ->assertSee('Aktifkan suara & notifikasi pesanan')
+            ->assertSee('Aktifkan notifikasi sistem (seperti WhatsApp)')
             ->assertSee('data-kasir-push-vapid-url', false)
             ->assertSee('data-kasir-push-subscribe-url', false)
             ->assertSee(parse_url(route('kasir.push.vapid'), PHP_URL_PATH), false)
@@ -74,6 +74,10 @@ class KasirPinTest extends TestCase
         $this->getJson(route('kasir.push.vapid'))
             ->assertOk()
             ->assertJsonStructure(['data' => ['enabled', 'public_key']]);
+
+        $this->postJson(route('kasir.push.test'), [
+            'endpoint' => 'https://fcm.googleapis.com/fcm/send/test-endpoint',
+        ])->assertStatus(422);
     }
 
     public function test_user_can_unlock_kasir_with_employee_pin(): void

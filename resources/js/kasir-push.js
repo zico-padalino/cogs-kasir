@@ -68,25 +68,25 @@ async function initKasirPush() {
     const root = document.body;
 
     if (! root?.hasAttribute('data-kasir-notifications')) {
-        return;
+        return { ok: false, reason: 'not-kasir' };
     }
 
     if (! ('Notification' in window) || ! ('PushManager' in window) || ! ('serviceWorker' in navigator)) {
-        return;
+        return { ok: false, reason: 'unsupported' };
     }
 
     const vapidUrl = root.dataset.kasirPushVapidUrl;
     const subscribeUrl = root.dataset.kasirPushSubscribeUrl;
 
     if (! vapidUrl || ! subscribeUrl) {
-        return;
+        return { ok: false, reason: 'missing-url' };
     }
 
     try {
         const vapid = await fetchJson(vapidUrl);
 
         if (! vapid?.data?.enabled || ! vapid?.data?.public_key) {
-            return;
+            return { ok: false, reason: 'push-disabled' };
         }
 
         let permission = Notification.permission;
@@ -96,13 +96,13 @@ async function initKasirPush() {
         }
 
         if (permission !== 'granted') {
-            return;
+            return { ok: false, reason: 'denied', permission };
         }
 
         const registration = await ensureServiceWorker();
 
         if (! registration) {
-            return;
+            return { ok: false, reason: 'no-sw' };
         }
 
         const subscription = await subscribePush(registration, vapid.data.public_key);
@@ -118,8 +118,10 @@ async function initKasirPush() {
                 },
             }),
         });
+
+        return { ok: true, permission, endpoint: json.endpoint };
     } catch {
-        // Push opsional — tanpa push, buka ulang tab / visibility tetap pull sekali.
+        return { ok: false, reason: 'error' };
     }
 }
 

@@ -44,6 +44,7 @@ class EnsureAttendanceChecked
             'kasir.dapur.poll',
             'kasir.push.vapid',
             'kasir.push.subscribe',
+            'kasir.push.test',
             'kasir.push.unsubscribe',
         )) {
             return $next($request);

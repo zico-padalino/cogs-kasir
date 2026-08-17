@@ -135,6 +135,7 @@ Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->grou
     Route::get('/pending-orders/poll', [KasirController::class, 'pendingOrdersPoll'])->name('pending.poll');
     Route::get('/push/vapid-key', [KasirPushController::class, 'vapidPublicKey'])->name('push.vapid');
     Route::post('/push/subscribe', [KasirPushController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('/push/test', [KasirPushController::class, 'test'])->name('push.test');
     Route::post('/push/unsubscribe', [KasirPushController::class, 'unsubscribe'])->name('push.unsubscribe');
 
     Route::middleware('kasir.pin')->group(function () {
