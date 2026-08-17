@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PosOrderSource;
+use App\Enums\PosOrderStatus;
+use App\Enums\PosOrderType;
 use App\Enums\ProductType;
 use App\Enums\UserRole;
 use App\Models\InventoryLot;
@@ -261,6 +264,30 @@ class KasirPageTest extends TestCase
             ->assertJsonPath('notify_count', 1)
             ->assertJsonPath('latest_customer', 'Siti')
             ->assertJsonPath('has_pending', true);
+    }
+
+    public function test_pending_poll_alerts_for_paid_online_qris_order(): void
+    {
+        $kasir = $this->kasirUser();
+
+        PosOrder::create([
+            'order_number' => 'QRIS-ALERT-1',
+            'order_day' => now()->toDateString(),
+            'source' => PosOrderSource::Online,
+            'order_type' => PosOrderType::Takeaway,
+            'status' => PosOrderStatus::Paid,
+            'customer_note' => 'Rina',
+            'subtotal' => 18000,
+            'total' => 18000,
+            'payment_method' => 'qris',
+            'paid_at' => now(),
+        ]);
+
+        $this->actingAs($kasir)
+            ->getJson(route('kasir.pending.poll'))
+            ->assertOk()
+            ->assertJsonPath('notify_count', 1)
+            ->assertJsonPath('latest_customer', 'Rina');
     }
 
     public function test_current_open_bill_card_can_open_its_cart(): void

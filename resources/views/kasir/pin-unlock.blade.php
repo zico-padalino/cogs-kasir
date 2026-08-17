@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>PIN Kasir — {{ $shopName }}</title>
     @include('layouts.partials.pwa-head', ['app' => 'kasir'])
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/kasir-pin-alerts.js'])
 </head>
 <body
     class="login-page kasir-pin-page"

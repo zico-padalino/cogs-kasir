@@ -95,8 +95,7 @@ class PosController extends Controller
                 'total' => (float) $pendingOrders->sum('total'),
                 'order_ids' => $pendingOrders->pluck('id')->values(),
                 'notify_order_ids' => $pendingOrders
-                    ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
-                        && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
+                    ->filter(fn (PosOrder $order) => $order->shouldAlertKasir())
                     ->pluck('id')
                     ->values(),
                 'has_pending' => $pendingOrders->isNotEmpty(),

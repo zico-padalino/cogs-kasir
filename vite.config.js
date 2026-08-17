@@ -10,6 +10,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/attendance-scan.js',
+                'resources/js/kasir-pin-alerts.js',
             ],
             refresh: true,
             fonts: [

@@ -93,8 +93,7 @@ class KasirController extends Controller
         $format = Format::class;
         $currentOrder = $this->activeKasirOrder();
         $notifyOrders = $pendingOrders
-            ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
-                && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
+            ->filter(fn (PosOrder $order) => $order->shouldAlertKasir())
             ->values();
 
         $board = [

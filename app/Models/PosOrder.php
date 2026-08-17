@@ -122,6 +122,17 @@ class PosOrder extends Model
         };
     }
 
+    /** Pesanan online yang harus memicu notifikasi kasir (tunai masuk antrean atau QRIS lunas). */
+    public function shouldAlertKasir(): bool
+    {
+        return $this->source === PosOrderSource::Online
+            && in_array($this->status, [
+                PosOrderStatus::Submitted,
+                PosOrderStatus::Confirmed,
+                PosOrderStatus::Paid,
+            ], true);
+    }
+
     public function needsKasirConfirmation(): bool
     {
         return $this->source === PosOrderSource::Online
