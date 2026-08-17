@@ -737,7 +737,7 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
 }
 
 function updatePinOrderAlert(count, customer, isNew) {
-    const box = document.querySelector('[data-kasir-order-alert], [data-kasir-pin-alert]');
+    const box = document.querySelector('[data-kasir-pin-alert]');
     if (! box) {
         return;
     }
@@ -753,10 +753,9 @@ function updatePinOrderAlert(count, customer, isNew) {
     box.hidden = false;
     box.classList.toggle('is-new-alert', Boolean(isNew));
 
-    const title = box.querySelector('[data-kasir-order-alert-title], [data-kasir-pin-alert-title]');
-    const body = box.querySelector('[data-kasir-order-alert-body], [data-kasir-pin-alert-body]');
+    const title = box.querySelector('[data-kasir-pin-alert-title]');
+    const body = box.querySelector('[data-kasir-pin-alert-body]');
     const who = String(customer || '').trim();
-    const pinPage = isPinUnlockPage();
 
     if (title) {
         title.textContent = waiting === 1
@@ -766,12 +765,8 @@ function updatePinOrderAlert(count, customer, isNew) {
 
     if (body) {
         body.textContent = who
-            ? (pinPage
-                ? `Atas nama ${who}. Masukkan PIN untuk membuka kasir.`
-                : `Atas nama ${who}. Cek antrian pesanan di atas.`)
-            : (pinPage
-                ? 'Masukkan PIN untuk membuka kasir.'
-                : 'Cek antrian pesanan di atas.');
+            ? `Atas nama ${who}. Masukkan PIN untuk membuka kasir.`
+            : 'Masukkan PIN untuk membuka kasir.';
     }
 }
 
@@ -822,9 +817,10 @@ async function pollPendingOrders(pollUrl, shell) {
     if (knownNotifyIds === null) {
         knownNotifyIds = notifyIds;
         knownOrderIds = currentIds;
-        updatePinOrderAlert(notifyCount, latestCustomer, false);
 
-        if (! pinPollOnly) {
+        if (pinPollOnly) {
+            updatePinOrderAlert(notifyCount, latestCustomer, false);
+        } else {
             updatePendingPanel(data.html ?? '');
         }
 
@@ -833,9 +829,9 @@ async function pollPendingOrders(pollUrl, shell) {
 
     const newIds = [...notifyIds].filter((id) => ! knownNotifyIds.has(id));
     knownNotifyIds = notifyIds;
-    updatePinOrderAlert(notifyCount, latestCustomer, newIds.length > 0);
 
     if (pinPollOnly) {
+        updatePinOrderAlert(notifyCount, latestCustomer, newIds.length > 0);
         if (newIds.length > 0) {
             await alertNewOrder('Pesanan baru masuk — masukkan PIN untuk membuka kasir', {
                 speakText: ORDER_VOICE_TEXT,

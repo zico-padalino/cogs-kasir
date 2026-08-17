@@ -3102,22 +3102,6 @@
         bottom: max(0.85rem, env(safe-area-inset-bottom));
     }
 
-    .pos-order-alert-bar {
-        @apply shrink-0;
-    }
-
-    .pos-order-alert-bar:has([data-kasir-order-alert]:not([hidden])) {
-        @apply px-3 pt-2 sm:px-4;
-    }
-
-    .pos-order-alert-box {
-        @apply rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2.5 text-left text-amber-950;
-    }
-
-    [data-kasir-order-alert].is-new-alert {
-        animation: pos-pending-pulse 0.55s ease-in-out 3;
-    }
-
     .pos-notify-bell {
         @apply relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/20 active:scale-[0.98];
     }
@@ -4556,7 +4540,6 @@
         }
 
         body.is-kasir-pos.is-mobile-menu-tab .pos-main-col .pos-order-bar,
-        body.is-kasir-pos.is-mobile-menu-tab .pos-main-col .pos-order-alert-bar,
         body.is-kasir-pos.is-mobile-menu-tab .pos-main-col [data-pos-pending-wrap] {
             order: -1;
         }
@@ -4570,7 +4553,6 @@
          * supaya field Cari tidak ketutup / terdorong keluar viewport.
          */
         body.is-kasir-pos.is-mobile-menu-tab.is-menu-search-focused .pos-order-bar,
-        body.is-kasir-pos.is-mobile-menu-tab.is-menu-search-focused .pos-order-alert-bar,
         body.is-kasir-pos.is-mobile-menu-tab.is-menu-search-focused [data-pos-pending-wrap],
         body.is-kasir-pos.is-mobile-menu-tab.is-menu-search-focused .pos-mobile-checkout {
             display: none !important;

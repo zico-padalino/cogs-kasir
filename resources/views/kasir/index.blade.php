@@ -111,13 +111,6 @@
                     ])
                 @endif
 
-                <div class="pos-order-alert-bar">
-                    <div data-kasir-order-alert hidden class="pos-order-alert-box" role="status">
-                        <p class="text-sm font-bold" data-kasir-order-alert-title>Pesanan baru menunggu</p>
-                        <p class="mt-1 text-xs" data-kasir-order-alert-body>Cek antrian pesanan di atas.</p>
-                    </div>
-                </div>
-
                 <div data-pos-pending-wrap>
                     @if ($pendingOrders->isNotEmpty())
                         @include('kasir.partials.pending-orders', [
