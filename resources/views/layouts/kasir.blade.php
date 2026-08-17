@@ -29,8 +29,8 @@
     class="app-body min-h-screen bg-[#f6f1ea] font-sans text-slate-900 antialiased @yield('body_class')"
     data-kasir-notifications
     data-kasir-poll-url="{{ route('kasir.pending.poll') }}"
-    data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 60) }}"
-    data-kasir-continuous-poll="{{ config('pos.notifications.kasir_poll_enabled', false) ? '1' : '0' }}"
+    data-kasir-poll-interval="20"
+    data-kasir-continuous-poll="1"
     data-kasir-index-url="{{ route('kasir.index') }}"
     data-kasir-auto-load="{{ config('pos.notifications.auto_load_new_order', true) ? '1' : '0' }}"
     data-kasir-pin-unlock-url="{{ route('kasir.pin.unlock') }}"

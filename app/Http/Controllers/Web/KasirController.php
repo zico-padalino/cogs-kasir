@@ -108,10 +108,10 @@ class KasirController extends Controller
                     ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
                     : '',
             ];
-        });
+        }, 4);
 
         return response()->json(array_merge($board, $pinStatus))
-            ->header('Cache-Control', 'private, max-age=5');
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function dapur(PosOrderService $posService)

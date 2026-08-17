@@ -13,7 +13,7 @@
     class="login-page kasir-pin-page"
     data-kasir-notifications
     data-kasir-poll-url="{{ route('kasir.pending.poll') }}"
-    data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 60) }}"
+    data-kasir-poll-interval="8"
     data-kasir-continuous-poll="1"
     data-kasir-auto-load="0"
     data-kasir-pin-poll-only="1"
@@ -73,6 +73,11 @@
             </div>
             <button type="submit" class="btn-primary w-full py-2.5" id="kasir-pin-submit">Buka Kasir</button>
         </form>
+
+        <button type="button" class="btn-outline mt-3 w-full min-h-10 border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100" data-kasir-sound-enable>
+            Aktifkan suara & notifikasi pesanan
+        </button>
+        <p class="mt-1.5 text-center text-[11px] text-slate-500">Wajib diketuk sekali supaya bunyi meski tab sedang di aplikasi lain.</p>
 
         <div class="mt-3 space-y-1 text-center text-[11px] text-slate-500">
             <p>Stasiun aktif: <span class="font-semibold text-slate-700">{{ $currentUser->name }}</span></p>

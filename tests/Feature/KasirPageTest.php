@@ -86,7 +86,8 @@ class KasirPageTest extends TestCase
             ->get(route('kasir.index'))
             ->assertOk()
             ->assertSee('data-kasir-voice-url', false)
-            ->assertSee('sounds/pesanan-masuk.mp3', false);
+            ->assertSee('sounds/pesanan-masuk.mp3', false)
+            ->assertSee('data-kasir-continuous-poll="1"', false);
     }
 
     public function test_online_menu_page_is_public(): void
@@ -232,12 +233,14 @@ class KasirPageTest extends TestCase
             'order_type' => 'takeaway',
         ]);
 
-        $this->actingAs($kasir)
+        $response = $this->actingAs($kasir)
             ->getJson(route('kasir.pending.poll'))
             ->assertOk()
             ->assertJsonPath('count', 1)
             ->assertJsonPath('has_pending', true)
             ->assertJsonStructure(['order_ids', 'html']);
+
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
     public function test_current_open_bill_card_can_open_its_cart(): void

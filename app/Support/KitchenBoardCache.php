@@ -13,13 +13,14 @@ final class KitchenBoardCache
     private const TTL_SECONDS = 90;
 
     /** @param  callable(): array<string, mixed>  $callback */
-    public static function remember(string $channel, callable $callback): array
+    public static function remember(string $channel, callable $callback, ?int $ttlSeconds = null): array
     {
         $key = self::key($channel);
+        $ttl = max(1, $ttlSeconds ?? self::TTL_SECONDS);
 
         try {
             /** @var array<string, mixed> $payload */
-            $payload = Cache::store('file')->remember($key, self::TTL_SECONDS, function () use ($callback) {
+            $payload = Cache::store('file')->remember($key, $ttl, function () use ($callback) {
                 $value = $callback();
 
                 return is_array($value) ? $value : [];

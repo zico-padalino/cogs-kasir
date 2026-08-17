@@ -77,23 +77,59 @@ function showKasirSoundPrompt() {
         return;
     }
 
+    if (document.querySelector('[data-kasir-sound-enable]')) {
+        return;
+    }
+
     const prompt = document.createElement('button');
     prompt.type = 'button';
     prompt.className = 'kasir-notify-prompt';
     prompt.setAttribute('data-kasir-notify-prompt', '');
     prompt.textContent = 'Ketuk untuk mengaktifkan suara pesanan baru';
-    prompt.addEventListener('click', async () => {
-        await unlockKasirAudio();
-        if ('Notification' in window && Notification.permission === 'default') {
-            try {
-                await Notification.requestPermission();
-            } catch {
-                //
-            }
-        }
-        hideKasirSoundPrompt();
+    prompt.addEventListener('click', () => {
+        void enableKasirOrderAlerts();
     });
     document.body.append(prompt);
+}
+
+async function enableKasirOrderAlerts() {
+    const buttons = document.querySelectorAll('[data-kasir-notify-prompt], [data-kasir-sound-enable]');
+    buttons.forEach((button) => {
+        button.disabled = true;
+        if (button.matches('[data-kasir-notify-prompt], [data-kasir-sound-enable]')) {
+            button.textContent = 'Mengaktifkan suara…';
+        }
+    });
+
+    await unlockKasirAudio();
+
+    if ('Notification' in window && Notification.permission === 'default') {
+        try {
+            await Notification.requestPermission();
+        } catch {
+            //
+        }
+    }
+
+    if (typeof window.__kasirInitPush === 'function') {
+        try {
+            await window.__kasirInitPush();
+        } catch {
+            //
+        }
+    }
+
+    const clipOk = await playVoiceClip();
+    if (! clipOk) {
+        playAttentionChime();
+        await speakWithBrowserTts(ORDER_VOICE_TEXT);
+    }
+
+    hideKasirSoundPrompt();
+    document.querySelectorAll('[data-kasir-sound-enable]').forEach((button) => {
+        button.disabled = false;
+        button.textContent = 'Suara pesanan aktif — ketuk untuk tes ulang';
+    });
 }
 
 async function resumeAudioContext() {
@@ -125,6 +161,27 @@ function playSilentUnlockBuffer(ctx) {
         source.buffer = buffer;
         source.connect(ctx.destination);
         source.start(0);
+    } catch {
+        //
+    }
+}
+
+let audioKeepAlive = null;
+
+function startKasirAudioKeepAlive() {
+    if (audioKeepAlive || ! audioContext) {
+        return;
+    }
+
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.frequency.value = 40;
+        gain.gain.value = 0.00008;
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        audioKeepAlive = { oscillator, gain };
     } catch {
         //
     }
@@ -178,6 +235,10 @@ async function unlockKasirAudio() {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.resume();
             window.speechSynthesis.getVoices();
+        }
+
+        if (isPinUnlockPage()) {
+            startKasirAudioKeepAlive();
         }
 
         hideKasirSoundPrompt();
@@ -383,12 +444,6 @@ function showKasirBrowserNotification(title, body) {
     }
 
     const tabHidden = isKasirTabBackground();
-    const pinPage = isPinUnlockPage();
-
-    // Tab kasir terlihat: toast + suara cukup. PIN / tab background: tampilkan notifikasi OS.
-    if (! tabHidden && ! pinPage) {
-        return;
-    }
 
     const options = {
         body,
@@ -656,6 +711,7 @@ async function pollPendingOrders(pollUrl, shell) {
         },
         credentials: 'same-origin',
         redirect: 'manual',
+        cache: 'no-store',
     });
 
     if (shouldForcePinLock(response)) {
@@ -958,9 +1014,13 @@ function initKasirNotifications() {
     }
 
     const pollUrl = shell.dataset.kasirPollUrl;
-    let intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
-    const continuousPoll = shell.dataset.kasirContinuousPoll === '1';
     const pinPollOnly = isPinPollOnly(shell);
+    const minPollSeconds = pinPollOnly ? 8 : 15;
+    let intervalSeconds = Math.max(
+        minPollSeconds,
+        parseInt(shell.dataset.kasirPollInterval || String(pinPollOnly ? 8 : 20), 10) || minPollSeconds,
+    );
+    const continuousPoll = shell.dataset.kasirContinuousPoll !== '0';
     let pollTimer = null;
     let pollInFlight = false;
 
@@ -1007,7 +1067,10 @@ function initKasirNotifications() {
         pollInFlight = true;
         pollPendingOrders(pollUrl, shell)
             .then(() => {
-                intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
+                intervalSeconds = Math.max(
+                    minPollSeconds,
+                    parseInt(shell.dataset.kasirPollInterval || String(minPollSeconds), 10) || minPollSeconds,
+                );
             })
             .catch((err) => {
                 const status = err?.status;
@@ -1040,6 +1103,11 @@ function initKasirNotifications() {
     window.__kasirPullPending = pullOnce;
     getVoiceAudio();
     showKasirSoundPrompt();
+    document.querySelectorAll('[data-kasir-sound-enable]').forEach((button) => {
+        button.addEventListener('click', () => {
+            void enableKasirOrderAlerts();
+        });
+    });
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -1102,7 +1170,10 @@ function initKasirNotifications() {
                 void speakNewOrder(queued, { force: true });
             }
             if (continuousPoll) {
-                intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
+                intervalSeconds = Math.max(
+                    minPollSeconds,
+                    parseInt(shell.dataset.kasirPollInterval || String(minPollSeconds), 10) || minPollSeconds,
+                );
                 runPoll();
             } else {
                 pullOnce();

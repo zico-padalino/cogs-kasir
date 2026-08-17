@@ -123,6 +123,8 @@ async function initKasirPush() {
     }
 }
 
+window.__kasirInitPush = initKasirPush;
+
 document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(() => {
         void initKasirPush();
