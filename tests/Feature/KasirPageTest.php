@@ -92,8 +92,8 @@ class KasirPageTest extends TestCase
             ->assertSee('sounds/pesanan-masuk.mp3', false)
             ->assertSee('data-kasir-continuous-poll="1"', false)
             ->assertSee('data-kasir-order-alert', false)
-            ->assertSee('data-kasir-sound-enable', false)
-            ->assertSee('Aktifkan notifikasi sistem', false);
+            ->assertSee('data-kasir-sound-bell', false)
+            ->assertSee('data-kasir-sound-enable', false);
     }
 
     public function test_online_menu_page_is_public(): void

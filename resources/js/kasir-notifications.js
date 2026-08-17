@@ -93,11 +93,38 @@ function showKasirSoundPrompt() {
     document.body.append(prompt);
 }
 
+function applySoundEnableLabel(button, label, state) {
+    button.disabled = state === 'loading';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+
+    if (button.hasAttribute('data-kasir-sound-bell')) {
+        button.dataset.kasirNotifyState = state;
+
+        return;
+    }
+
+    button.textContent = label;
+}
+
+function syncNotifyBellState() {
+    const permission = ('Notification' in window) ? Notification.permission : 'default';
+    const state = permission === 'granted' ? 'on' : (permission === 'denied' ? 'denied' : 'idle');
+    const label = permission === 'granted'
+        ? 'Notifikasi aktif — ketuk untuk tes'
+        : (permission === 'denied'
+            ? 'Notifikasi diblokir — izinkan di gembok URL'
+            : 'Aktifkan notifikasi');
+
+    document.querySelectorAll('[data-kasir-sound-bell]').forEach((button) => {
+        applySoundEnableLabel(button, label, state);
+    });
+}
+
 async function enableKasirOrderAlerts() {
     const buttons = document.querySelectorAll('[data-kasir-notify-prompt], [data-kasir-sound-enable]');
     buttons.forEach((button) => {
-        button.disabled = true;
-        button.textContent = 'Mengaktifkan notifikasi…';
+        applySoundEnableLabel(button, 'Mengaktifkan notifikasi…', 'loading');
     });
 
     await unlockKasirAudio();
@@ -141,8 +168,7 @@ async function enableKasirOrderAlerts() {
             : 'Suara aktif — ketuk untuk tes notifikasi lagi');
 
     document.querySelectorAll('[data-kasir-sound-enable]').forEach((button) => {
-        button.disabled = false;
-        button.textContent = label;
+        applySoundEnableLabel(button, label, denied ? 'denied' : 'on');
     });
 }
 
@@ -1158,6 +1184,7 @@ function initKasirNotifications() {
 
     window.__kasirPullPending = pullOnce;
     getVoiceAudio();
+    syncNotifyBellState();
     showKasirSoundPrompt();
     document.querySelectorAll('[data-kasir-sound-enable]').forEach((button) => {
         button.addEventListener('click', () => {

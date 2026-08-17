@@ -3103,7 +3103,11 @@
     }
 
     .pos-order-alert-bar {
-        @apply shrink-0 px-3 pt-2 sm:px-4;
+        @apply shrink-0;
+    }
+
+    .pos-order-alert-bar:has([data-kasir-order-alert]:not([hidden])) {
+        @apply px-3 pt-2 sm:px-4;
     }
 
     .pos-order-alert-box {
@@ -3114,12 +3118,32 @@
         animation: pos-pending-pulse 0.55s ease-in-out 3;
     }
 
-    .pos-notify-enable {
-        @apply mt-2 w-full min-h-10 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-amber-100;
+    .pos-notify-bell {
+        @apply relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/20 active:scale-[0.98];
     }
 
-    .pos-notify-enable:disabled {
-        @apply cursor-wait opacity-80;
+    .pos-notify-bell[data-kasir-notify-state="idle"]::after {
+        content: '';
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 999px;
+        background: #fbbf24;
+    }
+
+    .pos-notify-bell[data-kasir-notify-state="on"] {
+        border-color: rgba(251, 191, 36, 0.55);
+        color: #fde68a;
+    }
+
+    .pos-notify-bell[data-kasir-notify-state="denied"] {
+        opacity: 0.55;
+    }
+
+    .pos-notify-bell:disabled {
+        @apply cursor-wait opacity-70;
     }
 
     /* Overlay 503 / server sibuk — QR & kasir */

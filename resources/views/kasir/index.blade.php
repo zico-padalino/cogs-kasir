@@ -64,6 +64,19 @@
                 @endif
                 <span class="badge max-lg:hidden {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
+            <button
+                type="button"
+                class="pos-notify-bell"
+                data-kasir-sound-enable
+                data-kasir-sound-bell
+                data-kasir-notify-state="idle"
+                title="Aktifkan notifikasi"
+                aria-label="Aktifkan notifikasi"
+            >
+                <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/>
+                </svg>
+            </button>
             <div class="pos-toolbar-actions max-md:hidden">
                 @if ($order->isKasirEditable() && $order->items->isNotEmpty())
                     <form action="{{ route('kasir.order.cancel') }}" method="POST" class="pos-toolbar-action-form" onsubmit="return confirm('Batalkan pesanan ini?')">
@@ -103,9 +116,6 @@
                         <p class="text-sm font-bold" data-kasir-order-alert-title>Pesanan baru menunggu</p>
                         <p class="mt-1 text-xs" data-kasir-order-alert-body>Cek antrian pesanan di atas.</p>
                     </div>
-                    <button type="button" class="pos-notify-enable" data-kasir-sound-enable>
-                        Aktifkan notifikasi sistem (seperti WhatsApp)
-                    </button>
                 </div>
 
                 <div data-pos-pending-wrap>
