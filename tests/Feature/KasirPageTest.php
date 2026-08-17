@@ -72,6 +72,23 @@ class KasirPageTest extends TestCase
             ->assertSee('Pesanan');
     }
 
+    public function test_kasir_new_order_voice_clip_exists(): void
+    {
+        $path = public_path('sounds/pesanan-masuk.mp3');
+
+        $this->assertFileExists($path);
+        $this->assertGreaterThan(1000, filesize($path));
+    }
+
+    public function test_kasir_page_includes_new_order_voice_url(): void
+    {
+        $this->actingAs($this->kasirUser())
+            ->get(route('kasir.index'))
+            ->assertOk()
+            ->assertSee('data-kasir-voice-url', false)
+            ->assertSee('sounds/pesanan-masuk.mp3', false);
+    }
+
     public function test_online_menu_page_is_public(): void
     {
         $this->get(route('order.menu'))

@@ -39,6 +39,41 @@ class KasirPinTest extends TestCase
             ->assertRedirect(route('kasir.pin.unlock'));
     }
 
+    public function test_pin_unlock_page_includes_new_order_voice_url(): void
+    {
+        $user = User::factory()->kasir()->create();
+        $this->employeeWithPin('Kasir A', '1234', $user);
+
+        $this->actingAs($user)
+            ->get(route('kasir.pin.unlock'))
+            ->assertOk()
+            ->assertSee('sounds/pesanan-masuk.mp3', false)
+            ->assertSee('data-kasir-pin-poll-only="1"', false)
+            ->assertSee('data-kasir-continuous-poll="1"', false)
+            ->assertSee('data-kasir-push-vapid-url', false)
+            ->assertSee('data-kasir-push-subscribe-url', false)
+            ->assertSee(parse_url(route('kasir.push.vapid'), PHP_URL_PATH), false)
+            ->assertSee(parse_url(route('kasir.push.subscribe'), PHP_URL_PATH), false);
+    }
+
+    public function test_pending_poll_and_push_key_work_while_waiting_for_pin(): void
+    {
+        $user = User::factory()->kasir()->create();
+        $this->employeeWithPin('Kasir A', '1234', $user);
+
+        $this->actingAs($user)
+            ->get(route('kasir.index'))
+            ->assertRedirect(route('kasir.pin.unlock'));
+
+        $this->getJson(route('kasir.pending.poll'))
+            ->assertOk()
+            ->assertJsonStructure(['order_ids', 'notify_order_ids']);
+
+        $this->getJson(route('kasir.push.vapid'))
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['enabled', 'public_key']]);
+    }
+
     public function test_user_can_unlock_kasir_with_employee_pin(): void
     {
         $user = User::factory()->kasir()->create(['name' => 'Stasiun']);

@@ -6,10 +6,24 @@
     <meta name="theme-color" content="#5c4033">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>PIN Kasir — {{ $shopName }}</title>
-    @include('layouts.partials.favicon')
+    @include('layouts.partials.pwa-head', ['app' => 'kasir'])
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="login-page kasir-pin-page" data-kasir-notifications data-kasir-poll-url="{{ route('kasir.pending.poll') }}" data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 60) }}" data-kasir-continuous-poll="0" data-kasir-auto-load="0" data-kasir-pin-poll-only="1">
+<body
+    class="login-page kasir-pin-page"
+    data-kasir-notifications
+    data-kasir-poll-url="{{ route('kasir.pending.poll') }}"
+    data-kasir-poll-interval="{{ config('pos.notifications.poll_interval_seconds', 60) }}"
+    data-kasir-continuous-poll="1"
+    data-kasir-auto-load="0"
+    data-kasir-pin-poll-only="1"
+    data-kasir-index-url="{{ route('kasir.index') }}"
+    data-kasir-pin-unlock-url="{{ route('kasir.pin.unlock') }}"
+    data-kasir-push-vapid-url="{{ route('kasir.push.vapid') }}"
+    data-kasir-push-subscribe-url="{{ route('kasir.push.subscribe') }}"
+    data-kasir-push-unsubscribe-url="{{ route('kasir.push.unsubscribe') }}"
+    data-kasir-voice-url="{{ asset('sounds/pesanan-masuk.mp3') }}"
+>
     <div class="login-glow" aria-hidden="true"></div>
 
     <div class="login-card kasir-pin-card">

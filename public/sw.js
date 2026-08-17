@@ -1,8 +1,9 @@
-const CACHE_NAME = 'cogs-pos-shell-v4';
+const CACHE_NAME = 'cogs-pos-shell-v7';
 const PRECACHE_URLS = [
     '/icons/icon-192.png',
     '/icons/icon-512.png',
     '/favicon.png',
+    '/sounds/pesanan-masuk.mp3',
 ];
 
 /** Halaman sesi/absensi — jangan di-intercept / di-cache SW. */
@@ -127,6 +128,8 @@ self.addEventListener('push', (event) => {
             badge: '/icons/icon-192.png',
             tag: 'kasir-new-order',
             renotify: true,
+            requireInteraction: true,
+            silent: false,
             data,
             vibrate: [200, 100, 200],
         });
@@ -142,14 +145,22 @@ self.addEventListener('notificationclick', (event) => {
         const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
 
         for (const client of clientsList) {
-            if ('focus' in client) {
-                await client.focus();
+            try {
+                const url = new URL(client.url);
+                if (url.origin === self.location.origin && url.pathname.startsWith('/kasir')) {
+                    if ('focus' in client) {
+                        await client.focus();
+                    }
+                    client.postMessage({
+                        type: 'kasir-wake',
+                        reason: 'notification-click',
+                        data: event.notification?.data || { url: targetUrl },
+                    });
 
-                if ('navigate' in client) {
-                    await client.navigate(targetUrl);
+                    return;
                 }
-
-                return;
+            } catch {
+                //
             }
         }
 

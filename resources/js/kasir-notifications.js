@@ -40,26 +40,63 @@ function showKasirToast(message) {
 
 let lastSpeakAt = 0;
 let lastPushWakeAt = 0;
-let audioUnlocked = false;
 let audioContext = null;
 let voiceAudio = null;
+let pendingSpeakText = null;
+let speakingInFlight = false;
 
-const ORDER_VOICE_URL = '/sounds/pesanan-masuk.mp3';
-const ORDER_VOICE_TEXT = 'Pesanan masuk';
+const ORDER_VOICE_TEXT = 'Pesanan baru masuk';
+const SPEAK_DEDUPE_MS = 3500;
+
+function orderVoiceUrl() {
+    return document.querySelector('[data-kasir-notifications]')?.dataset?.kasirVoiceUrl
+        || '/sounds/pesanan-masuk.mp3';
+}
 
 function getVoiceAudio() {
-    if (! voiceAudio) {
-        voiceAudio = new Audio(ORDER_VOICE_URL);
+    const url = orderVoiceUrl();
+
+    if (! voiceAudio || voiceAudio.dataset?.srcUrl !== url) {
+        voiceAudio = new Audio(url);
+        voiceAudio.dataset.srcUrl = url;
         voiceAudio.preload = 'auto';
         voiceAudio.volume = 1;
+        voiceAudio.setAttribute('playsinline', '');
+        voiceAudio.playsInline = true;
     }
 
     return voiceAudio;
 }
 
-function unlockKasirAudio() {
-    audioUnlocked = true;
+function hideKasirSoundPrompt() {
+    document.querySelector('[data-kasir-notify-prompt]')?.remove();
+}
 
+function showKasirSoundPrompt() {
+    if (document.querySelector('[data-kasir-notify-prompt]')) {
+        return;
+    }
+
+    const prompt = document.createElement('button');
+    prompt.type = 'button';
+    prompt.className = 'kasir-notify-prompt';
+    prompt.setAttribute('data-kasir-notify-prompt', '');
+    prompt.textContent = 'Ketuk untuk mengaktifkan suara pesanan baru';
+    prompt.addEventListener('click', async () => {
+        await unlockKasirAudio();
+        if ('Notification' in window && Notification.permission === 'default') {
+            try {
+                await Notification.requestPermission();
+            } catch {
+                //
+            }
+        }
+        hideKasirSoundPrompt();
+    });
+    document.body.append(prompt);
+}
+
+async function resumeAudioContext() {
     try {
         if (! audioContext) {
             const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -68,27 +105,87 @@ function unlockKasirAudio() {
             }
         }
         if (audioContext?.state === 'suspended') {
-            audioContext.resume();
+            await audioContext.resume();
         }
+    } catch {
+        //
+    }
+
+    return audioContext;
+}
+
+function playSilentUnlockBuffer(ctx) {
+    if (! ctx) {
+        return;
+    }
+
+    try {
+        const buffer = ctx.createBuffer(1, 1, ctx.sampleRate || 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+    } catch {
+        //
+    }
+}
+
+function playAttentionChime() {
+    if (! audioContext) {
+        return false;
+    }
+
+    try {
+        const now = audioContext.currentTime;
+        const notes = [880, 1175];
+        notes.forEach((freq, index) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            const start = now + (index * 0.14);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(start);
+            osc.stop(start + 0.22);
+        });
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function unlockKasirAudio() {
+    try {
+        const ctx = await resumeAudioContext();
+        playSilentUnlockBuffer(ctx);
 
         const audio = getVoiceAudio();
         audio.muted = true;
-        const play = audio.play();
-        if (play && typeof play.then === 'function') {
-            play.then(() => {
-                audio.pause();
-                audio.currentTime = 0;
-                audio.muted = false;
-            }).catch(() => {
-                audio.muted = false;
-            });
-        } else {
-            audio.muted = false;
+        try {
+            await audio.play();
+            audio.pause();
+            audio.currentTime = 0;
+        } catch {
+            // File belum siap / autoplay — tetap lanjut TTS.
         }
+        audio.muted = false;
 
         if ('speechSynthesis' in window) {
             window.speechSynthesis.resume();
             window.speechSynthesis.getVoices();
+        }
+
+        hideKasirSoundPrompt();
+
+        if (pendingSpeakText) {
+            const queued = pendingSpeakText;
+            pendingSpeakText = null;
+            await speakNewOrder(queued, { force: true });
         }
     } catch {
         //
@@ -97,19 +194,29 @@ function unlockKasirAudio() {
 
 function playVoiceClip() {
     return new Promise((resolve) => {
+        let settled = false;
+        let timer = 0;
+
         try {
             const audio = getVoiceAudio();
             audio.pause();
             audio.currentTime = 0;
             audio.muted = false;
             audio.volume = 1;
+            audio.playbackRate = 0.92;
 
             const done = (ok) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                window.clearTimeout(timer);
                 audio.onended = null;
                 audio.onerror = null;
                 resolve(ok);
             };
 
+            timer = window.setTimeout(() => done(false), 4000);
             audio.onended = () => done(true);
             audio.onerror = () => done(false);
 
@@ -123,51 +230,146 @@ function playVoiceClip() {
     });
 }
 
+function pickIndonesianVoice() {
+    const voices = window.speechSynthesis?.getVoices?.() || [];
+
+    return voices.find((voice) => {
+        const lang = (voice.lang || '').toLowerCase().replace('_', '-');
+
+        return lang === 'id-id' || lang.startsWith('id') || lang.startsWith('in');
+    });
+}
+
 function speakWithBrowserTts(text) {
-    if (! ('speechSynthesis' in window)) {
+    return new Promise((resolve) => {
+        if (! ('speechSynthesis' in window)) {
+            resolve(false);
+
+            return;
+        }
+
+        let settled = false;
+        let started = false;
+        const done = (ok) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            window.clearTimeout(watchdog);
+            resolve(ok);
+        };
+
+        const watchdog = window.setTimeout(() => done(false), 8000);
+
+        const start = () => {
+            if (started || settled) {
+                return;
+            }
+            started = true;
+
+            try {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'id-ID';
+                utterance.rate = 0.92;
+                utterance.pitch = 1.05;
+                utterance.volume = 1;
+
+                const idVoice = pickIndonesianVoice();
+                if (idVoice) {
+                    utterance.voice = idVoice;
+                }
+
+                utterance.onend = () => done(true);
+                utterance.onerror = () => done(false);
+
+                window.speechSynthesis.speak(utterance);
+
+                // Chrome kadang menjeda utterance yang baru di-queue.
+                window.setTimeout(() => {
+                    try {
+                        window.speechSynthesis.resume();
+                    } catch {
+                        //
+                    }
+                }, 60);
+            } catch {
+                done(false);
+            }
+        };
+
+        const voices = window.speechSynthesis.getVoices?.() || [];
+        if (voices.length === 0) {
+            window.speechSynthesis.addEventListener('voiceschanged', start, { once: true });
+            window.setTimeout(start, 250);
+        } else {
+            start();
+        }
+    });
+}
+
+async function speakNewOrder(text = ORDER_VOICE_TEXT, options = {}) {
+    const phrase = (text || ORDER_VOICE_TEXT).trim() || ORDER_VOICE_TEXT;
+    const force = Boolean(options.force);
+    const now = Date.now();
+
+    if (! force && now - lastSpeakAt < SPEAK_DEDUPE_MS) {
         return;
     }
 
-    try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'id-ID';
-        utterance.rate = 0.92;
-        utterance.pitch = 1.05;
-        utterance.volume = 1;
+    if (speakingInFlight && ! force) {
+        pendingSpeakText = phrase;
 
-        const voices = window.speechSynthesis.getVoices?.() || [];
-        const idVoice = voices.find((voice) => {
-            const lang = (voice.lang || '').toLowerCase().replace('_', '-');
-            return lang === 'id-id' || lang.startsWith('id') || lang.startsWith('in');
-        });
-        if (idVoice) {
-            utterance.voice = idVoice;
+        return;
+    }
+
+    speakingInFlight = true;
+
+    try {
+        await resumeAudioContext();
+
+        const clipOk = await playVoiceClip();
+        if (clipOk) {
+            lastSpeakAt = Date.now();
+            pendingSpeakText = null;
+
+            return;
         }
 
-        window.speechSynthesis.speak(utterance);
-    } catch {
-        //
+        const ttsOk = await speakWithBrowserTts(phrase);
+        if (ttsOk) {
+            lastSpeakAt = Date.now();
+            pendingSpeakText = null;
+
+            return;
+        }
+
+        if (playAttentionChime()) {
+            lastSpeakAt = Date.now();
+            pendingSpeakText = null;
+
+            return;
+        }
+
+        pendingSpeakText = phrase;
+        showKasirSoundPrompt();
+    } finally {
+        speakingInFlight = false;
     }
 }
 
-async function speakNewOrder(text = ORDER_VOICE_TEXT) {
-    const now = Date.now();
-    if (now - lastSpeakAt < 3500) {
-        return;
-    }
-    lastSpeakAt = now;
+function isKasirTabBackground() {
+    return document.visibilityState !== 'visible';
+}
 
-    const first = await playVoiceClip();
-    if (first) {
-        window.setTimeout(() => {
-            playVoiceClip();
-        }, 280);
-        return;
+function kasirNotificationTargetUrl() {
+    if (isPinUnlockPage()) {
+        return document.body?.dataset?.kasirPinUnlockUrl || '/kasir/pin';
     }
 
-    speakWithBrowserTts(text || ORDER_VOICE_TEXT);
+    return document.body?.dataset?.kasirIndexUrl || '/kasir';
 }
 
 function showKasirBrowserNotification(title, body) {
@@ -180,22 +382,61 @@ function showKasirBrowserNotification(title, body) {
         return;
     }
 
-    try {
-        const notification = new Notification(title, {
-            body,
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            tag: 'kasir-new-order',
-            renotify: true,
-            silent: true,
-        });
-        notification.onclick = () => {
-            window.focus();
-            notification.close();
-            const indexUrl = document.body?.dataset?.kasirIndexUrl || '/kasir';
-            if (! window.location.pathname.startsWith('/kasir')) {
-                window.location.assign(indexUrl);
+    const tabHidden = isKasirTabBackground();
+    const pinPage = isPinUnlockPage();
+
+    // Tab kasir terlihat: toast + suara cukup. PIN / tab background: tampilkan notifikasi OS.
+    if (! tabHidden && ! pinPage) {
+        return;
+    }
+
+    const options = {
+        body,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: 'kasir-new-order',
+        renotify: true,
+        silent: false,
+        requireInteraction: tabHidden,
+        vibrate: [200, 100, 200],
+        data: { url: kasirNotificationTargetUrl() },
+    };
+
+    const openKasir = () => {
+        window.focus();
+        const target = kasirNotificationTargetUrl();
+        if (! window.location.pathname.startsWith('/kasir')) {
+            window.location.assign(target);
+        }
+    };
+
+    const viaServiceWorker = navigator.serviceWorker?.ready
+        ?.then((registration) => registration.showNotification(title, options))
+        .catch(() => false);
+
+    if (viaServiceWorker) {
+        viaServiceWorker.then((result) => {
+            if (result === false) {
+                try {
+                    const notification = new Notification(title, options);
+                    notification.onclick = () => {
+                        openKasir();
+                        notification.close();
+                    };
+                } catch {
+                    //
+                }
             }
+        });
+
+        return;
+    }
+
+    try {
+        const notification = new Notification(title, options);
+        notification.onclick = () => {
+            openKasir();
+            notification.close();
         };
     } catch {
         //
@@ -757,7 +998,8 @@ function initKasirNotifications() {
             return;
         }
 
-        if (document.visibilityState === 'hidden') {
+        // Halaman PIN tetap poll saat tab di background / minimize.
+        if (document.visibilityState === 'hidden' && ! pinPollOnly) {
             schedulePoll();
             return;
         }
@@ -784,7 +1026,7 @@ function initKasirNotifications() {
         if (isHandlingNewOrder || pollInFlight) {
             return;
         }
-        if (document.visibilityState === 'hidden') {
+        if (document.visibilityState === 'hidden' && ! pinPollOnly) {
             return;
         }
         pollInFlight = true;
@@ -797,6 +1039,11 @@ function initKasirNotifications() {
 
     window.__kasirPullPending = pullOnce;
     getVoiceAudio();
+    showKasirSoundPrompt();
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
 
     const requestKasirNotifyPermission = async () => {
         if (! ('Notification' in window) || Notification.permission !== 'default') {
@@ -810,28 +1057,16 @@ function initKasirNotifications() {
     };
 
     const onFirstKasirGesture = () => {
-        unlockKasirAudio();
-        requestKasirNotifyPermission();
+        void unlockKasirAudio();
+        void requestKasirNotifyPermission();
         document.removeEventListener('pointerdown', onFirstKasirGesture, true);
         document.removeEventListener('keydown', onFirstKasirGesture, true);
+        document.removeEventListener('touchstart', onFirstKasirGesture, true);
     };
 
     document.addEventListener('pointerdown', onFirstKasirGesture, { capture: true, passive: true });
     document.addEventListener('keydown', onFirstKasirGesture, { capture: true });
-
-    if ('Notification' in window && Notification.permission === 'default' && ! pinPollOnly) {
-        const prompt = document.createElement('button');
-        prompt.type = 'button';
-        prompt.className = 'kasir-notify-prompt';
-        prompt.setAttribute('data-kasir-notify-prompt', '');
-        prompt.textContent = 'Aktifkan notifikasi & suara pesanan baru';
-        prompt.addEventListener('click', async () => {
-            unlockKasirAudio();
-            await requestKasirNotifyPermission();
-            prompt.remove();
-        });
-        document.body.append(prompt);
-    }
+    document.addEventListener('touchstart', onFirstKasirGesture, { capture: true, passive: true });
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', (event) => {
@@ -839,10 +1074,16 @@ function initKasirNotifications() {
                 return;
             }
             const reason = event.data?.reason || event.data?.data?.type;
-            if (reason === 'new_order' || event.data?.data?.type === 'new_order' || ! reason) {
-                lastPushWakeAt = Date.now();
-                speakNewOrder(ORDER_VOICE_TEXT);
+            const isOrderWake = reason === 'new_order'
+                || event.data?.data?.type === 'new_order'
+                || reason === 'notification-click'
+                || ! reason;
+            if (! isOrderWake) {
+                return;
             }
+            lastPushWakeAt = Date.now();
+            const speakText = event.data?.data?.speak_text || pendingSpeakText || ORDER_VOICE_TEXT;
+            void speakNewOrder(speakText, { force: reason === 'notification-click' });
         });
     }
 
@@ -855,6 +1096,11 @@ function initKasirNotifications() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && ! isHandlingNewOrder) {
+            if (pendingSpeakText) {
+                const queued = pendingSpeakText;
+                pendingSpeakText = null;
+                void speakNewOrder(queued, { force: true });
+            }
             if (continuousPoll) {
                 intervalSeconds = Math.max(30, parseInt(shell.dataset.kasirPollInterval || '60', 10));
                 runPoll();

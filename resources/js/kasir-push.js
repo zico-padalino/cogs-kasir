@@ -118,18 +118,6 @@ async function initKasirPush() {
                 },
             }),
         });
-
-        // Saat push masuk & tab terbuka → pull antrian sekali.
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event?.data?.type !== 'kasir-wake') {
-                return;
-            }
-            if (typeof window.__kasirPullPending === 'function') {
-                window.__kasirPullPending();
-            } else {
-                window.dispatchEvent(new CustomEvent('kasir:pull-pending'));
-            }
-        });
     } catch {
         // Push opsional — tanpa push, buka ulang tab / visibility tetap pull sekali.
     }
@@ -137,8 +125,17 @@ async function initKasirPush() {
 
 document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(() => {
-        initKasirPush();
+        void initKasirPush();
     }, 1500);
+
+    // Izin notifikasi butuh gestur; halaman PIN sering baru diketuk belakangan.
+    const retryPushOnGesture = () => {
+        void initKasirPush();
+        document.removeEventListener('pointerdown', retryPushOnGesture, true);
+        document.removeEventListener('keydown', retryPushOnGesture, true);
+    };
+    document.addEventListener('pointerdown', retryPushOnGesture, { capture: true, passive: true });
+    document.addEventListener('keydown', retryPushOnGesture, { capture: true });
 
     // Listener global: push wake → pull sekalipun subscribe VAPID belum selesai.
     if ('serviceWorker' in navigator) {

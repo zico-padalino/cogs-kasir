@@ -42,6 +42,7 @@
     data-kasir-push-vapid-url="{{ route('kasir.push.vapid') }}"
     data-kasir-push-subscribe-url="{{ route('kasir.push.subscribe') }}"
     data-kasir-push-unsubscribe-url="{{ route('kasir.push.unsubscribe') }}"
+    data-kasir-voice-url="{{ asset('sounds/pesanan-masuk.mp3') }}"
 >
     @include('layouts.partials.pwa-install-banner', ['app' => 'kasir'])
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
