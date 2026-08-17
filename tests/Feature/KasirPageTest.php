@@ -243,6 +243,26 @@ class KasirPageTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
+    public function test_pending_poll_includes_online_order_sent_to_kasir(): void
+    {
+        $product = $this->sellableProduct();
+        $kasir = $this->kasirUser();
+
+        $this->post(route('order.menu.items'), ['product_id' => $product->id, 'quantity' => 1]);
+        $this->post(route('order.menu.submit'), [
+            'customer_note' => 'Siti',
+            'order_type' => 'takeaway',
+        ]);
+        $this->post(route('order.menu.pay-cash'));
+
+        $this->actingAs($kasir)
+            ->getJson(route('kasir.pending.poll'))
+            ->assertOk()
+            ->assertJsonPath('notify_count', 1)
+            ->assertJsonPath('latest_customer', 'Siti')
+            ->assertJsonPath('has_pending', true);
+    }
+
     public function test_current_open_bill_card_can_open_its_cart(): void
     {
         $order = PosOrder::create([

@@ -41,6 +41,11 @@
 
         <div class="login-divider" aria-hidden="true"></div>
 
+        <div data-kasir-pin-alert hidden class="mb-3 rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-3 text-left text-amber-950" role="status">
+            <p class="text-sm font-bold" data-kasir-pin-alert-title>Pesanan baru menunggu</p>
+            <p class="mt-1 text-xs" data-kasir-pin-alert-body>Masukkan PIN untuk membuka kasir.</p>
+        </div>
+
         @if (session('success'))
             <div class="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">{{ session('success') }}</div>
         @endif

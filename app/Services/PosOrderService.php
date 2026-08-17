@@ -366,6 +366,7 @@ class PosOrderService
         ]);
 
         $fresh = $order->fresh(['items.product', 'table']);
+        KitchenBoardCache::forget();
         $this->activity()->orderEvent(
             'order_confirmed',
             'Pesanan '.$fresh->order_number.' dikonfirmasi kasir'.($fresh->cashier_name ? ' ('.$fresh->cashier_name.')' : '').'.',

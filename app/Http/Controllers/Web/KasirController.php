@@ -69,17 +69,19 @@ class KasirController extends Controller
 
         $products = $posService->sellableProducts();
 
-        return view('kasir.index', [
-            'order' => $activeOrder,
-            'products' => $products,
-            'menuCategories' => $posService->menuCategories($products),
-            'menuCategoryLabels' => $posService->menuCategoryLabels(),
-            'orderTypes' => PosOrderType::cases(),
-            'pendingOrders' => $pendingOrders,
-            'presets' => config('pos.product_presets', []),
-            'shopName' => config('pos.shop_name'),
-            'format' => Format::class,
-        ]);
+        return response()
+            ->view('kasir.index', [
+                'order' => $activeOrder,
+                'products' => $products,
+                'menuCategories' => $posService->menuCategories($products),
+                'menuCategoryLabels' => $posService->menuCategoryLabels(),
+                'orderTypes' => PosOrderType::cases(),
+                'pendingOrders' => $pendingOrders,
+                'presets' => config('pos.product_presets', []),
+                'shopName' => config('pos.shop_name'),
+                'format' => Format::class,
+            ])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function pendingOrdersPoll(PosOrderService $posService)
@@ -87,28 +89,27 @@ class KasirController extends Controller
         $pinStatus = KasirPin::statusPayload();
         SessionPressure::releaseEarly();
 
-        $board = KitchenBoardCache::remember('web-pending', function () use ($posService) {
-            $pendingOrders = $posService->waitingOrders();
-            $format = Format::class;
-            $currentOrder = $this->activeKasirOrder();
+        $pendingOrders = $posService->waitingOrders();
+        $format = Format::class;
+        $currentOrder = $this->activeKasirOrder();
+        $notifyOrders = $pendingOrders
+            ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
+                && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
+            ->values();
 
-            return [
-                'count' => $pendingOrders->count(),
-                'total' => (float) $pendingOrders->sum('total'),
-                'order_ids' => $pendingOrders->pluck('id')->values()->all(),
-                'notify_order_ids' => $pendingOrders
-                    ->filter(fn (PosOrder $order) => $order->source === PosOrderSource::Online
-                        && in_array($order->status, [PosOrderStatus::Submitted, PosOrderStatus::Confirmed], true))
-                    ->pluck('id')
-                    ->values()
-                    ->all(),
-                'has_pending' => $pendingOrders->isNotEmpty(),
-                'latest_order_id' => $pendingOrders->first()?->id,
-                'html' => $pendingOrders->isNotEmpty()
-                    ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
-                    : '',
-            ];
-        }, 4);
+        $board = [
+            'count' => $pendingOrders->count(),
+            'total' => (float) $pendingOrders->sum('total'),
+            'order_ids' => $pendingOrders->pluck('id')->values()->all(),
+            'notify_order_ids' => $notifyOrders->pluck('id')->values()->all(),
+            'notify_count' => $notifyOrders->count(),
+            'latest_customer' => trim((string) ($notifyOrders->first()?->customer_note ?: '')),
+            'has_pending' => $pendingOrders->isNotEmpty(),
+            'latest_order_id' => $pendingOrders->first()?->id,
+            'html' => $pendingOrders->isNotEmpty()
+                ? view('kasir.partials.pending-orders', compact('pendingOrders', 'format', 'currentOrder'))->render()
+                : '',
+        ];
 
         return response()->json(array_merge($board, $pinStatus))
             ->header('Cache-Control', 'no-store, private');

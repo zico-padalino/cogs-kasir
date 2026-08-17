@@ -51,6 +51,7 @@ class KasirPinTest extends TestCase
             ->assertSee('data-kasir-pin-poll-only="1"', false)
             ->assertSee('data-kasir-continuous-poll="1"', false)
             ->assertSee('data-kasir-poll-interval="8"', false)
+            ->assertSee('data-kasir-pin-alert', false)
             ->assertSee('Aktifkan notifikasi sistem (seperti WhatsApp)')
             ->assertSee('data-kasir-push-vapid-url', false)
             ->assertSee('data-kasir-push-subscribe-url', false)

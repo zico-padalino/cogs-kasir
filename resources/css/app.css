@@ -3063,7 +3063,8 @@
         @apply min-w-0;
     }
 
-    .pos-pending.is-new-alert {
+    .pos-pending.is-new-alert,
+    [data-kasir-pin-alert].is-new-alert {
         animation: pos-pending-pulse 0.55s ease-in-out 3;
     }
 
