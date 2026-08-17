@@ -80,7 +80,7 @@
         </form>
 
         <button type="button" class="btn-outline mt-3 w-full min-h-10 border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100" data-kasir-sound-enable>
-            Aktifkan notifikasi sistem (seperti WhatsApp)
+            Aktifkan notifikasi sistem
         </button>
         <p class="mt-1.5 text-center text-[11px] text-slate-500">Ketuk, lalu pilih <strong>Izinkan</strong>. Contoh notifikasi akan muncul di pojok layar / laci notifikasi HP.</p>
 

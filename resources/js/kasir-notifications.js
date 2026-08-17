@@ -86,7 +86,7 @@ function showKasirSoundPrompt() {
     prompt.type = 'button';
     prompt.className = 'kasir-notify-prompt';
     prompt.setAttribute('data-kasir-notify-prompt', '');
-        prompt.textContent = 'Aktifkan notifikasi sistem (seperti WhatsApp)';
+        prompt.textContent = 'Aktifkan notifikasi sistem';
     prompt.addEventListener('click', () => {
         void enableKasirOrderAlerts();
     });
