@@ -19,7 +19,9 @@ class AttendanceSelfieTest extends TestCase
         $this->get(route('attendance.scan'))
             ->assertOk()
             ->assertSee('Absensi QR')
-            ->assertSee('Ambil selfie sebagai bukti absen');
+            ->assertSee('Ambil selfie sebagai bukti absen')
+            ->assertSee('Izinkan lokasi')
+            ->assertSee('data-scan-gps-enable', false);
     }
 
     public function test_logged_in_user_still_sees_public_attendance_form(): void
@@ -30,7 +32,8 @@ class AttendanceSelfieTest extends TestCase
             ->get(route('attendance.scan'))
             ->assertOk()
             ->assertSee('Absensi QR')
-            ->assertSee('Ambil selfie sebagai bukti absen');
+            ->assertSee('Ambil selfie sebagai bukti absen')
+            ->assertSee('Izinkan lokasi');
     }
 
     public function test_employee_without_registered_face_can_use_public_selfie_attendance(): void

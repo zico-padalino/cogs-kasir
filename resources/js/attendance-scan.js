@@ -1,29 +1,12 @@
 /**
  * Public QR attendance: mode (masuk/pulang), employee select, selfie camera, GPS.
  */
+import { geolocationErrorMessage, queryGeolocationPermission, readGps } from './geolocation';
 
 function setText(el, text, isError = false) {
     if (! el) return;
     el.textContent = text;
     el.classList.toggle('is-error', isError);
-}
-
-function readGps() {
-    return new Promise((resolve, reject) => {
-        if (! navigator.geolocation) {
-            reject(new Error('GPS tidak didukung di perangkat ini.'));
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-            }),
-            () => reject(new Error('Izinkan akses lokasi untuk absensi.')),
-            { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 },
-        );
-    });
 }
 
 async function startCamera(video) {
@@ -122,6 +105,8 @@ function bindScan(root) {
     const photoInput = root.querySelector('[data-scan-photo]');
     const submit = root.querySelector('[data-scan-submit]');
     const gpsStatus = root.querySelector('[data-scan-gps]');
+    const gpsEnable = root.querySelector('[data-scan-gps-enable]');
+    const gpsPanel = root.querySelector('[data-scan-gps-panel]');
     const clockEl = root.querySelector('[data-scan-clock]');
     const hasLocation = root.getAttribute('data-has-location') === '1';
 
@@ -131,9 +116,76 @@ function bindScan(root) {
 
     let cameraReady = false;
     let gpsReady = false;
+    let gpsBusy = false;
     let selectedMode = modeInput?.value === 'check_out' ? 'check_out' : 'check_in';
 
     bindClock(clockEl);
+
+    const showGpsPrompt = (message, { error = false, showButton = true } = {}) => {
+        setText(gpsStatus, message, error);
+        if (gpsEnable) {
+            gpsEnable.hidden = ! showButton;
+            gpsEnable.disabled = gpsBusy;
+            gpsEnable.textContent = gpsReady ? 'Perbarui lokasi' : 'Izinkan lokasi';
+        }
+        if (gpsPanel) {
+            gpsPanel.classList.toggle('is-denied', error);
+            gpsPanel.classList.toggle('is-ready', gpsReady);
+        }
+    };
+
+    const applyGps = (gps) => {
+        latInput.value = String(gps.lat);
+        lngInput.value = String(gps.lng);
+        gpsReady = true;
+        const accuracy = Number.isFinite(gps.accuracy) ? ` ±${Math.round(gps.accuracy)} m` : '';
+        showGpsPrompt(`Lokasi siap (${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)}${accuracy})`, {
+            error: false,
+            showButton: true,
+        });
+        refreshSubmit();
+    };
+
+    const requestGps = async ({ userInitiated = false } = {}) => {
+        if (! hasLocation || gpsBusy) {
+            return;
+        }
+
+        gpsBusy = true;
+        if (gpsEnable) {
+            gpsEnable.disabled = true;
+            gpsEnable.textContent = 'Membaca lokasi…';
+        }
+
+        showGpsPrompt(
+            userInitiated
+                ? 'Meminta izin lokasi… Ketuk Izinkan jika browser menanyakan.'
+                : 'Membaca lokasi GPS…',
+            { error: false, showButton: false },
+        );
+
+        try {
+            const permission = await queryGeolocationPermission();
+            if (permission === 'denied') {
+                throw Object.assign(new Error('Akses lokasi ditolak.'), { code: 1 });
+            }
+
+            const gps = await readGps({ requireFresh: true });
+            applyGps(gps);
+        } catch (error) {
+            gpsReady = false;
+            latInput.value = '';
+            lngInput.value = '';
+            showGpsPrompt(geolocationErrorMessage(error), { error: true, showButton: true });
+            refreshSubmit();
+        } finally {
+            gpsBusy = false;
+            if (gpsEnable) {
+                gpsEnable.disabled = false;
+                gpsEnable.textContent = gpsReady ? 'Perbarui lokasi' : 'Izinkan lokasi';
+            }
+        }
+    };
 
     const setMode = (mode, { preserveEmployee = false } = {}) => {
         selectedMode = mode === 'check_out' ? 'check_out' : 'check_in';
@@ -223,12 +275,15 @@ function bindScan(root) {
     employeeSelect.addEventListener('change', () => {
         const option = employeeSelect.selectedOptions[0];
         const actions = optionActions(option);
-        // Jika mode saat ini tidak tersedia, pindah ke aksi yang tersedia.
         if (actions.length && ! actions.includes(selectedMode)) {
             setMode(actions[0], { preserveEmployee: true });
             return;
         }
         refreshSubmit();
+    });
+
+    gpsEnable?.addEventListener('click', () => {
+        void requestGps({ userInitiated: true });
     });
 
     const bootCamera = async () => {
@@ -238,30 +293,45 @@ function bindScan(root) {
             refreshSubmit();
         } catch (_) {
             cameraReady = false;
-            setText(gpsStatus, 'Kamera tidak bisa dibuka. Izinkan akses kamera.', true);
+            setText(gpsStatus, 'Kamera tidak bisa dibuka. Izinkan akses kamera di browser.', true);
             refreshSubmit();
         }
     };
 
     const bootGps = async () => {
         if (! hasLocation) {
-            setText(gpsStatus, 'Lokasi toko belum diatur admin.', true);
+            showGpsPrompt('Lokasi toko belum diatur admin.', { error: true, showButton: false });
             refreshSubmit();
             return;
         }
 
-        try {
-            setText(gpsStatus, 'Membaca lokasi GPS…');
-            const gps = await readGps();
-            latInput.value = String(gps.lat);
-            lngInput.value = String(gps.lng);
-            gpsReady = true;
-            setText(gpsStatus, `Lokasi siap (${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)})`);
-            refreshSubmit();
-        } catch (error) {
-            gpsReady = false;
-            setText(gpsStatus, error.message || 'Gagal membaca GPS.', true);
-            refreshSubmit();
+        showGpsPrompt(
+            'Lokasi wajib untuk absensi. Ketuk tombol di bawah lalu pilih Izinkan saat browser/Safari bertanya.',
+            { error: false, showButton: true },
+        );
+
+        if (navigator.permissions?.query) {
+            try {
+                const result = await navigator.permissions.query({ name: 'geolocation' });
+                if (result.state === 'granted') {
+                    await requestGps({ userInitiated: false });
+                } else if (result.state === 'denied') {
+                    showGpsPrompt(geolocationErrorMessage({ code: 1 }), { error: true, showButton: true });
+                    refreshSubmit();
+                }
+
+                result.addEventListener('change', () => {
+                    if (result.state === 'granted') {
+                        void requestGps({ userInitiated: false });
+                    } else if (result.state === 'denied') {
+                        gpsReady = false;
+                        showGpsPrompt(geolocationErrorMessage({ code: 1 }), { error: true, showButton: true });
+                        refreshSubmit();
+                    }
+                });
+            } catch {
+                // Safari lama — tetap andalkan tombol izin lokasi.
+            }
         }
     };
 
@@ -274,12 +344,11 @@ function bindScan(root) {
         const option = employeeSelect.selectedOptions[0];
         const actions = optionActions(option);
         if (! actions.includes(selectedMode)) {
-            setText(
-                gpsStatus,
+            showGpsPrompt(
                 selectedMode === 'check_in'
                     ? 'Pegawai ini tidak bisa Absen Masuk sekarang.'
                     : 'Pegawai ini tidak bisa Absen Pulang sekarang.',
-                true,
+                { error: true, showButton: gpsReady },
             );
             return;
         }
@@ -303,9 +372,11 @@ function bindScan(root) {
 
         try {
             if (! latInput.value || ! lngInput.value) {
-                const gps = await readGps();
-                latInput.value = String(gps.lat);
-                lngInput.value = String(gps.lng);
+                await requestGps({ userInitiated: true });
+            }
+
+            if (! latInput.value || ! lngInput.value) {
+                throw Object.assign(new Error('Lokasi GPS belum siap. Izinkan lokasi lalu coba lagi.'), { code: 1 });
             }
 
             photoInput.value = capturePhoto(video, canvas);
@@ -313,7 +384,7 @@ function bindScan(root) {
             stopCamera(video);
             form.submit();
         } catch (error) {
-            setText(gpsStatus, error.message || 'Gagal mengirim absensi.', true);
+            showGpsPrompt(geolocationErrorMessage(error), { error: true, showButton: true });
             refreshSubmit();
         }
     });
