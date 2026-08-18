@@ -73,8 +73,7 @@
                     <label class="order-proof-pick-btn">
                         <input
                             type="file"
-                            accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                            class="sr-only"
+                            accept="image/*"
                             data-order-payment-proof-pick="gallery"
                         >
                         <span>Dari galeri</span>
@@ -84,7 +83,6 @@
                             type="file"
                             accept="image/*"
                             capture="environment"
-                            class="sr-only"
                             data-order-payment-proof-pick="camera"
                         >
                         <span>Ambil foto</span>
@@ -94,7 +92,7 @@
                     id="order-payment-proof"
                     type="file"
                     name="payment_proof"
-                    accept="image/*,.heic,.heif"
+                    accept="image/*"
                     class="sr-only"
                     data-order-payment-proof
                     tabindex="-1"

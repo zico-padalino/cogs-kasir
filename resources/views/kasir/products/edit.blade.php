@@ -60,15 +60,20 @@
                 @method('PUT')
 
                 <div>
-                    <label class="form-label" for="product_image">Gambar Menu</label>
-                    <input
-                        id="product_image"
-                        type="file"
-                        name="image"
-                        accept="image/jpeg,image/png,image/webp"
-                        class="form-input file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700"
-                        data-kasir-product-image
-                    >
+                    <p class="form-label">Gambar Menu</p>
+                    <div class="file-pick-row">
+                        <label class="file-pick-btn">
+                            <input
+                                id="product_image"
+                                type="file"
+                                name="image"
+                                accept="image/*"
+                                data-kasir-product-image
+                            >
+                            <span>Pilih gambar</span>
+                        </label>
+                        <span class="file-pick-name" data-kasir-product-filename>Belum ada file dipilih</span>
+                    </div>
                     <p class="form-hint">Upload JPG/PNG/WebP maks. 2 MB, lalu tekan <strong>Simpan Menu</strong>.</p>
                     @error('image')
                         <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>

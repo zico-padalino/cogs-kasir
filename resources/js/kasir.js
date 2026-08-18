@@ -91,6 +91,19 @@ function syncBrowserViewportChrome() {
 
     // Tinggi area visible; jangan pakai innerHeight (masih include toolbar)
     const visibleHeight = Math.max(240, Math.round(vv.height));
+    const pickerState = window.__cogsVvh || { lastGood: 0, pickerUntil: 0 };
+    window.__cogsVvh = pickerState;
+
+    if (
+        document.visibilityState !== 'hidden'
+        && Date.now() < pickerState.pickerUntil
+        && pickerState.lastGood > 0
+        && visibleHeight < pickerState.lastGood * 0.75
+    ) {
+        return;
+    }
+
+    pickerState.lastGood = visibleHeight;
     root.style.setProperty('--vvh', `${visibleHeight}px`);
 }
 
@@ -1528,8 +1541,33 @@ function initPosCashPayment(root) {
         const proofTitle = form.querySelector('[data-pos-proof-title]');
         const proofError = form.querySelector('[data-pos-proof-error]');
         const proofClear = form.querySelector('[data-pos-proof-clear]');
-        const proofDrop = form.querySelector('.pos-proof-drop');
+        const proofPickRow = form.querySelector('[data-pos-proof-pick-row]');
+        const proofPickers = form.querySelectorAll('[data-pos-payment-proof-pick]');
         let proofObjectUrl = null;
+
+        const looksLikeImageFile = (file) => {
+            const type = (file?.type || '').toLowerCase();
+            if (type.startsWith('image/')) {
+                return true;
+            }
+
+            return /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(file?.name || '');
+        };
+
+        const assignProofToInput = (file) => {
+            if (! (proofInput instanceof HTMLInputElement) || ! file) {
+                return false;
+            }
+
+            try {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                proofInput.files = dt.files;
+                return proofInput.files.length > 0;
+            } catch {
+                return false;
+            }
+        };
 
         const clearProofPreview = () => {
             if (proofObjectUrl) {
@@ -1542,7 +1580,7 @@ function initPosCashPayment(root) {
             }
 
             proofPreview?.classList.add('hidden');
-            proofDrop?.classList.remove('hidden');
+            proofPickRow?.classList.remove('hidden');
             proofError?.classList.add('hidden');
 
             if (proofPreviewImage) {
@@ -1566,12 +1604,39 @@ function initPosCashPayment(root) {
             proofObjectUrl = URL.createObjectURL(file);
             proofPreviewImage.src = proofObjectUrl;
             proofPreview?.classList.remove('hidden');
-            proofDrop?.classList.add('hidden');
+            proofPickRow?.classList.add('hidden');
             proofError?.classList.add('hidden');
 
             if (proofTitle) {
                 proofTitle.textContent = file.name || 'Bukti terpilih';
             }
+        };
+
+        const handlePickedProof = (file) => {
+            if (! file) {
+                return;
+            }
+
+            if (! looksLikeImageFile(file)) {
+                clearProofPreview();
+                proofError?.classList.remove('hidden');
+                if (proofError) {
+                    proofError.textContent = 'File harus berupa gambar.';
+                }
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                clearProofPreview();
+                proofError?.classList.remove('hidden');
+                if (proofError) {
+                    proofError.textContent = 'Ukuran maksimal 5 MB.';
+                }
+                return;
+            }
+
+            assignProofToInput(file);
+            showProofPreview(file);
         };
 
         const applyQrisPayload = (payload) => {
@@ -1689,30 +1754,19 @@ function initPosCashPayment(root) {
                 return;
             }
 
-            if (! file.type.startsWith('image/')) {
-                clearProofPreview();
-                proofError?.classList.remove('hidden');
-                if (proofError) {
-                    proofError.textContent = 'File harus berupa gambar.';
-                }
-                return;
-            }
+            handlePickedProof(file);
+        });
 
-            if (file.size > 5 * 1024 * 1024) {
-                clearProofPreview();
-                proofError?.classList.remove('hidden');
-                if (proofError) {
-                    proofError.textContent = 'Ukuran maksimal 5 MB.';
-                }
-                return;
-            }
-
-            showProofPreview(file);
+        proofPickers.forEach((picker) => {
+            picker.addEventListener('change', () => {
+                const file = picker.files?.[0];
+                handlePickedProof(file);
+                picker.value = '';
+            });
         });
 
         proofClear?.addEventListener('click', () => {
             clearProofPreview();
-            proofInput?.click();
         });
 
         receivedInput?.addEventListener('input', () => {

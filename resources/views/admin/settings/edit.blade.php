@@ -74,19 +74,18 @@
 
                 <div class="min-w-0 flex-1 space-y-3">
                     <div class="flex flex-wrap items-center gap-2">
-                        <label for="logo" class="btn-secondary btn-sm cursor-pointer">
-                            Pilih logo
+                        <label class="btn-secondary btn-sm file-pick-btn">
+                            <input
+                                type="file"
+                                name="logo"
+                                id="logo"
+                                accept="image/*"
+                                data-logo-input
+                            >
+                            <span>Pilih logo</span>
                         </label>
                         <span class="truncate text-xs text-slate-500" data-logo-filename>Belum ada file baru</span>
                     </div>
-                    <input
-                        type="file"
-                        name="logo"
-                        id="logo"
-                        accept="image/png,image/jpeg,image/webp"
-                        class="sr-only"
-                        data-logo-input
-                    >
                     @error('logo')
                         <p class="text-sm text-rose-600">{{ $message }}</p>
                     @enderror
@@ -172,19 +171,18 @@
                     </div>
 
                     <div class="flex min-w-0 flex-wrap items-center gap-2">
-                        <label for="qris" class="btn-secondary btn-sm cursor-pointer shrink-0">
-                            Unggah gambar
+                        <label class="btn-secondary btn-sm file-pick-btn shrink-0">
+                            <input
+                                type="file"
+                                name="qris"
+                                id="qris"
+                                accept="image/*"
+                                data-qris-input
+                            >
+                            <span>Unggah gambar</span>
                         </label>
                         <span class="min-w-0 truncate text-xs text-slate-500" data-qris-filename>Belum ada file dipilih</span>
                     </div>
-                    <input
-                        type="file"
-                        name="qris"
-                        id="qris"
-                        accept="image/png,image/jpeg,image/webp"
-                        class="sr-only"
-                        data-qris-input
-                    >
                     @error('qris')
                         <p class="text-sm text-rose-600">{{ $message }}</p>
                     @enderror
