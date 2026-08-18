@@ -56,6 +56,10 @@ function showOsNotification(title, body) {
         return;
     }
 
+    if (Date.now() - lastPushWakeAt < 20000) {
+        return;
+    }
+
     const options = {
         body,
         icon: '/icons/icon-192.png',
@@ -231,7 +235,10 @@ async function subscribeWebPush() {
 }
 
 let knownIds = null;
+let announcedIds = new Set();
 let pollInFlight = false;
+let lastPushWakeAt = 0;
+let lastAnnounceAt = 0;
 
 async function pollOnce() {
     const url = pollUrl();
@@ -254,24 +261,24 @@ async function pollOnce() {
         }
 
         const data = await response.json();
-        const ids = (data.notify_order_ids ?? []).map((id) => Number(id));
+        const ids = (data.notify_order_ids ?? []).map((id) => Number(id)).filter(Boolean);
         const count = Number(data.notify_count ?? ids.length);
         const customer = data.latest_customer || '';
 
         if (knownIds === null) {
             knownIds = new Set(ids);
-            updateBanner(count, customer, count > 0);
-            if (count > 0) {
-                await announceNewOrder(customer);
-            }
+            ids.forEach((id) => announcedIds.add(id));
+            updateBanner(count, customer, false);
 
             return;
         }
 
-        const newIds = ids.filter((id) => ! knownIds.has(id));
+        const newIds = ids.filter((id) => ! announcedIds.has(id));
         knownIds = new Set(ids);
+        ids.forEach((id) => announcedIds.add(id));
         updateBanner(count, customer, newIds.length > 0);
-        if (newIds.length > 0) {
+        if (newIds.length > 0 && Date.now() - lastAnnounceAt > 8000) {
+            lastAnnounceAt = Date.now();
             await announceNewOrder(customer);
         }
     } catch {
@@ -341,6 +348,26 @@ function initPinAlerts() {
     };
     document.addEventListener('pointerdown', unlockOnce, { capture: true, passive: true });
     document.addEventListener('keydown', unlockOnce, { capture: true });
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event?.data?.type !== 'kasir-wake') {
+                return;
+            }
+
+            lastPushWakeAt = Date.now();
+            const orderId = Number(event.data?.data?.order_id);
+            if (orderId) {
+                if (announcedIds.has(orderId)) {
+                    return;
+                }
+                announcedIds.add(orderId);
+                lastAnnounceAt = Date.now();
+                void announceNewOrder(event.data?.data?.customer_name || '');
+            }
+            void pollOnce();
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initPinAlerts);

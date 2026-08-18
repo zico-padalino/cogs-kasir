@@ -5,9 +5,24 @@ import { refreshKasirOrderUi, initItemDeliverToggle } from './kasir';
 
 let knownOrderIds = null;
 let knownNotifyIds = null;
+let announcedOrderIds = new Set();
 let isHandlingNewOrder = false;
 let deferredOrderAlert = false;
 let wasTransactionActive = false;
+let toastHideTimer = 0;
+
+function markOrdersAnnounced(ids) {
+    for (const id of ids) {
+        const numericId = Number(id);
+        if (numericId) {
+            announcedOrderIds.add(numericId);
+        }
+    }
+}
+
+function unannouncedOrderIds(ids) {
+    return [...ids].filter((id) => ! announcedOrderIds.has(Number(id)));
+}
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -16,6 +31,7 @@ function csrfToken() {
 function showKasirToast(message) {
     const existing = document.querySelector('[data-kasir-toast]');
     existing?.remove();
+    window.clearTimeout(toastHideTimer);
 
     const toast = document.createElement('div');
     toast.className = 'kasir-toast';
@@ -37,6 +53,11 @@ function showKasirToast(message) {
     window.requestAnimationFrame(() => {
         toast.classList.add('is-visible');
     });
+
+    toastHideTimer = window.setTimeout(() => {
+        toast.classList.remove('is-visible');
+        window.setTimeout(() => toast.remove(), 300);
+    }, 4500);
 }
 
 let lastSpeakAt = 0;
@@ -477,7 +498,7 @@ function showKasirSystemNotification(title, body, extra = {}) {
     }
 
     const force = Boolean(extra.force);
-    if (! force && Date.now() - lastPushWakeAt < 5000) {
+    if (! force && Date.now() - lastPushWakeAt < 20000) {
         return Promise.resolve(false);
     }
 
@@ -817,6 +838,7 @@ async function pollPendingOrders(pollUrl, shell) {
     if (knownNotifyIds === null) {
         knownNotifyIds = notifyIds;
         knownOrderIds = currentIds;
+        markOrdersAnnounced(notifyIds);
 
         if (pinPollOnly) {
             updatePinOrderAlert(notifyCount, latestCustomer, false);
@@ -827,8 +849,9 @@ async function pollPendingOrders(pollUrl, shell) {
         return;
     }
 
-    const newIds = [...notifyIds].filter((id) => ! knownNotifyIds.has(id));
+    const newIds = unannouncedOrderIds(notifyIds);
     knownNotifyIds = notifyIds;
+    markOrdersAnnounced(notifyIds);
 
     if (pinPollOnly) {
         updatePinOrderAlert(notifyCount, latestCustomer, newIds.length > 0);
@@ -1229,8 +1252,23 @@ function initKasirNotifications() {
                 return;
             }
             lastPushWakeAt = Date.now();
+            const orderId = Number(event.data?.data?.order_id);
+            if (orderId) {
+                const alreadyAnnounced = announcedOrderIds.has(orderId);
+                markOrdersAnnounced([orderId]);
+                if (alreadyAnnounced && reason !== 'notification-click') {
+                    return;
+                }
+            }
             const speakText = event.data?.data?.speak_text || pendingSpeakText || ORDER_VOICE_TEXT;
-            void speakNewOrder(speakText, { force: reason === 'notification-click' });
+            if (reason === 'notification-click') {
+                void speakNewOrder(speakText, { force: true });
+            } else if (! orderId) {
+                // Wake kosong: biarkan poll yang mengumumkan sekali.
+            } else {
+                void speakNewOrder(speakText);
+            }
+            window.__kasirPullPending?.();
         });
     }
 
