@@ -178,6 +178,31 @@ class OnlineQrisSelfPayTest extends TestCase
         @unlink(public_path($order->payment_proof_path));
     }
 
+    public function test_pending_payment_page_opens_system_photo_picker(): void
+    {
+        $this->seedStaticQris();
+
+        $order = PosOrder::query()->create([
+            'order_number' => 'T-PICK-001',
+            'order_day' => now()->toDateString(),
+            'source' => PosOrderSource::Online,
+            'order_type' => PosOrderType::Takeaway,
+            'status' => PosOrderStatus::PendingPayment,
+            'customer_note' => 'Budi',
+            'subtotal' => 15000,
+            'total' => 15000,
+        ]);
+
+        $this->withSession(['online_order_id' => $order->id])
+            ->get(route('order.menu'))
+            ->assertOk()
+            ->assertSee('Dari galeri')
+            ->assertSee('Ambil foto')
+            ->assertSee('data-order-payment-proof-pick="gallery"', false)
+            ->assertSee('accept="image/*"', false)
+            ->assertDontSee('accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"', false);
+    }
+
     public function test_cash_choice_sends_order_to_kasir_queue(): void
     {
         $product = Product::query()->create([

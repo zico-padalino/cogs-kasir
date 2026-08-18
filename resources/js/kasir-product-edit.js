@@ -5,6 +5,7 @@ function initKasirProductEdit() {
     }
 
     const fileInput = form.querySelector('[data-kasir-product-image]');
+    const filename = form.querySelector('[data-kasir-product-filename]');
     const preview = form.querySelector('[data-kasir-product-preview]');
     const presetRadios = form.querySelectorAll('input[name="preset_image"]');
 
@@ -20,6 +21,10 @@ function initKasirProductEdit() {
         const file = fileInput.files?.[0];
         if (! file) {
             return;
+        }
+
+        if (filename) {
+            filename.textContent = file.name;
         }
 
         presetRadios.forEach((radio) => {
@@ -42,6 +47,9 @@ function initKasirProductEdit() {
             }
             if (fileInput) {
                 fileInput.value = '';
+            }
+            if (filename) {
+                filename.textContent = 'Belum ada file dipilih';
             }
             const img = radio.closest('label')?.querySelector('img');
             if (img?.src) {

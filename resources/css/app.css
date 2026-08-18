@@ -3634,10 +3634,13 @@
         gap: 0.5rem;
     }
 
-    .order-proof-pick-btn {
+    .order-proof-pick-btn,
+    .file-pick-btn {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
         min-height: 2.75rem;
         padding: 0.65rem 0.75rem;
         border: 1px solid #e2e8f0;
@@ -3648,13 +3651,66 @@
         font-weight: 600;
         cursor: pointer;
         text-align: center;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .order-proof-pick-btn > input[type="file"],
+    .file-pick-btn > input[type="file"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .order-proof-pick-btn > span,
+    .file-pick-btn > span {
+        position: relative;
+        z-index: 1;
+        pointer-events: none;
     }
 
     .order-proof-pick-btn:hover,
-    .order-proof-pick-btn:focus-within {
+    .order-proof-pick-btn:focus-within,
+    .file-pick-btn:hover,
+    .file-pick-btn:focus-within {
         border-color: #5c4033;
         color: #5c4033;
         background: #faf7f4;
+    }
+
+    .file-pick-row {
+        display: flex;
+        min-width: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.75rem;
+    }
+
+    .file-pick-btn.btn-secondary,
+    .file-pick-btn.btn-sm {
+        width: auto;
+        min-height: 2.5rem;
+        padding-inline: 0.9rem;
+    }
+
+    .file-pick-name {
+        min-width: 0;
+        flex: 1 1 8rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.75rem;
+        color: #64748b;
     }
 
     /* Admin settings — preview QRIS tetap kecil & responsif */

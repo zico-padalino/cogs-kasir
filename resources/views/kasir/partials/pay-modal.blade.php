@@ -88,21 +88,38 @@
                 </div>
 
                 <div class="pos-proof-panel hidden" data-pos-proof-panel>
-                    <label class="pos-pay-label" for="pos-payment-proof">Foto bukti pembayaran (opsional)</label>
-                    <label class="pos-proof-drop" for="pos-payment-proof">
-                        <input
-                            id="pos-payment-proof"
-                            type="file"
-                            name="payment_proof"
-                            accept="image/*"
-                            capture="environment"
-                            class="sr-only"
-                            data-pos-payment-proof
-                        >
-                        <span class="pos-proof-drop-icon" aria-hidden="true">📷</span>
-                        <span class="pos-proof-drop-title" data-pos-proof-title>Ambil / unggah foto</span>
-                        <span class="pos-proof-drop-hint">Opsional · JPG, PNG, WEBP · maks. 5 MB</span>
-                    </label>
+                    <p class="pos-pay-label">Foto bukti pembayaran (opsional)</p>
+                    <div data-pos-proof-pick-row>
+                        <div class="order-proof-pick">
+                            <label class="order-proof-pick-btn">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    data-pos-payment-proof-pick="gallery"
+                                >
+                                <span>Dari galeri</span>
+                            </label>
+                            <label class="order-proof-pick-btn">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    data-pos-payment-proof-pick="camera"
+                                >
+                                <span>Ambil foto</span>
+                            </label>
+                        </div>
+                        <p class="pos-proof-drop-hint">Opsional · JPG, PNG, WEBP, HEIC · maks. 5 MB</p>
+                    </div>
+                    <input
+                        id="pos-payment-proof"
+                        type="file"
+                        name="payment_proof"
+                        accept="image/*"
+                        class="sr-only"
+                        data-pos-payment-proof
+                        tabindex="-1"
+                    >
                     <div class="pos-proof-preview hidden" data-pos-proof-preview>
                         <img src="" alt="Pratinjau bukti bayar" class="pos-proof-preview-image" data-pos-proof-preview-image>
                         <button type="button" class="pos-proof-clear" data-pos-proof-clear>Ganti foto</button>

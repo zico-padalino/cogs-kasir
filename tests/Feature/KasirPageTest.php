@@ -215,7 +215,10 @@ class KasirPageTest extends TestCase
             ->get(route('kasir.products.edit', $product))
             ->assertOk()
             ->assertSee('Atur Menu')
-            ->assertSee($product->sku);
+            ->assertSee($product->sku)
+            ->assertSee('Pilih gambar')
+            ->assertSee('data-kasir-product-image', false)
+            ->assertDontSee('file:mr-3', false);
     }
 
     public function test_kasir_pending_poll_requires_kasir_role(): void
@@ -603,6 +606,30 @@ class KasirPageTest extends TestCase
             'id' => $order->id,
             'status' => 'cancelled',
         ]);
+    }
+
+    public function test_kasir_pay_modal_uses_gallery_and_camera_pickers(): void
+    {
+        $product = $this->sellableProduct();
+        $kasir = $this->kasirUser();
+
+        $this->actingAs($kasir)->get(route('kasir.index'));
+
+        $this->actingAs($kasir)
+            ->post(route('kasir.items.store'), [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($kasir)
+            ->get(route('kasir.index'))
+            ->assertOk()
+            ->assertSee('Dari galeri')
+            ->assertSee('Ambil foto')
+            ->assertSee('data-pos-payment-proof-pick="gallery"', false)
+            ->assertSee('data-pos-payment-proof-pick="camera"', false)
+            ->assertSee('capture="environment"', false);
     }
 
     public function test_pwa_manifest_for_kasir_is_available(): void

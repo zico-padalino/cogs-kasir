@@ -1,4 +1,5 @@
 import './rupiah';
+import './file-pick';
 import './mobile';
 import './pwa-install';
 import './server-busy';

@@ -19,7 +19,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { kasirApi } from '@/api/kasir';
 import type { MenuProduct, OrderItem, PosOrder, PosOrder as Order } from '@/api/types';
 import { asApiError, useAuth } from '@/auth';
@@ -31,6 +30,7 @@ import {
 } from '@/components/AppScaffold';
 import { consumePendingOpenOrderId, seedPendingIds } from '@/kasir/pendingOrderTracker';
 import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
+import { pickFromCamera, pickFromLibrary } from '@/media/pick-image';
 import { getThermalPaper, printThermalViaThermer } from '@/kasir/thermalPrint';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah, formatRupiahInput, parseRupiahInput } from '@/utils/rupiah';
@@ -422,13 +422,17 @@ export default function KasirPosScreen() {
     }
   };
 
-  const pickProof = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setProofUri(result.assets[0].uri);
+  const pickProofFromLibrary = async () => {
+    const picked = await pickFromLibrary();
+    if (picked) {
+      setProofUri(picked.uri);
+    }
+  };
+
+  const pickProofFromCamera = async () => {
+    const picked = await pickFromCamera();
+    if (picked) {
+      setProofUri(picked.uri);
     }
   };
 
@@ -1461,9 +1465,14 @@ export default function KasirPosScreen() {
                     </>
                   ) : null}
                   <Text style={styles.sectionLabel}>Bukti pembayaran (opsional)</Text>
-                  <Pressable onPress={pickProof} style={styles.outlineBtn}>
-                    <Text style={styles.outlineBtnText}>{proofUri ? 'Ganti foto' : 'Ambil foto'}</Text>
-                  </Pressable>
+                  <View style={styles.rowActions}>
+                    <Pressable onPress={pickProofFromLibrary} style={styles.outlineBtn}>
+                      <Text style={styles.outlineBtnText}>Dari galeri</Text>
+                    </Pressable>
+                    <Pressable onPress={pickProofFromCamera} style={styles.outlineBtn}>
+                      <Text style={styles.outlineBtnText}>Ambil foto</Text>
+                    </Pressable>
+                  </View>
                   {proofUri ? (
                     <View style={styles.proofPreviewWrap}>
                       <Image source={{ uri: proofUri }} style={styles.proofPreview} resizeMode="cover" />
