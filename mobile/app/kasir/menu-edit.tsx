@@ -13,12 +13,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { kasirApi } from '@/api/kasir';
 import type { MenuProduct } from '@/api/types';
 import { isPinSessionError, reportApiError } from '@/auth';
 import { AppScaffold } from '@/components/AppScaffold';
+import { pickFromLibrary } from '@/media/pick-image';
 import { colors, font, radius, spacing } from '@/theme';
 import { formatRupiah } from '@/utils/rupiah';
 
@@ -54,12 +54,9 @@ export default function MenuEditScreen() {
   }, [id, router]);
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+    const picked = await pickFromLibrary();
+    if (picked) {
+      setImageUri(picked.uri);
     }
   };
 
@@ -128,7 +125,7 @@ export default function MenuEditScreen() {
 
           <Text style={styles.label}>Gambar Menu</Text>
           <Pressable onPress={pickImage} style={styles.outline}>
-            <Text style={styles.outlineText}>Ganti gambar</Text>
+            <Text style={styles.outlineText}>{imageUri ? 'Ganti gambar' : 'Pilih gambar'}</Text>
           </Pressable>
 
           <Text style={styles.label}>Kategori Menu</Text>
