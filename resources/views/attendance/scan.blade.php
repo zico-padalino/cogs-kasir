@@ -125,7 +125,13 @@
                 <p class="scan-camera-hint">Ambil selfie sebagai bukti absen. Tidak perlu daftar wajah.</p>
             </div>
 
-            <p class="scan-gps" data-scan-gps>Membaca lokasi GPS…</p>
+            <div class="scan-gps-panel" data-scan-gps-panel>
+                <p class="scan-gps" data-scan-gps>Membaca lokasi GPS…</p>
+                <button type="button" class="scan-gps-enable btn-secondary w-full" data-scan-gps-enable>
+                    Izinkan lokasi
+                </button>
+                <p class="scan-gps-hint">Di Safari/iPhone: ketuk tombol di atas, lalu pilih <strong>Izinkan</strong> saat diminta.</p>
+            </div>
 
             <button type="submit" class="btn-primary w-full py-3.5 text-base" data-scan-submit disabled>
                 Absen Masuk

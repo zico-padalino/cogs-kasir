@@ -7637,6 +7637,26 @@
         @apply text-center text-xs text-slate-500;
     }
 
+    .scan-gps-panel {
+        @apply space-y-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center;
+    }
+
+    .scan-gps-panel.is-denied {
+        @apply border-amber-200 bg-amber-50;
+    }
+
+    .scan-gps-panel.is-ready {
+        @apply border-emerald-200 bg-emerald-50/70;
+    }
+
+    .scan-gps-enable {
+        @apply min-h-11 touch-manipulation;
+    }
+
+    .scan-gps-hint {
+        @apply text-[11px] leading-snug text-slate-500;
+    }
+
     .scan-gps {
         @apply text-center text-xs text-slate-500;
     }
