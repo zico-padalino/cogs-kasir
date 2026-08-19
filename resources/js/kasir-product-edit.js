@@ -1,3 +1,45 @@
+async function downloadMenuImage(anchor) {
+    const href = anchor.href;
+    const filename = anchor.getAttribute('download') || 'gambar-menu.jpg';
+
+    if (! href) {
+        return;
+    }
+
+    const originalText = anchor.textContent.trim();
+    anchor.dataset.kasirDownloadBusy = '1';
+    anchor.textContent = 'Mengunduh…';
+
+    try {
+        const response = await fetch(href, { credentials: 'same-origin' });
+        if (! response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+    } catch {
+        // Fallback: buka di tab baru agar pengguna bisa long-press/save
+        window.open(href, '_blank', 'noopener');
+    } finally {
+        delete anchor.dataset.kasirDownloadBusy;
+        // Restore icon + text
+        anchor.innerHTML = anchor.innerHTML.replace(/Mengunduh…/, originalText);
+        if (anchor.textContent.trim() !== originalText) {
+            const span = anchor.querySelector('span') || anchor;
+            span.textContent = originalText;
+        }
+    }
+}
+
 function initKasirProductEdit() {
     const form = document.querySelector('[data-kasir-product-edit]');
     if (! form) {
@@ -108,4 +150,24 @@ function initKasirProductEdit() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', initKasirProductEdit);
+document.addEventListener('DOMContentLoaded', () => {
+    initKasirProductEdit();
+
+    // Download gambar upload via fetch→blob so `download` attribute works
+    // even on same-origin paths that browsers may open inline instead.
+    document.querySelectorAll('[data-kasir-download-image]').forEach((anchor) => {
+        if (! (anchor instanceof HTMLAnchorElement)) {
+            return;
+        }
+
+        anchor.addEventListener('click', (event) => {
+            if (anchor.dataset.kasirDownloadBusy) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            void downloadMenuImage(anchor);
+        });
+    });
+});

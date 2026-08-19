@@ -13,6 +13,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { kasirApi } from '@/api/kasir';
 import type { MenuProduct } from '@/api/types';
@@ -60,6 +62,31 @@ export default function MenuEditScreen() {
     && !product.image_url.includes('/images/products/')
     && !product.image_url.endsWith('default-food.svg')
   );
+
+  const downloadImage = async () => {
+    if (!product?.image_url) return;
+
+    try {
+      const ext = product.image_url.split('.').pop()?.toLowerCase() || 'jpg';
+      const filename = `${product.name.replace(/[^a-zA-Z0-9]/g, '-')}.${ext}`;
+      const localUri = FileSystem.cacheDirectory + filename;
+
+      const { uri } = await FileSystem.downloadAsync(product.image_url, localUri);
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          dialogTitle: `Simpan gambar ${product.name}`,
+          UTI: 'public.image',
+        });
+      } else {
+        Alert.alert('Info', 'Fitur berbagi tidak tersedia di perangkat ini.');
+      }
+    } catch {
+      Alert.alert('Gagal', 'Tidak bisa mengunduh gambar. Pastikan koneksi aktif.');
+    }
+  };
 
   const pickImage = async () => {
     const picked = await pickFromLibrary();
@@ -154,10 +181,15 @@ export default function MenuEditScreen() {
 
           <Text style={styles.label}>Gambar Menu</Text>
           {(hasCustomUpload || imageUri) && !removeImage ? (
-            <View style={styles.imageActions}>
+            <View style={styles.imageActionsGrid}>
               <Pressable onPress={pickImage} style={[styles.outline, styles.flex]}>
                 <Text style={styles.outlineText}>Ganti gambar</Text>
               </Pressable>
+              {hasCustomUpload && !imageUri ? (
+                <Pressable onPress={downloadImage} style={[styles.outline, styles.flex]}>
+                  <Text style={styles.outlineText}>Unduh / Bagikan</Text>
+                </Pressable>
+              ) : null}
               <Pressable onPress={confirmRemoveImage} style={[styles.dangerOutline, styles.flex]}>
                 <Text style={styles.dangerOutlineText}>Hapus</Text>
               </Pressable>
@@ -299,6 +331,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   outlineText: { color: colors.slate700, ...font('600') },
+  imageActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
   imageActions: {
     flexDirection: 'row',
     gap: spacing.sm,

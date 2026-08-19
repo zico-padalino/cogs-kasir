@@ -59,25 +59,38 @@
                 @csrf
                 @method('PUT')
 
-                {{-- Hapus gambar upload -- tampil hanya jika ada gambar yang diupload --}}
+                {{-- Gambar upload aktif: tombol unduh + hapus --}}
                 @if ($product->hasCustomUpload())
-                    <div class="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold text-rose-900">Gambar upload aktif</p>
-                            <p class="mt-0.5 text-xs text-rose-700">Centang lalu tekan Simpan Menu untuk menghapus dan kembali ke ilustrasi bawaan.</p>
-                        </div>
-                        <label class="flex shrink-0 items-center gap-2">
-                            <input
-                                type="checkbox"
-                                name="remove_image"
-                                value="1"
-                                class="h-5 w-5 rounded border-rose-400 text-rose-600"
-                                id="remove_image_check"
-                                data-kasir-remove-image
-                                @checked(old('remove_image'))
+                    <div class="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <p class="text-sm font-semibold text-emerald-900">Gambar upload aktif</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a
+                                href="{{ $product->imageUrl() }}"
+                                download="{{ Str::slug($product->name).'.'.pathinfo($product->image_path, PATHINFO_EXTENSION) }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="btn-secondary btn-sm inline-flex items-center gap-1.5 no-underline"
+                                data-kasir-download-image
                             >
-                            <span class="text-sm font-semibold text-rose-800 select-none" for="remove_image_check">Hapus</span>
-                        </label>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3" />
+                                </svg>
+                                Unduh gambar
+                            </a>
+                            <label class="btn-sm inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+                                <input
+                                    type="checkbox"
+                                    name="remove_image"
+                                    value="1"
+                                    class="h-4 w-4 rounded border-rose-400 text-rose-600"
+                                    id="remove_image_check"
+                                    data-kasir-remove-image
+                                    @checked(old('remove_image'))
+                                >
+                                Hapus gambar
+                            </label>
+                        </div>
+                        <p class="text-xs text-emerald-700">Centang <strong>Hapus gambar</strong> lalu tekan Simpan Menu untuk kembali ke ilustrasi bawaan.</p>
                     </div>
                 @endif
 
