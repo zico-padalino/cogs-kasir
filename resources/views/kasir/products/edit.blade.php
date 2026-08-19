@@ -59,8 +59,30 @@
                 @csrf
                 @method('PUT')
 
-                <div>
-                    <p class="form-label">Gambar Menu</p>
+                {{-- Hapus gambar upload -- tampil hanya jika ada gambar yang diupload --}}
+                @if ($product->hasCustomUpload())
+                    <div class="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-rose-900">Gambar upload aktif</p>
+                            <p class="mt-0.5 text-xs text-rose-700">Centang lalu tekan Simpan Menu untuk menghapus dan kembali ke ilustrasi bawaan.</p>
+                        </div>
+                        <label class="flex shrink-0 items-center gap-2">
+                            <input
+                                type="checkbox"
+                                name="remove_image"
+                                value="1"
+                                class="h-5 w-5 rounded border-rose-400 text-rose-600"
+                                id="remove_image_check"
+                                data-kasir-remove-image
+                                @checked(old('remove_image'))
+                            >
+                            <span class="text-sm font-semibold text-rose-800 select-none" for="remove_image_check">Hapus</span>
+                        </label>
+                    </div>
+                @endif
+
+                <div data-kasir-image-upload-section>
+                    <p class="form-label">Ganti gambar</p>
                     <div class="file-pick-row">
                         <label class="file-pick-btn">
                             <input
@@ -90,19 +112,25 @@
                                     name="preset_image"
                                     value="{{ $path }}"
                                     class="sr-only"
-                                    @checked(old('preset_image', $product->image_path) === $path)
+                                    @checked(! $product->hasCustomUpload() && old('preset_image', $product->image_path) === $path)
+                                    data-kasir-preset-radio
                                 >
-                                <img src="{{ asset($path) }}" alt="{{ $label }}" class="kasir-preset-thumb">
+                                <img
+                                    src="{{ asset($path) }}"
+                                    alt="{{ $label }}"
+                                    class="kasir-preset-thumb"
+                                    onerror="this.style.opacity='0.3'"
+                                >
                                 <span>{{ $label }}</span>
                             </label>
                         @endforeach
                     </div>
                 </div>
 
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" name="remove_image" value="1" class="rounded" @checked(old('remove_image'))>
-                    <span class="text-sm text-slate-600">Hapus gambar (pakai default)</span>
-                </label>
+                {{-- Hidden checkbox placeholder saat tidak ada upload aktif --}}
+                @unless ($product->hasCustomUpload())
+                    <input type="hidden" name="remove_image" value="0">
+                @endunless
 
                 <div>
                     <label class="form-label">Kategori Menu (POS)</label>

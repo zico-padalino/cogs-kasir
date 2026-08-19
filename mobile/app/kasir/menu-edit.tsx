@@ -31,6 +31,7 @@ export default function MenuEditScreen() {
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState<{ slug: string; name: string }[]>([]);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -53,11 +54,37 @@ export default function MenuEditScreen() {
     })();
   }, [id, router]);
 
+  // True when the product currently has a custom-uploaded image (not a built-in preset)
+  const hasCustomUpload = !!(
+    product?.image_url
+    && !product.image_url.includes('/images/products/')
+    && !product.image_url.endsWith('default-food.svg')
+  );
+
   const pickImage = async () => {
     const picked = await pickFromLibrary();
     if (picked) {
       setImageUri(picked.uri);
+      setRemoveImage(false);
     }
+  };
+
+  const confirmRemoveImage = () => {
+    Alert.alert(
+      'Hapus gambar?',
+      'Gambar yang diupload akan dihapus dan diganti dengan ilustrasi bawaan.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: () => {
+            setRemoveImage(true);
+            setImageUri(null);
+          },
+        },
+      ],
+    );
   };
 
   const save = async () => {
@@ -66,7 +93,9 @@ export default function MenuEditScreen() {
       const form = new FormData();
       form.append('description', description);
       form.append('menu_category', category);
-      if (imageUri) {
+      if (removeImage) {
+        form.append('remove_image', '1');
+      } else if (imageUri) {
         form.append('image', {
           uri: imageUri,
           name: 'menu.jpg',
@@ -124,9 +153,27 @@ export default function MenuEditScreen() {
           </View>
 
           <Text style={styles.label}>Gambar Menu</Text>
-          <Pressable onPress={pickImage} style={styles.outline}>
-            <Text style={styles.outlineText}>{imageUri ? 'Ganti gambar' : 'Pilih gambar'}</Text>
-          </Pressable>
+          {(hasCustomUpload || imageUri) && !removeImage ? (
+            <View style={styles.imageActions}>
+              <Pressable onPress={pickImage} style={[styles.outline, styles.flex]}>
+                <Text style={styles.outlineText}>Ganti gambar</Text>
+              </Pressable>
+              <Pressable onPress={confirmRemoveImage} style={[styles.dangerOutline, styles.flex]}>
+                <Text style={styles.dangerOutlineText}>Hapus</Text>
+              </Pressable>
+            </View>
+          ) : removeImage ? (
+            <View style={styles.removeNotice}>
+              <Text style={styles.removeNoticeText}>Gambar akan dihapus saat disimpan.</Text>
+              <Pressable onPress={() => setRemoveImage(false)}>
+                <Text style={styles.removeNoticeUndo}>Batalkan</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={pickImage} style={styles.outline}>
+              <Text style={styles.outlineText}>Pilih gambar</Text>
+            </Pressable>
+          )}
 
           <Text style={styles.label}>Kategori Menu</Text>
           <View style={styles.chips}>
@@ -252,6 +299,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   outlineText: { color: colors.slate700, ...font('600') },
+  imageActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dangerOutline: {
+    minHeight: 44,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff1f2',
+  },
+  dangerOutlineText: { color: '#b91c1c', ...font('600') },
+  removeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    backgroundColor: '#fff1f2',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  removeNoticeText: { flex: 1, fontSize: 13, color: '#b91c1c', ...font('500') },
+  removeNoticeUndo: { fontSize: 13, color: '#b91c1c', ...font('700') },
   footer: {
     flexDirection: 'row',
     gap: spacing.sm,
