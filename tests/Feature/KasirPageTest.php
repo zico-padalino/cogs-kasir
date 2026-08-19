@@ -75,6 +75,74 @@ class KasirPageTest extends TestCase
             ->assertSee('Pesanan');
     }
 
+    public function test_inactive_product_is_hidden_from_kasir_pos(): void
+    {
+        $active = Product::create([
+            'sku' => 'FG-ACTIVE-001',
+            'name' => 'Menu Aktif',
+            'type' => ProductType::FinishedGood,
+            'selling_price' => 15000,
+            'costing_method' => 'weighted_average',
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        $inactive = Product::create([
+            'sku' => 'FG-INACTIVE-001',
+            'name' => 'Menu Dinonaktifkan',
+            'type' => ProductType::FinishedGood,
+            'selling_price' => 12000,
+            'costing_method' => 'weighted_average',
+            'is_active' => false,
+            'is_menu_item' => true,
+        ]);
+
+        $notMenu = Product::create([
+            'sku' => 'FG-NOTMENU-001',
+            'name' => 'Bukan Menu Kasir',
+            'type' => ProductType::FinishedGood,
+            'selling_price' => 8000,
+            'costing_method' => 'weighted_average',
+            'is_active' => true,
+            'is_menu_item' => false,
+        ]);
+
+        $this->actingAs($this->kasirUser())
+            ->get(route('kasir.index'))
+            ->assertOk()
+            ->assertSee($active->name)
+            ->assertDontSee($inactive->name)
+            ->assertDontSee($notMenu->name);
+    }
+
+    public function test_deactivated_product_disappears_from_kasir_even_when_cached(): void
+    {
+        $product = Product::create([
+            'sku' => 'FG-CACHE-001',
+            'name' => 'Menu Cache Test',
+            'type' => ProductType::FinishedGood,
+            'selling_price' => 10000,
+            'costing_method' => 'weighted_average',
+            'is_active' => true,
+            'is_menu_item' => true,
+        ]);
+
+        $kasir = $this->kasirUser();
+
+        // First load — populates cache
+        $this->actingAs($kasir)->get(route('kasir.index'))->assertSee($product->name);
+
+        // Deactivate the product
+        $product->update(['is_active' => false]);
+
+        // Second load — cache is reset on save, but even if IDs survived hydrateOrdered
+        // must exclude the now-inactive product via the sellable() scope
+        $this->actingAs($kasir)
+            ->get(route('kasir.index'))
+            ->assertOk()
+            ->assertDontSee($product->name);
+    }
+
     public function test_kasir_new_order_voice_clip_exists(): void
     {
         $path = public_path('sounds/pesanan-masuk.mp3');

@@ -75,7 +75,9 @@ final class MenuCatalogCache
             return collect();
         }
 
-        $products = Product::query()
+        // Use sellable() scope so disabled / non-menu products are excluded even
+        // when their IDs are still present in the cache (e.g. after deactivation).
+        $products = Product::sellable()
             ->whereIn('id', $orderedIds)
             ->with(['addons' => fn ($q) => $q->active()->orderBy('sort_order')->orderBy('name')])
             ->get()
