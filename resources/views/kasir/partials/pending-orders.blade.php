@@ -7,11 +7,8 @@
     $openBillCount = $pendingOrders->where('status', PosOrderStatus::Unpaid)->count();
     $awaitingServeCount = $pendingOrders->where('status', PosOrderStatus::Paid)->count();
     $currentOrderId = $currentOrder?->id;
-    // Expand only when there are other orders still needing attention.
-    $hasActionable = $pendingOrders->contains(
-        fn ($pending) => ! $currentOrderId || (int) $pending->id !== (int) $currentOrderId
-    );
-    $defaultExpanded = $hasActionable;
+    // Selalu collapsed: kasir buka sendiri saat perlu, agar tidak ganggu pilih menu.
+    $defaultExpanded = false;
 @endphp
 
 <div @class(['pos-pending', 'is-expanded' => $defaultExpanded]) data-pos-pending>

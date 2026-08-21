@@ -571,13 +571,54 @@ async function alertNewOrder(toast, options = {}) {
     await speakNewOrder(speakText);
 }
 
-function updatePendingPanel(html) {
+const PENDING_EXPAND_KEY = 'kasir-pending-expanded';
+
+function getPendingExpandedPref() {
+    try {
+        return sessionStorage.getItem(PENDING_EXPAND_KEY);
+    } catch {
+        return null;
+    }
+}
+
+function setPendingExpandedPref(expanded) {
+    try {
+        sessionStorage.setItem(PENDING_EXPAND_KEY, expanded ? '1' : '0');
+    } catch {
+        // ignore
+    }
+}
+
+function applyPendingExpandedState(pending) {
+    if (! pending) {
+        return;
+    }
+
+    const toggle = pending.querySelector('[data-pos-pending-toggle]');
+    // Hanya buka jika user sebelumnya sengaja membuka. Tutup tetap tertutup.
+    const expanded = getPendingExpandedPref() === '1';
+    pending.classList.toggle('is-expanded', expanded);
+    toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+function updatePendingPanel(html, options = {}) {
     const wrap = document.querySelector('[data-pos-pending-wrap]');
     if (! wrap) {
         return;
     }
 
     wrap.innerHTML = html;
+
+    const pending = wrap.querySelector('[data-pos-pending]');
+    applyPendingExpandedState(pending);
+
+    if (pending && options.pulse) {
+        pending.classList.add('is-new-alert');
+        window.setTimeout(() => {
+            pending.classList.remove('is-new-alert');
+        }, 2800);
+    }
+
     // Pastikan toggle antrian + ceklis antar tetap hidup setelah HTML diganti polling.
     const root = document.getElementById('kasir-pos');
     if (root) {
@@ -586,15 +627,13 @@ function updatePendingPanel(html) {
 }
 
 function flashPendingPanel() {
+    // Hanya pulse — jangan auto-expand (hormati tutup manual user).
     const pending = document.querySelector('[data-pos-pending]');
     if (! pending) {
         return;
     }
 
-    pending.classList.add('is-new-alert', 'is-expanded');
-    const toggle = pending.querySelector('[data-pos-pending-toggle]');
-    toggle?.setAttribute('aria-expanded', 'true');
-
+    pending.classList.add('is-new-alert');
     window.setTimeout(() => {
         pending.classList.remove('is-new-alert');
     }, 2800);
@@ -638,17 +677,50 @@ function hasActiveKasirDraftWithItems() {
     return itemCount > 0 && ! isOnlineConfirm;
 }
 
+function isKasirSelectingMenu() {
+    const root = document.getElementById('kasir-pos');
+    if (! root) {
+        return false;
+    }
+
+    if (document.querySelector('[data-kasir-modal]:not(.hidden), [data-kasir-detail-modal]:not(.hidden)')) {
+        return true;
+    }
+
+    if (document.body.classList.contains('is-menu-search-focused')) {
+        return true;
+    }
+
+    if (root.classList.contains('is-mobile-menu-tab') || document.body.classList.contains('is-mobile-menu-tab')) {
+        return true;
+    }
+
+    return false;
+}
+
+function hasBlockingKasirModal() {
+    const root = document.getElementById('kasir-pos');
+    if (! root) {
+        return false;
+    }
+
+    return Boolean(
+        root.querySelector('[data-kasir-pay-modal]:not(.hidden)')
+        || root.querySelector('[data-kasir-confirm-modal]:not(.hidden)'),
+    );
+}
+
 function isKasirTransactionActive() {
     const root = document.getElementById('kasir-pos');
     if (! root) {
         return false;
     }
 
-    if (root.querySelector('[data-kasir-pay-modal]:not(.hidden)')) {
+    if (hasBlockingKasirModal()) {
         return true;
     }
 
-    if (root.querySelector('[data-kasir-confirm-modal]:not(.hidden)')) {
+    if (isKasirSelectingMenu()) {
         return true;
     }
 
@@ -659,9 +731,7 @@ function flushDeferredOrderAlertIfIdle() {
     const busy = isKasirTransactionActive();
 
     if (wasTransactionActive && ! busy && deferredOrderAlert) {
-        alertNewOrder('Ada pesanan baru menunggu — buka dari banner atas', {
-            speakText: ORDER_VOICE_TEXT,
-        });
+        showKasirToast('Ada pesanan menunggu — buka banner "perlu ditangani" di atas');
         flashPendingPanel();
         deferredOrderAlert = false;
     }
@@ -677,6 +747,7 @@ function observeKasirTransactionState() {
 
     root.dataset.kasirTransactionObserver = '1';
     wasTransactionActive = isKasirTransactionActive();
+    applyPendingExpandedState(document.querySelector('[data-pos-pending]'));
 
     const observer = new MutationObserver(() => {
         flushDeferredOrderAlertIfIdle();
@@ -688,6 +759,13 @@ function observeKasirTransactionState() {
         attributes: true,
         attributeFilter: ['class', 'hidden'],
     });
+
+    document.body.addEventListener('focusin', () => {
+        flushDeferredOrderAlertIfIdle();
+    });
+    document.body.addEventListener('focusout', () => {
+        window.setTimeout(() => flushDeferredOrderAlertIfIdle(), 50);
+    });
 }
 
 async function handleIncomingOrders(newIds, data, shell, currentIds) {
@@ -697,35 +775,38 @@ async function handleIncomingOrders(newIds, data, shell, currentIds) {
 
     const customer = String(data.latest_customer || '').trim();
     const preserveKasirDraft = hasActiveKasirDraftWithItems();
-    const busy = isKasirTransactionActive();
+    const blockingModal = hasBlockingKasirModal();
+    const selectingMenu = isKasirSelectingMenu();
     const autoLoadWanted = shell.dataset.kasirAutoLoad !== '0';
-    const autoLoad = autoLoadWanted && ! preserveKasirDraft && ! busy;
+    // Auto-load ke keranjang tetap jalan (kecuali ada draft / modal bayar).
+    const autoLoad = autoLoadWanted && ! preserveKasirDraft && ! blockingModal;
     const orderId = newIds.includes(Number(data.latest_order_id))
         ? Number(data.latest_order_id)
         : Math.max(...newIds);
 
-    // Suara + notifikasi sistem selalu langsung, sama seperti halaman PIN.
-    await alertNewOrder(busy || preserveKasirDraft
-        ? (customer
-            ? `Pesanan baru atas nama ${customer} — cek antrian atas`
-            : 'Pesanan online baru masuk — cek antrian atas')
-        : (customer
-            ? `Pesanan baru atas nama ${customer}`
-            : 'Pesanan baru masuk ke kasir'), {
-        title: 'Pesanan baru masuk',
-        body: customer
-            ? `Atas nama ${customer}. Buka kasir untuk memproses.`
-            : 'Ada pesanan online baru. Buka kasir untuk memproses.',
-        speakText: ORDER_VOICE_TEXT,
-    });
-
-    updatePendingPanel(data.html ?? '');
-    flashPendingPanel();
+    // Update antrian tanpa memaksa buka panel (hormati tutup manual).
+    updatePendingPanel(data.html ?? '', { pulse: true });
     knownOrderIds = currentIds;
-    deferredOrderAlert = false;
 
-    if (busy) {
-        return;
+    if (selectingMenu || blockingModal || preserveKasirDraft) {
+        deferredOrderAlert = true;
+        void showKasirSystemNotification(
+            'Pesanan baru masuk',
+            customer
+                ? `Atas nama ${customer}. Sudah masuk antrian / keranjang jika kosong.`
+                : 'Ada pesanan online baru. Sudah masuk antrian / keranjang jika kosong.',
+        );
+    } else {
+        deferredOrderAlert = false;
+        await alertNewOrder(customer
+            ? `Pesanan baru atas nama ${customer}`
+            : 'Pesanan baru masuk ke kasir', {
+            title: 'Pesanan baru masuk',
+            body: customer
+                ? `Atas nama ${customer}. Buka kasir untuk memproses.`
+                : 'Ada pesanan online baru. Buka kasir untuk memproses.',
+            speakText: ORDER_VOICE_TEXT,
+        });
     }
 
     isHandlingNewOrder = true;

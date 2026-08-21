@@ -1421,6 +1421,11 @@ function initPosPendingPanel(root) {
         const expanded = ! panel.classList.contains('is-expanded');
         panel.classList.toggle('is-expanded', expanded);
         toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        try {
+            sessionStorage.setItem('kasir-pending-expanded', expanded ? '1' : '0');
+        } catch (e) {
+            // ignore
+        }
     });
 }
 
