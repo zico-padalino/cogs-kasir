@@ -234,6 +234,10 @@
         @apply bg-amber-50 text-amber-800 ring-1 ring-amber-200/60;
     }
 
+    .badge-violet {
+        @apply bg-violet-50 text-violet-700 ring-1 ring-violet-200/60;
+    }
+
     .badge-brand {
         @apply bg-brand-50 text-brand-800 ring-1 ring-brand-200/60;
     }
@@ -832,7 +836,8 @@
 
     .searchable-select__panel {
         position: fixed !important;
-        z-index: 9999 !important;
+        /* Di atas modal (salary-gen ~10060 dll) agar daftar opsi terlihat */
+        z-index: 11000 !important;
         @apply flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl;
     }
 

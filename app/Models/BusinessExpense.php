@@ -11,7 +11,7 @@ class BusinessExpense extends Model
     public const CATEGORIES = [
         'operasional' => 'Operasional',
         'bahan_stok' => 'Bahan & stok',
-        'gaji' => 'Gaji',
+        'gaji' => 'Gaji karyawan',
         'utilitas' => 'Listrik, air & internet',
         'pemasaran' => 'Pemasaran',
         'perawatan' => 'Perawatan',
@@ -44,5 +44,23 @@ class BusinessExpense extends Model
     public function categoryLabel(): string
     {
         return self::CATEGORIES[$this->category] ?? ucfirst(str_replace('_', ' ', $this->category));
+    }
+
+    /** Sumber potongan omzet: gaji atau pengeluaran lain. */
+    public function sourceKind(): string
+    {
+        return $this->category === 'gaji' ? 'gaji' : 'lainnya';
+    }
+
+    public function sourceLabel(): string
+    {
+        return $this->sourceKind() === 'gaji'
+            ? 'Potongan dari gaji'
+            : 'Potongan lain-lain';
+    }
+
+    public function sourceBadgeClass(): string
+    {
+        return $this->sourceKind() === 'gaji' ? 'badge-violet' : 'badge-slate';
     }
 }

@@ -63,7 +63,11 @@
             <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Dikurangi pengeluaran</p>
                 <p class="mt-2 text-xl font-bold text-rose-700">− {{ $format::rupiah($expense) }}</p>
-                <p class="mt-1 text-xs text-rose-700">Uang usaha yang dipakai</p>
+                <p class="mt-1 text-xs text-rose-700">Potongan dari omzet bersih</p>
+                <div class="mt-2 space-y-1 border-t border-rose-200/70 pt-2 text-[11px] text-rose-800/90">
+                    <p>Gaji: − {{ $format::rupiah($expense_gaji ?? 0) }}</p>
+                    <p>Lain-lain: − {{ $format::rupiah($expense_lainnya ?? 0) }}</p>
+                </div>
             </div>
             <div class="rounded-2xl border {{ $closing < 0 ? 'border-rose-200 bg-rose-50' : 'border-brand-200 bg-brand-50' }} p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide {{ $closing < 0 ? 'text-rose-700' : 'text-brand-700' }}">Uang tersisa</p>
@@ -74,7 +78,8 @@
             </div>
         </div>
         <p class="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-            Catatan: saldo dana adalah arus uang, bukan laba. Modal/HPP dihitung terpisah pada laporan COGS.
+            Catatan: saldo dana = omzet bersih − pengeluaran (gaji yang sudah dikonfirmasi bayar + pengeluaran lain).
+            Modal/HPP dihitung terpisah pada laporan COGS.
         </p>
     </div>
 
@@ -85,7 +90,9 @@
                     {{ $editExpense ? 'Ubah uang keluar' : 'Catat uang keluar' }}
                 </h2>
                 <p class="mt-1 text-xs text-slate-500">
-                    Isi setiap kali uang usaha dipakai, termasuk jika uang tersisa jadi minus. Saldo akhir menyesuaikan dari total sisa. Pencatatan ini tidak mengubah saldo Kas Tunai.
+                    Isi setiap kali uang usaha dipakai. Pilih kategori <strong>Gaji karyawan</strong> atau
+                    <strong>Lainnya</strong> agar keterangan potongan jelas. Gaji yang dikonfirmasi bayar
+                    dari menu Gaji otomatis tercatat di sini. Pencatatan ini tidak mengubah saldo Kas Tunai.
                 </p>
             </div>
             @if ($editExpense)
@@ -157,17 +164,18 @@
             </div>
 
             <div class="md:col-span-2">
-                <label class="form-label" for="expense-note">Pengeluaran untuk apa?</label>
+                <label class="form-label" for="expense-note">Keterangan potongan</label>
                 <input
                     id="expense-note"
                     type="text"
                     name="note"
                     maxlength="255"
                     value="{{ old('note', $editExpense?->note) }}"
-                    placeholder="Contoh: Bayar listrik bulan Juli"
+                    placeholder="Contoh: Bayar listrik Juli / Gaji Budi minggu 1"
                     class="form-input"
                     required
                 >
+                <p class="mt-1 text-xs text-slate-500">Jelaskan sumber potongan: dari gaji, operasional, atau lain-lain.</p>
             </div>
 
             <div class="md:col-span-2">
@@ -183,6 +191,7 @@
             <thead>
                 <tr>
                     <th>Waktu</th>
+                    <th>Sumber potongan</th>
                     <th>Kategori</th>
                     <th>Metode</th>
                     <th>Keterangan</th>
@@ -195,6 +204,7 @@
                 @forelse ($entries as $entry)
                     <tr>
                         <td class="whitespace-nowrap text-xs text-slate-500">{{ $entry->occurred_at?->format('d/m/Y H:i') }}</td>
+                        <td><span class="{{ $entry->sourceBadgeClass() }}">{{ $entry->sourceLabel() }}</span></td>
                         <td><span class="badge-amber">{{ $entry->categoryLabel() }}</span></td>
                         <td>{{ $entry->payment_method->label() }}</td>
                         <td class="text-sm text-slate-700">{{ $entry->note }}</td>

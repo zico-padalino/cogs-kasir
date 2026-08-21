@@ -106,7 +106,8 @@ function enhanceSelect(select) {
         );
 
         panel.style.position = 'fixed';
-        panel.style.zIndex = '9999';
+        // Di atas modal admin (salary-gen ~10060, material-history, dll).
+        panel.style.zIndex = '11000';
         panel.style.width = `${width}px`;
         panel.style.left = `${left}px`;
         panel.style.maxHeight = `${height}px`;

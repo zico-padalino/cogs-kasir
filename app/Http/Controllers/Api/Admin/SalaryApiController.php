@@ -6,6 +6,7 @@ use App\Enums\SalaryStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
+use App\Services\BusinessFundService;
 use App\Support\Format;
 use App\Support\SalaryCalculator;
 use App\Support\ShopSettings;
@@ -18,14 +19,16 @@ class SalaryApiController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $month = Carbon::parse($request->input('month', now()->format('Y-m')).'-01')->startOfMonth();
+        [$from, $to] = $this->resolvePeriod($request);
 
         if (! Schema::hasTable('employees') || ! Schema::hasTable('employee_salaries')) {
             return response()->json([
                 'message' => 'Tabel gaji/karyawan belum lengkap. Jalankan migrasi atau SQL fix_admin_salaries.sql.',
                 'data' => [
                     'salaries' => [],
-                    'month' => $month->format('Y-m'),
+                    'from' => $from->toDateString(),
+                    'to' => $to->toDateString(),
+                    'month' => $from->format('Y-m'),
                     'default_deduction' => ShopSettings::salaryDefaultDeduction(),
                     'deduction_rates' => ShopSettings::salaryDeductionRates(),
                     'employees' => [],
@@ -34,9 +37,17 @@ class SalaryApiController extends Controller
             ], 503);
         }
 
+        $hasPeriodEnd = Schema::hasColumn('employee_salaries', 'period_end');
+
         $salaries = EmployeeSalary::query()
             ->with('employee')
-            ->whereDate('period_month', $month)
+            ->when(
+                $hasPeriodEnd,
+                fn ($q) => $q
+                    ->whereDate('period_month', '<=', $to)
+                    ->whereDate('period_end', '>=', $from),
+                fn ($q) => $q->whereDate('period_month', '>=', $from)->whereDate('period_month', '<=', $to),
+            )
             ->orderByDesc('id')
             ->get();
 
@@ -44,7 +55,9 @@ class SalaryApiController extends Controller
             'message' => 'Data gaji berhasil dimuat.',
             'data' => [
                 'salaries' => $salaries,
-                'month' => $month->format('Y-m'),
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+                'month' => $from->format('Y-m'),
                 'default_deduction' => ShopSettings::salaryDefaultDeduction(),
                 'deduction_rates' => ShopSettings::salaryDeductionRates(),
                 'employees' => Employee::query()->forAttendance()->orderBy('name')->get(),
@@ -56,7 +69,9 @@ class SalaryApiController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => ['required', 'exists:employees,id'],
-            'period_month' => ['required', 'date_format:Y-m'],
+            'period_from' => ['required_without:period_month', 'nullable', 'date'],
+            'period_to' => ['required_without:period_month', 'nullable', 'date', 'after_or_equal:period_from'],
+            'period_month' => ['required_without:period_from', 'nullable', 'date_format:Y-m'],
             'allowance' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
@@ -68,24 +83,15 @@ class SalaryApiController extends Controller
             ], 422);
         }
 
-        $period = Carbon::createFromFormat('Y-m', $validated['period_month'])->startOfMonth();
+        [$from, $to] = $this->periodFromValidated($validated);
         $allowance = Format::parseRupiah($validated['allowance'] ?? 0);
 
-        $existing = EmployeeSalary::query()
-            ->where('employee_id', $employee->id)
-            ->whereDate('period_month', $period)
-            ->first();
-
-        if ($existing && $existing->status === SalaryStatus::Paid) {
-            return response()->json([
-                'message' => 'Gaji karyawan ini sudah lunas untuk periode tersebut.',
-            ], 422);
-        }
-
-        $salary = $this->upsertSalary($employee, $period, $allowance, $validated['notes'] ?? null);
+        $salary = $this->upsertSalary($employee, $from, $to, $allowance, $validated['notes'] ?? null);
 
         return response()->json([
-            'message' => 'Data gaji berhasil dihitung dan disimpan.',
+            'message' => $salary->status === SalaryStatus::Paid
+                ? 'Data gaji (sudah bayar) berhasil diperbarui.'
+                : 'Gaji berhasil dihitung. Konfirmasi bayar jika sudah dibayarkan.',
             'data' => $salary->load('employee'),
         ], 201);
     }
@@ -93,77 +99,124 @@ class SalaryApiController extends Controller
     public function generate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'period_month' => ['required', 'date_format:Y-m'],
+            'period_from' => ['required_without:period_month', 'nullable', 'date'],
+            'period_to' => ['required_without:period_month', 'nullable', 'date', 'after_or_equal:period_from'],
+            'period_month' => ['required_without:period_from', 'nullable', 'date_format:Y-m'],
         ]);
 
-        $period = Carbon::createFromFormat('Y-m', $validated['period_month'])->startOfMonth();
+        [$from, $to] = $this->periodFromValidated($validated);
         $employees = Employee::query()->forAttendance()->orderBy('name')->get();
 
         $created = 0;
         foreach ($employees as $employee) {
             $existing = EmployeeSalary::query()
                 ->where('employee_id', $employee->id)
-                ->whereDate('period_month', $period)
+                ->whereDate('period_month', $from)
                 ->first();
 
-            if ($existing && $existing->status === SalaryStatus::Paid) {
-                continue;
-            }
-
-            $this->upsertSalary($employee, $period, (float) ($existing?->allowance ?? 0), $existing?->notes);
+            $this->upsertSalary($employee, $from, $to, (float) ($existing?->allowance ?? 0), $existing?->notes);
             $created++;
         }
 
         return response()->json([
-            'message' => "Gaji otomatis dihitung untuk {$created} karyawan.",
+            'message' => "Gaji otomatis dihitung untuk {$created} karyawan. Konfirmasi bayar jika sudah dibayarkan.",
             'data' => ['count' => $created],
         ]);
     }
 
-    public function markPaid(EmployeeSalary $salary): JsonResponse
+    public function markPaid(EmployeeSalary $salary, BusinessFundService $fundService): JsonResponse
     {
         $salary->update([
             'status' => SalaryStatus::Paid,
             'paid_at' => now(),
         ]);
 
+        $fundService->syncSalaryExpense($salary->fresh(['employee']), auth()->user());
+
         return response()->json([
-            'message' => 'Gaji ditandai lunas.',
+            'message' => 'Pembayaran dikonfirmasi. Gaji masuk riwayat dan dipotong dari Dana Usaha (omzet bersih).',
             'data' => $salary->fresh()->load('employee'),
         ]);
     }
 
-    public function destroy(EmployeeSalary $salary): JsonResponse
+    public function destroy(EmployeeSalary $salary, BusinessFundService $fundService): JsonResponse
     {
+        $fundService->removeSalaryExpense($salary);
         $salary->delete();
 
         return response()->json([
-            'message' => 'Data gaji dihapus.',
+            'message' => 'Data gaji dihapus. Potongan Dana Usaha ikut dihapus jika ada.',
         ]);
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function resolvePeriod(Request $request): array
+    {
+        if ($request->filled('month') && ! $request->filled('from') && ! $request->filled('to')) {
+            $month = Carbon::parse($request->input('month').'-01')->startOfMonth();
+
+            return [$month->copy(), $month->copy()->endOfMonth()->startOfDay()];
+        }
+
+        $from = Carbon::parse($request->input('from', now()->startOfMonth()->toDateString()))->startOfDay();
+        $to = Carbon::parse($request->input('to', now()->toDateString()))->startOfDay();
+
+        if ($to->lt($from)) {
+            return [$to->copy(), $from->copy()];
+        }
+
+        return [$from, $to];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function periodFromValidated(array $validated): array
+    {
+        if (! empty($validated['period_from'])) {
+            $from = Carbon::parse($validated['period_from'])->startOfDay();
+            $to = Carbon::parse($validated['period_to'] ?? $validated['period_from'])->startOfDay();
+
+            return [$from, $to->lt($from) ? $from->copy() : $to];
+        }
+
+        $month = Carbon::createFromFormat('Y-m', $validated['period_month'])->startOfMonth();
+
+        return [$month->copy(), $month->copy()->endOfMonth()->startOfDay()];
     }
 
     private function upsertSalary(
         Employee $employee,
-        Carbon $period,
+        Carbon $from,
+        Carbon $to,
         float $allowance = 0,
         ?string $notes = null,
     ): EmployeeSalary {
         $base = (float) $employee->base_salary;
         $daily = (float) ($employee->daily_salary ?? 0);
-        $deductionInfo = SalaryCalculator::deductionsFor($employee, $period);
+        $deductionInfo = SalaryCalculator::deductionsFor($employee, $from, $to);
         $workDays = $deductionInfo['work_days'];
         $dailyTotal = $daily * $workDays;
         $deduction = $deductionInfo['total'];
         $total = max(0, $base + $dailyTotal + $allowance - $deduction);
+
+        $existing = EmployeeSalary::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('period_month', $from)
+            ->first();
+        $keepPaid = $existing && $existing->status === SalaryStatus::Paid;
 
         $payload = [
             'base_salary' => $base,
             'allowance' => $allowance,
             'deduction' => $deduction,
             'total' => $total,
-            'status' => SalaryStatus::Draft,
+            'status' => $keepPaid ? SalaryStatus::Paid : SalaryStatus::Draft,
             'notes' => $this->mergeNotes($notes, $deductionInfo['summary']),
-            'paid_at' => null,
+            'paid_at' => $keepPaid ? $existing->paid_at : null,
         ];
 
         if (Schema::hasColumn('employee_salaries', 'daily_salary')) {
@@ -171,13 +224,23 @@ class SalaryApiController extends Controller
             $payload['work_days'] = $workDays;
         }
 
-        return EmployeeSalary::query()->updateOrCreate(
+        if (Schema::hasColumn('employee_salaries', 'period_end')) {
+            $payload['period_end'] = $to->toDateString();
+        }
+
+        $salary = EmployeeSalary::query()->updateOrCreate(
             [
                 'employee_id' => $employee->id,
-                'period_month' => $period,
+                'period_month' => $from->toDateString(),
             ],
             $payload,
         );
+
+        if ($salary->status === SalaryStatus::Paid) {
+            app(BusinessFundService::class)->syncSalaryExpense($salary->fresh(['employee']), auth()->user());
+        }
+
+        return $salary;
     }
 
     private function mergeNotes(?string $userNotes, string $autoSummary): ?string

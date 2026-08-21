@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Enums\EmployeeStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
+use App\Enums\SalaryStatus;
 use App\Models\BusinessExpense;
 use App\Models\Employee;
+use App\Models\EmployeeSalary;
 use App\Models\PosOrder;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class BusinessFundService
@@ -21,6 +24,8 @@ class BusinessFundService
      *     opening: float,
      *     revenue: float,
      *     expense: float,
+     *     expense_gaji: float,
+     *     expense_lainnya: float,
      *     closing: float,
      *     entries: \Illuminate\Database\Eloquent\Collection<int, BusinessExpense>
      * }
@@ -38,12 +43,16 @@ class BusinessFundService
             ->latest('id')
             ->get();
         $expense = round((float) $entries->sum('amount'), 4);
+        $expenseGaji = round((float) $entries->where('category', 'gaji')->sum('amount'), 4);
+        $expenseLainnya = round($expense - $expenseGaji, 4);
 
         return [
             'date' => $start,
             'opening' => $opening,
             'revenue' => $revenue,
             'expense' => $expense,
+            'expense_gaji' => $expenseGaji,
+            'expense_lainnya' => $expenseLainnya,
             'closing' => round($opening + $revenue - $expense, 4),
             'entries' => $entries,
         ];
@@ -160,6 +169,115 @@ class BusinessFundService
 
             return $expense->fresh('user');
         });
+    }
+
+    /**
+     * Saat gaji dikonfirmasi bayar / diedit (lunas): potong Dana Usaha (omzet bersih − pengeluaran).
+     */
+    public function syncSalaryExpense(
+        EmployeeSalary $salary,
+        ?User $user = null,
+        PaymentMethod $paymentMethod = PaymentMethod::Transfer,
+    ): ?BusinessExpense {
+        if ($salary->status !== SalaryStatus::Paid) {
+            return null;
+        }
+
+        if (! Schema::hasTable('business_expenses')) {
+            return null;
+        }
+
+        $salary->loadMissing('employee');
+        $amount = round((float) $salary->total, 4);
+        if ($amount <= 0) {
+            $this->removeSalaryExpense($salary);
+
+            return null;
+        }
+
+        $note = $this->salaryExpenseNote($salary);
+        $occurredAt = $salary->paid_at?->copy() ?? now();
+
+        return DB::transaction(function () use ($salary, $user, $paymentMethod, $amount, $note, $occurredAt) {
+            $expenseId = Schema::hasColumn('employee_salaries', 'business_expense_id')
+                ? $salary->business_expense_id
+                : null;
+
+            $expense = $expenseId
+                ? BusinessExpense::query()->find($expenseId)
+                : null;
+
+            if ($expense) {
+                $expense = $this->updateExpense(
+                    $expense,
+                    $amount,
+                    'gaji',
+                    $expense->payment_method ?? $paymentMethod,
+                    $note,
+                    $occurredAt,
+                );
+            } else {
+                $expense = $this->addExpense(
+                    $amount,
+                    'gaji',
+                    $paymentMethod,
+                    $note,
+                    $occurredAt,
+                    $user,
+                );
+            }
+
+            if (Schema::hasColumn('employee_salaries', 'business_expense_id')) {
+                if ((int) $salary->business_expense_id !== (int) $expense->id) {
+                    $salary->forceFill(['business_expense_id' => $expense->id])->save();
+                }
+            }
+
+            return $expense;
+        });
+    }
+
+    public function removeSalaryExpense(EmployeeSalary $salary): void
+    {
+        if (! Schema::hasTable('business_expenses')) {
+            return;
+        }
+
+        DB::transaction(function () use ($salary) {
+            $expense = null;
+            if (Schema::hasColumn('employee_salaries', 'business_expense_id') && $salary->business_expense_id) {
+                $expense = BusinessExpense::query()->find($salary->business_expense_id);
+            }
+
+            if ($expense) {
+                $expense->delete();
+            }
+
+            if (Schema::hasColumn('employee_salaries', 'business_expense_id') && $salary->business_expense_id) {
+                $salary->forceFill(['business_expense_id' => null])->save();
+            }
+        });
+    }
+
+    public function salaryExpenseNote(EmployeeSalary $salary): string
+    {
+        $salary->loadMissing('employee');
+        $name = trim((string) ($salary->employee?->name ?? 'Karyawan'));
+        $kind = $salary->periodKindLabel();
+        $period = $salary->periodLabel();
+
+        $note = "Gaji karyawan: {$name} · {$kind} · {$period}";
+
+        $userNote = trim((string) preg_replace(
+            '/\s*\|\s*(Harian|Potongan|≈).*/u',
+            '',
+            (string) ($salary->notes ?? '')
+        ));
+        if ($userNote !== '') {
+            $note .= ' — '.$userNote;
+        }
+
+        return mb_substr($note, 0, 255);
     }
 
     private function validateExpense(

@@ -10,8 +10,8 @@ enum SalaryStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Draft => 'Draft',
-            self::Paid => 'Lunas',
+            self::Draft => 'Belum bayar',
+            self::Paid => 'Sudah bayar',
         };
     }
 

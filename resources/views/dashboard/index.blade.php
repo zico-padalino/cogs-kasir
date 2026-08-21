@@ -96,7 +96,7 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Dana Usaha Hari Ini</h2>
-                <p class="mt-1 text-sm text-slate-500">Saldo awal + omzet bersih − pengeluaran = saldo akhir.</p>
+                <p class="mt-1 text-sm text-slate-500">Saldo awal + omzet bersih − pengeluaran (gaji & lain-lain) = saldo akhir.</p>
             </div>
             <a href="{{ route('business-funds.index') }}" class="btn-primary">Buka Dana Usaha</a>
         </div>
@@ -106,6 +106,18 @@
             <x-stat-card label="− Pengeluaran" :value="$format::rupiah($fundToday['expense'])" color="rose" />
             <x-stat-card label="Saldo dana saat ini" :value="$format::rupiah($fundBalance)" color="brand" />
         </div>
+        @if (($fundToday['expense'] ?? 0) > 0)
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div class="rounded-xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-violet-700">Potongan dari gaji</p>
+                    <p class="mt-1 font-bold tabular-nums text-violet-950">− {{ $format::rupiah($fundToday['expense_gaji'] ?? 0) }}</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Potongan lain-lain</p>
+                    <p class="mt-1 font-bold tabular-nums text-slate-900">− {{ $format::rupiah($fundToday['expense_lainnya'] ?? 0) }}</p>
+                </div>
+            </div>
+        @endif
     </section>
 
     <section class="mb-10">
@@ -146,8 +158,8 @@
                 <div>
                     <p class="text-sm font-medium text-slate-800">Perkiraan gaji karyawan aktif</p>
                     <p class="mt-1 text-sm text-slate-500">
-                        Gaji pokok + estimasi dari gaji harian. Belum otomatis mengurangi Dana Usaha
-                        sampai dicatat sebagai pengeluaran.
+                        Estimasi gaji pokok + harian. Setelah <strong>konfirmasi bayar</strong> di menu Gaji,
+                        nominal otomatis mengurangi Dana Usaha (omzet bersih) dengan keterangan gaji.
                     </p>
                 </div>
                 <p class="text-xl font-bold text-slate-900">{{ $format::rupiah($expenseForecast['estimated_salary']) }}</p>
