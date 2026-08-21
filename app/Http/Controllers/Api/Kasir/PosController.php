@@ -160,14 +160,16 @@ class PosController extends Controller
         }
 
         $validated = $request->validate([
-            'order_type' => ['required', 'in:dine_in,takeaway'],
+            'order_type' => ['nullable', 'in:dine_in,takeaway'],
             'customer_note' => ['nullable', 'string', 'max:255'],
         ]);
 
         try {
             $posService->updateOrderContext(
                 $order,
-                PosOrderType::from($validated['order_type']),
+                filled($validated['order_type'] ?? null)
+                    ? PosOrderType::from($validated['order_type'])
+                    : null,
                 null,
                 $validated['customer_note'] ?? null,
             );

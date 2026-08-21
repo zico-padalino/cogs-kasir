@@ -12,11 +12,13 @@ function clearKasirCustomerNameError(root) {
     error?.classList.add('hidden');
 }
 
-function promptKasirCustomerName(root) {
+function clearKasirOrderTypeError(root) {
+    const error = root.querySelector('[data-pos-order-type-error]');
+    error?.classList.add('hidden');
+}
+
+function expandKasirOrderBar(root) {
     const bar = root.querySelector('[data-pos-order-bar]');
-    const field = root.querySelector('[data-pos-customer-field]');
-    const input = root.querySelector('[data-pos-customer-note]');
-    const error = root.querySelector('[data-pos-customer-error]');
     const backdrop = root.querySelector('[data-pos-order-bar-backdrop]');
     const toggle = root.querySelector('[data-pos-order-bar-toggle]');
 
@@ -31,6 +33,14 @@ function promptKasirCustomerName(root) {
     }
 
     toggle?.setAttribute('aria-expanded', 'true');
+}
+
+function promptKasirCustomerName(root) {
+    const field = root.querySelector('[data-pos-customer-field]');
+    const input = root.querySelector('[data-pos-customer-note]');
+    const error = root.querySelector('[data-pos-customer-error]');
+
+    expandKasirOrderBar(root);
     field?.classList.add('is-invalid');
     error?.classList.remove('hidden');
 
@@ -38,6 +48,18 @@ function promptKasirCustomerName(root) {
         input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
         input?.focus();
         input?.select?.();
+    });
+}
+
+function promptKasirOrderType(root) {
+    const error = root.querySelector('[data-pos-order-type-error]');
+    const group = root.querySelector('[data-pos-order-type-group]');
+
+    expandKasirOrderBar(root);
+    error?.classList.remove('hidden');
+
+    window.requestAnimationFrame(() => {
+        group?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
 }
 
@@ -69,6 +91,31 @@ async function ensureKasirCustomerName(root) {
     }
 
     return true;
+}
+
+async function ensureKasirOrderType(root) {
+    if (root.dataset.kasirRequireCustomer !== '1') {
+        return true;
+    }
+
+    const checked = root.querySelector('[data-pos-order-type]:checked');
+    if (! checked?.value) {
+        promptKasirOrderType(root);
+
+        return false;
+    }
+
+    clearKasirOrderTypeError(root);
+
+    return true;
+}
+
+async function ensureKasirOrderContext(root) {
+    if (! await ensureKasirOrderType(root)) {
+        return false;
+    }
+
+    return ensureKasirCustomerName(root);
 }
 
 /**
@@ -284,7 +331,7 @@ function initKasirModals(root) {
     };
 
     const tryOpenAddModal = async (product) => {
-        if (! await ensureKasirCustomerName(root)) {
+        if (! await ensureKasirOrderContext(root)) {
             return;
         }
 
@@ -993,17 +1040,26 @@ function initPosOrderBar(root) {
     };
 
     const syncTypeCards = () => {
-        const type = bar.querySelector('[data-pos-order-type]:checked')?.value ?? 'takeaway';
+        const type = bar.querySelector('[data-pos-order-type]:checked')?.value ?? '';
 
         typeCards.forEach((card) => {
-            card.classList.toggle('is-active', card.dataset.posOrderTypeCard === type);
+            card.classList.toggle('is-active', Boolean(type) && card.dataset.posOrderTypeCard === type);
         });
+
+        if (type) {
+            clearKasirOrderTypeError(root);
+        }
     };
 
     const updateToolbar = (data) => {
-        if (toolbarType && data.order_type_label) {
-            toolbarType.textContent = `${data.order_type_icon ?? ''} ${data.order_type_label}`.trim();
-            toolbarType.classList.remove('hidden');
+        if (toolbarType) {
+            if (data.order_type_label) {
+                toolbarType.textContent = `${data.order_type_icon ?? ''} ${data.order_type_label}`.trim();
+                toolbarType.classList.remove('hidden');
+            } else {
+                toolbarType.textContent = '';
+                toolbarType.classList.add('hidden');
+            }
         }
 
         if (toolbarCustomer) {
@@ -1043,6 +1099,15 @@ function initPosOrderBar(root) {
         receiptContext.classList.toggle('hidden', receiptContext.children.length === 0);
     };
 
+    const isOrderBarActive = () => {
+        const active = document.activeElement;
+        if (! active) {
+            return false;
+        }
+
+        return bar.contains(active);
+    };
+
     const saveOrderBar = async () => {
         if (saving) {
             return;
@@ -1074,11 +1139,9 @@ function initPosOrderBar(root) {
             updateOrderSummary(data);
             clearKasirCustomerNameError(root);
             setSaveStatus('success', 'Tersimpan');
-            const collapseDelay = window.innerWidth < POS_DESKTOP_BP ? 350 : 450;
             window.setTimeout(() => {
                 clearSaveStatus();
-                setOrderBarExpanded(false);
-            }, collapseDelay);
+            }, 450);
         } catch (error) {
             setSaveStatus('error', error.message || 'Gagal menyimpan.');
             throw error;
@@ -1109,14 +1172,25 @@ function initPosOrderBar(root) {
     });
 
     orderBarBackdrop?.addEventListener('click', () => {
+        if (isOrderBarActive()) {
+            return;
+        }
         setOrderBarExpanded(false);
     });
 
     const productGrid = root.querySelector('.pos-product-grid');
-    productGrid?.addEventListener('scroll', collapseOrderBarOnMobile, { passive: true });
+    productGrid?.addEventListener('scroll', () => {
+        if (isOrderBarActive()) {
+            return;
+        }
+        collapseOrderBarOnMobile();
+    }, { passive: true });
 
     const menuPanel = root.querySelector('[data-kasir-panel="menu"]');
     menuPanel?.addEventListener('click', (event) => {
+        if (isOrderBarActive()) {
+            return;
+        }
         if (event.target.closest('[data-kasir-product], [data-kasir-category], [data-kasir-search]')) {
             collapseOrderBarOnMobile();
         }
@@ -1130,10 +1204,7 @@ function initPosOrderBar(root) {
 
             syncTypeCards();
             queueSave(0);
-
-            if (window.innerWidth < POS_DESKTOP_BP) {
-                setOrderBarExpanded(false);
-            }
+            // Jangan auto-collapse — user biasanya lanjut isi nama.
         });
     });
 
@@ -1143,7 +1214,13 @@ function initPosOrderBar(root) {
         }
         queueSave(700);
     });
-    customerInput?.addEventListener('blur', () => queueSave(0));
+    customerInput?.addEventListener('focus', () => {
+        setOrderBarExpanded(true);
+    });
+    customerInput?.addEventListener('blur', () => {
+        // Simpan tanpa menutup panel; tutup hanya lewat toggle / backdrop.
+        queueSave(0);
+    });
 
     syncTypeCards();
     setOrderBarExpanded(false);

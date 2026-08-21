@@ -70,7 +70,7 @@ class PosOrderService
                 'order_number' => $this->nextOrderNumberForDay($orderDay),
                 'order_day' => $orderDay,
                 'source' => PosOrderSource::Kasir,
-                'order_type' => PosOrderType::Takeaway,
+                'order_type' => null,
                 'status' => PosOrderStatus::Open,
                 'user_id' => $attr['user_id'],
                 'cashier_employee_id' => $attr['cashier_employee_id'],
@@ -81,7 +81,7 @@ class PosOrderService
 
     public function updateOrderContext(
         PosOrder $order,
-        PosOrderType $orderType,
+        ?PosOrderType $orderType = null,
         ?int $tableId = null,
         ?string $customerNote = null,
     ): PosOrder {
@@ -90,14 +90,19 @@ class PosOrderService
         }
 
         $data = [
-            'order_type' => $orderType,
             'customer_note' => filled($customerNote) ? trim($customerNote) : null,
         ];
 
-        if ($order->source === PosOrderSource::Kasir) {
-            $data['pos_table_id'] = null;
-        } elseif ($orderType === PosOrderType::DineIn) {
-            $data['pos_table_id'] = $tableId;
+        if ($orderType !== null) {
+            $data['order_type'] = $orderType;
+
+            if ($order->source === PosOrderSource::Kasir) {
+                $data['pos_table_id'] = null;
+            } elseif ($orderType === PosOrderType::DineIn) {
+                $data['pos_table_id'] = $tableId;
+            } else {
+                $data['pos_table_id'] = null;
+            }
         }
 
         $order->update($data);
@@ -199,6 +204,13 @@ class PosOrderService
                 && ! filled($order->customer_note)
             ) {
                 throw new RuntimeException('Isi nama pelanggan dulu sebelum menambah menu.');
+            }
+
+            if ($fromKasir
+                && $order->source === PosOrderSource::Kasir
+                && $order->order_type === null
+            ) {
+                throw new RuntimeException('Pilih Dine In atau Take Away dulu sebelum menambah menu.');
             }
 
             $this->assertSellable($product, $quantity, forPayment: false, order: $order);

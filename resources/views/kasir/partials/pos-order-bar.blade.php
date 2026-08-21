@@ -1,12 +1,12 @@
 @props(['order', 'orderTypes', 'format'])
 
 @php
-    $activeType = $order->order_type?->value ?? 'takeaway';
+    $activeType = $order->order_type?->value;
     $summaryParts = array_filter([
         $order->order_type ? $order->order_type->icon().' '.$order->order_type->label() : null,
         $order->customer_note,
     ]);
-    $orderSummary = $summaryParts !== [] ? implode(' · ', $summaryParts) : 'Atur tipe pesanan';
+    $orderSummary = $summaryParts !== [] ? implode(' · ', $summaryParts) : 'Pilih tipe & nama';
 @endphp
 
 <form action="{{ route('kasir.order.update') }}" method="POST" class="pos-order-bar" data-pos-order-bar>
@@ -29,12 +29,12 @@
         <div class="pos-order-bar-head">
             <div>
                 <p class="pos-order-bar-title">Tipe pesanan</p>
-                <p class="pos-order-bar-sub">Pilih Dine In atau Take Away</p>
+                <p class="pos-order-bar-sub">Pilih Dine In atau Take Away (wajib)</p>
             </div>
             <span class="pos-order-save-status hidden" data-pos-save-status aria-live="polite"></span>
         </div>
 
-        <div class="pos-order-type-grid" role="radiogroup" aria-label="Tipe pesanan">
+        <div class="pos-order-type-grid" role="radiogroup" aria-label="Tipe pesanan" data-pos-order-type-group>
             @foreach ($orderTypes as $orderType)
                 <label
                     class="pos-order-type-card {{ $activeType === $orderType->value ? 'is-active' : '' }}"
@@ -56,6 +56,9 @@
                 </label>
             @endforeach
         </div>
+        <p class="pos-order-field-error hidden" data-pos-order-type-error role="alert">
+            Pilih Dine In atau Take Away dulu.
+        </p>
 
         <div class="pos-order-bar-fields">
             <div class="pos-order-field-group" data-pos-customer-field>

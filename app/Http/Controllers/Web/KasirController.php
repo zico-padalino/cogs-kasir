@@ -463,11 +463,13 @@ class KasirController extends Controller
         }
 
         $validated = $request->validate([
-            'order_type' => ['required', 'in:dine_in,takeaway'],
+            'order_type' => ['nullable', 'in:dine_in,takeaway'],
             'customer_note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $orderType = PosOrderType::from($validated['order_type']);
+        $orderType = filled($validated['order_type'] ?? null)
+            ? PosOrderType::from($validated['order_type'])
+            : null;
 
         try {
             $posService->updateOrderContext(
