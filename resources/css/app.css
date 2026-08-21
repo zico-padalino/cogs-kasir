@@ -1416,6 +1416,12 @@
         @apply flex flex-col gap-3 rounded-2xl border-2 border-sky-200 bg-gradient-to-r from-sky-50 to-white p-4 shadow-md sm:flex-row sm:items-center sm:justify-between sm:px-5;
     }
 
+    .module-toolbar > .btn-primary,
+    .module-toolbar > .btn-secondary,
+    .module-toolbar > a {
+        @apply shrink-0;
+    }
+
     .module-toolbar__text {
         @apply text-sm text-slate-600;
     }
@@ -1592,19 +1598,62 @@
 
     /* ── Mobile shell / sidebar ── */
     .mobile-topbar {
-        @apply z-30 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur;
-        padding-top: max(0.75rem, constant(safe-area-inset-top), env(safe-area-inset-top, 0px));
+        @apply z-40 shrink-0 border-b border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md;
+        /* Notch / status bar terpisah dari baris kontrol */
+        padding-top: constant(safe-area-inset-top);
+        padding-top: env(safe-area-inset-top, 0px);
     }
 
-    /* iPhone Safari: jaga tombol menu / judul tidak ketutup status bar */
-    @supports (padding: max(0px)) {
-        .mobile-topbar {
-            padding-top: max(0.75rem, constant(safe-area-inset-top), env(safe-area-inset-top, 0px));
-        }
+    .mobile-topbar-inner {
+        @apply flex min-h-[3.25rem] items-center gap-2.5 px-3 py-2 sm:gap-3 sm:px-4;
+    }
+
+    .mobile-topbar-copy {
+        @apply min-w-0 flex-1;
+    }
+
+    .mobile-topbar-title {
+        @apply truncate text-[0.9375rem] font-semibold leading-tight text-slate-900;
+    }
+
+    .mobile-topbar-subtitle {
+        @apply mt-0.5 truncate text-[11px] leading-snug text-slate-500;
+    }
+
+    .mobile-topbar-badge {
+        @apply shrink-0 rounded-lg border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-800;
+    }
+
+    .mobile-topbar-actions {
+        @apply flex shrink-0 items-center gap-1.5;
     }
 
     .mobile-menu-btn {
-        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition active:scale-95;
+        @apply inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition active:scale-95;
+    }
+
+    .page-header-inner {
+        @apply flex items-center justify-between gap-3 px-4 py-4 sm:px-6;
+    }
+
+    .page-header-inner--wide {
+        @apply sm:px-8;
+    }
+
+    .page-header-title {
+        @apply truncate text-xl font-semibold text-slate-900;
+    }
+
+    .page-header-sub {
+        @apply mt-0.5 line-clamp-2 text-sm text-slate-500;
+    }
+
+    .page-header-meta {
+        @apply max-w-[40%] shrink-0 truncate text-sm text-slate-500;
+    }
+
+    .page-header-link {
+        @apply shrink-0 text-sm font-medium text-brand-600 hover:text-brand-700;
     }
 
     /* Espresso Cafe sidebar — cream panel, copper active (struktur menu tetap) */
@@ -1619,6 +1668,13 @@
 
     .app-sidebar-brand {
         @apply relative z-[1] border-b border-brand-200/70 px-4 py-4;
+        padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    }
+
+    @media (min-width: 768px) {
+        .app-sidebar-brand {
+            padding-top: 1rem;
+        }
     }
 
     .app-sidebar-brand-row {
@@ -1770,6 +1826,17 @@
         @apply md:pb-6;
     }
 
+    /* Admin / COGS: padding konten di kelas scroll (bukan di tiap halaman) */
+    .app-body:not(.is-kasir-pos) .app-scroll {
+        @apply px-3.5 py-3.5 sm:px-6 sm:py-6;
+    }
+
+    @media (min-width: 640px) {
+        .app-body.is-cogs .app-scroll {
+            @apply px-8;
+        }
+    }
+
     .entity-row {
         @apply flex items-start justify-between gap-3;
     }
@@ -1809,14 +1876,58 @@
         .app-body:not(.is-kasir-pos) .mobile-topbar {
             position: sticky;
             top: 0;
+            z-index: 40;
         }
 
         .app-body:not(.is-kasir-pos) .app-scroll {
             flex: 1 1 auto;
             min-height: 0;
             overflow: visible;
-            padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
-            scroll-padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+            overflow-x: clip;
+            padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+            scroll-padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .app-body:not(.is-kasir-pos) .module-toolbar {
+            @apply gap-2.5 p-3;
+        }
+
+        .app-body:not(.is-kasir-pos) .module-toolbar .btn-primary,
+        .app-body:not(.is-kasir-pos) .module-toolbar .btn-secondary,
+        .app-body:not(.is-kasir-pos) .module-toolbar > a.btn-primary,
+        .app-body:not(.is-kasir-pos) .module-toolbar > a.btn-secondary {
+            @apply w-full justify-center sm:w-auto;
+        }
+
+        .app-body:not(.is-kasir-pos) .card {
+            @apply overflow-x-clip;
+        }
+
+        .app-body:not(.is-kasir-pos) .form-input,
+        .app-body:not(.is-kasir-pos) select.form-input,
+        .app-body:not(.is-kasir-pos) textarea.form-input {
+            @apply max-w-full text-base;
+        }
+
+        .app-body:not(.is-kasir-pos) .table-wrap,
+        .app-body:not(.is-kasir-pos) .overflow-x-auto {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+
+        .app-body:not(.is-kasir-pos) .table-card-header,
+        .app-body:not(.is-kasir-pos) .cogs-history-summary {
+            @apply gap-2;
+        }
+
+        .step-grid-mobile {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(5.75rem, 1fr));
+            gap: 0.375rem;
+        }
+
+        .step-pill {
+            @apply min-h-[3.75rem];
         }
 
         .app-body.is-kasir-pos {
@@ -2337,17 +2448,17 @@
         }
     }
 
-    .mobile-topbar-title {
-        @apply text-slate-900;
+    .is-kasir-pos .mobile-topbar-title {
+        @apply text-white;
     }
 
-    .mobile-topbar-subtitle {
-        @apply text-slate-500;
+    .is-kasir-pos .mobile-topbar-subtitle {
+        @apply text-slate-300;
     }
 
     /* Mobile: pakai mobile-topbar layout (aman di iPhone notch/status bar) */
     .is-kasir-pos .mobile-topbar {
-        @apply flex border-b border-slate-800 bg-slate-900;
+        @apply border-b border-slate-800 bg-slate-900 shadow-none;
     }
 
     @media (min-width: 768px) {
@@ -2360,16 +2471,8 @@
         @apply border-white/25 bg-white/10 text-white hover:bg-white/20;
     }
 
-    .is-kasir-pos .mobile-topbar-title {
-        @apply text-white;
-    }
-
-    .is-kasir-pos .mobile-topbar-subtitle {
-        @apply text-slate-300;
-    }
-
-    .mobile-topbar-actions {
-        @apply flex shrink-0 items-center gap-1.5;
+    .is-kasir-pos .mobile-topbar-badge {
+        @apply border-white/25 bg-white/10 text-white;
     }
 
     .pos-topbar-action {
