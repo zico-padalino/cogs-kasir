@@ -12,29 +12,20 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
-# Force Docker DB settings into .env (idempotent)
-php -r '
-$env = file_get_contents(".env");
-$map = [
-  "DB_CONNECTION" => getenv("DB_CONNECTION") ?: "mysql",
-  "DB_HOST" => getenv("DB_HOST") ?: "mysql",
-  "DB_PORT" => getenv("DB_PORT") ?: "3306",
-  "DB_DATABASE" => getenv("DB_DATABASE") ?: "cogs_perhitungan",
-  "DB_USERNAME" => getenv("DB_USERNAME") ?: "root",
-  "DB_PASSWORD" => getenv("DB_PASSWORD") ?: "secret",
-  "APP_URL" => getenv("APP_URL") ?: "http://localhost:8900",
-];
-foreach ($map as $key => $value) {
-  $pattern = "/^{$key}=.*/m";
-  $line = "{$key}={$value}";
-  if (preg_match($pattern, $env)) {
-    $env = preg_replace($pattern, $line, $env);
+# Jangan overwrite DB_* di .env — pakai nilai dari .env / environment Compose
+# (supaya tetap bisa pakai MySQL lokal Navicat via host.docker.internal).
+if [ -n "${APP_URL:-}" ]; then
+  php -r '
+  $env = file_get_contents(".env");
+  $url = getenv("APP_URL") ?: "http://localhost:8900";
+  if (preg_match("/^APP_URL=.*/m", $env)) {
+    $env = preg_replace("/^APP_URL=.*/m", "APP_URL={$url}", $env);
   } else {
-    $env .= PHP_EOL . $line;
+    $env .= PHP_EOL . "APP_URL={$url}";
   }
-}
-file_put_contents(".env", $env);
-'
+  file_put_contents(".env", $env);
+  '
+fi
 
 if [ ! -d vendor ]; then
   echo "==> composer install"
