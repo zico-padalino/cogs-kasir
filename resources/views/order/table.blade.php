@@ -5,7 +5,7 @@
 @php
     use App\Enums\PosOrderType;
     $orderTypes = PosOrderType::cases();
-    $activeType = $order->order_type?->value ?? PosOrderType::Takeaway->value;
+    $activeType = old('order_type', $order->order_type?->value);
 @endphp
 
 @section('content')
@@ -42,42 +42,66 @@
 
         <main class="order-table-main {{ in_array($order->status->value, ['pending_payment', 'submitted', 'confirmed', 'paid', 'served'], true) ? 'is-waiting' : '' }}">
             @if ($order->status->value === 'pending_payment')
-                <div class="order-waiting-layout">
-                    @include('order.partials.payment-pending', ['order' => $order, 'format' => $format])
-                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-            @elseif ($order->status->value === 'submitted')
-                <div class="order-waiting-layout">
-                    @include('order.partials.kasir-confirmation', ['order' => $order, 'format' => $format])
-                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-            @elseif ($order->status->value === 'confirmed')
-                <div class="order-waiting-layout">
-                    @include('order.partials.kasir-confirmed', ['order' => $order, 'format' => $format])
-                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-            @elseif ($order->status->value === 'paid')
-                <div class="order-waiting-layout">
-                    @include('order.partials.paid-awaiting-serve', ['order' => $order, 'format' => $format])
-                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-            @elseif ($order->status->value === 'served')
-                <div class="order-waiting-layout">
-                    <div class="order-status-card order-status-paid">
-                        <div class="order-status-icon">✅</div>
-                        <h2 class="text-lg font-bold text-green-900">Pesanan Selesai</h2>
-                        <p class="mt-2 text-sm text-green-800">Terima kasih! Pesanan Anda sudah diantar / selesai.</p>
-                        <p class="mt-3 font-mono text-xs text-green-700">{{ $order->order_number }}</p>
-                    </div>
-
-                    @include('order.partials.order-summary', ['order' => $order, 'format' => $format])
-                </div>
-
-                @include('order.partials.new-order-button', [
-                    'label' => '+ Pesan baru',
-                    'hint' => 'Terima kasih! Tap di bawah untuk mulai pesanan baru.',
-                    'confirm' => 'Mulai pesanan baru?',
+                @include('order.partials.waiting-layout', [
+                    'order' => $order,
+                    'format' => $format,
+                    'statusView' => 'order.partials.payment-pending',
                 ])
+            @elseif ($order->status->value === 'submitted')
+                @include('order.partials.waiting-layout', [
+                    'order' => $order,
+                    'format' => $format,
+                    'statusView' => 'order.partials.kasir-confirmation',
+                ])
+            @elseif ($order->status->value === 'confirmed')
+                @include('order.partials.waiting-layout', [
+                    'order' => $order,
+                    'format' => $format,
+                    'statusView' => 'order.partials.kasir-confirmed',
+                ])
+            @elseif ($order->status->value === 'paid')
+                @include('order.partials.waiting-layout', [
+                    'order' => $order,
+                    'format' => $format,
+                    'statusView' => 'order.partials.paid-awaiting-serve',
+                ])
+            @elseif ($order->status->value === 'served')
+                <div class="order-waiting-layout" data-order-waiting>
+                    <div class="order-waiting-tabs order-view-tabs md:hidden" role="tablist">
+                        <button type="button" class="order-view-tab is-active" data-waiting-tab="pay" role="tab" aria-selected="true">
+                            <span aria-hidden="true">✅</span>
+                            <span>Status</span>
+                        </button>
+                        <button type="button" class="order-view-tab" data-waiting-tab="order" role="tab" aria-selected="false">
+                            <span aria-hidden="true">🧾</span>
+                            <span>Pesanan</span>
+                            <span class="order-view-badge">{{ $order->items->count() }}</span>
+                        </button>
+                    </div>
+                    <div class="order-waiting-panel is-active" data-waiting-panel="pay">
+                        <div class="order-status-card order-status-paid">
+                            <div class="order-status-icon">✅</div>
+                            <h2 class="text-lg font-bold text-green-900">Pesanan Selesai</h2>
+                            <p class="mt-2 text-sm text-green-800">Terima kasih! Pesanan Anda sudah diantar / selesai.</p>
+                            <p class="mt-3 font-mono text-xs text-green-700">{{ $order->order_number }}</p>
+                        </div>
+                        @include('order.partials.new-order-button', [
+                            'label' => '+ Pesan baru',
+                            'hint' => 'Terima kasih! Tap di bawah untuk mulai pesanan baru.',
+                            'confirm' => 'Mulai pesanan baru?',
+                        ])
+                    </div>
+                    <aside class="order-waiting-panel" data-waiting-panel="order">
+                        @include('order.partials.order-summary', [
+                            'order' => $order,
+                            'format' => $format,
+                            'editable' => false,
+                            'title' => 'Rincian Pesanan',
+                            'subtitle' => 'Item yang sudah selesai',
+                            'showMeta' => true,
+                        ])
+                    </aside>
+                </div>
             @else
                 <div class="order-view-tabs lg:hidden" role="tablist">
                     <button type="button" class="order-view-tab is-active" data-order-tab="menu" role="tab" aria-selected="true">
@@ -136,7 +160,7 @@
                                                                 value="{{ $orderType->value }}"
                                                                 class="sr-only"
                                                                 required
-                                                                @checked(old('order_type', $activeType) === $orderType->value)
+                                                                @checked($activeType === $orderType->value)
                                                             >
                                                             <span class="order-type-icon" aria-hidden="true">{{ $orderType->icon() }}</span>
                                                             <span class="order-type-text">
@@ -146,6 +170,9 @@
                                                         </label>
                                                     @endforeach
                                                 </div>
+                                                @error('order_type')
+                                                    <p class="mt-2 text-xs font-medium text-rose-600">{{ $message }}</p>
+                                                @enderror
 
                                                 <label class="order-checkout-label" for="order-customer-note">Nama pemesan</label>
                                                 <input

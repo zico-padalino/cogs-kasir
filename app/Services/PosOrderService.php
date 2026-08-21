@@ -160,7 +160,7 @@ class PosOrderService
                 'order_day' => $orderDay,
                 'pos_table_id' => $tableId,
                 'source' => PosOrderSource::Online,
-                'order_type' => PosOrderType::Takeaway,
+                'order_type' => null,
                 'status' => PosOrderStatus::Open,
             ]);
         });

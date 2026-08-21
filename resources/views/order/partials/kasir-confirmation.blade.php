@@ -59,6 +59,31 @@
         </div>
     </div>
 
+    @if ($order->items->isNotEmpty())
+        <div class="order-waiting-items-preview">
+            <div class="order-waiting-items-preview-head">
+                <p class="order-waiting-items-preview-title">Pesanan Anda</p>
+                <button type="button" class="order-waiting-items-preview-link md:hidden" data-waiting-tab-jump="order">
+                    Lihat semua →
+                </button>
+            </div>
+            <ul class="order-waiting-items-preview-list">
+                @foreach ($order->items->take(4) as $item)
+                    <li>
+                        <span class="min-w-0 truncate">
+                            <strong class="tabular-nums">{{ $format::number($item->quantity, 0) }}×</strong>
+                            {{ $item->product?->name ?? 'Item' }}
+                        </span>
+                        <span class="shrink-0 tabular-nums text-slate-700">{{ $format::rupiah($item->line_total) }}</span>
+                    </li>
+                @endforeach
+            </ul>
+            @if ($order->items->count() > 4)
+                <p class="order-waiting-items-preview-more">+{{ $order->items->count() - 4 }} item lain — buka tab Pesanan</p>
+            @endif
+        </div>
+    @endif
+
     <div class="rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm text-brand-900">
         <p class="font-semibold">Menunggu di kasir</p>
         <p class="mt-1 text-xs leading-relaxed text-brand-800">

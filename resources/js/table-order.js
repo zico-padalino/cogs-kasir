@@ -376,6 +376,45 @@ function initOrderModal() {
     });
 }
 
+function initOrderWaitingTabs() {
+    const roots = document.querySelectorAll('[data-order-waiting]');
+    if (! roots.length) {
+        return;
+    }
+
+    const activate = (root, target) => {
+        root.querySelectorAll('[data-waiting-tab]').forEach((tab) => {
+            const active = tab.dataset.waitingTab === target;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+
+        root.querySelectorAll('[data-waiting-panel]').forEach((panel) => {
+            const active = panel.dataset.waitingPanel === target;
+            panel.classList.toggle('is-active', active);
+        });
+
+        const main = root.closest('.order-table-main');
+        if (window.matchMedia('(max-width: 767px)').matches) {
+            main?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    roots.forEach((root) => {
+        root.querySelectorAll('[data-waiting-tab]').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                activate(root, tab.dataset.waitingTab);
+            });
+        });
+
+        root.querySelectorAll('[data-waiting-tab-jump]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                activate(root, btn.dataset.waitingTabJump);
+            });
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initOrderTableTabs();
     initOrderSearch();
@@ -385,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initOrderSubmit();
     initOrderPayChoice();
     initOrderKasirConfirmation();
+    initOrderWaitingTabs();
 });
 
 async function compressProofImage(file) {

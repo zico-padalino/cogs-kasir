@@ -1,13 +1,41 @@
-@props(['editable' => false])
+@props([
+    'editable' => false,
+    'title' => 'Pesanan Anda',
+    'subtitle' => null,
+    'showMeta' => false,
+])
 
 <div class="order-cart-card" data-order-cart>
     <div class="order-cart-head">
-        <div>
-            <h2 class="font-semibold text-slate-900">Pesanan Anda</h2>
-            <p class="text-xs text-slate-500">{{ $order->order_number }}</p>
+        <div class="min-w-0">
+            <h2 class="font-semibold text-slate-900">{{ $title }}</h2>
+            <p class="text-xs text-slate-500">
+                {{ $subtitle ?: $order->order_number }}
+            </p>
         </div>
         <span class="badge badge-slate">{{ $order->items->count() }} item</span>
     </div>
+
+    @if ($showMeta)
+        <div class="order-cart-meta">
+            <div class="order-cart-meta-row">
+                <span>Nomor</span>
+                <span class="font-mono font-semibold">{{ $order->order_number }}</span>
+            </div>
+            @if ($order->order_type)
+                <div class="order-cart-meta-row">
+                    <span>Tipe</span>
+                    <span>{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+                </div>
+            @endif
+            @if ($order->customer_note)
+                <div class="order-cart-meta-row">
+                    <span>Nama</span>
+                    <span class="truncate font-medium">{{ $order->customer_note }}</span>
+                </div>
+            @endif
+        </div>
+    @endif
 
     <div class="order-cart-items">
         @forelse ($order->items as $item)
