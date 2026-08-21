@@ -31,6 +31,8 @@ function initOrderItemNotes() {
         return;
     }
 
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
+
     notes.forEach((details) => {
         details.addEventListener('toggle', () => {
             if (! details.open) {
@@ -42,6 +44,11 @@ function initOrderItemNotes() {
                     other.open = false;
                 }
             });
+
+            // Di HP jangan auto-focus: keyboard sering bikin summary tidak bisa diketuk lagi untuk tutup.
+            if (isCoarse) {
+                return;
+            }
 
             const input = details.querySelector('textarea');
             window.requestAnimationFrame(() => {
@@ -83,9 +90,22 @@ function initOrderTableTabs() {
     const tabs = root.querySelectorAll('[data-order-tab]');
     const panels = root.querySelectorAll('[data-order-panel]');
 
+    const closeOpenOrderModal = () => {
+        const modal = document.querySelector('[data-order-modal]:not(.hidden)');
+        if (! modal) {
+            return;
+        }
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('order-modal-open');
+    };
+
     tabs.forEach((tab) => {
         tab.addEventListener('click', () => {
             const target = tab.dataset.orderTab;
+
+            // Tutup modal menu saat pindah tab agar tidak “nyangkut”.
+            closeOpenOrderModal();
 
             tabs.forEach((item) => {
                 item.classList.toggle('is-active', item.dataset.orderTab === target);
@@ -156,6 +176,11 @@ function initOrderModal() {
         return;
     }
 
+    // Portal ke <body> agar fixed overlay tidak ketahan overflow panel menu (bug HP: tidak bisa tutup).
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+
     const title = modal.querySelector('[data-order-modal-title]');
     const price = modal.querySelector('[data-order-modal-price]');
     const image = modal.querySelector('[data-order-modal-image]');
@@ -171,6 +196,7 @@ function initOrderModal() {
 
     let maxQty = 99;
     let basePrice = 0;
+    let ignoreOpenUntil = 0;
 
     const selectedAddonExtra = () => {
         if (! addonsBox) {
@@ -262,6 +288,10 @@ function initOrderModal() {
         renderAddons(canAdd ? parseCardAddons(card) : []);
         refreshPrice();
 
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('order-modal-open');
@@ -271,14 +301,29 @@ function initOrderModal() {
         }
     };
 
-    const closeModal = () => {
+    const closeModal = (event) => {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('order-modal-open');
+        ignoreOpenUntil = Date.now() + 500;
+        // Lepas fokus agar keyboard HP tidak mengunci overlay.
+        if (document.activeElement instanceof HTMLElement && modal.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
     };
 
     document.querySelectorAll('[data-order-open-modal]').forEach((trigger) => {
-        const openFromTrigger = () => {
+        const openFromTrigger = (event) => {
+            if (Date.now() < ignoreOpenUntil) {
+                event?.preventDefault?.();
+                event?.stopPropagation?.();
+
+                return;
+            }
+
+            event?.preventDefault?.();
             const card = trigger.closest('[data-order-product]') || trigger;
             if (card) {
                 openModal(card);
@@ -289,13 +334,18 @@ function initOrderModal() {
         trigger.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                openFromTrigger();
+                openFromTrigger(event);
             }
         });
     });
 
     modal.querySelectorAll('[data-order-close-modal]').forEach((element) => {
         element.addEventListener('click', closeModal);
+        element.addEventListener('touchend', (event) => {
+            // Hindari ghost-click yang kadang membuka ulang kartu di bawah.
+            event.preventDefault();
+            closeModal(event);
+        }, { passive: false });
     });
 
     modal.querySelector('[data-order-qty-minus]')?.addEventListener('click', () => {
@@ -321,7 +371,7 @@ function initOrderModal() {
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && ! modal.classList.contains('hidden')) {
-            closeModal();
+            closeModal(event);
         }
     });
 }

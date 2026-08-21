@@ -90,6 +90,7 @@
 <div class="order-modal hidden" data-order-modal aria-hidden="true">
     <div class="order-modal-backdrop" data-order-close-modal></div>
     <div class="order-modal-panel order-detail-modal-panel" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
+        <div class="order-detail-sheet-handle sm:hidden" aria-hidden="true"></div>
         <button type="button" class="order-modal-close order-detail-modal-close" data-order-close-modal aria-label="Tutup">×</button>
 
         <div class="order-detail-hero">

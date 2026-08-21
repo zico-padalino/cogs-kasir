@@ -6308,11 +6308,12 @@
     }
 
     .order-modal {
-        @apply fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4;
+        @apply fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-4;
     }
 
     .order-modal-backdrop {
-        @apply absolute inset-0 bg-slate-900/50 backdrop-blur-[2px];
+        @apply absolute inset-0 z-0 bg-slate-900/50 backdrop-blur-[2px];
+        touch-action: manipulation;
     }
 
     .order-modal-panel {
@@ -6326,7 +6327,12 @@
     }
 
     .order-detail-modal-close {
-        @apply absolute right-2 top-2 z-20 rounded-full bg-black/45 text-white hover:bg-black/60 hover:text-white;
+        @apply absolute right-2 top-2 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-2xl leading-none text-white shadow-md hover:bg-black/70 hover:text-white;
+        touch-action: manipulation;
+    }
+
+    .order-detail-sheet-handle {
+        @apply mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-slate-300;
     }
 
     .order-detail-hero {
