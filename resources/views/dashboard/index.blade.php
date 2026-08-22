@@ -93,6 +93,112 @@
     </section>
 
     <section class="mb-10">
+        <x-table-card title="Stok Bahan Baku" subtitle="Sisa stok, nilai uang, dan laporan PDF dalam satu tempat" icon="📦">
+            <x-slot:actions>
+                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm">Kelola bahan</a>
+            </x-slot:actions>
+
+            <div class="grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-4">
+                <div class="bg-white px-4 py-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Jenis bahan</p>
+                    <p class="mt-1 text-lg font-bold text-slate-900">{{ $format::number($materialStock['count'], 0) }}</p>
+                </div>
+                <div class="bg-white px-4 py-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Masih ada</p>
+                    <p class="mt-1 text-lg font-bold text-emerald-700">{{ $format::number($materialStock['in_stock'], 0) }}</p>
+                </div>
+                <div class="bg-white px-4 py-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Habis</p>
+                    <p class="mt-1 text-lg font-bold text-rose-700">{{ $format::number($materialStock['empty'], 0) }}</p>
+                </div>
+                <div class="bg-brand-50 px-4 py-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-brand-700">Total nilai sisa</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums text-brand-800">{{ $format::rupiah($materialStock['total_value']) }}</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+                <div class="min-w-0 flex-1">
+                    @if ($materialStock['qty_by_unit'] !== [])
+                        <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Sisa fisik</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($materialStock['qty_by_unit'] as $unit => $qty)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-800">
+                                    {{ $format::number($qty) }}
+                                    <span class="ml-1 font-medium text-slate-500">{{ $unit }}</span>
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-500">Belum ada sisa stok tercatat.</p>
+                    @endif
+                </div>
+
+                <form
+                    method="GET"
+                    action="{{ route('materials.pdf') }}"
+                    target="_blank"
+                    class="flex flex-wrap items-end gap-2"
+                >
+                    <input type="hidden" name="autoprint" value="1">
+                    <div>
+                        <label class="form-label mb-1 text-[11px]" for="material-pdf-from">Dari</label>
+                        <input id="material-pdf-from" type="date" name="from" value="{{ now()->startOfMonth()->toDateString() }}" class="form-input py-1.5 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1 text-[11px]" for="material-pdf-to">Sampai</label>
+                        <input id="material-pdf-to" type="date" name="to" value="{{ now()->toDateString() }}" class="form-input py-1.5 text-sm" required>
+                    </div>
+                    <button type="submit" class="btn-secondary btn-sm">Cetak PDF</button>
+                </form>
+            </div>
+
+            @if ($materialStock['items']->isEmpty())
+                <div class="border-t border-slate-100 px-5 py-8 text-center text-sm text-slate-500">
+                    Belum ada bahan baku.
+                    <a href="{{ route('materials.index') }}" class="font-semibold text-brand-700 hover:underline">Tambah di Bahan Baku →</a>
+                </div>
+            @else
+                <table class="table-default border-t border-slate-100">
+                    <thead>
+                        <tr>
+                            <th>Bahan</th>
+                            <th>Sisa stok</th>
+                            <th>Harga / satuan</th>
+                            <th>Nilai sisa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($materialStock['items'] as $row)
+                            <tr class="{{ $row['qty'] <= 0 ? 'opacity-70' : '' }}">
+                                <td class="font-semibold text-slate-900">{{ $row['name'] }}</td>
+                                <td>
+                                    <span class="{{ $row['qty'] <= 0 ? 'font-semibold text-rose-700' : 'text-slate-800' }}">
+                                        {{ $format::number($row['qty']) }} {{ $row['unit'] }}
+                                    </span>
+                                </td>
+                                <td class="cell-money">
+                                    @if ($row['avg_cost'] > 0)
+                                        {{ $format::rupiah($row['avg_cost']) }}/{{ $row['unit'] }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="cell-highlight">{{ $format::rupiah($row['value']) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+
+            <x-slot:footer>
+                <p class="text-sm font-medium text-slate-600">Total nilai sisa stok</p>
+                <p class="text-xl font-bold tabular-nums text-brand-800">{{ $format::rupiah($materialStock['total_value']) }}</p>
+            </x-slot:footer>
+        </x-table-card>
+    </section>
+
+    <section class="mb-10">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 class="text-lg font-semibold text-slate-900">Dana Usaha Hari Ini</h2>

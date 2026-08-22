@@ -31,7 +31,10 @@ class WebPagesTest extends TestCase
         $this->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Perkiraan Pengeluaran')
-            ->assertSee('Perkiraan gaji karyawan aktif');
+            ->assertSee('Perkiraan gaji karyawan aktif')
+            ->assertSee('Stok Bahan Baku')
+            ->assertSee('Total nilai sisa')
+            ->assertSee('Cetak PDF');
     }
 
     public function test_product_pages_are_accessible(): void
@@ -47,6 +50,10 @@ class WebPagesTest extends TestCase
         $this->actingAsCogsUser();
 
         $this->get(route('materials.index'))->assertOk();
+        $this->get(route('materials.pdf', [
+            'from' => now()->startOfMonth()->toDateString(),
+            'to' => now()->toDateString(),
+        ]))->assertOk()->assertSee('Laporan Sisa Bahan Baku');
     }
 
     public function test_production_order_pages_are_accessible(): void

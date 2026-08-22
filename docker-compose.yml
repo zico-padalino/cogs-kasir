@@ -6,6 +6,8 @@ services:
       - "${APP_PORT:-8900}:8900"
     volumes:
       - .:/var/www/html
+      # Pakai entrypoint dari folder project, jangan yang tertinggal di image lama
+      - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh
     extra_hosts:
       # Mac/Windows Docker Desktop + Linux: akses MySQL di host (Navicat lokal)
       - "host.docker.internal:host-gateway"
@@ -20,7 +22,8 @@ services:
       DB_DATABASE: ${DB_DATABASE}
       DB_USERNAME: ${DB_USERNAME:-root}
       DB_PASSWORD: ${DB_PASSWORD:-}
-      # Jangan seed ulang DB lokal yang sudah ada isinya
+      # Jangan migrate/seed ulang DB Navicat yang sudah diimport
+      AUTO_MIGRATE: "false"
       SEED_ON_START: "false"
     restart: unless-stopped
 

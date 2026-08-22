@@ -50,12 +50,26 @@ if [ ! -d public/build ]; then
   npm run build
 fi
 
-echo "==> php artisan migrate --force"
-php artisan migrate --force
+# Jangan menimpa database Navicat yang sudah diimport.
+# migrate/seed hanya jika dipaksa, atau jika tabel users belum ada.
+user_count="$(mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_USERNAME}" -p"${DB_PASSWORD}" \
+  -N -s -e "SELECT COUNT(*) FROM \`${DB_DATABASE}\`.users" 2>/dev/null || echo 0)"
 
-if [ "${SEED_ON_START:-true}" = "true" ]; then
+if [ "${AUTO_MIGRATE:-false}" = "true" ]; then
+  echo "==> php artisan migrate --force (AUTO_MIGRATE=true)"
+  php artisan migrate --force || echo "==> migrate gagal, lanjut start (data tidak dihapus)."
+elif [ "${user_count:-0}" = "0" ]; then
+  echo "==> php artisan migrate --force (database masih kosong)"
+  php artisan migrate --force || echo "==> migrate gagal, lanjut start."
+else
+  echo "==> Skip migrate: ${DB_DATABASE} sudah ada data (users=${user_count})."
+fi
+
+if [ "${SEED_ON_START:-false}" = "true" ]; then
   echo "==> php artisan db:seed --force"
   php artisan db:seed --force || true
+else
+  echo "==> Skip db:seed (SEED_ON_START=false)."
 fi
 
 echo "==> Starting: $*"

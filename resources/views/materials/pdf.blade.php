@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Rekapan Sisa Bahan Baku — {{ $shopName }}</title>
+                <title>Laporan Sisa Bahan Baku — {{ $shopName }}</title>
     <style>
         @page {
             size: A4;
@@ -120,12 +120,14 @@
             color: #94a3b8;
         }
 
-        .summary {
+            .summary {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
             margin-bottom: 18px;
         }
+
+        table { font-size: 11px; }
 
         .summary-card {
             border: 1px solid #e2e8f0;
@@ -249,11 +251,11 @@
         <div class="header">
             <div>
                 <p class="eyebrow">{{ $shopName }}</p>
-                <h1>Rekapan Sisa Bahan Baku</h1>
-                <p class="header-meta">Stok bahan baku yang tersisa saat ini (harga rata-rata tertimbang)</p>
+                <h1>Laporan Sisa Bahan Baku</h1>
+                <p class="header-meta">Periode {{ $periodLabel }} · stok awal, masuk, keluar, sisa, dan nilai uang</p>
             </div>
             <div class="header-side">
-                <div class="date-chip">{{ $printedAt->format('d/m/Y') }}</div>
+                <div class="date-chip">{{ $from->format('d/m/Y') }} – {{ $to->format('d/m/Y') }}</div>
                 <p class="printed">Dicetak {{ $printedAt->format('d/m/Y H:i') }}</p>
             </div>
         </div>
@@ -264,59 +266,58 @@
                 <span class="value">{{ $format::number($itemCount, 0) }}</span>
             </div>
             <div class="summary-card">
-                <span class="label">Masih ada stok</span>
+                <span class="label">Masih ada sisa</span>
                 <span class="value">{{ $format::number($inStockCount, 0) }}</span>
             </div>
             <div class="summary-card">
-                <span class="label">Nilai stok</span>
+                <span class="label">Total nilai sisa</span>
                 <span class="value">{{ $format::rupiah($totalValue) }}</span>
             </div>
         </div>
 
-        <h2 class="section-title">Daftar sisa bahan</h2>
+        <h2 class="section-title">Rincian per bahan</h2>
 
-        @if ($materials->isNotEmpty())
+        @if ($items->isNotEmpty())
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 36px;" class="center">No</th>
+                        <th style="width: 28px;" class="center">No</th>
                         <th>Nama bahan</th>
-                        <th style="width: 70px;" class="center">Satuan</th>
-                        <th style="width: 100px;" class="right">Stok sisa</th>
-                        <th style="width: 110px;" class="right">Harga rata-rata</th>
-                        <th style="width: 120px;" class="right">Nilai stok</th>
+                        <th style="width: 52px;" class="center">Satuan</th>
+                        <th style="width: 72px;" class="right">Awal</th>
+                        <th style="width: 72px;" class="right">Masuk</th>
+                        <th style="width: 72px;" class="right">Keluar</th>
+                        <th style="width: 72px;" class="right">Sisa</th>
+                        <th style="width: 88px;" class="right">Harga</th>
+                        <th style="width: 100px;" class="right">Nilai sisa</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($materials as $index => $material)
-                        @php
-                            $qty = (float) $material->available_qty;
-                            $avg = (float) $material->avg_cost;
-                            $value = $qty * $avg;
-                        @endphp
+                    @foreach ($items as $index => $row)
                         <tr>
                             <td class="center mono">{{ $index + 1 }}</td>
-                            <td>{{ $material->name }}</td>
-                            <td class="center">{{ $material->unit ?: '-' }}</td>
-                            <td class="right mono {{ $qty <= 0 ? 'zero' : '' }}">
-                                {{ $format::number($qty) }}
-                            </td>
-                            <td class="right mono">{{ $format::rupiah($avg) }}</td>
-                            <td class="right mono">{{ $format::rupiah($value) }}</td>
+                            <td>{{ $row['name'] }}</td>
+                            <td class="center">{{ $row['unit'] }}</td>
+                            <td class="right mono">{{ $format::number($row['opening']) }}</td>
+                            <td class="right mono">{{ $format::number($row['in_qty']) }}</td>
+                            <td class="right mono">{{ $format::number($row['out_qty']) }}</td>
+                            <td class="right mono {{ $row['closing'] <= 0 ? 'zero' : '' }}">{{ $format::number($row['closing']) }}</td>
+                            <td class="right mono">{{ $row['avg_cost'] > 0 ? $format::rupiah($row['avg_cost']) : '—' }}</td>
+                            <td class="right mono">{{ $format::rupiah($row['value']) }}</td>
                         </tr>
                     @endforeach
                     <tr class="total-row">
-                        <td colspan="5">Total nilai sisa bahan</td>
+                        <td colspan="8">Total nilai sisa stok</td>
                         <td class="right">{{ $format::rupiah($totalValue) }}</td>
                     </tr>
                 </tbody>
             </table>
         @else
-            <p class="empty">Belum ada data bahan aktif.</p>
+            <p class="empty">Belum ada data bahan aktif pada periode ini.</p>
         @endif
 
         <div class="footer">
-            <span>Rekapan sisa bahan · {{ $shopName }}</span>
+            <span>Laporan sisa bahan {{ $periodLabel }} · {{ $shopName }}</span>
             <span>{{ $format::number($itemCount, 0) }} item · {{ $format::rupiah($totalValue) }}</span>
         </div>
     </div>

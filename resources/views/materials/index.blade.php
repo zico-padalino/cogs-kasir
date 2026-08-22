@@ -9,14 +9,23 @@
         <div class="page-toolbar materials-toolbar">
             <p class="text-sm text-slate-500">Kelola bahan baku &amp; stok</p>
             <div class="materials-toolbar__actions">
-                <a
-                    href="{{ route('materials.pdf', ['autoprint' => 1]) }}"
+                <form
+                    method="GET"
+                    action="{{ route('materials.pdf') }}"
                     target="_blank"
-                    rel="noopener"
-                    class="btn-outline btn-sm"
+                    class="flex flex-wrap items-end gap-2"
                 >
-                    PDF Sisa
-                </a>
+                    <input type="hidden" name="autoprint" value="1">
+                    <div>
+                        <label class="form-label mb-1 text-[11px]" for="materials-pdf-from">Dari</label>
+                        <input id="materials-pdf-from" type="date" name="from" value="{{ now()->startOfMonth()->toDateString() }}" class="form-input py-1.5 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1 text-[11px]" for="materials-pdf-to">Sampai</label>
+                        <input id="materials-pdf-to" type="date" name="to" value="{{ now()->toDateString() }}" class="form-input py-1.5 text-sm" required>
+                    </div>
+                    <button type="submit" class="btn-outline btn-sm">Cetak PDF</button>
+                </form>
                 <button
                     type="button"
                     class="btn-outline btn-sm"

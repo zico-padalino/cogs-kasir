@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\SalesTransaction;
 use App\Services\BusinessFundService;
 use App\Services\CogsCalculationService;
+use App\Services\InventoryCostService;
 use App\Support\Format;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -22,6 +23,7 @@ class DashboardController extends Controller
     public function index(
         CogsCalculationService $cogsService,
         BusinessFundService $fundService,
+        InventoryCostService $inventoryService,
     ): View
     {
         $todayStart = now()->startOfDay();
@@ -33,6 +35,7 @@ class DashboardController extends Controller
             'today' => $this->salePeriodMetrics($todayStart, $todayEnd),
             'month' => $this->salePeriodMetrics($monthStart, $monthEnd),
             'dailyRevenue' => $this->dailyRevenue(now()->subDays(6)->startOfDay(), $todayEnd),
+            'materialStock' => $this->rawMaterialStock($inventoryService),
             'fundToday' => $fundService->dayReport($todayStart),
             'fundBalance' => $fundService->balance(),
             'expenseForecast' => $fundService->expenseForecast(),
@@ -162,6 +165,55 @@ class DashboardController extends Controller
                 ->count(),
             'menu_tanpa_harga' => $menus->filter(fn (Product $p) => (float) $p->selling_price <= 0)->count(),
             'menu_tanpa_hpp' => $menus->filter(fn (Product $p) => $p->effectiveUnitHpp() <= 0)->count(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     items: Collection<int, array{id: int, name: string, unit: string, qty: float, avg_cost: float, value: float}>,
+     *     count: int,
+     *     in_stock: int,
+     *     empty: int,
+     *     total_value: float,
+     *     qty_by_unit: array<string, float>
+     * }
+     */
+    private function rawMaterialStock(InventoryCostService $inventoryService): array
+    {
+        $items = Product::query()
+            ->where('type', ProductType::RawMaterial)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function (Product $product) use ($inventoryService) {
+                $qty = $product->availableQuantity();
+                $avgCost = $inventoryService->getWeightedAverageCost($product);
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'unit' => $product->unit ?: 'unit',
+                    'qty' => $qty,
+                    'avg_cost' => $avgCost,
+                    'value' => round($qty * $avgCost, 4),
+                ];
+            })
+            ->sortByDesc('value')
+            ->values();
+
+        $qtyByUnit = $items
+            ->filter(fn (array $row) => $row['qty'] > 0)
+            ->groupBy('unit')
+            ->map(fn (Collection $group) => round((float) $group->sum('qty'), 4))
+            ->all();
+
+        return [
+            'items' => $items,
+            'count' => $items->count(),
+            'in_stock' => $items->filter(fn (array $row) => $row['qty'] > 0)->count(),
+            'empty' => $items->filter(fn (array $row) => $row['qty'] <= 0)->count(),
+            'total_value' => round((float) $items->sum('value'), 4),
+            'qty_by_unit' => $qtyByUnit,
         ];
     }
 

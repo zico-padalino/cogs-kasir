@@ -47,16 +47,39 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function pdf(InventoryCostService $inventoryService)
+    public function pdf(Request $request, InventoryCostService $inventoryService)
     {
-        $materials = $this->loadMaterials($inventoryService);
-        $totalValue = $materials->sum(fn (Product $m) => (float) $m->available_qty * (float) $m->avg_cost);
+        $validated = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'autoprint' => ['nullable'],
+        ]);
+
+        $from = isset($validated['from'])
+            ? Carbon::parse($validated['from'])->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+        $to = isset($validated['to'])
+            ? Carbon::parse($validated['to'])->endOfDay()
+            : now()->endOfDay();
+
+        if ($from->gt($to)) {
+            [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+        }
+
+        $report = $this->periodStockReport($from, $to, $inventoryService);
 
         return view('materials.pdf', [
-            'materials' => $materials,
-            'totalValue' => $totalValue,
-            'itemCount' => $materials->count(),
-            'inStockCount' => $materials->filter(fn (Product $m) => (float) $m->available_qty > 0)->count(),
+            'items' => $report['items'],
+            'totalValue' => $report['total_value'],
+            'totalIn' => $report['total_in'],
+            'totalOut' => $report['total_out'],
+            'itemCount' => $report['count'],
+            'inStockCount' => $report['in_stock'],
+            'from' => $from,
+            'to' => $to,
+            'periodLabel' => $from->toDateString() === $to->toDateString()
+                ? $from->translatedFormat('d M Y')
+                : $from->translatedFormat('d M Y').' – '.$to->translatedFormat('d M Y'),
             'shopName' => config('pos.shop_name', 'Coffee & Kitchen'),
             'printedAt' => now(),
             'format' => Format::class,
@@ -653,6 +676,103 @@ class InventoryController extends Controller
 
                 return $product;
             });
+    }
+
+    /**
+     * @return array{
+     *     items: \Illuminate\Support\Collection<int, array<string, mixed>>,
+     *     count: int,
+     *     in_stock: int,
+     *     total_value: float,
+     *     total_in: float,
+     *     total_out: float
+     * }
+     */
+    private function periodStockReport(Carbon $from, Carbon $to, InventoryCostService $inventoryService): array
+    {
+        $materials = Product::query()
+            ->where('type', ProductType::RawMaterial)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $logsByProduct = collect();
+        if (Schema::hasTable('material_stock_logs') && $materials->isNotEmpty()) {
+            $logsByProduct = MaterialStockLog::query()
+                ->whereIn('product_id', $materials->pluck('id'))
+                ->where('created_at', '<=', $to)
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->get()
+                ->groupBy('product_id');
+        }
+
+        $toIsCurrent = $to->isSameDay(now()) || $to->isFuture();
+
+        $items = $materials->map(function (Product $product) use ($logsByProduct, $from, $toIsCurrent, $inventoryService) {
+            $logs = $logsByProduct->get($product->id, collect());
+            $before = $logs->filter(fn (MaterialStockLog $log) => $log->created_at?->lt($from));
+            $inPeriod = $logs->filter(fn (MaterialStockLog $log) => $log->created_at && $log->created_at->gte($from));
+
+            $opening = $before->isNotEmpty()
+                ? (float) $before->last()->quantity_after
+                : (float) ($inPeriod->first()?->quantity_before ?? 0);
+
+            $inQty = 0.0;
+            $outQty = 0.0;
+            foreach ($inPeriod as $log) {
+                $delta = $this->stockLogDelta($log);
+                if ($delta > 0) {
+                    $inQty += $delta;
+                } elseif ($delta < 0) {
+                    $outQty += abs($delta);
+                }
+            }
+
+            if ($inPeriod->isNotEmpty()) {
+                $closing = (float) $inPeriod->last()->quantity_after;
+            } elseif ($before->isNotEmpty()) {
+                $closing = $opening;
+            } else {
+                $closing = $toIsCurrent ? $product->availableQuantity() : 0.0;
+            }
+
+            $avgCost = $inventoryService->getWeightedAverageCost($product);
+            $value = round($closing * $avgCost, 4);
+
+            return [
+                'name' => $product->name,
+                'unit' => $product->unit ?: 'unit',
+                'opening' => $opening,
+                'in_qty' => $inQty,
+                'out_qty' => $outQty,
+                'closing' => $closing,
+                'avg_cost' => $avgCost,
+                'value' => $value,
+            ];
+        })->values();
+
+        return [
+            'items' => $items,
+            'count' => $items->count(),
+            'in_stock' => $items->filter(fn (array $row) => $row['closing'] > 0)->count(),
+            'total_value' => round((float) $items->sum('value'), 4),
+            'total_in' => round((float) $items->sum('in_qty'), 4),
+            'total_out' => round((float) $items->sum('out_qty'), 4),
+        ];
+    }
+
+    private function stockLogDelta(MaterialStockLog $log): float
+    {
+        if ($log->quantity_delta !== null) {
+            return (float) $log->quantity_delta;
+        }
+
+        if ($log->quantity_before !== null && $log->quantity_after !== null) {
+            return round((float) $log->quantity_after - (float) $log->quantity_before, 6);
+        }
+
+        return 0.0;
     }
 
     private function generateMaterialSku(string $name): string
