@@ -106,10 +106,32 @@
                 <img src="" alt="Pratinjau bukti" class="max-h-48 w-full object-contain" data-order-proof-preview-img>
             </div>
             <p class="hidden text-sm text-rose-600" data-order-proof-error></p>
-            <button type="submit" class="btn-primary w-full" data-order-qris-pay-submit>
-                Saya sudah bayar — kirim bukti
+            <button type="submit" class="btn-primary w-full" data-order-qris-pay-submit disabled>
+                Kirim bukti pembayaran
             </button>
+            <p class="text-center text-[11px] text-slate-500">
+                Pilih foto bukti dulu, lalu kirim. Pesanan langsung tercatat lunas.
+            </p>
         </form>
+
+        @if ($order->status->value === 'pending_payment')
+            <div class="order-pay-or">
+                <span>atau belum bayar QRIS?</span>
+            </div>
+            <form
+                action="{{ route('order.menu.pay-cash') }}"
+                method="POST"
+                data-order-cash-send-form
+            >
+                @csrf
+                <button type="submit" class="btn-secondary w-full">
+                    Kirim pesanan ke kasir
+                </button>
+            </form>
+            <p class="mt-2 text-center text-[11px] text-slate-500">
+                Pesanan masuk kasir. Bayar tunai di tempat.
+            </p>
+        @endif
     </div>
 
     <div class="order-pay-cash-panel hidden" data-order-pay-panel="cash">
@@ -117,7 +139,7 @@
             <p class="font-semibold">Bayar tunai di kasir</p>
             <p class="mt-1 text-xs leading-relaxed text-brand-800">
                 @if ($order->status->value === 'pending_payment')
-                    Setelah dikirim, datang ke kasir dan sebutkan nomor
+                    Kirim pesanan dulu, lalu datang ke kasir dan sebutkan nomor
                 @else
                     Datang ke kasir dan sebutkan nomor
                 @endif
@@ -140,7 +162,7 @@
             >
                 @csrf
                 <button type="submit" class="btn-primary w-full">
-                    Kirim ke kasir (bayar tunai)
+                    Kirim pesanan
                 </button>
             </form>
         @endif

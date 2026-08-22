@@ -89,7 +89,7 @@
     <div class="order-kasir-notice">
         <p class="font-semibold text-amber-900">Belum masuk kasir</p>
         <p class="mt-1 text-sm leading-relaxed text-amber-800">
-            Pesanan baru muncul di kasir setelah Anda upload bukti QRIS atau menekan “Kirim ke kasir” untuk tunai.
+            Pesanan masuk kasir setelah Anda <strong>kirim bukti QRIS</strong>, atau tekan <strong>Kirim pesanan</strong> untuk bayar tunai.
         </p>
     </div>
 

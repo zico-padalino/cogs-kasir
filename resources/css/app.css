@@ -3736,6 +3736,26 @@
         padding-top: 1rem;
     }
 
+    .order-pay-or {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 1rem 0 0.75rem;
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .order-pay-or::before,
+    .order-pay-or::after {
+        content: '';
+        flex: 1 1 auto;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
     .order-proof-pick {
         display: grid;
         grid-template-columns: 1fr 1fr;

@@ -586,6 +586,15 @@ function initOrderPayChoice() {
         }
     };
 
+    const syncProofSubmit = () => {
+        if (! (submitBtn instanceof HTMLButtonElement)) {
+            return;
+        }
+        const hasProof = Boolean(selectedProof || proofInput?.files?.[0]);
+        submitBtn.disabled = ! hasProof;
+        submitBtn.textContent = hasProof ? 'Kirim bukti pembayaran' : 'Pilih bukti dulu';
+    };
+
     const showProofPreview = (file) => {
         if (objectUrl) {
             URL.revokeObjectURL(objectUrl);
@@ -593,11 +602,13 @@ function initOrderPayChoice() {
         }
         if (! file || ! previewImg || ! preview) {
             preview?.classList.add('hidden');
+            syncProofSubmit();
             return;
         }
         objectUrl = URL.createObjectURL(file);
         previewImg.src = objectUrl;
         preview.classList.remove('hidden');
+        syncProofSubmit();
     };
 
     const handlePickedProof = async (file) => {
@@ -659,7 +670,7 @@ function initOrderPayChoice() {
             showProofError('Pilih bukti dari galeri atau ambil foto dulu.');
             return;
         }
-        if (! window.confirm('Kirim bukti pembayaran? Pesanan akan dicatat lunas dan masuk ke kasir.')) {
+        if (! window.confirm('Kirim bukti pembayaran? Pesanan dicatat lunas dan masuk ke kasir.')) {
             event.preventDefault();
             return;
         }
@@ -670,15 +681,17 @@ function initOrderPayChoice() {
         }
     });
 
-    const cashForm = root.querySelector('[data-order-cash-send-form]');
-    cashForm?.addEventListener('submit', (event) => {
-        if (! window.confirm('Kirim pesanan ke kasir untuk bayar tunai?')) {
-            event.preventDefault();
-        }
+    root.querySelectorAll('[data-order-cash-send-form]').forEach((cashForm) => {
+        cashForm.addEventListener('submit', (event) => {
+            if (! window.confirm('Kirim pesanan ke kasir? Bayar tunai di tempat.')) {
+                event.preventDefault();
+            }
+        });
     });
 
     initOrderQrisSaveGallery(root);
     showMethod('qris');
+    syncProofSubmit();
 }
 
 function initOrderQrisSaveGallery(root) {
