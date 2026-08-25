@@ -75,12 +75,26 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     payload = JSON.stringify(body);
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`, {
-    method,
-    headers,
-    body: payload,
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`, {
+      method,
+      headers,
+      body: payload,
+      signal,
+    });
+  } catch (cause) {
+    if (cause instanceof Error && cause.name === 'AbortError') {
+      throw cause;
+    }
+
+    const err = new Error(
+      'Tidak dapat terhubung ke server. Periksa koneksi internet perangkat lalu coba lagi.',
+    ) as ApiError;
+    err.code = 'NETWORK_ERROR';
+    err.cause = cause;
+    throw err;
+  }
 
   const text = await response.text();
   let json: unknown = null;

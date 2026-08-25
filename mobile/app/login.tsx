@@ -75,7 +75,7 @@ export default function LoginScreen() {
 
     setSubmitting(true);
     try {
-      await login({ email, password });
+      await login({ email: email.trim().toLowerCase(), password });
     } catch (err) {
       const apiErr = asApiError(err);
       setError(apiErr.message || 'Gagal masuk.');
