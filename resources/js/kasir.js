@@ -1143,6 +1143,17 @@ function initPosOrderBar(root) {
                 clearSaveStatus();
             }, 450);
         } catch (error) {
+            if (! navigator.onLine && typeof window.__kasirQueueOfflineForm === 'function') {
+                try {
+                    await window.__kasirQueueOfflineForm(form);
+                    updateToolbar(Object.fromEntries(new FormData(form)));
+                    updateReceiptContext(Object.fromEntries(new FormData(form)));
+                    setSaveStatus('success', 'Disimpan offline');
+                    return;
+                } catch {
+                    // Tampilkan error asli jika browser tidak mendukung antrean offline.
+                }
+            }
             setSaveStatus('error', error.message || 'Gagal menyimpan.');
             throw error;
         } finally {

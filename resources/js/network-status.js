@@ -36,6 +36,8 @@ async function queueRequest(form) {
     });
 }
 
+window.__kasirQueueOfflineForm = queueRequest;
+
 async function getQueuedRequests() {
     const db = await openQueue();
     return new Promise((resolve, reject) => {
@@ -142,7 +144,10 @@ function initNetworkStatus() {
         try {
             await queueRequest(form);
             renderStatus(element, false, await countQueuedRequests());
-            window.alert('Koneksi sedang offline. Transaksi disimpan dan akan disinkronkan otomatis saat online.');
+            const isPayment = Boolean(paymentMethod);
+            window.alert(isPayment
+                ? 'Koneksi sedang offline. Transaksi disimpan dan akan disinkronkan otomatis saat online.'
+                : 'Koneksi sedang offline. Perubahan disimpan dan akan disinkronkan otomatis saat online.');
             form.closest('[data-kasir-pay-modal]')?.classList.add('hidden');
             form.closest('[data-kasir-modal]')?.classList.add('hidden');
         } catch (error) {
