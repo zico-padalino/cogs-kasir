@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cogs-pos-shell-v7';
+const CACHE_NAME = 'cogs-pos-shell-v8';
 const PRECACHE_URLS = [
     '/icons/icon-192.png',
     '/icons/icon-512.png',
@@ -46,7 +46,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Navigasi HTML ke modul/absensi selalu network — hindari "nyangkut" halaman absen.
+    // Cache halaman POS yang sudah dibuka agar layar menu tetap tersedia saat Wi-Fi putus.
+    if (event.request.mode === 'navigate' && isKasirPath(url.pathname)) {
+        event.respondWith(networkFirstAndCache(event.request));
+
+        return;
+    }
+
+    // Modul lain tetap network-only — terutama sesi, absensi, dan admin.
     if (event.request.mode === 'navigate' || isBypassedPath(url.pathname)) {
         return;
     }
@@ -62,6 +69,25 @@ self.addEventListener('fetch', (event) => {
 
 function isBypassedPath(pathname) {
     return BYPASS_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isKasirPath(pathname) {
+    return pathname === '/kasir' || pathname === '/kasir/';
+}
+
+async function networkFirstAndCache(request) {
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
+        }
+        return response;
+    } catch {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        throw new Error('Offline');
+    }
 }
 
 async function cacheFirst(request) {
