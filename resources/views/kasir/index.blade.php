@@ -64,6 +64,7 @@
                 @endif
                 <span class="badge max-lg:hidden {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
+            <span class="network-status" data-network-status role="status" aria-live="polite">Memeriksa koneksi...</span>
             <button
                 type="button"
                 class="pos-notify-bell"

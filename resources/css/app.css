@@ -43,30 +43,22 @@
 
 @layer components {
     .network-status {
-        position: fixed;
-        top: 0.75rem;
-        right: 0.75rem;
-        z-index: 100;
         max-width: min(30rem, calc(100vw - 1.5rem));
+        flex: 0 1 auto;
+        order: 1;
         border-radius: 999px;
         padding: 0.4rem 0.75rem;
         background: #166534;
         color: #fff;
         font-size: 0.75rem;
         font-weight: 700;
+        line-height: 1.25;
+        white-space: nowrap;
         box-shadow: 0 0.25rem 0.75rem rgb(28 20 16 / 15%);
     }
 
-    /* POS memiliki toolbar sendiri; letakkan status di bawahnya agar tidak menutup aksi. */
-    .app-body.is-kasir-pos .network-status {
-        top: calc(env(safe-area-inset-top, 0px) + 7.25rem);
-        right: 1rem;
-    }
-
-    @media (min-width: 768px) {
-        .app-body.is-kasir-pos .network-status {
-            top: 5.5rem;
-        }
+    .pos-toolbar > .network-status {
+        margin-left: auto;
     }
 
     .network-status.is-offline {

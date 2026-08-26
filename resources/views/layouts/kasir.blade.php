@@ -32,7 +32,6 @@
     data-kasir-voice-url="{{ asset('sounds/pesanan-masuk.mp3') }}"
 >
     @include('layouts.partials.pwa-install-banner', ['app' => 'kasir'])
-    <div class="network-status" data-network-status role="status" aria-live="polite">Memeriksa koneksi...</div>
     <div id="mobile-overlay" class="mobile-overlay pointer-events-none md:hidden" aria-hidden="true"></div>
 
     <div class="app-shell">
