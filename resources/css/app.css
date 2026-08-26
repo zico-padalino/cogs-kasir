@@ -57,6 +57,18 @@
         box-shadow: 0 0.25rem 0.75rem rgb(28 20 16 / 15%);
     }
 
+    /* POS memiliki toolbar sendiri; letakkan status di bawahnya agar tidak menutup aksi. */
+    .app-body.is-kasir-pos .network-status {
+        top: calc(env(safe-area-inset-top, 0px) + 7.25rem);
+        right: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .app-body.is-kasir-pos .network-status {
+            top: 5.5rem;
+        }
+    }
+
     .network-status.is-offline {
         background: #b91c1c;
     }
