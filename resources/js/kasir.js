@@ -1039,6 +1039,46 @@ function initPosOrderBar(root) {
         saveStatus?.classList.add('hidden');
     };
 
+    const offlineContextKey = 'kasir_offline_order_context';
+    const restoreOfflineContext = () => {
+        if (navigator.onLine) {
+            return;
+        }
+
+        try {
+            const context = JSON.parse(localStorage.getItem(offlineContextKey) || 'null');
+            if (! context) return;
+            const customer = bar.querySelector('[data-pos-customer-note]');
+            const type = bar.querySelector(`[data-pos-order-type][value="${CSS.escape(context.order_type || '')}"]`);
+            if (customer && ! customer.value) customer.value = context.customer_note || '';
+            if (type) type.checked = true;
+            syncTypeCards();
+        } catch {
+            // Abaikan draft lokal yang rusak.
+        }
+    };
+
+    const syncOfflineContext = async () => {
+        if (! navigator.onLine) return;
+        const raw = localStorage.getItem(offlineContextKey);
+        if (! raw) return;
+        try {
+            const context = JSON.parse(raw);
+            const response = await fetch(bar.action, {
+                method: 'POST',
+                body: new URLSearchParams({
+                    _token: bar.querySelector('input[name="_token"]')?.value || '',
+                    order_type: context.order_type || '',
+                    customer_note: context.customer_note || '',
+                }),
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (response.ok) localStorage.removeItem(offlineContextKey);
+        } catch {
+            // Akan dicoba lagi pada event online berikutnya.
+        }
+    };
+
     const syncTypeCards = () => {
         const type = bar.querySelector('[data-pos-order-type]:checked')?.value ?? '';
 
@@ -1119,6 +1159,15 @@ function initPosOrderBar(root) {
         const formData = new FormData(bar);
 
         try {
+            if (! navigator.onLine) {
+                localStorage.setItem('kasir_offline_order_context', JSON.stringify({
+                    order_type: formData.get('order_type') || '',
+                    customer_note: formData.get('customer_note') || '',
+                }));
+                setSaveStatus('success', 'Tersimpan di perangkat');
+                return;
+            }
+
             const response = await fetch(bar.action, {
                 method: 'POST',
                 body: formData,
@@ -1143,17 +1192,6 @@ function initPosOrderBar(root) {
                 clearSaveStatus();
             }, 450);
         } catch (error) {
-            if (! navigator.onLine && typeof window.__kasirQueueOfflineForm === 'function') {
-                try {
-                    await window.__kasirQueueOfflineForm(form);
-                    updateToolbar(Object.fromEntries(new FormData(form)));
-                    updateReceiptContext(Object.fromEntries(new FormData(form)));
-                    setSaveStatus('success', 'Disimpan offline');
-                    return;
-                } catch {
-                    // Tampilkan error asli jika browser tidak mendukung antrean offline.
-                }
-            }
             setSaveStatus('error', error.message || 'Gagal menyimpan.');
             throw error;
         } finally {
@@ -1234,6 +1272,9 @@ function initPosOrderBar(root) {
     });
 
     syncTypeCards();
+    restoreOfflineContext();
+    window.addEventListener('online', syncOfflineContext);
+    void syncOfflineContext();
     setOrderBarExpanded(false);
 }
 
