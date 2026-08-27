@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\Admin\SalaryController;
 use App\Http\Controllers\Web\Admin\SettingsController;
 use App\Http\Controllers\Web\Admin\UserAccessController;
 use App\Http\Controllers\Web\Admin\AttendanceQrController;
+use App\Http\Controllers\Web\Admin\ConvertMenuImagesController;
 use App\Http\Controllers\Web\Auth\LoginController;
 use App\Http\Controllers\Web\EmployeeProfileSetupController;
 use App\Http\Controllers\Web\PublicAttendanceController;
@@ -124,6 +125,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('log-aktivitas', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::get('convert-menu-images-webp', [ConvertMenuImagesController::class, 'index'])->name('convert-menu-images');
+    Route::post('convert-menu-images-webp', [ConvertMenuImagesController::class, 'store'])->name('convert-menu-images.store');
 });
 
 Route::middleware(['auth', 'role:kasir'])->prefix('kasir')->name('kasir.')->group(function () {
