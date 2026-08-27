@@ -109,7 +109,7 @@
                         </label>
                         <span class="file-pick-name" data-kasir-product-filename>Belum ada file dipilih</span>
                     </div>
-                    <p class="form-hint">Upload JPG/PNG/WebP maks. 2 MB, lalu tekan <strong>Simpan Menu</strong>.</p>
+                    <p class="form-hint">Upload JPG/PNG/WebP maks. 2 MB. Gambar akan otomatis disimpan sebagai WebP saat menekan <strong>Simpan Menu</strong>.</p>
                     @error('image')
                         <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
                     @enderror

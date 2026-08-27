@@ -8,12 +8,10 @@ use App\Http\Requests\UpdateKasirProductRequest;
 use App\Models\MenuCategory;
 use App\Models\Product;
 use App\Services\ProductHppService;
+use App\Services\MenuImageService;
 use App\Support\Format;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class KasirProductController extends Controller
 {
@@ -61,7 +59,7 @@ class KasirProductController extends Controller
             $data['image_path'] = null;
         } elseif ($request->hasFile('image')) {
             $this->deleteStoredImage($product);
-            $data['image_path'] = $this->storeMenuImage($request->file('image'));
+            $data['image_path'] = app(MenuImageService::class)->store($request->file('image'));
         } elseif ($request->filled('preset_image')) {
             $this->deleteStoredImage($product);
             $data['image_path'] = $request->input('preset_image');
@@ -111,20 +109,6 @@ class KasirProductController extends Controller
         if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true) || ! $product->is_menu_item) {
             abort(403, 'Produk ini tidak bisa diatur dari kasir.');
         }
-    }
-
-    private function storeMenuImage(UploadedFile $file): string
-    {
-        $dir = public_path('uploads/menu');
-        if (! is_dir($dir)) {
-            File::ensureDirectoryExists($dir, 0755);
-        }
-
-        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-        $name = Str::uuid()->toString().'.'.$ext;
-        $file->move($dir, $name);
-
-        return 'uploads/menu/'.$name;
     }
 
     private function deleteStoredImage(Product $product): void
