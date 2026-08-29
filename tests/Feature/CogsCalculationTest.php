@@ -96,6 +96,7 @@ class CogsCalculationTest extends TestCase
             'standard_cost' => 50000,
         ]);
         $product->costing_method = null;
+        $product->type = null;
 
         $result = app(CogsCalculationService::class)->calculateSaleCogs(
             product: $product,

@@ -160,6 +160,25 @@ class Product extends Model
         return (float) $this->standard_cost;
     }
 
+    public function effectiveType(): ProductType
+    {
+        $value = $this->type;
+
+        if ($value instanceof ProductType) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            foreach (ProductType::cases() as $type) {
+                if ($type->value === $value) {
+                    return $type;
+                }
+            }
+        }
+
+        return ProductType::RawMaterial;
+    }
+
     public function effectiveCostingMethod(): CostingMethod
     {
         $value = $this->costing_method;

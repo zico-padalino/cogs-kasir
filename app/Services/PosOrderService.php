@@ -588,17 +588,21 @@ class PosOrderService
             ->orderBy('name')
             ->get()
             ->filter(fn (Product $product) => $product->availableQuantity() <= 0)
-            ->map(fn (Product $product) => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'type' => $product->type->value,
-                'type_label' => match ($product->type) {
-                    ProductType::FinishedGood => 'Barang Jadi',
-                    ProductType::SemiFinished => 'Bahan Jadi',
-                    ProductType::RawMaterial => 'Barang Stok',
-                },
-                'sku' => $product->sku,
-            ])
+            ->map(fn (Product $product) => {
+                $type = $product->effectiveType();
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'type' => $type->value,
+                    'type_label' => match ($type) {
+                        ProductType::FinishedGood => 'Barang Jadi',
+                        ProductType::SemiFinished => 'Bahan Jadi',
+                        ProductType::RawMaterial => 'Barang Stok',
+                    },
+                    'sku' => $product->sku,
+                ];
+            })
             ->values()
             ->all();
     }
