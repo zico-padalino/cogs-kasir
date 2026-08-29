@@ -70,12 +70,11 @@ class DashboardController extends Controller
 
         $omzetKotor = round((float) $orders->sum('subtotal'), 4);
         $diskonTotal = round((float) $orders->sum('discount_amount'), 4);
-        $lostTotal = \
-            Schema::hasTable('stock_wastes')
-                ? round((float) StockWaste::query()
-                    ->whereBetween('created_at', [$start, $end])
-                    ->sum('total_cost'), 4)
-                : 0.0;
+        $lostTotal = Schema::hasTable('stock_wastes')
+            ? round((float) StockWaste::query()
+                ->whereBetween('created_at', [$start, $end])
+                ->sum('total_cost'), 4)
+            : 0.0;
         $omzet = round($omzetKotor - $diskonTotal - $lostTotal, 4);
         $count = $orders->count();
 

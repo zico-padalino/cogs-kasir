@@ -588,7 +588,7 @@ class PosOrderService
             ->orderBy('name')
             ->get()
             ->filter(fn (Product $product) => $product->availableQuantity() <= 0)
-            ->map(fn (Product $product) => {
+            ->map(function (Product $product) {
                 $type = $product->effectiveType();
 
                 return [
