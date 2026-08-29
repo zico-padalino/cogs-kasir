@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
+use App\Enums\SalaryStatus;
 use App\Models\BusinessExpense;
+use App\Models\EmployeeSalary;
 use App\Models\PosOrder;
 use App\Models\StockWaste;
 use App\Support\Format;
@@ -46,6 +48,7 @@ class SalesReportService
         $expenses = $this->expenseBreakdown($period, $rangeStart, $rangeEnd);
         $expenseTotal = $expenses['total'];
         $expenseGaji = $expenses['gaji'];
+        $expenseGajiManual = $expenses['gaji_manual'];
         $expenseLainnya = $expenses['lainnya'];
         $omzetPenjualan = round($omzetKotor - $diskonTotal - $lostTotal, 4);
         $omzet = $subtractExpensesFromNet
@@ -84,6 +87,7 @@ class SalesReportService
             'lost_total' => $lostTotal,
             'expense_total' => $expenseTotal,
             'expense_gaji' => $expenseGaji,
+            'expense_gaji_manual' => $expenseGajiManual,
             'expense_lainnya' => $expenseLainnya,
             'subtract_expenses_from_net' => $subtractExpensesFromNet,
             'count' => $count,
@@ -110,11 +114,13 @@ class SalesReportService
         return round((float) $query->sum('total_cost'), 4);
     }
 
-    /** @return array{total: float, gaji: float, lainnya: float} */
+    /** @return array{total: float, gaji: float, gaji_manual: float, lainnya: float} */
     private function expenseBreakdown(string $period, Carbon $rangeStart, Carbon $rangeEnd): array
     {
+        $empty = ['total' => 0.0, 'gaji' => 0.0, 'gaji_manual' => 0.0, 'lainnya' => 0.0];
+
         if (! Schema::hasTable('business_expenses')) {
-            return ['total' => 0.0, 'gaji' => 0.0, 'lainnya' => 0.0];
+            return $empty;
         }
 
         $query = BusinessExpense::query();
@@ -123,15 +129,56 @@ class SalesReportService
             $query->whereBetween('occurred_at', [$rangeStart, $rangeEnd]);
         }
 
-        $entries = $query->get(['amount', 'category']);
-        $gaji = round((float) $entries->where('category', 'gaji')->sum('amount'), 4);
+        $entries = $query->get(['id', 'amount', 'category']);
+        $linkedExpenseIds = $this->linkedSalaryExpenseIds();
+        $gajiManual = round((float) $entries
+            ->where('category', 'gaji')
+            ->reject(fn (BusinessExpense $entry) => in_array((int) $entry->id, $linkedExpenseIds, true))
+            ->sum('amount'), 4);
+        $lainnya = round((float) $entries
+            ->filter(fn (BusinessExpense $entry) => $entry->category !== 'gaji')
+            ->sum('amount'), 4);
         $total = round((float) $entries->sum('amount'), 4);
+        $gaji = $this->paidSalaryTotal($period, $rangeStart, $rangeEnd);
 
         return [
             'total' => $total,
             'gaji' => $gaji,
-            'lainnya' => round($total - $gaji, 4),
+            'gaji_manual' => $gajiManual,
+            'lainnya' => $lainnya,
         ];
+    }
+
+    /** @return list<int> */
+    private function linkedSalaryExpenseIds(): array
+    {
+        if (! Schema::hasTable('employee_salaries')
+            || ! Schema::hasColumn('employee_salaries', 'business_expense_id')) {
+            return [];
+        }
+
+        return EmployeeSalary::query()
+            ->whereNotNull('business_expense_id')
+            ->pluck('business_expense_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function paidSalaryTotal(string $period, Carbon $rangeStart, Carbon $rangeEnd): float
+    {
+        if (! Schema::hasTable('employee_salaries')) {
+            return 0.0;
+        }
+
+        $query = EmployeeSalary::query()->where('status', SalaryStatus::Paid);
+
+        if ($period !== 'all') {
+            $query->whereBetween('paid_at', [$rangeStart, $rangeEnd]);
+        }
+
+        return round((float) $query->sum('total'), 4);
     }
 
     /** @param array<string, mixed> $validated */

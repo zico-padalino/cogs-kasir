@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
+use App\Enums\SalaryStatus;
 use App\Models\BusinessExpense;
+use App\Models\EmployeeSalary;
 use App\Models\PosOrder;
 use App\Models\StockWaste;
 use App\Models\User;
@@ -291,9 +293,94 @@ class BusinessFundTest extends TestCase
         ]), subtractExpensesFromNet: true);
 
         $this->assertSame(70_000.0, $report['expense_total']);
-        $this->assertSame(50_000.0, $report['expense_gaji']);
+        $this->assertSame(0.0, $report['expense_gaji']);
+        $this->assertSame(50_000.0, $report['expense_gaji_manual']);
         $this->assertSame(20_000.0, $report['expense_lainnya']);
         $this->assertSame(130_000.0, $report['omzet']);
+    }
+
+    public function test_admin_salary_expense_counts_confirmed_employee_salaries_only(): void
+    {
+        $date = Carbon::parse('2026-07-28 10:00:00');
+
+        Schema::dropIfExists('business_expenses');
+        Schema::create('business_expenses', function (Blueprint $table) {
+            $table->id();
+            $table->decimal('amount', 12, 4);
+            $table->string('category');
+            $table->string('payment_method')->nullable();
+            $table->text('note')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->timestamp('occurred_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::dropIfExists('employee_salaries');
+        Schema::create('employee_salaries', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('employee_id');
+            $table->date('period_month');
+            $table->date('period_end')->nullable();
+            $table->decimal('base_salary', 12, 4)->default(0);
+            $table->decimal('daily_salary', 12, 4)->default(0);
+            $table->unsignedInteger('work_days')->default(0);
+            $table->decimal('allowance', 12, 4)->default(0);
+            $table->decimal('deduction', 12, 4)->default(0);
+            $table->decimal('manual_deduction', 12, 4)->default(0);
+            $table->decimal('total', 12, 4)->default(0);
+            $table->string('status')->default('draft');
+            $table->timestamp('paid_at')->nullable();
+            $table->unsignedBigInteger('business_expense_id')->nullable();
+            $table->timestamps();
+        });
+
+        $this->paidOrder('TRX-401', 300_000, 300_000, PaymentMethod::Cash, $date);
+
+        BusinessExpense::query()->forceCreate([
+            'amount' => 50_000,
+            'category' => 'gaji',
+            'payment_method' => PaymentMethod::Transfer->value,
+            'note' => 'Input manual di Dana Usaha',
+            'user_id' => 1,
+            'occurred_at' => $date,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+
+        $linkedExpense = BusinessExpense::query()->forceCreate([
+            'amount' => 80_000,
+            'category' => 'gaji',
+            'payment_method' => PaymentMethod::Transfer->value,
+            'note' => 'Gaji karyawan: Budi · Per bulan · Juli 2026',
+            'user_id' => 1,
+            'occurred_at' => $date,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+
+        EmployeeSalary::query()->forceCreate([
+            'employee_id' => 1,
+            'period_month' => $date->toDateString(),
+            'period_end' => $date->toDateString(),
+            'base_salary' => 80_000,
+            'total' => 80_000,
+            'status' => SalaryStatus::Paid->value,
+            'paid_at' => $date,
+            'business_expense_id' => $linkedExpense->id,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+
+        $report = app(SalesReportService::class)->reportData(new Request([
+            'period' => 'day',
+            'date' => $date->toDateString(),
+        ]), subtractExpensesFromNet: true);
+
+        $this->assertSame(130_000.0, $report['expense_total']);
+        $this->assertSame(80_000.0, $report['expense_gaji']);
+        $this->assertSame(50_000.0, $report['expense_gaji_manual']);
+        $this->assertSame(0.0, $report['expense_lainnya']);
+        $this->assertSame(170_000.0, $report['omzet']);
     }
 
     public function test_fund_page_is_visible_to_cogs_but_not_kasir_only_user(): void

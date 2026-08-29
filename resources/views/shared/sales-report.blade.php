@@ -93,6 +93,7 @@
     @if ($subtract_expenses_from_net ?? false)
         <x-stat-card label="Total pengeluaran" :value="$format::rupiah($expense_total ?? 0)" color="rose" />
         <x-stat-card label="Pengeluaran gaji" :value="$format::rupiah($expense_gaji ?? 0)" color="violet" />
+        <x-stat-card label="Gaji manual (Dana Usaha)" :value="$format::rupiah($expense_gaji_manual ?? 0)" color="violet" />
         <x-stat-card label="Pengeluaran lain-lain" :value="$format::rupiah($expense_lainnya ?? 0)" color="rose" />
     @endif
     <x-stat-card label="Omzet bersih" :value="$format::rupiah($omzet)" color="green" />
