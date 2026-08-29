@@ -101,6 +101,10 @@
     <x-stat-card label="Rata-rata per transaksi" :value="$format::rupiah($average)" color="slate" />
 </div>
 
+@if ($subtract_expenses_from_net ?? false)
+    @include('shared.sales-report-sources')
+@endif
+
 @if ($count === 0 && $isSummaryOnly)
     <div class="card sales-report-empty">
         <div class="sales-report-empty-icon" aria-hidden="true">📊</div>

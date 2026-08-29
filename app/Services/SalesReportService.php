@@ -55,6 +55,9 @@ class SalesReportService
             ? round($omzetPenjualan - $expenseTotal, 4)
             : $omzetPenjualan;
         $count = $orders->count();
+        $metricSources = $subtractExpensesFromNet
+            ? $this->metricSources($period, $rangeStart, $rangeEnd, $expenses, $count)
+            : null;
 
         $byPayment = [];
         foreach (PaymentMethod::cases() as $method) {
@@ -89,6 +92,7 @@ class SalesReportService
             'expense_gaji' => $expenseGaji,
             'expense_gaji_manual' => $expenseGajiManual,
             'expense_lainnya' => $expenseLainnya,
+            'metric_sources' => $metricSources,
             'subtract_expenses_from_net' => $subtractExpensesFromNet,
             'count' => $count,
             'average' => $count > 0 ? $omzet / $count : 0,
@@ -114,12 +118,27 @@ class SalesReportService
         return round((float) $query->sum('total_cost'), 4);
     }
 
-    /** @return array{total: float, gaji: float, gaji_manual: float, lainnya: float} */
+    /** @return array{total: float, gaji: float, gaji_manual: float, lainnya: float, sources: array<string, mixed>} */
     private function expenseBreakdown(string $period, Carbon $rangeStart, Carbon $rangeEnd): array
     {
-        $empty = ['total' => 0.0, 'gaji' => 0.0, 'gaji_manual' => 0.0, 'lainnya' => 0.0];
+        $emptySources = [
+            'gaji' => [],
+            'gaji_manual' => [],
+            'lainnya' => [],
+            'lainnya_by_category' => [],
+        ];
+        $empty = [
+            'total' => 0.0,
+            'gaji' => 0.0,
+            'gaji_manual' => 0.0,
+            'lainnya' => 0.0,
+            'sources' => $emptySources,
+        ];
 
         if (! Schema::hasTable('business_expenses')) {
+            $empty['gaji'] = $this->paidSalaryTotal($period, $rangeStart, $rangeEnd);
+            $empty['sources']['gaji'] = $this->paidSalarySources($period, $rangeStart, $rangeEnd);
+
             return $empty;
         }
 
@@ -129,24 +148,165 @@ class SalesReportService
             $query->whereBetween('occurred_at', [$rangeStart, $rangeEnd]);
         }
 
-        $entries = $query->get(['id', 'amount', 'category']);
+        $entries = $query->orderByDesc('occurred_at')->orderByDesc('id')->get();
         $linkedExpenseIds = $this->linkedSalaryExpenseIds();
-        $gajiManual = round((float) $entries
+        $manualEntries = $entries
             ->where('category', 'gaji')
-            ->reject(fn (BusinessExpense $entry) => in_array((int) $entry->id, $linkedExpenseIds, true))
-            ->sum('amount'), 4);
-        $lainnya = round((float) $entries
-            ->filter(fn (BusinessExpense $entry) => $entry->category !== 'gaji')
-            ->sum('amount'), 4);
+            ->reject(fn (BusinessExpense $entry) => in_array((int) $entry->id, $linkedExpenseIds, true));
+        $otherEntries = $entries->filter(fn (BusinessExpense $entry) => $entry->category !== 'gaji');
+
+        $gajiManual = round((float) $manualEntries->sum('amount'), 4);
+        $lainnya = round((float) $otherEntries->sum('amount'), 4);
         $total = round((float) $entries->sum('amount'), 4);
         $gaji = $this->paidSalaryTotal($period, $rangeStart, $rangeEnd);
+
+        $lainnyaByCategory = $otherEntries
+            ->groupBy('category')
+            ->map(function (Collection $group, string $category) {
+                return [
+                    'category' => $category,
+                    'label' => BusinessExpense::CATEGORIES[$category] ?? ucfirst(str_replace('_', ' ', $category)),
+                    'count' => $group->count(),
+                    'total' => round((float) $group->sum('amount'), 4),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values()
+            ->all();
 
         return [
             'total' => $total,
             'gaji' => $gaji,
             'gaji_manual' => $gajiManual,
             'lainnya' => $lainnya,
+            'sources' => [
+                'gaji' => $this->paidSalarySources($period, $rangeStart, $rangeEnd),
+                'gaji_manual' => $this->mapExpenseSources($manualEntries, 'Dana Usaha · input manual'),
+                'lainnya' => $this->mapExpenseSources($otherEntries, 'Dana Usaha'),
+                'lainnya_by_category' => $lainnyaByCategory,
+            ],
         ];
+    }
+
+    /**
+     * @param  array{sources: array<string, mixed>}  $expenses
+     * @return array<string, mixed>
+     */
+    private function metricSources(
+        string $period,
+        Carbon $rangeStart,
+        Carbon $rangeEnd,
+        array $expenses,
+        int $orderCount,
+    ): array {
+        return [
+            'omzet_kotor' => [
+                'module' => 'Modul Kasir',
+                'detail' => "Subtotal {$orderCount} transaksi lunas (sebelum diskon)",
+            ],
+            'diskon' => [
+                'module' => 'Modul Kasir',
+                'detail' => 'Total diskon pada pesanan lunas',
+            ],
+            'lost_produk' => [
+                'module' => 'Modul Kasir',
+                'detail' => 'Barang lost / waste stok (rusak, gagal, dll.)',
+                'items' => $this->lostProductSources($period, $rangeStart, $rangeEnd),
+            ],
+            'gaji' => [
+                'module' => 'Modul Admin → Gaji Karyawan',
+                'detail' => 'Gaji yang sudah dikonfirmasi bayar',
+                'items' => $expenses['sources']['gaji'],
+            ],
+            'gaji_manual' => [
+                'module' => 'Modul COGS → Dana Usaha',
+                'detail' => 'Kategori gaji yang diinput manual (bukan dari konfirmasi gaji)',
+                'items' => $expenses['sources']['gaji_manual'],
+            ],
+            'lainnya' => [
+                'module' => 'Modul COGS → Dana Usaha',
+                'detail' => 'Pengeluaran operasional, bahan, utilitas, dll.',
+                'items' => $expenses['sources']['lainnya'],
+                'by_category' => $expenses['sources']['lainnya_by_category'],
+            ],
+        ];
+    }
+
+    /** @return list<array{label: string, detail: string, amount: float, date: ?Carbon}> */
+    private function paidSalarySources(string $period, Carbon $rangeStart, Carbon $rangeEnd): array
+    {
+        if (! Schema::hasTable('employee_salaries')) {
+            return [];
+        }
+
+        $query = EmployeeSalary::query()
+            ->with('employee:id,name,employee_code')
+            ->where('status', SalaryStatus::Paid);
+
+        if ($period !== 'all') {
+            $query->whereBetween('paid_at', [$rangeStart, $rangeEnd]);
+        }
+
+        return $query
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (EmployeeSalary $salary) => [
+                'label' => $salary->employee?->name ?? 'Karyawan',
+                'detail' => trim(($salary->employee?->employee_code ? $salary->employee->employee_code.' · ' : '')
+                    .$salary->periodLabel()),
+                'amount' => (float) $salary->total,
+                'date' => $salary->paid_at,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return list<array{label: string, detail: string, amount: float, date: ?Carbon}> */
+    private function lostProductSources(string $period, Carbon $rangeStart, Carbon $rangeEnd): array
+    {
+        if (! Schema::hasTable('stock_wastes')) {
+            return [];
+        }
+
+        $query = StockWaste::query()->with('product:id,name,sku');
+
+        if ($period !== 'all') {
+            $query->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+        }
+
+        return $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (StockWaste $waste) {
+                $product = $waste->product?->name ?? 'Produk #'.$waste->product_id;
+
+                return [
+                    'label' => $product,
+                    'detail' => trim($waste->reasonLabel().($waste->note ? ' · '.$waste->note : '')),
+                    'amount' => (float) $waste->total_cost,
+                    'date' => $waste->created_at,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /** @param  Collection<int, BusinessExpense>  $entries
+     * @return list<array{label: string, detail: string, amount: float, date: ?Carbon}>
+     */
+    private function mapExpenseSources(Collection $entries, string $modulePrefix): array
+    {
+        return $entries
+            ->map(fn (BusinessExpense $expense) => [
+                'label' => $expense->categoryLabel(),
+                'detail' => trim($modulePrefix.($expense->note ? ' · '.$expense->note : '')),
+                'amount' => (float) $expense->amount,
+                'date' => $expense->occurred_at,
+            ])
+            ->values()
+            ->all();
     }
 
     /** @return list<int> */
