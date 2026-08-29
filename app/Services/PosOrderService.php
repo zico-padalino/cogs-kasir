@@ -1146,7 +1146,7 @@ class PosOrderService
 
     private function assertSellable(Product $product, float $quantity, bool $forPayment = false, ?PosOrder $order = null): void
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if (! in_array($product->effectiveType(), [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             throw new RuntimeException('Produk tidak dijual di kasir.');
         }
 
