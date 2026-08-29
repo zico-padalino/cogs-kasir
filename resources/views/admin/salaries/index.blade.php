@@ -211,10 +211,11 @@
 
     @php
         $draftSalaries = $salaries->filter(fn ($s) => $s->status->value === 'draft')->values();
-        $paidSalaries = $salaries->filter(fn ($s) => $s->status->value === 'paid')->values();
+        $paidSalariesInPeriod = $salaries->filter(fn ($s) => $s->status->value === 'paid')->values();
+        $paidSalaries = ($paidSalariesHistory ?? collect())->values();
         $periodTotal = $salaries->sum('total');
         $draftTotal = $draftSalaries->sum('total');
-        $paidTotal = $paidSalaries->sum('total');
+        $paidTotal = $paidSalariesInPeriod->sum('total');
         $periodPeople = $salaries->count();
         $periodHadir = $salaries->sum(fn ($s) => (int) ($s->work_days ?? 0));
     @endphp
@@ -268,7 +269,7 @@
             <div class="flex items-center justify-between gap-2 px-0.5">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-900">Riwayat pembayaran</h3>
-                    <p class="text-xs text-slate-500">Yang sudah dikonfirmasi bayar. Tetap bisa diedit atau dihapus.</p>
+                    <p class="text-xs text-slate-500">Semua gaji yang sudah dikonfirmasi bayar, tanpa filter periode.</p>
                 </div>
                 <span class="text-xs text-slate-500">{{ $paidSalaries->count() }} data</span>
             </div>

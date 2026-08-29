@@ -51,10 +51,18 @@ class SalaryApiController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $paidSalariesHistory = EmployeeSalary::query()
+            ->with('employee')
+            ->where('status', SalaryStatus::Paid)
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
+            ->get();
+
         return response()->json([
             'message' => 'Data gaji berhasil dimuat.',
             'data' => [
                 'salaries' => $salaries,
+                'paid_salaries_history' => $paidSalariesHistory,
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
                 'month' => $from->format('Y-m'),

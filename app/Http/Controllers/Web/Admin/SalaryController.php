@@ -42,6 +42,15 @@ class SalaryController extends Controller
                 ->orderByDesc('id')
                 ->get();
 
+        $paidSalariesHistory = $schemaMissing
+            ? collect()
+            : EmployeeSalary::query()
+                ->with(['employee.workSchedules'])
+                ->where('status', SalaryStatus::Paid)
+                ->orderByDesc('paid_at')
+                ->orderByDesc('id')
+                ->get();
+
         $employees = $schemaMissing
             ? collect()
             : Employee::query()
@@ -71,6 +80,7 @@ class SalaryController extends Controller
 
         return view('admin.salaries.index', [
             'salaries' => $salaries,
+            'paidSalariesHistory' => $paidSalariesHistory,
             'from' => $from,
             'to' => $to,
             'periodLabel' => $this->formatPeriodLabel($from, $to),
