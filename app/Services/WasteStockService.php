@@ -220,7 +220,7 @@ class WasteStockService
 
     private function shouldConsumeFinishedGoods(Product $product, float $quantity): bool
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if (! in_array($product->effectiveType(), [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             return false;
         }
 

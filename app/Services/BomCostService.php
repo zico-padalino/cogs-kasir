@@ -101,7 +101,7 @@ class BomCostService
 
         // Bahan jadi sebagai komponen resep: konsumsi stok bahan jadi (jangan drill ke bahan baku).
         // depth 0 = produksi/root bahan jadi itu sendiri → tetap explode ke bahan baku.
-        if ($depth > 0 && $product->type === ProductType::SemiFinished) {
+        if ($depth > 0 && $product->effectiveType() === ProductType::SemiFinished) {
             return [['product' => $product, 'quantity' => $quantity]];
         }
 
