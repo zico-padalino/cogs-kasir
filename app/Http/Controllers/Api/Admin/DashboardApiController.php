@@ -13,7 +13,7 @@ class DashboardApiController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $report = $this->salesReport->reportData($request, defaultPeriod: 'all');
+        $report = $this->salesReport->reportData($request, defaultPeriod: 'all', subtractExpensesFromNet: true);
 
         return response()->json([
             'message' => 'Dashboard admin berhasil dimuat.',

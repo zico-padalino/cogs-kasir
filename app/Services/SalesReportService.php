@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
+use App\Models\BusinessExpense;
 use App\Models\PosOrder;
 use App\Models\StockWaste;
 use App\Support\Format;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Schema;
 class SalesReportService
 {
     /** @return array<string, mixed> */
-    public function reportData(Request $request, string $defaultPeriod = 'day'): array
+    public function reportData(Request $request, string $defaultPeriod = 'day', bool $subtractExpensesFromNet = false): array
     {
         $validated = $request->validate([
             'period' => ['nullable', 'in:all,day,week,month'],
@@ -42,7 +43,14 @@ class SalesReportService
         $omzetKotor = (float) $orders->sum('subtotal');
         $diskonTotal = (float) $orders->sum('discount_amount');
         $lostTotal = $this->lostProductTotal($period, $rangeStart, $rangeEnd);
-        $omzet = round($omzetKotor - $diskonTotal - $lostTotal, 4);
+        $expenses = $this->expenseBreakdown($period, $rangeStart, $rangeEnd);
+        $expenseTotal = $expenses['total'];
+        $expenseGaji = $expenses['gaji'];
+        $expenseLainnya = $expenses['lainnya'];
+        $omzetPenjualan = round($omzetKotor - $diskonTotal - $lostTotal, 4);
+        $omzet = $subtractExpensesFromNet
+            ? round($omzetPenjualan - $expenseTotal, 4)
+            : $omzetPenjualan;
         $count = $orders->count();
 
         $byPayment = [];
@@ -74,6 +82,10 @@ class SalesReportService
             'omzet_kotor' => $omzetKotor,
             'diskon_total' => $diskonTotal,
             'lost_total' => $lostTotal,
+            'expense_total' => $expenseTotal,
+            'expense_gaji' => $expenseGaji,
+            'expense_lainnya' => $expenseLainnya,
+            'subtract_expenses_from_net' => $subtractExpensesFromNet,
             'count' => $count,
             'average' => $count > 0 ? $omzet / $count : 0,
             'byPayment' => $byPayment,
@@ -96,6 +108,30 @@ class SalesReportService
         }
 
         return round((float) $query->sum('total_cost'), 4);
+    }
+
+    /** @return array{total: float, gaji: float, lainnya: float} */
+    private function expenseBreakdown(string $period, Carbon $rangeStart, Carbon $rangeEnd): array
+    {
+        if (! Schema::hasTable('business_expenses')) {
+            return ['total' => 0.0, 'gaji' => 0.0, 'lainnya' => 0.0];
+        }
+
+        $query = BusinessExpense::query();
+
+        if ($period !== 'all') {
+            $query->whereBetween('occurred_at', [$rangeStart, $rangeEnd]);
+        }
+
+        $entries = $query->get(['amount', 'category']);
+        $gaji = round((float) $entries->where('category', 'gaji')->sum('amount'), 4);
+        $total = round((float) $entries->sum('amount'), 4);
+
+        return [
+            'total' => $total,
+            'gaji' => $gaji,
+            'lainnya' => round($total - $gaji, 4),
+        ];
     }
 
     /** @param array<string, mixed> $validated */

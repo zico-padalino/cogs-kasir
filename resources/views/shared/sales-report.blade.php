@@ -89,8 +89,13 @@
 <div class="pembukuan-stats {{ $isSummaryOnly ? 'mb-5' : 'mb-4' }}">
     <x-stat-card label="Omzet kotor (seharusnya)" :value="$format::rupiah($omzet_kotor ?? $omzet)" color="slate" />
     <x-stat-card label="Total diskon" :value="$format::rupiah($diskon_total ?? 0)" color="amber" />
-    <x-stat-card label="Omzet bersih" :value="$format::rupiah($omzet)" color="green" />
     <x-stat-card label="Total lost produk" :value="$format::rupiah($lost_total ?? 0)" color="rose" />
+    @if ($subtract_expenses_from_net ?? false)
+        <x-stat-card label="Total pengeluaran" :value="$format::rupiah($expense_total ?? 0)" color="rose" />
+        <x-stat-card label="Pengeluaran gaji" :value="$format::rupiah($expense_gaji ?? 0)" color="violet" />
+        <x-stat-card label="Pengeluaran lain-lain" :value="$format::rupiah($expense_lainnya ?? 0)" color="rose" />
+    @endif
+    <x-stat-card label="Omzet bersih" :value="$format::rupiah($omzet)" color="green" />
     <x-stat-card label="Transaksi" :value="$format::number($count, 0)" color="brand" />
     <x-stat-card label="Rata-rata per transaksi" :value="$format::rupiah($average)" color="slate" />
 </div>

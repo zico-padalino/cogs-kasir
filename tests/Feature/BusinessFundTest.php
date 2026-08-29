@@ -205,6 +205,97 @@ class BusinessFundTest extends TestCase
         $this->assertSame(145_000.0, $report['omzet']);
     }
 
+    public function test_admin_net_sales_also_reduces_by_business_expenses(): void
+    {
+        $date = Carbon::parse('2026-07-28 10:00:00');
+
+        Schema::dropIfExists('business_expenses');
+        Schema::create('business_expenses', function (Blueprint $table) {
+            $table->id();
+            $table->decimal('amount', 12, 4);
+            $table->string('category');
+            $table->string('payment_method')->nullable();
+            $table->text('note')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->timestamp('occurred_at')->nullable();
+            $table->timestamps();
+        });
+
+        $this->paidOrder('TRX-201', 100_000, 100_000, PaymentMethod::Cash, $date);
+
+        BusinessExpense::query()->forceCreate([
+            'amount' => 30_000,
+            'category' => 'operasional',
+            'payment_method' => PaymentMethod::Cash->value,
+            'note' => 'Beli gas',
+            'user_id' => 1,
+            'occurred_at' => $date,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+
+        $report = app(SalesReportService::class)->reportData(new Request([
+            'period' => 'day',
+            'date' => $date->toDateString(),
+        ]), subtractExpensesFromNet: true);
+
+        $this->assertSame(100_000.0, $report['omzet_kotor']);
+        $this->assertSame(30_000.0, $report['expense_total']);
+        $this->assertSame(0.0, $report['expense_gaji']);
+        $this->assertSame(30_000.0, $report['expense_lainnya']);
+        $this->assertSame(70_000.0, $report['omzet']);
+    }
+
+    public function test_admin_net_sales_tracks_salary_expenses_separately(): void
+    {
+        $date = Carbon::parse('2026-07-28 10:00:00');
+
+        Schema::dropIfExists('business_expenses');
+        Schema::create('business_expenses', function (Blueprint $table) {
+            $table->id();
+            $table->decimal('amount', 12, 4);
+            $table->string('category');
+            $table->string('payment_method')->nullable();
+            $table->text('note')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->timestamp('occurred_at')->nullable();
+            $table->timestamps();
+        });
+
+        $this->paidOrder('TRX-301', 200_000, 200_000, PaymentMethod::Cash, $date);
+
+        BusinessExpense::query()->forceCreate([
+            'amount' => 50_000,
+            'category' => 'gaji',
+            'payment_method' => PaymentMethod::Transfer->value,
+            'note' => 'Gaji bulan Juli',
+            'user_id' => 1,
+            'occurred_at' => $date,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+        BusinessExpense::query()->forceCreate([
+            'amount' => 20_000,
+            'category' => 'operasional',
+            'payment_method' => PaymentMethod::Cash->value,
+            'note' => 'Beli gas',
+            'user_id' => 1,
+            'occurred_at' => $date,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+
+        $report = app(SalesReportService::class)->reportData(new Request([
+            'period' => 'day',
+            'date' => $date->toDateString(),
+        ]), subtractExpensesFromNet: true);
+
+        $this->assertSame(70_000.0, $report['expense_total']);
+        $this->assertSame(50_000.0, $report['expense_gaji']);
+        $this->assertSame(20_000.0, $report['expense_lainnya']);
+        $this->assertSame(130_000.0, $report['omzet']);
+    }
+
     public function test_fund_page_is_visible_to_cogs_but_not_kasir_only_user(): void
     {
         $cogs = User::factory()->cogs()->create();
