@@ -310,18 +310,34 @@ class BusinessFundService
 
     private function revenueUntil(Carbon $until): float
     {
-        return round((float) PosOrder::query()
+        $ordersTotal = (float) PosOrder::query()
             ->whereIn('status', [PosOrderStatus::Paid, PosOrderStatus::Served])
             ->whereNotNull('paid_at')
             ->where('paid_at', '<=', $until)
-            ->sum('total'), 4);
+            ->sum('total');
+
+        $lostTotal = Schema::hasTable('stock_wastes')
+            ? (float) \App\Models\StockWaste::query()
+                ->where('created_at', '<=', $until)
+                ->sum('total_cost')
+            : 0.0;
+
+        return round($ordersTotal - $lostTotal, 4);
     }
 
     private function revenueBetween(Carbon $start, Carbon $end): float
     {
-        return round((float) PosOrder::query()
+        $ordersTotal = (float) PosOrder::query()
             ->whereIn('status', [PosOrderStatus::Paid, PosOrderStatus::Served])
             ->whereBetween('paid_at', [$start, $end])
-            ->sum('total'), 4);
+            ->sum('total');
+
+        $lostTotal = Schema::hasTable('stock_wastes')
+            ? (float) \App\Models\StockWaste::query()
+                ->whereBetween('created_at', [$start, $end])
+                ->sum('total_cost')
+            : 0.0;
+
+        return round($ordersTotal - $lostTotal, 4);
     }
 }

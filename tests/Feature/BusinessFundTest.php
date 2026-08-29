@@ -6,10 +6,15 @@ use App\Enums\PaymentMethod;
 use App\Enums\PosOrderStatus;
 use App\Models\BusinessExpense;
 use App\Models\PosOrder;
+use App\Models\StockWaste;
 use App\Models\User;
 use App\Services\BusinessFundService;
+use App\Services\SalesReportService;
 use Carbon\Carbon;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class BusinessFundTest extends TestCase
@@ -153,6 +158,51 @@ class BusinessFundTest extends TestCase
 
         $this->assertDatabaseCount('business_expenses', 1);
         $this->assertSame(125_000.0, app(BusinessFundService::class)->balance());
+    }
+
+    public function test_net_sales_reduces_by_discount_and_lost_goods(): void
+    {
+        $date = Carbon::parse('2026-07-28 10:00:00');
+
+        Schema::dropIfExists('stock_wastes');
+        Schema::create('stock_wastes', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->decimal('quantity', 12, 4)->default(0);
+            $table->string('reason')->nullable();
+            $table->unsignedBigInteger('pos_order_id')->nullable();
+            $table->decimal('unit_cost', 12, 4)->default(0);
+            $table->decimal('total_cost', 12, 4)->default(0);
+            $table->string('consumption_mode')->nullable();
+            $table->text('note')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->timestamps();
+        });
+
+        $this->paidOrder('TRX-101', 100_000, 90_000, PaymentMethod::Cash, $date);
+        $this->paidOrder('TRX-102', 90_000, 80_000, PaymentMethod::Qris, $date);
+
+        StockWaste::query()->forceCreate([
+            'product_id' => 1,
+            'quantity' => 1,
+            'reason' => 'rusak',
+            'unit_cost' => 25_000,
+            'total_cost' => 25_000,
+            'consumption_mode' => 'direct_inventory',
+            'user_id' => 1,
+            'created_at' => $date,
+            'updated_at' => $date,
+        ]);
+
+        $report = app(SalesReportService::class)->reportData(new Request([
+            'period' => 'day',
+            'date' => $date->toDateString(),
+        ]));
+
+        $this->assertSame(190_000.0, $report['omzet_kotor']);
+        $this->assertSame(20_000.0, $report['diskon_total']);
+        $this->assertSame(25_000.0, $report['lost_total']);
+        $this->assertSame(145_000.0, $report['omzet']);
     }
 
     public function test_fund_page_is_visible_to_cogs_but_not_kasir_only_user(): void

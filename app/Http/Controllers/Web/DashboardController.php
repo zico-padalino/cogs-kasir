@@ -9,6 +9,7 @@ use App\Models\CogsCalculation;
 use App\Models\PosOrder;
 use App\Models\Product;
 use App\Models\SalesTransaction;
+use App\Models\StockWaste;
 use App\Services\BusinessFundService;
 use App\Services\CogsCalculationService;
 use App\Services\InventoryCostService;
@@ -16,6 +17,7 @@ use App\Support\Format;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -66,9 +68,15 @@ class DashboardController extends Controller
             ->whereBetween('paid_at', [$start, $end])
             ->get(['id', 'total', 'subtotal', 'discount_amount']);
 
-        $omzet = round((float) $orders->sum('total'), 4);
         $omzetKotor = round((float) $orders->sum('subtotal'), 4);
         $diskonTotal = round((float) $orders->sum('discount_amount'), 4);
+        $lostTotal = \
+            Schema::hasTable('stock_wastes')
+                ? round((float) StockWaste::query()
+                    ->whereBetween('created_at', [$start, $end])
+                    ->sum('total_cost'), 4)
+                : 0.0;
+        $omzet = round($omzetKotor - $diskonTotal - $lostTotal, 4);
         $count = $orders->count();
 
         $saleIds = SalesTransaction::query()

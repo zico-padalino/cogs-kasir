@@ -10,6 +10,7 @@ use App\Support\Format;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class SalesReportService
 {
@@ -38,11 +39,11 @@ class SalesReportService
 
         $orders = $ordersQuery->orderByDesc('paid_at')->get();
 
-        $omzet = (float) $orders->sum('total');
         $omzetKotor = (float) $orders->sum('subtotal');
         $diskonTotal = (float) $orders->sum('discount_amount');
-        $count = $orders->count();
         $lostTotal = $this->lostProductTotal($period, $rangeStart, $rangeEnd);
+        $omzet = round($omzetKotor - $diskonTotal - $lostTotal, 4);
+        $count = $orders->count();
 
         $byPayment = [];
         foreach (PaymentMethod::cases() as $method) {
@@ -84,6 +85,10 @@ class SalesReportService
 
     private function lostProductTotal(string $period, Carbon $rangeStart, Carbon $rangeEnd): float
     {
+        if (! Schema::hasTable('stock_wastes')) {
+            return 0.0;
+        }
+
         $query = StockWaste::query();
 
         if ($period !== 'all') {
