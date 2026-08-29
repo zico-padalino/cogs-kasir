@@ -203,7 +203,7 @@ class CogsCalculationService
 
     private function shouldConsumeFromInventory(Product $product, float $quantity): bool
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if (! in_array($product->effectiveType(), [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             return false;
         }
 
@@ -297,7 +297,7 @@ class CogsCalculationService
      */
     public function recalculateRecipeHpp(Product $product, ?array $overheadRateIds = null): CogsResult
     {
-        if (! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if (! in_array($product->effectiveType(), [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             throw new RuntimeException('Hanya menu yang bisa dihitung modalnya dari resep.');
         }
 

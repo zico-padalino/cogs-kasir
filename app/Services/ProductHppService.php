@@ -68,7 +68,7 @@ class ProductHppService
 
     public function markAsMenuItem(Product $product, bool $isMenuItem = true): void
     {
-        if ($isMenuItem && ! in_array($product->type, [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
+        if ($isMenuItem && ! in_array($product->effectiveType(), [ProductType::FinishedGood, ProductType::SemiFinished], true)) {
             return;
         }
 
