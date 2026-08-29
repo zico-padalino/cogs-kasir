@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CostingMethod;
 use App\Enums\ProductType;
 use App\Models\BillOfMaterial;
 use App\Models\Product;
@@ -28,7 +29,7 @@ class BomCostService
             ->get();
 
         if ($bomItems->isEmpty()) {
-            $unitCost = $product->costing_method->value === 'standard'
+            $unitCost = $product->effectiveCostingMethod() === CostingMethod::Standard
                 ? $product->effectiveUnitHpp()
                 : $this->inventoryCostService->getWeightedAverageCost($product);
 

@@ -86,6 +86,27 @@ class CogsCalculationTest extends TestCase
             ]);
     }
 
+    public function test_sale_cogs_handles_null_costing_method_by_falling_back_to_weighted_average(): void
+    {
+        $product = Product::create([
+            'sku' => 'TEST-NULL-COSTING',
+            'name' => 'Test Null Costing Method',
+            'type' => ProductType::FinishedGood,
+            'costing_method' => CostingMethod::WeightedAverage,
+            'standard_cost' => 50000,
+        ]);
+        $product->costing_method = null;
+
+        $result = app(CogsCalculationService::class)->calculateSaleCogs(
+            product: $product,
+            quantity: 1,
+            consumeInventory: false,
+        );
+
+        $this->assertSame('weighted_average', $result->calculationMethod);
+        $this->assertGreaterThan(0, $result->totalHpp);
+    }
+
     public function test_cogs_summary_report(): void
     {
         $response = $this->getJson('/api/v1/cogs/summary');

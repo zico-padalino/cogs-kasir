@@ -57,7 +57,9 @@ class InventoryCostService
 
         $before = $persist && $logAction ? $product->onHandQuantity() : null;
 
-        $result = match ($product->costing_method) {
+        $method = $product->effectiveCostingMethod();
+
+        $result = match ($method) {
             CostingMethod::Fifo => $this->consumeFifo($product, $quantity, $persist),
             CostingMethod::WeightedAverage => $this->consumeWeightedAverage($product, $quantity, $persist),
             CostingMethod::Standard => $this->consumeStandard($product, $quantity, $persist),

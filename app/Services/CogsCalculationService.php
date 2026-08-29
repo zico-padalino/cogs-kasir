@@ -190,7 +190,7 @@ class CogsCalculationService
             manufacturingOverhead: $overhead['total'],
             totalHpp: $totalHpp,
             unitHpp: $totalHpp / $quantity,
-            calculationMethod: $product->costing_method->value,
+            calculationMethod: $product->effectiveCostingMethod()->value,
             breakdown: [
                 'consumption_mode' => $consumptionDetails[0]['mode'] ?? 'bom_only',
                 'inventory_consumed' => $consumeInventory,

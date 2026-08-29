@@ -160,6 +160,25 @@ class Product extends Model
         return (float) $this->standard_cost;
     }
 
+    public function effectiveCostingMethod(): CostingMethod
+    {
+        $value = $this->costing_method;
+
+        if ($value instanceof CostingMethod) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            foreach (CostingMethod::cases() as $method) {
+                if ($method->value === $value) {
+                    return $method;
+                }
+            }
+        }
+
+        return CostingMethod::WeightedAverage;
+    }
+
     public function imageUrl(): string
     {
         if ($this->image_path) {
