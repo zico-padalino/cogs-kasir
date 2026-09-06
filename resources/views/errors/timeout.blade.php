@@ -101,10 +101,6 @@
     <main class="card" role="alert">
         <div class="badge">Timeout / server sibuk</div>
         <h1>Halaman terlalu lama dimuat</h1>
-        <p>
-            Saat isi resep atau tambah menu, server butuh waktu lebih lama dari batas hosting.
-            Data biasanya tetap aman — coba buka lagi.
-        </p>
         <div class="actions">
             @if (! empty($retryUrl))
                 <a class="btn btn-primary" href="{{ $retryUrl }}">Coba buka lagi</a>

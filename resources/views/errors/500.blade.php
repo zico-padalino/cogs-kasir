@@ -95,7 +95,6 @@
         <div class="badge">500 · Server Error</div>
         <h1>Terjadi gangguan sementara</h1>
         <p>
-            Server tidak bisa menyelesaikan permintaan (sering karena timeout saat isi resep / tambah menu).
             Silakan coba lagi sebentar.
         </p>
         <div class="actions">
