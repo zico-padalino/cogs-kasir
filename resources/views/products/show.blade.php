@@ -277,7 +277,7 @@
                                                 value="{{ $p->id }}"
                                                 @selected((string) $oldChildId === (string) $p->id)
                                             >
-                                                {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                {{ $p->name }} — stok {{ $format::number($p->available_qty ?? 0) }} {{ $units::label($p->unit) }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -301,7 +301,7 @@
                                                             value="{{ $p->id }}"
                                                             @selected($oldIsRaw && (string) $oldChildId === (string) $p->id)
                                                         >
-                                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                            {{ $p->name }} — stok {{ $format::number($p->available_qty ?? 0) }} {{ $units::label($p->unit) }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -324,7 +324,7 @@
                                                             value="{{ $p->id }}"
                                                             @selected($oldIsJadi && (string) $oldChildId === (string) $p->id)
                                                         >
-                                                            {{ $p->name }} — stok {{ $format::number($p->availableQuantity()) }} {{ $units::label($p->unit) }}
+                                                            {{ $p->name }} — stok {{ $format::number($p->available_qty ?? 0) }} {{ $units::label($p->unit) }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -651,9 +651,10 @@
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Stok siap jual</span>
-                        <strong @class(['text-rose-700' => $product->availableQuantity() < 0])>
-                            {{ $format::number($product->availableQuantity(), 0) }} {{ $product->unit }}
-                            @if ($product->availableQuantity() < 0)
+                        @php $menuStockQty = (float) ($product->available_qty ?? 0); @endphp
+                        <strong @class(['text-rose-700' => $menuStockQty < 0])>
+                            {{ $format::number($menuStockQty, 0) }} {{ $product->unit }}
+                            @if ($menuStockQty < 0)
                                 <span class="ml-1 text-xs font-semibold uppercase tracking-wide">minus</span>
                             @endif
                         </strong>

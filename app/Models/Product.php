@@ -87,11 +87,37 @@ class Product extends Model
         return $this->hasMany(CogsCalculation::class);
     }
 
+    /** @var bool|null */
+    private static $inventoryReservationsTableExists = null;
+
+    public static function inventoryReservationsEnabled(): bool
+    {
+        if (self::$inventoryReservationsTableExists !== null) {
+            return self::$inventoryReservationsTableExists;
+        }
+
+        try {
+            return self::$inventoryReservationsTableExists = \Illuminate\Support\Facades\Schema::hasTable('inventory_reservations');
+        } catch (\Throwable) {
+            return self::$inventoryReservationsTableExists = false;
+        }
+    }
+
+    /** Stok fisik di lot (termasuk lot minus / oversell). */
+    public function onHandQuantity(): float
+    {
+        try {
+            return (float) $this->inventoryLots()->sum('quantity_remaining');
+        } catch (\Throwable) {
+            return 0.0;
+        }
+    }
+
     /** Qty yang dibooking open bill (tagihan terbuka). */
     public function reservedQuantity(?int $exceptOrderId = null): float
     {
         try {
-            if (! \Illuminate\Support\Facades\Schema::hasTable('inventory_reservations')) {
+            if (! self::inventoryReservationsEnabled()) {
                 return 0.0;
             }
 
@@ -122,16 +148,6 @@ class Product extends Model
             }
 
             return max(0.0, $available);
-        } catch (\Throwable) {
-            return 0.0;
-        }
-    }
-
-    /** Stok fisik di lot (termasuk lot minus / oversell). */
-    public function onHandQuantity(): float
-    {
-        try {
-            return (float) $this->inventoryLots()->sum('quantity_remaining');
         } catch (\Throwable) {
             return 0.0;
         }

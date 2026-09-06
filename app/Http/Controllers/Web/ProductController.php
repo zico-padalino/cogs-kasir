@@ -19,6 +19,8 @@ use App\Services\ProductHppService;
 use App\Support\Format;
 use App\Support\MaterialUnits;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -66,6 +68,19 @@ class ProductController extends Controller
 
   public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
   {
+    try {
+      return $this->renderRecipeShow($product, $bomCostService, $overheadService);
+    } catch (\Throwable $e) {
+      report($e);
+
+      return redirect()
+        ->route('products.index')
+        ->with('error', 'Halaman resep gagal dimuat. Coba refresh, atau hubungi admin jika berulang.');
+    }
+  }
+
+  private function renderRecipeShow(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
+  {
     if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
@@ -107,6 +122,15 @@ class ProductController extends Controller
     $addonSemiFinishedMaterials = $addonStockProducts
       ->filter(fn (Product $p) => $p->effectiveType() === ProductType::SemiFinished)
       ->values();
+
+    // Satu query stok untuk semua bahan — hindari N+1 yang bikin timeout/500 di shared hosting.
+    $this->hydrateAvailableQuantities(
+      $allProducts
+        ->merge($addonStockProducts)
+        ->push($product)
+        ->unique('id')
+        ->values()
+    );
 
     $materialUnits = $allProducts
       ->merge($addonStockProducts)
@@ -492,6 +516,57 @@ class ProductController extends Controller
       throw ValidationException::withMessages([
         'unit' => $e->getMessage(),
       ]);
+    }
+  }
+
+  /**
+   * @param  \Illuminate\Support\Collection<int, Product>  $products
+   */
+  private function hydrateAvailableQuantities($products): void
+  {
+    $ids = $products
+      ->pluck('id')
+      ->filter()
+      ->map(fn ($id) => (int) $id)
+      ->unique()
+      ->values()
+      ->all();
+
+    if ($ids === []) {
+      return;
+    }
+
+    $onHand = [];
+    $reserved = [];
+
+    try {
+      if (Schema::hasTable('inventory_lots')) {
+        $onHand = DB::table('inventory_lots')
+          ->selectRaw('product_id, COALESCE(SUM(quantity_remaining), 0) as qty')
+          ->whereIn('product_id', $ids)
+          ->groupBy('product_id')
+          ->pluck('qty', 'product_id')
+          ->all();
+      }
+
+      if (Product::inventoryReservationsEnabled()) {
+        $reserved = DB::table('inventory_reservations')
+          ->selectRaw('product_id, COALESCE(SUM(quantity), 0) as qty')
+          ->whereIn('product_id', $ids)
+          ->groupBy('product_id')
+          ->pluck('qty', 'product_id')
+          ->all();
+      }
+    } catch (\Throwable $e) {
+      report($e);
+    }
+
+    $allowNegative = (bool) config('pos.allow_negative_stock', true);
+
+    foreach ($products as $product) {
+      $qty = (float) ($onHand[$product->id] ?? 0) - (float) ($reserved[$product->id] ?? 0);
+      $qty = round($qty, 6);
+      $product->setAttribute('available_qty', $allowNegative ? $qty : max(0.0, $qty));
     }
   }
 
