@@ -651,7 +651,12 @@
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Stok siap jual</span>
-                        <strong>{{ $format::number($product->availableQuantity(), 0) }} {{ $product->unit }}</strong>
+                        <strong @class(['text-rose-700' => $product->availableQuantity() < 0])>
+                            {{ $format::number($product->availableQuantity(), 0) }} {{ $product->unit }}
+                            @if ($product->availableQuantity() < 0)
+                                <span class="ml-1 text-xs font-semibold uppercase tracking-wide">minus</span>
+                            @endif
+                        </strong>
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Biaya bahan</span>

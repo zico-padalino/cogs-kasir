@@ -103,6 +103,29 @@
         </header>
 
         <div class="pos-body">
+            @if (($negativeStockItems ?? collect())->isNotEmpty())
+                <div class="pos-stock-minus-alert" role="alert">
+                    <div class="pos-stock-minus-alert__head">
+                        <strong>Stok minus — segera isi ulang</strong>
+                        <span>{{ $negativeStockItems->count() }} item</span>
+                    </div>
+                    <ul class="pos-stock-minus-alert__list">
+                        @foreach ($negativeStockItems->take(8) as $item)
+                            <li>
+                                <span>{{ $item['name'] }}</span>
+                                <span class="pos-stock-minus-alert__qty">
+                                    {{ $format::number($item['qty']) }} {{ $item['unit'] }}
+                                    · {{ $item['type_label'] }}
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                    @if ($negativeStockItems->count() > 8)
+                        <p class="pos-stock-minus-alert__more">+{{ $negativeStockItems->count() - 8 }} item lainnya di COGS</p>
+                    @endif
+                </div>
+            @endif
+
             <div class="pos-main-col">
                 @if ($order->isKasirEditable())
                     @include('kasir.partials.pos-order-bar', [

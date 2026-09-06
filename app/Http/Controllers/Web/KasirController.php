@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Enums\PosOrderSource;
 use App\Enums\PosOrderStatus;
 use App\Enums\PosOrderType;
+use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
@@ -68,6 +69,7 @@ class KasirController extends Controller
         $pendingOrders = $posService->waitingOrders();
 
         $products = $posService->sellableProducts();
+        $negativeStockItems = $this->negativeStockAlerts();
 
         return response()
             ->view('kasir.index', [
@@ -77,6 +79,7 @@ class KasirController extends Controller
                 'menuCategoryLabels' => $posService->menuCategoryLabels(),
                 'orderTypes' => PosOrderType::cases(),
                 'pendingOrders' => $pendingOrders,
+                'negativeStockItems' => $negativeStockItems,
                 'presets' => config('pos.product_presets', []),
                 'shopName' => config('pos.shop_name'),
                 'format' => Format::class,
@@ -1058,5 +1061,34 @@ class KasirController extends Controller
                 'formatted_total' => $format::rupiah($order->total),
             ],
         ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, array{id: int, name: string, type_label: string, qty: float, unit: string}>
+     */
+    private function negativeStockAlerts()
+    {
+        if (! config('pos.allow_negative_stock', true)) {
+            return collect();
+        }
+
+        return Product::query()
+            ->where('is_active', true)
+            ->whereHas('inventoryLots')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Product $product) => $product->availableQuantity() < 0)
+            ->map(function (Product $product) {
+                $type = $product->effectiveType();
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'type_label' => $type->label(),
+                    'qty' => $product->availableQuantity(),
+                    'unit' => $product->unit ?: 'unit',
+                ];
+            })
+            ->values();
     }
 }

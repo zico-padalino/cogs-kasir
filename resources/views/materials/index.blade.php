@@ -36,6 +36,23 @@
             </div>
         </div>
 
+        @php
+            $minusMaterials = $materials->filter(fn ($m) => (float) $m->available_qty < 0)->values();
+        @endphp
+        @if ($minusMaterials->isNotEmpty())
+            <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950" role="alert">
+                <p class="font-semibold">{{ $minusMaterials->count() }} bahan stoknya minus — segera isi ulang</p>
+                <ul class="mt-2 grid gap-1 sm:grid-cols-2">
+                    @foreach ($minusMaterials->take(10) as $m)
+                        <li class="flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1.5 text-xs">
+                            <span class="font-medium">{{ $m->name }}</span>
+                            <span class="font-semibold tabular-nums text-rose-700">{{ $format::number($m->available_qty) }} {{ $m->unit }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <x-module-form-card :step="2" title="Tambah Bahan Baku" description="Isi nama, satuan, lalu pembelian.">
             <form action="{{ route('materials.store') }}" method="POST" class="material-add-form">
                 @csrf
@@ -78,8 +95,15 @@
                                 <div class="min-w-0 flex-1">
                                     <p class="material-card__title">{{ $material->name }}</p>
                                     <div class="mt-2 flex flex-wrap gap-2">
-                                        <span class="module-stat-pill module-stat-pill--stock">
+                                        <span @class([
+                                            'module-stat-pill',
+                                            'module-stat-pill--minus' => (float) $material->available_qty < 0,
+                                            'module-stat-pill--stock' => (float) $material->available_qty >= 0,
+                                        ])>
                                             {{ $format::number($material->available_qty) }} {{ $material->unit }}
+                                            @if ((float) $material->available_qty < 0)
+                                                · minus
+                                            @endif
                                         </span>
                                         @if ($material->avg_cost > 0)
                                             <span class="module-stat-pill module-stat-pill--price">

@@ -207,7 +207,17 @@ class CogsCalculationService
             return false;
         }
 
-        return $product->availableQuantity() >= $quantity;
+        if ($product->availableQuantity() >= $quantity) {
+            return true;
+        }
+
+        // Stok FG kurang: utamakan potong resep (bahan bisa minus).
+        if ($product->billOfMaterials()->exists()) {
+            return false;
+        }
+
+        // Tanpa resep: potong FG sampai minus jika diizinkan.
+        return (bool) config('pos.allow_negative_stock', true);
     }
 
     public function recordSaleCogs(SalesTransaction $sale, array $extraRequirements = []): CogsCalculation

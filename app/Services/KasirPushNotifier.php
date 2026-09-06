@@ -115,9 +115,9 @@ class KasirPushNotifier
 
         $list = implode(', ', $names);
         $orderSuffix = $order?->order_number ? " · pesanan {$order->order_number}" : '';
-        $title = 'Stok habis';
-        $body = $list.$orderSuffix;
-        $speakText = 'Stok habis: '.implode(', ', array_column($items, 'name')).'.';
+        $title = 'Stok minus / habis';
+        $body = $list.$orderSuffix.'. Segera isi ulang.';
+        $speakText = 'Stok minus: '.implode(', ', array_column($items, 'name')).'. Segera isi ulang.';
 
         $this->dispatch(
             title: $title,

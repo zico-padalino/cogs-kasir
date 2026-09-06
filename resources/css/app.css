@@ -2546,6 +2546,38 @@
         @apply border-amber-200 bg-amber-50 text-amber-900;
     }
 
+    .pos-stock-minus-alert {
+        @apply mb-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-950 shadow-sm;
+    }
+
+    .pos-stock-minus-alert__head {
+        @apply mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm;
+    }
+
+    .pos-stock-minus-alert__list {
+        @apply m-0 grid list-none gap-1 p-0 text-xs sm:grid-cols-2;
+    }
+
+    .pos-stock-minus-alert__list li {
+        @apply flex flex-wrap items-baseline justify-between gap-2 rounded-lg bg-white/70 px-2 py-1.5;
+    }
+
+    .pos-stock-minus-alert__qty {
+        @apply font-semibold tabular-nums text-rose-700;
+    }
+
+    .pos-stock-minus-alert__more {
+        @apply mt-1.5 mb-0 text-[11px] font-medium text-amber-800;
+    }
+
+    .pos-product-card.is-stock-minus {
+        @apply ring-1 ring-amber-300;
+    }
+
+    .module-stat-pill--minus {
+        @apply bg-rose-50 text-rose-800 ring-rose-300;
+    }
+
     .pos-flash-error {
         @apply border-red-200 bg-red-50 text-red-800;
     }

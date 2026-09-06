@@ -982,25 +982,37 @@ export default function KasirPosScreen() {
               ]}
               columnWrapperStyle={productCols > 1 ? styles.productRow : undefined}
               renderItem={({ item }) => {
-                const soldOut = item.is_sold_out === true || (item.stock_tracked === true && item.in_stock === false);
+                const soldOutManual = item.sold_out_manual === true || item.is_sold_out === true;
+                const stockMinus = item.stock_minus === true || (item.stock_tracked === true && Number(item.stock_qty) <= 0 && !soldOutManual);
                 const noPrice = !(item.selling_price > 0);
 
                 return (
                   <Pressable
                     onPress={() => {
-                      if (soldOut || noPrice) {
-                        Alert.alert(soldOut ? 'Habis' : 'Atur harga', soldOut ? 'Stok menu ini habis.' : 'Harga jual belum diatur.');
+                      if (soldOutManual || noPrice) {
+                        Alert.alert(soldOutManual ? 'Habis' : 'Atur harga', soldOutManual ? 'Menu ditandai habis.' : 'Harga jual belum diatur.');
+                        return;
+                      }
+                      if (stockMinus) {
+                        Alert.alert('Stok minus', `${item.name} stoknya minus/habis. Tetap bisa dipesan — segera isi ulang.`, [
+                          { text: 'Batal', style: 'cancel' },
+                          { text: 'Tetap pesan', onPress: () => openAdd(item) },
+                        ]);
                         return;
                       }
                       openAdd(item);
                     }}
-                    style={[styles.productCard, { width: productCardWidth }, (soldOut || noPrice) && { opacity: 0.55 }]}
+                    style={[styles.productCard, { width: productCardWidth }, (soldOutManual || noPrice) && { opacity: 0.55 }]}
                   >
                     <View style={[styles.productMedia, { height: productCardWidth * 0.85 }]}>
                       <Image source={{ uri: item.image_url }} style={styles.productImage} />
-                      {soldOut ? (
+                      {soldOutManual ? (
                         <View style={[styles.productFab, { backgroundColor: colors.rose600 }]}>
                           <Text style={styles.productFabText}>∅</Text>
+                        </View>
+                      ) : stockMinus ? (
+                        <View style={[styles.productFab, { backgroundColor: colors.amber500 }]}>
+                          <Text style={styles.productFabText}>!</Text>
                         </View>
                       ) : (
                         <View style={styles.productFab}>
@@ -1016,7 +1028,7 @@ export default function KasirPosScreen() {
                         {item.name}
                       </Text>
                       <Text style={styles.productPrice} numberOfLines={1}>
-                        {soldOut ? 'Habis' : formatRupiah(item.selling_price)}
+                        {soldOutManual ? 'Habis' : stockMinus ? `Minus · ${formatRupiah(item.selling_price)}` : formatRupiah(item.selling_price)}
                       </Text>
                     </View>
                   </Pressable>

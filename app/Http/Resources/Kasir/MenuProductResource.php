@@ -11,6 +11,11 @@ class MenuProductResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
+        $stockQty = round($this->availableQuantity(), 4);
+        $stockTracked = $this->isMenuStockTracked();
+        $inStock = $this->isMenuInStock();
+        $stockMinus = $stockTracked && $stockQty <= 0 && ! $this->is_sold_out;
+
         return [
             'id' => $this->id,
             'sku' => $this->sku,
@@ -23,11 +28,13 @@ class MenuProductResource extends JsonResource
             'image_path' => $this->image_path,
             'is_active' => (bool) $this->is_active,
             'sold_out_manual' => (bool) $this->is_sold_out,
-            'stock_qty' => round($this->availableQuantity(), 4),
-            'stock_tracked' => $this->isMenuStockTracked(),
-            'in_stock' => $this->isMenuInStock(),
-            'can_add' => (float) $this->selling_price > 0 && $this->isMenuInStock(),
-            'is_sold_out' => (float) $this->selling_price > 0 && ! $this->isMenuInStock(),
+            'stock_qty' => $stockQty,
+            'stock_tracked' => $stockTracked,
+            'stock_minus' => $stockMinus,
+            'in_stock' => $inStock,
+            'can_add' => (float) $this->selling_price > 0 && $inStock,
+            // is_sold_out = hanya ceklis Habis manual (bukan stok kosong).
+            'is_sold_out' => (bool) $this->is_sold_out,
             'addons' => $this->whenLoaded('addons', fn () => $this->addons->map(fn ($addon) => [
                 'id' => $addon->id,
                 'name' => $addon->name,

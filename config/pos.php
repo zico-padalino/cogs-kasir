@@ -83,6 +83,12 @@ return [
     'kasir_pin_ttl_minutes' => (int) env('KASIR_PIN_TTL_MINUTES', 10),
 
     /**
+     * true = stok 0/minus tetap boleh dipesan; kasir & COGS menampilkan peringatan isi ulang.
+     * false = perilaku lama (blokir pesan saat stok tidak cukup).
+     */
+    'allow_negative_stock' => filter_var(env('POS_ALLOW_NEGATIVE_STOCK', true), FILTER_VALIDATE_BOOL),
+
+    /**
      * Thermal printer (ESC/POS + Thermer / mate.bluetoothprint di Android).
      * paper: 58mm (32 kolom) atau 80mm (48 kolom).
      */

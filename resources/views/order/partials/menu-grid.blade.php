@@ -23,7 +23,7 @@
             $price = $product->selling_price > 0 ? $product->selling_price : $product->standard_cost;
             $inStock = $product->isMenuInStock();
             $canAdd = $price > 0 && $inStock;
-            $soldOut = $price > 0 && ! $inStock;
+            $soldOutManual = $price > 0 && $product->is_sold_out;
             $searchKey = strtolower($product->name.' '.$product->sku);
             $addonsPayload = $product->relationLoaded('addons')
                 ? $product->addons->where('is_active', true)->values()->map(fn ($addon) => [
@@ -42,7 +42,7 @@
             data-order-open-modal
             data-product-id="{{ $product->id }}"
             data-product-name="{{ $product->name }}"
-            data-product-price="{{ $soldOut ? 'Habis' : $format::rupiah($price) }}"
+            data-product-price="{{ $soldOutManual ? 'Habis' : $format::rupiah($price) }}"
             data-product-price-value="{{ $price }}"
             data-product-image="{{ $product->imageUrl() }}"
             data-product-desc="{{ $product->description ?: 'Belum ada deskripsi menu.' }}"
@@ -51,7 +51,7 @@
         >
             <div class="order-product-media">
                 <x-product-image :product="$product" class="order-product-image" />
-                @if ($soldOut)
+                @if ($soldOutManual)
                     <span class="order-product-badge">Habis</span>
                 @elseif ($price <= 0)
                     <span class="order-product-badge">Atur harga</span>
@@ -66,9 +66,9 @@
                     <p class="order-product-desc">{{ \Illuminate\Support\Str::limit($product->description, 48) }}</p>
                 @endif
                 <div class="order-product-foot">
-                    <span class="order-product-price">{{ $soldOut ? 'Habis' : $format::rupiah($price) }}</span>
+                    <span class="order-product-price">{{ $soldOutManual ? 'Habis' : $format::rupiah($price) }}</span>
                     <span class="order-product-add {{ $canAdd ? '' : 'is-disabled' }}">
-                        {{ $canAdd ? 'Pesan' : ($soldOut ? 'Habis' : 'Detail') }}
+                        {{ $canAdd ? 'Pesan' : ($soldOutManual ? 'Habis' : 'Detail') }}
                     </span>
                 </div>
             </div>

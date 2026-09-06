@@ -87,8 +87,9 @@ class StockReservationService
                 $product = $row['product'];
                 $need = round($row['quantity'], 4);
                 $available = $product->availableQuantity();
+                $allowNegative = (bool) config('pos.allow_negative_stock', true);
 
-                if ($available + 0.000001 < $need) {
+                if (! $allowNegative && $available + 0.000001 < $need) {
                     $shortage = rtrim(rtrim(number_format($need - $available, 4, '.', ''), '0'), '.') ?: '0';
                     throw new RuntimeException(
                         "Stok {$product->name} tidak cukup untuk booking open bill. Kekurangan {$shortage} {$product->unit}."

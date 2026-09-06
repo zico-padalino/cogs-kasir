@@ -108,7 +108,7 @@
                     <p class="mt-1 text-lg font-bold text-emerald-700">{{ $format::number($materialStock['in_stock'], 0) }}</p>
                 </div>
                 <div class="bg-white px-4 py-3">
-                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Habis</p>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Habis / minus</p>
                     <p class="mt-1 text-lg font-bold text-rose-700">{{ $format::number($materialStock['empty'], 0) }}</p>
                 </div>
                 <div class="bg-brand-50 px-4 py-3">
@@ -171,7 +171,12 @@
                     <tbody>
                         @foreach ($materialStock['items'] as $row)
                             <tr class="{{ $row['qty'] <= 0 ? 'opacity-70' : '' }}">
-                                <td class="font-semibold text-slate-900">{{ $row['name'] }}</td>
+                                <td class="font-semibold text-slate-900">
+                                    {{ $row['name'] }}
+                                    @if ($row['qty'] < 0)
+                                        <span class="ml-1 inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">Minus</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="{{ $row['qty'] <= 0 ? 'font-semibold text-rose-700' : 'text-slate-800' }}">
                                         {{ $format::number($row['qty']) }} {{ $row['unit'] }}

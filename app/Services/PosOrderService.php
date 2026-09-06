@@ -590,6 +590,7 @@ class PosOrderService
             ->filter(fn (Product $product) => $product->availableQuantity() <= 0)
             ->map(function (Product $product) {
                 $type = $product->effectiveType();
+                $qty = $product->availableQuantity();
 
                 return [
                     'id' => $product->id,
@@ -601,6 +602,8 @@ class PosOrderService
                         ProductType::RawMaterial => 'Barang Stok',
                     },
                     'sku' => $product->sku,
+                    'qty' => $qty,
+                    'is_minus' => $qty < 0,
                 ];
             })
             ->values()
@@ -608,7 +611,7 @@ class PosOrderService
     }
 
     /**
-     * @param  list<array{id: int, name: string, type: string, type_label: string, sku?: string|null}>  $items
+     * @param  list<array{id: int, name: string, type: string, type_label: string, sku?: string|null, qty?: float, is_minus?: bool}>  $items
      */
     private function formatStockOutMessage(array $items, ?PosOrder $order = null): ?string
     {
@@ -617,12 +620,19 @@ class PosOrderService
         }
 
         $list = collect($items)
-            ->map(fn (array $item) => $item['name'].' ('.$item['type_label'].')')
+            ->map(function (array $item) {
+                $qty = isset($item['qty']) ? (float) $item['qty'] : 0.0;
+                $qtyLabel = $qty < 0
+                    ? 'minus '.rtrim(rtrim(number_format(abs($qty), 4, '.', ''), '0'), '.')
+                    : 'habis';
+
+                return $item['name'].' ('.$item['type_label'].', '.$qtyLabel.')';
+            })
             ->implode(', ');
 
         $suffix = $order?->order_number ? " setelah pesanan {$order->order_number}" : '';
 
-        return "Stok habis{$suffix}: {$list}.";
+        return "Stok minus / habis{$suffix}: {$list}. Segera isi ulang stok.";
     }
 
     /**
@@ -1169,6 +1179,11 @@ class PosOrderService
 
         // Open bill / pelunasan: abaikan booking milik order ini sendiri.
         $exceptOrderId = ($order && ($forPayment || $order->isOpenBill())) ? (int) $order->id : null;
+
+        // Mode minus: stok 0 tetap boleh dipesan; kekurangan dicatat sebagai stok minus.
+        if (config('pos.allow_negative_stock', true)) {
+            return;
+        }
 
         if ($product->isMenuStockTracked() && $product->availableQuantity($exceptOrderId) < $quantity) {
             throw new RuntimeException($product->name.' stok habis / tidak cukup.');

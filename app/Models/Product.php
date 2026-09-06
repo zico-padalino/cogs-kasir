@@ -86,12 +86,10 @@ class Product extends Model
         return $this->hasMany(CogsCalculation::class);
     }
 
-    /** Stok fisik di lot (belum dikurangi booking open bill). */
+    /** Stok fisik di lot (termasuk lot minus / oversell). */
     public function onHandQuantity(): float
     {
-        return (float) $this->inventoryLots()
-            ->where('quantity_remaining', '>', 0)
-            ->sum('quantity_remaining');
+        return (float) $this->inventoryLots()->sum('quantity_remaining');
     }
 
     /** Qty yang dibooking open bill (tagihan terbuka). */
@@ -113,10 +111,17 @@ class Product extends Model
     /**
      * Stok yang masih bisa dijual / dibooking.
      * = on-hand − booking open bill (kecuali order yang dikecualikan).
+     * Bisa negatif jika allow_negative_stock aktif dan stok sudah oversell.
      */
     public function availableQuantity(?int $exceptOrderId = null): float
     {
-        return max(0.0, $this->onHandQuantity() - $this->reservedQuantity($exceptOrderId));
+        $available = $this->onHandQuantity() - $this->reservedQuantity($exceptOrderId);
+
+        if (config('pos.allow_negative_stock', true)) {
+            return round($available, 6);
+        }
+
+        return max(0.0, $available);
     }
 
     /** Menu dengan lot FG/SF yang pernah ada — stok 0 = Habis di kasir. */
@@ -125,15 +130,30 @@ class Product extends Model
         return $this->inventoryLots()->exists();
     }
 
+    /** Stok menu kosong atau minus (bukan ceklis Habis manual). */
+    public function isStockNegativeOrEmpty(?int $exceptOrderId = null): bool
+    {
+        if (! $this->isMenuStockTracked()) {
+            return false;
+        }
+
+        return $this->availableQuantity($exceptOrderId) <= 0;
+    }
+
     public function isMenuInStock(): bool
     {
         if (! $this->is_menu_item) {
             return true;
         }
 
-        // Ceklis "Habis" dari Kelola Menu (manual).
+        // Ceklis "Habis" dari Kelola Menu (manual) — tetap blokir pesan.
         if ($this->is_sold_out) {
             return false;
+        }
+
+        // Stok 0/minus: tetap boleh dipesan (peringatan di kasir/COGS).
+        if (config('pos.allow_negative_stock', true)) {
+            return true;
         }
 
         if (! $this->isMenuStockTracked()) {

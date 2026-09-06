@@ -621,6 +621,7 @@ class MaterialApiController extends Controller
             ->map(function (Product $product) use ($inventoryService) {
                 $product->available_qty = $product->availableQuantity();
                 $product->avg_cost = $inventoryService->getWeightedAverageCost($product);
+                $product->is_minus = (float) $product->available_qty < 0;
 
                 return $product;
             });

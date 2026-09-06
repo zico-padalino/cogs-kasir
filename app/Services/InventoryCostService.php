@@ -24,16 +24,56 @@ class InventoryCostService
         ?string $sourceType = null,
         ?int $sourceId = null,
     ): InventoryLot {
-        return InventoryLot::create([
-            'product_id' => $product->id,
-            'lot_number' => $lotNumber,
-            'quantity_received' => $quantity,
-            'quantity_remaining' => $quantity,
-            'unit_cost' => $unitCost,
-            'received_at' => now(),
-            'source_type' => $sourceType,
-            'source_id' => $sourceId,
-        ]);
+        if ($quantity <= 0) {
+            throw new RuntimeException('Qty stok masuk harus lebih dari 0.');
+        }
+
+        return DB::transaction(function () use ($product, $quantity, $unitCost, $lotNumber, $sourceType, $sourceId) {
+            $remaining = $quantity;
+
+            // Tutup hutang lot minus dulu sebelum buat lot baru.
+            $debtLots = $product->inventoryLots()
+                ->where('quantity_remaining', '<', 0)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($debtLots as $lot) {
+                if ($remaining <= 0.000001) {
+                    break;
+                }
+
+                $debt = abs((float) $lot->quantity_remaining);
+                $applied = min($debt, $remaining);
+                $lot->quantity_remaining = round((float) $lot->quantity_remaining + $applied, 6);
+                $lot->save();
+                $remaining = round($remaining - $applied, 6);
+            }
+
+            if ($remaining > 0.000001) {
+                return InventoryLot::create([
+                    'product_id' => $product->id,
+                    'lot_number' => $lotNumber,
+                    'quantity_received' => $remaining,
+                    'quantity_remaining' => $remaining,
+                    'unit_cost' => $unitCost,
+                    'received_at' => now(),
+                    'source_type' => $sourceType,
+                    'source_id' => $sourceId,
+                ]);
+            }
+
+            return $debtLots->last() ?? InventoryLot::create([
+                'product_id' => $product->id,
+                'lot_number' => $lotNumber,
+                'quantity_received' => 0,
+                'quantity_remaining' => 0,
+                'unit_cost' => $unitCost,
+                'received_at' => now(),
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+            ]);
+        });
     }
 
     public function consumeStock(
@@ -47,8 +87,10 @@ class InventoryCostService
             return new MaterialConsumptionResult(0, 0);
         }
 
-        // Hormati booking open bill: jangan ambil stok yang sudah di-reserve.
-        if ($persist && $product->availableQuantity() + 0.000001 < $quantity) {
+        $allowNegative = (bool) config('pos.allow_negative_stock', true);
+
+        // Hormati booking open bill: jangan ambil stok yang sudah di-reserve (kecuali mode minus).
+        if ($persist && ! $allowNegative && $product->availableQuantity() + 0.000001 < $quantity) {
             $shortage = rtrim(rtrim(number_format($quantity - $product->availableQuantity(), 4, '.', ''), '0'), '.') ?: '0';
             throw new RuntimeException(
                 "Stok {$product->name} tidak cukup (termasuk booking open bill). Kekurangan {$shortage} {$product->unit}."
@@ -66,7 +108,7 @@ class InventoryCostService
         };
 
         if ($persist && $logAction && $before !== null && Schema::hasTable('material_stock_logs')) {
-            $after = round(max(0, $before - $quantity), 6);
+            $after = round($before - $quantity, 6);
             $this->stockLogService->log(
                 action: $logAction,
                 product: $product,
@@ -171,15 +213,48 @@ class InventoryCostService
             }
 
             if ($remaining > 0.000001) {
-                $shortage = rtrim(rtrim(number_format($remaining, 6, '.', ''), '0'), '.') ?: '0';
-                throw new RuntimeException(
-                    "Stok {$product->name} tidak cukup. Kekurangan {$shortage} {$product->unit}."
-                );
+                $unitCost = $product->effectiveUnitHpp() ?: $this->getWeightedAverageCost($product);
+                $allowNegative = (bool) config('pos.allow_negative_stock', true);
+
+                if (! $allowNegative) {
+                    $shortage = rtrim(rtrim(number_format($remaining, 6, '.', ''), '0'), '.') ?: '0';
+                    throw new RuntimeException(
+                        "Stok {$product->name} tidak cukup. Kekurangan {$shortage} {$product->unit}."
+                    );
+                }
+
+                $cost = $remaining * max(0, (float) $unitCost);
+                $consumptions[] = [
+                    'lot_id' => null,
+                    'lot_number' => 'MINUS',
+                    'quantity' => $remaining,
+                    'unit_cost' => round(max(0, (float) $unitCost), 4),
+                    'cost' => round($cost, 4),
+                    'oversell' => true,
+                ];
+
+                if ($persist) {
+                    $lot = InventoryLot::create([
+                        'product_id' => $product->id,
+                        'lot_number' => 'MINUS-'.now()->format('YmdHis').'-'.$product->id,
+                        'quantity_received' => 0,
+                        'quantity_remaining' => round(-$remaining, 6),
+                        'unit_cost' => max(0, (float) $unitCost),
+                        'received_at' => now(),
+                        'source_type' => 'oversell',
+                        'source_id' => null,
+                    ]);
+                    $consumptions[array_key_last($consumptions)]['lot_id'] = $lot->id;
+                    $consumptions[array_key_last($consumptions)]['lot_number'] = $lot->lot_number;
+                }
+
+                $totalCost += $cost;
+                $remaining = 0;
             }
 
             return new MaterialConsumptionResult(
                 totalCost: $totalCost,
-                averageUnitCost: $totalCost / $quantity,
+                averageUnitCost: $quantity > 0 ? $totalCost / $quantity : 0,
                 lotConsumptions: $consumptions,
             );
         });
