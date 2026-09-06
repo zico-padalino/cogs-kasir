@@ -79,9 +79,9 @@
                                         <p class="mt-0.5 text-xs cell-muted">{{ $rate->description }}</p>
                                     @endif
                                 </td>
-                                <td class="text-sm text-slate-600">{{ $rate->allocation_base->plainRule() }}</td>
+                                <td class="text-sm text-slate-600">{{ $rate->effectiveAllocationBase()->plainRule() }}</td>
                                 <td>
-                                    <span class="module-stat-pill module-stat-pill--price">{{ $rate->allocation_base->formatRate((float) $rate->rate) }}</span>
+                                    <span class="module-stat-pill module-stat-pill--price">{{ $rate->effectiveAllocationBase()->formatRate((float) $rate->rate) }}</span>
                                 </td>
                                 <td class="col-actions">
                                     <x-crud-actions

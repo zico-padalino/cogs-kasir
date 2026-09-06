@@ -24,7 +24,8 @@ class OverheadAllocationService
         $total = 0.0;
 
         foreach ($rates as $rate) {
-            $baseValue = match ($rate->allocation_base) {
+            $base = $rate->effectiveAllocationBase();
+            $baseValue = match ($base) {
                 OverheadAllocationBase::DirectMaterial => $directMaterial,
                 OverheadAllocationBase::DirectLabor => $directLabor,
                 OverheadAllocationBase::LaborHours => $laborHours,
@@ -37,7 +38,7 @@ class OverheadAllocationService
             $details[] = [
                 'overhead_rate_id' => $rate->id,
                 'name' => $rate->name,
-                'allocation_base' => $rate->allocation_base->value,
+                'allocation_base' => $base->value,
                 'base_value' => round($baseValue, 4),
                 'rate' => (float) $rate->rate,
                 'allocated_cost' => round($allocated, 4),
@@ -79,7 +80,8 @@ class OverheadAllocationService
         $total = 0.0;
 
         foreach ($rates as $rate) {
-            $baseValue = match ($rate->allocation_base) {
+            $base = $rate->effectiveAllocationBase();
+            $baseValue = match ($base) {
                 OverheadAllocationBase::DirectMaterial => $directMaterial,
                 OverheadAllocationBase::DirectLabor => $directLabor,
                 OverheadAllocationBase::LaborHours => $laborHours,
@@ -93,9 +95,9 @@ class OverheadAllocationService
                 'overhead_rate_id' => $rate->id,
                 'name' => $rate->name,
                 'description' => $rate->description,
-                'allocation_base' => $rate->allocation_base->value,
-                'rule_label' => $rate->allocation_base->plainRule(),
-                'rate_label' => $rate->allocation_base->formatRate((float) $rate->rate),
+                'allocation_base' => $base->value,
+                'rule_label' => $base->plainRule(),
+                'rate_label' => $base->formatRate((float) $rate->rate),
                 'base_value' => round($baseValue, 4),
                 'rate' => (float) $rate->rate,
                 'allocated_cost' => round($allocated, 4),

@@ -6,7 +6,7 @@
 
 @section('content')
     <div class="module-page module-step-3">
-        @if ($product->type === \App\Enums\ProductType::SemiFinished)
+        @if ($product->effectiveType() === \App\Enums\ProductType::SemiFinished)
             <a href="{{ route('bahan-jadi.index') }}" class="cogs-detail-back">← Kembali ke Bahan Jadi</a>
         @else
             <a href="{{ route('products.index') }}" class="cogs-detail-back">← Kembali ke daftar menu</a>
@@ -43,7 +43,7 @@
         <div class="recipe-desktop">
             <div class="recipe-desktop__main">
                 <x-module-tip :step="3" title="Cara isi resep" class="recipe-tip-desktop">
-                    @if ($product->type === \App\Enums\ProductType::SemiFinished)
+                    @if ($product->effectiveType() === \App\Enums\ProductType::SemiFinished)
                         Pilih <strong>bahan baku</strong> yang dipakai membuat bahan jadi ini, isi jumlah, lalu <strong>Tambah ke Resep</strong>.
                     @else
                         Pilih <strong>bahan</strong> atau <strong>bahan jadi</strong>, isi jumlah pakai, lalu <strong>Tambah ke Resep</strong>.
@@ -252,14 +252,14 @@
                         >
                             @csrf
                             @php
-                                $bomRaw = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::RawMaterial);
-                                $bomJadi = $allProducts->filter(fn ($p) => $p->type === \App\Enums\ProductType::SemiFinished);
+                                $bomRaw = $allProducts->filter(fn ($p) => $p->effectiveType() === \App\Enums\ProductType::RawMaterial);
+                                $bomJadi = $allProducts->filter(fn ($p) => $p->effectiveType() === \App\Enums\ProductType::SemiFinished);
                                 $oldChildId = old('child_product_id');
                                 $oldIsRaw = $oldChildId && $bomRaw->contains(fn ($p) => (string) $p->id === (string) $oldChildId);
                                 $oldIsJadi = $oldChildId && $bomJadi->contains(fn ($p) => (string) $p->id === (string) $oldChildId);
                             @endphp
                             <div class="recipe-add-form__material">
-                                @if ($product->type === \App\Enums\ProductType::SemiFinished)
+                                @if ($product->effectiveType() === \App\Enums\ProductType::SemiFinished)
                                     <label class="form-label" for="bom_child_product_id">Pilih bahan baku</label>
                                     <select
                                         id="bom_child_product_id"
@@ -390,7 +390,7 @@
                                             @endunless
                                             @if ($presented && $mat)
                                                 <p class="mt-1 text-xs text-slate-500">
-                                                    Potong stok {{ $mat->type->label() }}: {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
+                                                    Potong stok {{ $mat->effectiveType()->label() }}: {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
                                                 </p>
                                             @else
                                                 <p class="mt-1 text-xs text-slate-400">Tanpa potong stok bahan</p>
@@ -499,7 +499,7 @@
                                             <td class="font-medium tabular-nums">+{{ $format::rupiah($addon->selling_price, 0) }}</td>
                                             <td class="text-sm text-slate-500">
                                                 @if ($presented && $mat)
-                                                    <span class="block text-[11px] text-slate-400">{{ $mat->type->label() }}</span>
+                                                    <span class="block text-[11px] text-slate-400">{{ $mat->effectiveType()->label() }}</span>
                                                     {{ $mat->name }} · {{ $format::number($presented['quantity']) }} {{ $presented['label'] }}
                                                 @else
                                                     <span class="text-slate-400">—</span>
@@ -703,6 +703,7 @@
                                     <div class="mt-2 max-h-52 space-y-2 overflow-y-auto pr-1">
                                         @foreach ($overheadRates as $rate)
                                             @php
+                                                $overheadBase = $rate->effectiveAllocationBase();
                                                 $detail = collect($overheadDetails)->firstWhere('overhead_rate_id', $rate->id);
                                                 $allocated = (float) ($detail['allocated_cost'] ?? 0);
                                             @endphp
@@ -715,15 +716,15 @@
                                                     data-overhead-check
                                                     data-overhead-amount="{{ $allocated }}"
                                                     data-overhead-name="{{ $rate->name }}"
-                                                    data-overhead-rule="{{ $rate->allocation_base->plainRule() }}"
-                                                    data-overhead-rate="{{ $rate->allocation_base->formatRate((float) $rate->rate) }}"
+                                                    data-overhead-rule="{{ $overheadBase->plainRule() }}"
+                                                    data-overhead-rate="{{ $overheadBase->formatRate((float) $rate->rate) }}"
                                                     checked
                                                 >
                                                 <span class="min-w-0 flex-1">
                                                     <span class="block text-sm font-semibold text-slate-900">{{ $rate->name }}</span>
                                                     <span class="mt-0.5 block text-[11px] text-slate-500">
-                                                        {{ $rate->allocation_base->formatRate((float) $rate->rate) }}
-                                                        · {{ $rate->allocation_base->plainRule() }}
+                                                        {{ $overheadBase->formatRate((float) $rate->rate) }}
+                                                        · {{ $overheadBase->plainRule() }}
                                                     </span>
                                                     @if ($rate->description)
                                                         <span class="mt-0.5 block text-[11px] text-slate-400">{{ $rate->description }}</span>

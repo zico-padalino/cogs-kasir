@@ -66,13 +66,13 @@ class ProductController extends Controller
 
   public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
   {
-    if ($product->type === ProductType::RawMaterial) {
+    if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
 
     $product->load(['billOfMaterials.childProduct', 'addons.material']);
 
-    $childTypes = $product->type === ProductType::SemiFinished
+    $childTypes = $product->effectiveType() === ProductType::SemiFinished
       ? [ProductType::RawMaterial->value]
       : [ProductType::RawMaterial->value, ProductType::SemiFinished->value];
 
@@ -84,12 +84,12 @@ class ProductController extends Controller
       ->orderBy('name')
       ->get()
       ->unique('id')
-      ->unique(fn (Product $p) => mb_strtolower(trim($p->name)))
-      ->sortBy(fn (Product $p) => mb_strtolower($p->name))
+      ->unique(fn (Product $p) => mb_strtolower(trim((string) $p->name)))
+      ->sortBy(fn (Product $p) => mb_strtolower((string) $p->name))
       ->values();
 
     $rawMaterials = $allProducts
-      ->filter(fn (Product $p) => $p->type === ProductType::RawMaterial)
+      ->filter(fn (Product $p) => $p->effectiveType() === ProductType::RawMaterial)
       ->values();
 
     // Add-on boleh potong stok bahan baku atau bahan jadi (terpisah dari daftar resep).
@@ -101,11 +101,11 @@ class ProductController extends Controller
       ->get();
 
     $addonRawMaterials = $addonStockProducts
-      ->filter(fn (Product $p) => $p->type === ProductType::RawMaterial)
+      ->filter(fn (Product $p) => $p->effectiveType() === ProductType::RawMaterial)
       ->values();
 
     $addonSemiFinishedMaterials = $addonStockProducts
-      ->filter(fn (Product $p) => $p->type === ProductType::SemiFinished)
+      ->filter(fn (Product $p) => $p->effectiveType() === ProductType::SemiFinished)
       ->values();
 
     $materialUnits = $allProducts
@@ -131,19 +131,27 @@ class ProductController extends Controller
       ->get();
 
     if ($product->billOfMaterials->isNotEmpty()) {
-      $rollUp = $bomCostService->rollUpCost($product, 1);
-      $materialCost = (float) ($rollUp['total_cost'] ?? 0);
-      $overhead = $overheadService->allocateForSale(
-        directMaterial: $materialCost,
-        units: 1,
-        overheadRateIds: $overheadRates->pluck('id')->all(),
-      );
-      $overheadCost = (float) ($overhead['total'] ?? 0);
-      $overheadDetails = $overhead['details'] ?? [];
-      $estimatedModal = $materialCost + $overheadCost;
+      try {
+        $rollUp = $bomCostService->rollUpCost($product, 1);
+        $materialCost = (float) ($rollUp['total_cost'] ?? 0);
+        $overhead = $overheadService->allocateForSale(
+          directMaterial: $materialCost,
+          units: 1,
+          overheadRateIds: $overheadRates->pluck('id')->all(),
+        );
+        $overheadCost = (float) ($overhead['total'] ?? 0);
+        $overheadDetails = $overhead['details'] ?? [];
+        $estimatedModal = $materialCost + $overheadCost;
 
-      foreach ($rollUp['components'] ?? [] as $component) {
-        $bomLineCosts[(int) $component['product_id']] = $component;
+        foreach ($rollUp['components'] ?? [] as $component) {
+          $bomLineCosts[(int) $component['product_id']] = $component;
+        }
+      } catch (RuntimeException $e) {
+        // Tetap tampilkan halaman resep; modal dihitung ulang setelah data valid.
+        session()->now('error', $e->getMessage());
+      } catch (\Throwable $e) {
+        report($e);
+        session()->now('error', 'Gagal menghitung estimasi modal resep. Cek bahan resep lalu coba lagi.');
       }
     }
 
@@ -167,7 +175,7 @@ class ProductController extends Controller
 
   public function edit(Product $product)
   {
-    if ($product->type === ProductType::RawMaterial) {
+    if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
 
@@ -180,7 +188,7 @@ class ProductController extends Controller
 
   public function update(UpdateProductRequest $request, Product $product, ProductHppService $productHppService)
   {
-    if ($product->type === ProductType::RawMaterial) {
+    if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
 
@@ -193,7 +201,7 @@ class ProductController extends Controller
 
   public function destroy(Product $product, ProductDeletionService $deletionService)
   {
-    $type = $product->type;
+    $isRaw = $product->effectiveType() === ProductType::RawMaterial;
 
     try {
       $deletionService->delete($product);
@@ -201,9 +209,9 @@ class ProductController extends Controller
       return back()->with('error', $e->getMessage());
     }
 
-    $route = $type === ProductType::RawMaterial ? 'materials.index' : 'products.index';
-
-    return redirect()->route($route)->with('success', 'Data berhasil dihapus.');
+    return redirect()
+      ->route($isRaw ? 'materials.index' : 'products.index')
+      ->with('success', 'Data berhasil dihapus.');
   }
 
   public function storeBom(Request $request, Product $product)
@@ -222,13 +230,13 @@ class ProductController extends Controller
 
     $child = Product::query()->findOrFail($validated['child_product_id']);
 
-    $allowedChildTypes = $product->type === ProductType::SemiFinished
+    $allowedChildTypes = $product->effectiveType() === ProductType::SemiFinished
       ? [ProductType::RawMaterial]
       : [ProductType::RawMaterial, ProductType::SemiFinished];
 
-    if (! in_array($child->type, $allowedChildTypes, true)) {
+    if (! in_array($child->effectiveType(), $allowedChildTypes, true)) {
       throw ValidationException::withMessages([
-        'child_product_id' => $product->type === ProductType::SemiFinished
+        'child_product_id' => $product->effectiveType() === ProductType::SemiFinished
           ? 'Resep bahan jadi hanya boleh dari bahan baku.'
           : 'Hanya bahan baku atau bahan jadi yang bisa dimasukkan ke resep.',
       ]);
@@ -310,7 +318,7 @@ class ProductController extends Controller
 
   public function calculateModal(Request $request, Product $product, CogsCalculationService $cogsService)
   {
-    if ($product->type === ProductType::RawMaterial) {
+    if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
 
@@ -350,7 +358,7 @@ class ProductController extends Controller
 
   public function storeAddon(Request $request, Product $product)
   {
-    if ($product->type === ProductType::RawMaterial) {
+    if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
 
@@ -374,7 +382,7 @@ class ProductController extends Controller
 
     if ($materialId) {
       $material = Product::query()->findOrFail($materialId);
-      if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
+      if (! in_array($material->effectiveType(), [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
         throw ValidationException::withMessages([
           'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
         ]);
@@ -435,7 +443,7 @@ class ProductController extends Controller
 
     if ($materialId) {
       $material = Product::query()->findOrFail($materialId);
-      if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
+      if (! in_array($material->effectiveType(), [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
         throw ValidationException::withMessages([
           'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
         ]);

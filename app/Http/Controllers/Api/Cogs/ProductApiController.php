@@ -61,7 +61,7 @@ class ProductApiController extends Controller
 
     public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService): JsonResponse
     {
-        if ($product->type === ProductType::RawMaterial) {
+        if ($product->effectiveType() === ProductType::RawMaterial) {
             return response()->json([
                 'message' => 'Produk ini adalah bahan baku.',
             ], 404);
@@ -69,7 +69,7 @@ class ProductApiController extends Controller
 
         $product->load(['billOfMaterials.childProduct', 'addons.material']);
 
-        $childTypes = $product->type === ProductType::SemiFinished
+        $childTypes = $product->effectiveType() === ProductType::SemiFinished
             ? [ProductType::RawMaterial->value]
             : [ProductType::RawMaterial->value, ProductType::SemiFinished->value];
 
@@ -138,7 +138,7 @@ class ProductApiController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product, ProductHppService $productHppService): JsonResponse
     {
-        if ($product->type === ProductType::RawMaterial) {
+        if ($product->effectiveType() === ProductType::RawMaterial) {
             return response()->json([
                 'message' => 'Produk ini adalah bahan baku.',
             ], 404);
@@ -185,13 +185,13 @@ class ProductApiController extends Controller
 
         $child = Product::query()->findOrFail($validated['child_product_id']);
 
-        $allowedChildTypes = $product->type === ProductType::SemiFinished
+        $allowedChildTypes = $product->effectiveType() === ProductType::SemiFinished
             ? [ProductType::RawMaterial]
             : [ProductType::RawMaterial, ProductType::SemiFinished];
 
-        if (! in_array($child->type, $allowedChildTypes, true)) {
+        if (! in_array($child->effectiveType(), $allowedChildTypes, true)) {
             throw ValidationException::withMessages([
-                'child_product_id' => $product->type === ProductType::SemiFinished
+                'child_product_id' => $product->effectiveType() === ProductType::SemiFinished
                     ? 'Resep bahan jadi hanya boleh dari bahan baku.'
                     : 'Hanya bahan baku atau bahan jadi yang bisa dimasukkan ke resep.',
             ]);
@@ -283,7 +283,7 @@ class ProductApiController extends Controller
 
     public function calculateModal(Request $request, Product $product, CogsCalculationService $cogsService): JsonResponse
     {
-        if ($product->type === ProductType::RawMaterial) {
+        if ($product->effectiveType() === ProductType::RawMaterial) {
             return response()->json([
                 'message' => 'Produk ini adalah bahan baku.',
             ], 404);
@@ -331,7 +331,7 @@ class ProductApiController extends Controller
 
     public function storeAddon(Request $request, Product $product): JsonResponse
     {
-        if ($product->type === ProductType::RawMaterial) {
+        if ($product->effectiveType() === ProductType::RawMaterial) {
             return response()->json([
                 'message' => 'Produk ini adalah bahan baku.',
             ], 404);
@@ -357,7 +357,7 @@ class ProductApiController extends Controller
 
             if ($materialId) {
                 $material = Product::query()->findOrFail($materialId);
-                if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
+                if (! in_array($material->effectiveType(), [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
                     throw ValidationException::withMessages([
                         'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
                     ]);
@@ -421,7 +421,7 @@ class ProductApiController extends Controller
 
         if ($materialId) {
             $material = Product::query()->findOrFail($materialId);
-            if (! in_array($material->type, [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
+            if (! in_array($material->effectiveType(), [ProductType::RawMaterial, ProductType::SemiFinished], true)) {
                 throw ValidationException::withMessages([
                     'material_product_id' => 'Add-on hanya bisa dihubungkan ke bahan baku atau bahan jadi.',
                 ]);

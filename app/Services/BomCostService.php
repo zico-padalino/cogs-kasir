@@ -51,6 +51,10 @@ class BomCostService
 
         foreach ($bomItems as $bomItem) {
             $child = $bomItem->childProduct;
+            if (! $child) {
+                continue;
+            }
+
             $requiredQty = $bomItem->effectiveQuantity() * $quantity;
             $componentCost = $this->rollUpCost($child, $requiredQty, $depth + 1);
 
@@ -109,6 +113,10 @@ class BomCostService
 
         foreach ($bomItems as $bomItem) {
             $child = $bomItem->childProduct;
+            if (! $child) {
+                continue;
+            }
+
             $requiredQty = $bomItem->effectiveQuantity() * $quantity;
             $childRequirements = $this->explodeBomRecursive($child, $requiredQty, $depth + 1);
 

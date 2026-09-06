@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SafeBackedEnumCast;
 use App\Enums\CostingMethod;
 use App\Enums\ProductType;
 use App\Support\MenuCatalogCache;
@@ -39,8 +40,8 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'type' => ProductType::class,
-            'costing_method' => CostingMethod::class,
+            'type' => SafeBackedEnumCast::class.':'.ProductType::class,
+            'costing_method' => SafeBackedEnumCast::class.':'.CostingMethod::class,
             'standard_cost' => 'decimal:4',
             'unit_hpp' => 'decimal:4',
             'selling_price' => 'decimal:4',
@@ -86,26 +87,24 @@ class Product extends Model
         return $this->hasMany(CogsCalculation::class);
     }
 
-    /** Stok fisik di lot (termasuk lot minus / oversell). */
-    public function onHandQuantity(): float
-    {
-        return (float) $this->inventoryLots()->sum('quantity_remaining');
-    }
-
     /** Qty yang dibooking open bill (tagihan terbuka). */
     public function reservedQuantity(?int $exceptOrderId = null): float
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('inventory_reservations')) {
+        try {
+            if (! \Illuminate\Support\Facades\Schema::hasTable('inventory_reservations')) {
+                return 0.0;
+            }
+
+            $query = InventoryReservation::query()->where('product_id', $this->id);
+
+            if ($exceptOrderId) {
+                $query->where('pos_order_id', '!=', $exceptOrderId);
+            }
+
+            return (float) $query->sum('quantity');
+        } catch (\Throwable) {
             return 0.0;
         }
-
-        $query = InventoryReservation::query()->where('product_id', $this->id);
-
-        if ($exceptOrderId) {
-            $query->where('pos_order_id', '!=', $exceptOrderId);
-        }
-
-        return (float) $query->sum('quantity');
     }
 
     /**
@@ -115,13 +114,27 @@ class Product extends Model
      */
     public function availableQuantity(?int $exceptOrderId = null): float
     {
-        $available = $this->onHandQuantity() - $this->reservedQuantity($exceptOrderId);
+        try {
+            $available = $this->onHandQuantity() - $this->reservedQuantity($exceptOrderId);
 
-        if (config('pos.allow_negative_stock', true)) {
-            return round($available, 6);
+            if (config('pos.allow_negative_stock', true)) {
+                return round($available, 6);
+            }
+
+            return max(0.0, $available);
+        } catch (\Throwable) {
+            return 0.0;
         }
+    }
 
-        return max(0.0, $available);
+    /** Stok fisik di lot (termasuk lot minus / oversell). */
+    public function onHandQuantity(): float
+    {
+        try {
+            return (float) $this->inventoryLots()->sum('quantity_remaining');
+        } catch (\Throwable) {
+            return 0.0;
+        }
     }
 
     /** Menu dengan lot FG/SF yang pernah ada — stok 0 = Habis di kasir. */
