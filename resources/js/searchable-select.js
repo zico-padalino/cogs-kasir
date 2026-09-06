@@ -10,6 +10,14 @@ function optionLabel(option) {
     return (option.textContent || option.label || '').trim();
 }
 
+function debounce(fn, wait) {
+    let timer = null;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), wait);
+    };
+}
+
 function enhanceSelect(select) {
     if (select.dataset.searchableBound === '1') {
         return;
@@ -21,6 +29,8 @@ function enhanceSelect(select) {
         || select.options[0]?.textContent?.trim()
         || 'Pilih...';
     const searchPlaceholder = select.dataset.searchInputPlaceholder || 'Cari...';
+    const remoteUrl = (select.dataset.remoteUrl || '').trim();
+    const isRemote = remoteUrl !== '';
 
     const wrap = document.createElement('div');
     wrap.className = 'searchable-select';
@@ -72,11 +82,27 @@ function enhanceSelect(select) {
     empty.textContent = 'Tidak ada yang cocok';
     panel.appendChild(empty);
 
+    const footer = document.createElement('div');
+    footer.className = 'searchable-select__footer';
+    footer.hidden = true;
+    panel.appendChild(footer);
+
+    const loadMoreBtn = document.createElement('button');
+    loadMoreBtn.type = 'button';
+    loadMoreBtn.className = 'searchable-select__load-more';
+    loadMoreBtn.textContent = 'Muat lagi';
+    footer.appendChild(loadMoreBtn);
+
     document.body.appendChild(panel);
 
     let open = false;
     let activeIndex = -1;
     let visibleItems = [];
+    let remotePage = 0;
+    let remoteHasMore = false;
+    let remoteLoading = false;
+    let remoteQuery = '';
+    let remoteAbort = null;
 
     const syncTrigger = () => {
         const selected = select.options[select.selectedIndex];
@@ -93,7 +119,7 @@ function enhanceSelect(select) {
         const rect = trigger.getBoundingClientRect();
         const gap = 8;
         const viewportPad = 12;
-        const preferred = 280;
+        const preferred = 320;
         const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPad;
         const spaceAbove = rect.top - gap - viewportPad;
         const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
@@ -106,7 +132,6 @@ function enhanceSelect(select) {
         );
 
         panel.style.position = 'fixed';
-        // Di atas modal admin (salary-gen ~10060, material-history, dll).
         panel.style.zIndex = '11000';
         panel.style.width = `${width}px`;
         panel.style.left = `${left}px`;
@@ -130,11 +155,18 @@ function enhanceSelect(select) {
         panel.classList.toggle('is-open', open);
 
         if (open) {
-            search.value = '';
-            // Pastikan trigger punya ruang di viewport sebelum panel diposisikan.
+            search.value = isRemote ? remoteQuery : '';
             trigger.scrollIntoView({ block: 'center', inline: 'nearest' });
             placePanel();
-            renderList();
+            if (isRemote) {
+                if (remotePage === 0) {
+                    loadRemotePage(1, true);
+                } else {
+                    renderRemoteList();
+                }
+            } else {
+                renderLocalList();
+            }
             requestAnimationFrame(() => {
                 placePanel();
                 search.focus({ preventScroll: true });
@@ -145,6 +177,8 @@ function enhanceSelect(select) {
     const choose = (value) => {
         if (select.value !== value) {
             select.value = value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
             select.dispatchEvent(new Event('change', { bubbles: true }));
         }
         syncTrigger();
@@ -162,7 +196,147 @@ function enhanceSelect(select) {
         });
     };
 
-    const renderList = () => {
+    const upsertRemoteOption = (item) => {
+        const value = String(item.id);
+        let option = Array.from(select.options).find((opt) => opt.value === value);
+
+        if (! option) {
+            option = document.createElement('option');
+            option.value = value;
+            select.appendChild(option);
+        }
+
+        const label = item.unit_label
+            ? `${item.name} (${item.unit_label})`
+            : item.name;
+        option.textContent = label;
+
+        if (item.units) {
+            option.dataset.units = JSON.stringify(item.units);
+        }
+        if (item.type) {
+            option.dataset.type = item.type;
+        }
+
+        return option;
+    };
+
+    const renderRemoteList = () => {
+        list.innerHTML = '';
+        visibleItems = [];
+
+        Array.from(select.options).forEach((option) => {
+            if (option.value === '' || option.hidden || option.disabled) {
+                return;
+            }
+
+            const li = document.createElement('li');
+            li.className = 'searchable-select__option';
+            li.setAttribute('role', 'option');
+            li.dataset.value = option.value;
+            li.textContent = optionLabel(option);
+
+            if (option.value === select.value) {
+                li.classList.add('is-selected');
+            }
+
+            li.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                choose(option.value);
+            });
+
+            list.appendChild(li);
+            visibleItems.push(li);
+        });
+
+        empty.hidden = visibleItems.length > 0 || remoteLoading;
+        empty.textContent = remoteLoading ? 'Memuat...' : 'Tidak ada yang cocok';
+        footer.hidden = ! remoteHasMore;
+        loadMoreBtn.disabled = remoteLoading;
+        loadMoreBtn.textContent = remoteLoading ? 'Memuat...' : 'Muat lagi';
+        setActive(visibleItems.length ? 0 : -1);
+    };
+
+    const loadRemotePage = async (page, reset = false) => {
+        if (remoteLoading) {
+            return;
+        }
+
+        remoteLoading = true;
+        footer.hidden = false;
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.textContent = 'Memuat...';
+        if (reset) {
+            empty.hidden = false;
+            empty.textContent = 'Memuat...';
+            list.innerHTML = '';
+            visibleItems = [];
+        }
+
+        if (remoteAbort) {
+            remoteAbort.abort();
+        }
+        remoteAbort = new AbortController();
+
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('per_page', select.dataset.remotePerPage || '20');
+        if (select.dataset.remoteType) {
+            params.set('type', select.dataset.remoteType);
+        }
+        if (remoteQuery) {
+            params.set('q', remoteQuery);
+        }
+
+        try {
+            const response = await fetch(`${remoteUrl}?${params.toString()}`, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                signal: remoteAbort.signal,
+            });
+
+            if (! response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+            const rows = Array.isArray(payload.data) ? payload.data : [];
+            const meta = payload.meta || {};
+
+            if (reset) {
+                const keepValue = select.value;
+                Array.from(select.options).forEach((option) => {
+                    if (option.value !== '' && option.value !== keepValue) {
+                        option.remove();
+                    }
+                });
+            }
+
+            rows.forEach((item) => upsertRemoteOption(item));
+
+            remotePage = Number(meta.page || page);
+            remoteHasMore = Boolean(meta.has_more);
+            renderRemoteList();
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+            empty.hidden = false;
+            empty.textContent = 'Gagal memuat bahan. Coba lagi.';
+            footer.hidden = true;
+            visibleItems = [];
+        } finally {
+            remoteLoading = false;
+            loadMoreBtn.disabled = false;
+            loadMoreBtn.textContent = 'Muat lagi';
+            footer.hidden = ! remoteHasMore;
+        }
+    };
+
+    const renderLocalList = () => {
         const query = normalize(search.value);
         list.innerHTML = '';
         visibleItems = [];
@@ -233,8 +407,16 @@ function enhanceSelect(select) {
         });
 
         empty.hidden = visibleItems.length > 0;
+        footer.hidden = true;
         setActive(visibleItems.length ? 0 : -1);
     };
+
+    const onRemoteSearch = debounce(() => {
+        remoteQuery = search.value.trim();
+        remotePage = 0;
+        remoteHasMore = false;
+        loadRemotePage(1, true);
+    }, 280);
 
     trigger.addEventListener('click', (event) => {
         event.preventDefault();
@@ -245,7 +427,11 @@ function enhanceSelect(select) {
     });
 
     search.addEventListener('input', () => {
-        renderList();
+        if (isRemote) {
+            onRemoteSearch();
+        } else {
+            renderLocalList();
+        }
     });
 
     search.addEventListener('keydown', (event) => {
@@ -269,6 +455,18 @@ function enhanceSelect(select) {
             setOpen(false);
             trigger.focus();
         }
+    });
+
+    loadMoreBtn.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+    });
+
+    loadMoreBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (! isRemote || ! remoteHasMore || remoteLoading) {
+            return;
+        }
+        loadRemotePage(remotePage + 1, false);
     });
 
     document.addEventListener('click', (event) => {

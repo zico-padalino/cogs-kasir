@@ -1,14 +1,14 @@
 @props([
-    'rawMaterials',
-    'semiFinishedMaterials',
-    'selectedId' => null,
+    'remoteUrl',
+    'selectedMaterial' => null,
     'mode' => 'create', // create | edit
+    'allowSemiFinished' => true,
 ])
 
 @php
-    $selectedId = $selectedId !== null && $selectedId !== '' ? (string) $selectedId : null;
-    $isRaw = $selectedId && $rawMaterials->contains(fn ($p) => (string) $p->id === $selectedId);
-    $isJadi = $selectedId && $semiFinishedMaterials->contains(fn ($p) => (string) $p->id === $selectedId);
+    $selectedId = $selectedMaterial?->id !== null ? (string) $selectedMaterial->id : null;
+    $isRaw = $selectedMaterial && $selectedMaterial->effectiveType() === \App\Enums\ProductType::RawMaterial;
+    $isJadi = $selectedMaterial && $selectedMaterial->effectiveType() === \App\Enums\ProductType::SemiFinished;
     $rawEmpty = $mode === 'edit' ? 'Tanpa bahan baku' : 'Tidak potong / pilih bahan baku...';
     $jadiEmpty = $mode === 'edit' ? 'Tanpa bahan jadi' : 'Tidak potong / pilih bahan jadi...';
 @endphp
@@ -18,58 +18,46 @@
     <div class="recipe-add-form__material-split">
         <div>
             <label class="form-label">Bahan baku</label>
-            @if ($mode === 'edit')
-                <select
-                    class="form-input"
-                    data-addon-edit-material
-                    data-searchable-select
-                    data-search-placeholder="{{ $rawEmpty }}"
-                    data-search-input-placeholder="Cari bahan baku..."
-                >
-            @else
-                <select
-                    class="form-input"
-                    data-addon-material
-                    data-searchable-select
-                    data-search-placeholder="{{ $rawEmpty }}"
-                    data-search-input-placeholder="Cari bahan baku..."
-                >
-            @endif
+            <select
+                class="form-input"
+                @if ($mode === 'edit') data-addon-edit-material @else data-addon-material @endif
+                data-searchable-select
+                data-search-placeholder="{{ $rawEmpty }}"
+                data-search-input-placeholder="Cari bahan baku..."
+                data-remote-url="{{ $remoteUrl }}"
+                data-remote-type="raw_material"
+                data-remote-per-page="20"
+            >
                 <option value="">{{ $rawEmpty }}</option>
-                @foreach ($rawMaterials as $p)
-                    <option value="{{ $p->id }}" @selected($isRaw && (string) $selectedId === (string) $p->id)>
-                        {{ $p->name }}
+                @if ($isRaw && $selectedMaterial)
+                    <option value="{{ $selectedMaterial->id }}" selected>
+                        {{ $selectedMaterial->name }} ({{ \App\Support\MaterialUnits::label($selectedMaterial->unit) }})
                     </option>
-                @endforeach
+                @endif
             </select>
         </div>
-        <div>
-            <label class="form-label">Bahan jadi</label>
-            @if ($mode === 'edit')
+        @if ($allowSemiFinished)
+            <div>
+                <label class="form-label">Bahan jadi</label>
                 <select
                     class="form-input"
-                    data-addon-edit-material
+                    @if ($mode === 'edit') data-addon-edit-material @else data-addon-material @endif
                     data-searchable-select
                     data-search-placeholder="{{ $jadiEmpty }}"
                     data-search-input-placeholder="Cari bahan jadi..."
+                    data-remote-url="{{ $remoteUrl }}"
+                    data-remote-type="semi_finished"
+                    data-remote-per-page="20"
                 >
-            @else
-                <select
-                    class="form-input"
-                    data-addon-material
-                    data-searchable-select
-                    data-search-placeholder="{{ $jadiEmpty }}"
-                    data-search-input-placeholder="Cari bahan jadi..."
-                >
-            @endif
-                <option value="">{{ $jadiEmpty }}</option>
-                @foreach ($semiFinishedMaterials as $p)
-                    <option value="{{ $p->id }}" @selected($isJadi && (string) $selectedId === (string) $p->id)>
-                        {{ $p->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+                    <option value="">{{ $jadiEmpty }}</option>
+                    @if ($isJadi && $selectedMaterial)
+                        <option value="{{ $selectedMaterial->id }}" selected>
+                            {{ $selectedMaterial->name }} ({{ \App\Support\MaterialUnits::label($selectedMaterial->unit) }})
+                        </option>
+                    @endif
+                </select>
+            </div>
+        @endif
     </div>
-    <p class="form-hint">Pilih salah satu — kosongkan keduanya jika tidak potong stok.</p>
+    <p class="form-hint">Pilih salah satu — kosongkan keduanya jika tidak potong stok. Cari nama, lalu muat halaman berikutnya bila perlu.</p>
 </div>

@@ -80,10 +80,10 @@ class ProductController extends Controller
 
   public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
   {
-    @set_time_limit(90);
+    @set_time_limit(60);
 
     try {
-      return $this->renderRecipeShow($product, $bomCostService, $overheadService);
+      return $this->renderRecipeShow($product);
     } catch (\Throwable $e) {
       report($e);
 
@@ -95,7 +95,90 @@ class ProductController extends Controller
     }
   }
 
-  private function renderRecipeShow(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
+  /**
+   * Cari bahan untuk form resep/add-on — pagination (paket halaman), jangan load semua.
+   */
+  public function recipeMaterials(Request $request, Product $product)
+  {
+    if ($product->effectiveType() === ProductType::RawMaterial) {
+      return response()->json(['message' => 'Tidak valid.', 'data' => [], 'meta' => []], 404);
+    }
+
+    $validated = $request->validate([
+      'q' => ['nullable', 'string', 'max:100'],
+      'type' => ['nullable', 'in:raw_material,semi_finished'],
+      'page' => ['nullable', 'integer', 'min:1'],
+      'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+    ]);
+
+    $page = (int) ($validated['page'] ?? 1);
+    $perPage = (int) ($validated['per_page'] ?? 20);
+    $q = trim((string) ($validated['q'] ?? ''));
+    $type = $validated['type'] ?? null;
+
+    $allowedTypes = $product->effectiveType() === ProductType::SemiFinished
+      ? [ProductType::RawMaterial->value]
+      : [ProductType::RawMaterial->value, ProductType::SemiFinished->value];
+
+    if ($type !== null && ! in_array($type, $allowedTypes, true)) {
+      return response()->json([
+        'data' => [],
+        'meta' => [
+          'page' => $page,
+          'per_page' => $perPage,
+          'has_more' => false,
+          'total' => 0,
+        ],
+      ]);
+    }
+
+    $query = Product::query()
+      ->where('is_active', true)
+      ->whereIn('type', $type ? [$type] : $allowedTypes)
+      ->orderBy('name');
+
+    if ($q !== '') {
+      $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
+      $query->where(function ($builder) use ($like) {
+        $builder->where('name', 'like', $like)
+          ->orWhere('sku', 'like', $like);
+      });
+    }
+
+    $paginator = $query->paginate($perPage, ['id', 'name', 'type', 'unit', 'is_active'], 'page', $page);
+
+    $data = collect($paginator->items())->map(function (Product $material) {
+      $unit = MaterialUnits::normalize($material->unit) ?: $material->unit;
+      $options = MaterialUnits::recipeOptions($material->unit);
+
+      return [
+        'id' => $material->id,
+        'name' => $material->name,
+        'type' => $material->effectiveType()->value,
+        'type_label' => $material->effectiveType()->label(),
+        'unit' => $unit,
+        'unit_label' => MaterialUnits::label($material->unit),
+        'units' => [
+          'unit' => $unit,
+          'label' => MaterialUnits::label($material->unit),
+          'options' => $options,
+          'preferred' => MaterialUnits::preferredInputUnit($material->unit),
+        ],
+      ];
+    })->values();
+
+    return response()->json([
+      'data' => $data,
+      'meta' => [
+        'page' => $paginator->currentPage(),
+        'per_page' => $paginator->perPage(),
+        'has_more' => $paginator->hasMorePages(),
+        'total' => $paginator->total(),
+      ],
+    ]);
+  }
+
+  private function renderRecipeShow(Product $product)
   {
     if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
@@ -103,72 +186,95 @@ class ProductController extends Controller
 
     $product->load(['billOfMaterials.childProduct', 'addons.material']);
 
-    $childTypes = $product->effectiveType() === ProductType::SemiFinished
+    // Hanya seed unit untuk bahan yang sudah dipakai di resep/add-on (bukan semua katalog).
+    $materialUnits = [];
+    foreach ($product->billOfMaterials as $bom) {
+      $child = $bom->childProduct;
+      if (! $child) {
+        continue;
+      }
+      $materialUnits[(string) $child->id] = [
+        'unit' => MaterialUnits::normalize($child->unit) ?: $child->unit,
+        'label' => MaterialUnits::label($child->unit),
+        'options' => MaterialUnits::recipeOptions($child->unit),
+        'preferred' => MaterialUnits::preferredInputUnit($child->unit),
+      ];
+    }
+    foreach ($product->addons as $addon) {
+      $mat = $addon->material;
+      if (! $mat) {
+        continue;
+      }
+      $materialUnits[(string) $mat->id] = [
+        'unit' => MaterialUnits::normalize($mat->unit) ?: $mat->unit,
+        'label' => MaterialUnits::label($mat->unit),
+        'options' => MaterialUnits::recipeOptions($mat->unit),
+        'preferred' => MaterialUnits::preferredInputUnit($mat->unit),
+      ];
+    }
+
+    $allowedTypes = $product->effectiveType() === ProductType::SemiFinished
       ? [ProductType::RawMaterial->value]
       : [ProductType::RawMaterial->value, ProductType::SemiFinished->value];
 
-    // Satu query bahan (resep + add-on). Tanpa hitung stok per baris — biar page load ringan.
-    $stockProducts = Product::query()
-      ->whereIn('type', [ProductType::RawMaterial->value, ProductType::SemiFinished->value])
+    $hasMaterials = Product::query()
       ->where('is_active', true)
-      ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::RawMaterial->value])
-      ->orderBy('name')
-      ->get(['id', 'name', 'type', 'unit', 'is_active'])
+      ->whereIn('type', $allowedTypes)
+      ->exists();
+
+    $selectedAddonMaterials = $product->addons
+      ->pluck('material')
+      ->filter()
       ->unique('id')
-      ->unique(fn (Product $p) => mb_strtolower(trim((string) $p->name)))
-      ->sortBy(fn (Product $p) => mb_strtolower((string) $p->name))
       ->values();
 
-    $allProducts = $stockProducts
-      ->filter(function (Product $p) use ($childTypes) {
-        $type = $p->getRawOriginal('type') ?: $p->effectiveType()->value;
-
-        return in_array($type, $childTypes, true);
-      })
+    $seedIds = collect([old('child_product_id'), old('material_product_id')])
+      ->merge($selectedAddonMaterials->pluck('id'))
+      ->filter()
+      ->map(fn ($id) => (int) $id)
+      ->unique()
       ->values();
 
-    $rawMaterials = $stockProducts
-      ->filter(fn (Product $p) => $p->effectiveType() === ProductType::RawMaterial)
-      ->values();
+    $seedMaterials = $seedIds->isEmpty()
+      ? collect()
+      : Product::query()
+        ->whereIn('id', $seedIds)
+        ->get(['id', 'name', 'type', 'unit', 'is_active']);
 
-    $addonRawMaterials = $rawMaterials;
-    $addonSemiFinishedMaterials = $stockProducts
-      ->filter(fn (Product $p) => $p->effectiveType() === ProductType::SemiFinished)
-      ->values();
-
-    $materialUnits = $stockProducts->mapWithKeys(fn (Product $material) => [
-      (string) $material->id => [
+    foreach ($seedMaterials as $material) {
+      $materialUnits[(string) $material->id] = [
         'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
         'label' => MaterialUnits::label($material->unit),
         'options' => MaterialUnits::recipeOptions($material->unit),
         'preferred' => MaterialUnits::preferredInputUnit($material->unit),
-      ],
-    ])->all();
+      ];
+    }
 
-    // Estimasi modal dihitung via tombol Hitung Modal — jangan hitung berat saat buka halaman.
-    $bomLineCosts = [];
-    $materialCost = 0.0;
-    $overheadCost = 0.0;
-    $overheadDetails = [];
-    $estimatedModal = (float) ($product->unit_hpp ?: 0);
     $overheadRates = OverheadRate::query()
       ->where('is_active', true)
       ->orderBy('name')
       ->get(['id', 'name', 'allocation_base', 'rate', 'description', 'is_active']);
 
+    $emptyMaterials = collect();
+
     return view('products.show', [
       'product' => $product,
-      'allProducts' => $allProducts,
-      'rawMaterials' => $rawMaterials,
-      'addonRawMaterials' => $addonRawMaterials,
-      'addonSemiFinishedMaterials' => $addonSemiFinishedMaterials,
+      'hasMaterials' => $hasMaterials,
+      'allProducts' => $emptyMaterials,
+      'rawMaterials' => $emptyMaterials,
+      'addonRawMaterials' => $emptyMaterials,
+      'addonSemiFinishedMaterials' => $emptyMaterials,
+      'seedMaterials' => $seedMaterials,
+      'selectedAddonMaterials' => $selectedAddonMaterials,
+      'recipeMaterialsUrl' => route('products.recipe-materials', $product),
+      'allowSemiFinishedInRecipe' => $product->effectiveType() !== ProductType::SemiFinished,
       'materialUnits' => $materialUnits,
-      'bomLineCosts' => $bomLineCosts,
-      'materialCost' => $materialCost,
-      'overheadCost' => $overheadCost,
-      'overheadDetails' => $overheadDetails,
+      'bomLineCosts' => [],
+      'materialCost' => 0.0,
+      'overheadCost' => 0.0,
+      'overheadDetails' => [],
       'overheadRates' => $overheadRates,
-      'estimatedModal' => $estimatedModal,
+      'estimatedModal' => (float) ($product->unit_hpp ?: 0),
       'format' => Format::class,
       'units' => MaterialUnits::class,
     ]);

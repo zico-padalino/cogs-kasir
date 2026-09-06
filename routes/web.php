@@ -203,6 +203,7 @@ Route::middleware(['auth', 'role:cogs', 'cogs.route'])->group(function () {
     Route::post('reset-data', [ResetDataController::class, 'reset'])->name('reset-data.store');
 
     Route::resource('products', ProductController::class);
+    Route::get('products/{product}/recipe-materials', [ProductController::class, 'recipeMaterials'])->name('products.recipe-materials');
     Route::post('products/{product}/bom', [ProductController::class, 'storeBom'])->name('products.bom.store');
     Route::put('products/{product}/bom/{bom}', [ProductController::class, 'updateBom'])->name('products.bom.update');
     Route::delete('products/{product}/bom/{bom}', [ProductController::class, 'destroyBom'])->name('products.bom.destroy');

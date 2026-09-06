@@ -59,12 +59,12 @@
                     :description="'Berapa bahan dipakai untuk bikin 1 '.$product->unit.' '.$product->name.'.'"
                     icon="🥗"
                 >
-                    @if ($allProducts->isEmpty())
+                    @unless ($hasMaterials)
                         <p class="alert-tip">
                             Belum ada bahan.
                             <a href="{{ route('materials.index') }}" class="font-semibold text-brand-700">Tambah bahan baku dulu →</a>
                         </p>
-                    @endif
+                    @endunless
 
                     @if ($product->billOfMaterials->isNotEmpty())
                         {{-- Desktop table --}}
@@ -242,7 +242,7 @@
                         </div>
                     @endif
 
-                    @if ($allProducts->isNotEmpty())
+                    @if ($hasMaterials)
                         <form
                             action="{{ route('products.bom.store', $product) }}"
                             method="POST"
@@ -252,11 +252,12 @@
                         >
                             @csrf
                             @php
-                                $bomRaw = $allProducts->filter(fn ($p) => $p->effectiveType() === \App\Enums\ProductType::RawMaterial);
-                                $bomJadi = $allProducts->filter(fn ($p) => $p->effectiveType() === \App\Enums\ProductType::SemiFinished);
                                 $oldChildId = old('child_product_id');
-                                $oldIsRaw = $oldChildId && $bomRaw->contains(fn ($p) => (string) $p->id === (string) $oldChildId);
-                                $oldIsJadi = $oldChildId && $bomJadi->contains(fn ($p) => (string) $p->id === (string) $oldChildId);
+                                $seedChild = $oldChildId
+                                    ? $seedMaterials->first(fn ($p) => (string) $p->id === (string) $oldChildId)
+                                    : null;
+                                $oldIsRaw = $seedChild && $seedChild->effectiveType() === \App\Enums\ProductType::RawMaterial;
+                                $oldIsJadi = $seedChild && $seedChild->effectiveType() === \App\Enums\ProductType::SemiFinished;
                             @endphp
                             <div class="recipe-add-form__material">
                                 @if ($product->effectiveType() === \App\Enums\ProductType::SemiFinished)
@@ -270,44 +271,43 @@
                                         data-searchable-select
                                         data-search-placeholder="Pilih bahan baku..."
                                         data-search-input-placeholder="Cari nama..."
+                                        data-remote-url="{{ $recipeMaterialsUrl }}"
+                                        data-remote-type="raw_material"
+                                        data-remote-per-page="20"
                                     >
                                         <option value="">Pilih bahan baku...</option>
-                                        @foreach ($bomRaw as $p)
-                                            <option
-                                                value="{{ $p->id }}"
-                                                @selected((string) $oldChildId === (string) $p->id)
-                                            >
-                                                {{ $p->name }} ({{ $units::label($p->unit) }})
+                                        @if ($oldIsRaw && $seedChild)
+                                            <option value="{{ $seedChild->id }}" selected>
+                                                {{ $seedChild->name }} ({{ $units::label($seedChild->unit) }})
                                             </option>
-                                        @endforeach
+                                        @endif
                                     </select>
+                                    <p class="form-hint mt-1">Cari nama bahan — data dimuat per halaman (20 item), bukan semua sekaligus.</p>
                                 @else
                                     <input type="hidden" name="child_product_id" value="{{ $oldChildId }}" data-bom-child-id>
                                     <div class="recipe-add-form__material-split">
-                                        @if ($bomRaw->isNotEmpty())
-                                            <div>
-                                                <label class="form-label" for="bom_child_raw">Pilih bahan baku</label>
-                                                <select
-                                                    id="bom_child_raw"
-                                                    class="form-input"
-                                                    data-bom-material
-                                                    data-searchable-select
-                                                    data-search-placeholder="Pilih bahan baku..."
-                                                    data-search-input-placeholder="Cari nama..."
-                                                >
-                                                    <option value="">Pilih bahan baku...</option>
-                                                    @foreach ($bomRaw as $p)
-                                                        <option
-                                                            value="{{ $p->id }}"
-                                                            @selected($oldIsRaw && (string) $oldChildId === (string) $p->id)
-                                                        >
-                                                            {{ $p->name }} ({{ $units::label($p->unit) }})
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        @endif
-                                        @if ($bomJadi->isNotEmpty())
+                                        <div>
+                                            <label class="form-label" for="bom_child_raw">Pilih bahan baku</label>
+                                            <select
+                                                id="bom_child_raw"
+                                                class="form-input"
+                                                data-bom-material
+                                                data-searchable-select
+                                                data-search-placeholder="Pilih bahan baku..."
+                                                data-search-input-placeholder="Cari nama..."
+                                                data-remote-url="{{ $recipeMaterialsUrl }}"
+                                                data-remote-type="raw_material"
+                                                data-remote-per-page="20"
+                                            >
+                                                <option value="">Pilih bahan baku...</option>
+                                                @if ($oldIsRaw && $seedChild)
+                                                    <option value="{{ $seedChild->id }}" selected>
+                                                        {{ $seedChild->name }} ({{ $units::label($seedChild->unit) }})
+                                                    </option>
+                                                @endif
+                                            </select>
+                                        </div>
+                                        @if ($allowSemiFinishedInRecipe)
                                             <div>
                                                 <label class="form-label" for="bom_child_jadi">Pilih bahan jadi</label>
                                                 <select
@@ -317,20 +317,21 @@
                                                     data-searchable-select
                                                     data-search-placeholder="Pilih bahan jadi..."
                                                     data-search-input-placeholder="Cari nama..."
+                                                    data-remote-url="{{ $recipeMaterialsUrl }}"
+                                                    data-remote-type="semi_finished"
+                                                    data-remote-per-page="20"
                                                 >
                                                     <option value="">Pilih bahan jadi...</option>
-                                                    @foreach ($bomJadi as $p)
-                                                        <option
-                                                            value="{{ $p->id }}"
-                                                            @selected($oldIsJadi && (string) $oldChildId === (string) $p->id)
-                                                        >
-                                                            {{ $p->name }} ({{ $units::label($p->unit) }})
+                                                    @if ($oldIsJadi && $seedChild)
+                                                        <option value="{{ $seedChild->id }}" selected>
+                                                            {{ $seedChild->name }} ({{ $units::label($seedChild->unit) }})
                                                         </option>
-                                                    @endforeach
+                                                    @endif
                                                 </select>
                                             </div>
                                         @endif
                                     </div>
+                                    <p class="form-hint mt-1">Cari nama bahan — data dimuat per halaman. Klik <strong>Muat lagi</strong> untuk paket berikutnya.</p>
                                 @endif
                             </div>
                             <div class="recipe-add-form__qty">
@@ -422,9 +423,9 @@
                                                     <label class="form-label">Potong stok bahan? (opsional)</label>
                                                     <x-addon-stock-selects
                                                         mode="edit"
-                                                        :raw-materials="$addonRawMaterials"
-                                                        :semi-finished-materials="$addonSemiFinishedMaterials"
-                                                        :selected-id="$addon->material_product_id"
+                                                        :remote-url="$recipeMaterialsUrl"
+                                                        :allow-semi-finished="$allowSemiFinishedInRecipe"
+                                                        :selected-material="$addon->material"
                                                     />
                                                 </div>
                                                 <div data-addon-edit-qty-wrap class="{{ $addon->material_product_id ? '' : 'hidden' }}">
@@ -529,9 +530,9 @@
                                                                 <label class="form-label">Bahan (opsional)</label>
                                                                 <x-addon-stock-selects
                                                                     mode="edit"
-                                                                    :raw-materials="$addonRawMaterials"
-                                                                    :semi-finished-materials="$addonSemiFinishedMaterials"
-                                                                    :selected-id="$addon->material_product_id"
+                                                                    :remote-url="$recipeMaterialsUrl"
+                                                                    :allow-semi-finished="$allowSemiFinishedInRecipe"
+                                                                    :selected-material="$addon->material"
                                                                 />
                                                             </div>
                                                             <div data-addon-edit-qty-wrap class="{{ $addon->material_product_id ? '' : 'hidden' }}">
@@ -616,9 +617,9 @@
                                 <label class="form-label">Potong stok bahan? (opsional)</label>
                                 <x-addon-stock-selects
                                     mode="create"
-                                    :raw-materials="$addonRawMaterials"
-                                    :semi-finished-materials="$addonSemiFinishedMaterials"
-                                    :selected-id="old('material_product_id')"
+                                    :remote-url="$recipeMaterialsUrl"
+                                    :allow-semi-finished="$allowSemiFinishedInRecipe"
+                                    :selected-material="$seedMaterials->first(fn ($p) => (string) $p->id === (string) old('material_product_id'))"
                                 />
                             </div>
                             <div data-addon-qty-wrap class="{{ old('material_product_id') ? '' : 'hidden' }}">
@@ -791,6 +792,18 @@
         materialUnits = {};
     }
 
+    const rememberUnitsFromSelect = (select) => {
+        const option = select?.selectedOptions?.[0];
+        if (! option?.value || ! option.dataset?.units) {
+            return;
+        }
+        try {
+            materialUnits[String(option.value)] = JSON.parse(option.dataset.units);
+        } catch (_) {
+            // ignore bad payload
+        }
+    };
+
     const setSubmitEnabled = (enabled) => {
         if (!submitBtn) return;
         submitBtn.disabled = !enabled;
@@ -849,6 +862,7 @@
 
     materialSelects.forEach((select) => {
         select.addEventListener('change', () => {
+            rememberUnitsFromSelect(select);
             if (childIdInput) {
                 const chosen = String(select.value || '');
                 if (chosen) {
@@ -982,6 +996,18 @@
         }
     };
 
+    const rememberUnits = (unitsMap, select) => {
+        const option = select?.selectedOptions?.[0];
+        if (! option?.value || ! option.dataset?.units) {
+            return;
+        }
+        try {
+            unitsMap[String(option.value)] = JSON.parse(option.dataset.units);
+        } catch (_) {
+            // ignore
+        }
+    };
+
     const form = document.querySelector('.recipe-addon-form');
     if (form) {
         const materialSelects = [...form.querySelectorAll('[data-addon-material]')];
@@ -1014,6 +1040,7 @@
 
         materialSelects.forEach((select) => {
             select.addEventListener('change', () => {
+                rememberUnits(materialUnits, select);
                 if (materialIdInput) {
                     const chosen = String(select.value || '');
                     if (chosen) {
@@ -1021,6 +1048,7 @@
                         materialSelects.forEach((other) => {
                             if (other !== select && other.value) {
                                 other.value = '';
+                                other.dispatchEvent(new Event('change', { bubbles: true }));
                             }
                         });
                     } else {
@@ -1069,6 +1097,7 @@
 
         materialSelects.forEach((select) => {
             select.addEventListener('change', () => {
+                rememberUnits(materialUnits, select);
                 if (materialIdInput) {
                     const chosen = String(select.value || '');
                     if (chosen) {
@@ -1076,6 +1105,7 @@
                         materialSelects.forEach((other) => {
                             if (other !== select && other.value) {
                                 other.value = '';
+                                other.dispatchEvent(new Event('change', { bubbles: true }));
                             }
                         });
                     } else {
