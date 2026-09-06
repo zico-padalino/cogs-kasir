@@ -51,31 +51,47 @@ class ProductController extends Controller
 
   public function store(StoreProductRequest $request, ProductHppService $productHppService)
   {
-    $data = $this->productPayload($request->validated());
-    $data['type'] = ProductType::FinishedGood->value;
-    $data['is_menu_item'] = true;
+    @set_time_limit(60);
 
-    if (empty($data['sku'])) {
-      $data['sku'] = $this->generateMenuSku($data['name']);
+    try {
+      $data = $this->productPayload($request->validated());
+      $data['type'] = ProductType::FinishedGood->value;
+      $data['is_menu_item'] = true;
+
+      if (empty($data['sku'])) {
+        $data['sku'] = $this->generateMenuSku($data['name']);
+      }
+
+      $product = Product::create($data);
+      $productHppService->markAsMenuItem($product, true);
+
+      return redirect()->route('products.show', $product)
+        ->with('success', 'Menu ditambahkan. Lanjut isi bahan resepnya.');
+    } catch (\Throwable $e) {
+      report($e);
+
+      return response()->view('errors.timeout', [
+        'retryUrl' => route('products.create'),
+        'productsUrl' => route('products.index'),
+        'homeUrl' => url('/'),
+      ], \App\Support\ServerBusy::isServerBusy($e) ? 504 : 500);
     }
-
-    $product = Product::create($data);
-    $productHppService->markAsMenuItem($product, true);
-
-    return redirect()->route('products.show', $product)
-      ->with('success', 'Menu ditambahkan. Lanjut isi bahan resepnya.');
   }
 
   public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
   {
+    @set_time_limit(90);
+
     try {
       return $this->renderRecipeShow($product, $bomCostService, $overheadService);
     } catch (\Throwable $e) {
       report($e);
 
-      return redirect()
-        ->route('products.index')
-        ->with('error', 'Halaman resep gagal dimuat. Coba refresh, atau hubungi admin jika berulang.');
+      return response()->view('errors.timeout', [
+        'retryUrl' => route('products.show', $product),
+        'productsUrl' => route('products.index'),
+        'homeUrl' => url('/'),
+      ], \App\Support\ServerBusy::isServerBusy($e) ? 504 : 500);
     }
   }
 
@@ -91,93 +107,54 @@ class ProductController extends Controller
       ? [ProductType::RawMaterial->value]
       : [ProductType::RawMaterial->value, ProductType::SemiFinished->value];
 
-    // Bahan baku lebih dulu; nama sama (baku + jadi) hanya tampil sekali biar tidak dobel di resep.
-    $allProducts = Product::query()
-      ->whereIn('type', $childTypes)
+    // Satu query bahan (resep + add-on). Tanpa hitung stok per baris — biar page load ringan.
+    $stockProducts = Product::query()
+      ->whereIn('type', [ProductType::RawMaterial->value, ProductType::SemiFinished->value])
       ->where('is_active', true)
       ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::RawMaterial->value])
       ->orderBy('name')
-      ->get()
+      ->get(['id', 'name', 'type', 'unit', 'is_active'])
       ->unique('id')
       ->unique(fn (Product $p) => mb_strtolower(trim((string) $p->name)))
       ->sortBy(fn (Product $p) => mb_strtolower((string) $p->name))
       ->values();
 
-    $rawMaterials = $allProducts
+    $allProducts = $stockProducts
+      ->filter(function (Product $p) use ($childTypes) {
+        $type = $p->getRawOriginal('type') ?: $p->effectiveType()->value;
+
+        return in_array($type, $childTypes, true);
+      })
+      ->values();
+
+    $rawMaterials = $stockProducts
       ->filter(fn (Product $p) => $p->effectiveType() === ProductType::RawMaterial)
       ->values();
 
-    // Add-on boleh potong stok bahan baku atau bahan jadi (terpisah dari daftar resep).
-    $addonStockProducts = Product::query()
-      ->whereIn('type', [ProductType::RawMaterial->value, ProductType::SemiFinished->value])
-      ->where('is_active', true)
-      ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::RawMaterial->value])
-      ->orderBy('name')
-      ->get();
-
-    $addonRawMaterials = $addonStockProducts
-      ->filter(fn (Product $p) => $p->effectiveType() === ProductType::RawMaterial)
-      ->values();
-
-    $addonSemiFinishedMaterials = $addonStockProducts
+    $addonRawMaterials = $rawMaterials;
+    $addonSemiFinishedMaterials = $stockProducts
       ->filter(fn (Product $p) => $p->effectiveType() === ProductType::SemiFinished)
       ->values();
 
-    // Satu query stok untuk semua bahan — hindari N+1 yang bikin timeout/500 di shared hosting.
-    $this->hydrateAvailableQuantities(
-      $allProducts
-        ->merge($addonStockProducts)
-        ->push($product)
-        ->unique('id')
-        ->values()
-    );
+    $materialUnits = $stockProducts->mapWithKeys(fn (Product $material) => [
+      (string) $material->id => [
+        'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
+        'label' => MaterialUnits::label($material->unit),
+        'options' => MaterialUnits::recipeOptions($material->unit),
+        'preferred' => MaterialUnits::preferredInputUnit($material->unit),
+      ],
+    ])->all();
 
-    $materialUnits = $allProducts
-      ->merge($addonStockProducts)
-      ->unique('id')
-      ->mapWithKeys(fn (Product $material) => [
-        (string) $material->id => [
-          'unit' => MaterialUnits::normalize($material->unit) ?: $material->unit,
-          'label' => MaterialUnits::label($material->unit),
-          'options' => MaterialUnits::recipeOptions($material->unit),
-          'preferred' => MaterialUnits::preferredInputUnit($material->unit),
-        ],
-      ])->all();
-
+    // Estimasi modal dihitung via tombol Hitung Modal — jangan hitung berat saat buka halaman.
     $bomLineCosts = [];
     $materialCost = 0.0;
     $overheadCost = 0.0;
     $overheadDetails = [];
-    $estimatedModal = 0.0;
+    $estimatedModal = (float) ($product->unit_hpp ?: 0);
     $overheadRates = OverheadRate::query()
       ->where('is_active', true)
       ->orderBy('name')
-      ->get();
-
-    if ($product->billOfMaterials->isNotEmpty()) {
-      try {
-        $rollUp = $bomCostService->rollUpCost($product, 1);
-        $materialCost = (float) ($rollUp['total_cost'] ?? 0);
-        $overhead = $overheadService->allocateForSale(
-          directMaterial: $materialCost,
-          units: 1,
-          overheadRateIds: $overheadRates->pluck('id')->all(),
-        );
-        $overheadCost = (float) ($overhead['total'] ?? 0);
-        $overheadDetails = $overhead['details'] ?? [];
-        $estimatedModal = $materialCost + $overheadCost;
-
-        foreach ($rollUp['components'] ?? [] as $component) {
-          $bomLineCosts[(int) $component['product_id']] = $component;
-        }
-      } catch (RuntimeException $e) {
-        // Tetap tampilkan halaman resep; modal dihitung ulang setelah data valid.
-        session()->now('error', $e->getMessage());
-      } catch (\Throwable $e) {
-        report($e);
-        session()->now('error', 'Gagal menghitung estimasi modal resep. Cek bahan resep lalu coba lagi.');
-      }
-    }
+      ->get(['id', 'name', 'allocation_base', 'rate', 'description', 'is_active']);
 
     return view('products.show', [
       'product' => $product,
@@ -240,57 +217,71 @@ class ProductController extends Controller
 
   public function storeBom(Request $request, Product $product)
   {
-    $validated = $request->validate([
-      'child_product_id' => [
-        'required',
-        'exists:products,id',
-        'not_in:'.$product->id,
-      ],
-      'quantity' => ['required', 'numeric', 'gt:0'],
-      'unit' => ['required', 'string', 'max:20'],
-      'scrap_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-      'sequence' => ['nullable', 'integer', 'min:0'],
-    ]);
+    @set_time_limit(60);
 
-    $child = Product::query()->findOrFail($validated['child_product_id']);
-
-    $allowedChildTypes = $product->effectiveType() === ProductType::SemiFinished
-      ? [ProductType::RawMaterial]
-      : [ProductType::RawMaterial, ProductType::SemiFinished];
-
-    if (! in_array($child->effectiveType(), $allowedChildTypes, true)) {
-      throw ValidationException::withMessages([
-        'child_product_id' => $product->effectiveType() === ProductType::SemiFinished
-          ? 'Resep bahan jadi hanya boleh dari bahan baku.'
-          : 'Hanya bahan baku atau bahan jadi yang bisa dimasukkan ke resep.',
+    try {
+      $validated = $request->validate([
+        'child_product_id' => [
+          'required',
+          'exists:products,id',
+          'not_in:'.$product->id,
+        ],
+        'quantity' => ['required', 'numeric', 'gt:0'],
+        'unit' => ['required', 'string', 'max:20'],
+        'scrap_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        'sequence' => ['nullable', 'integer', 'min:0'],
       ]);
+
+      $child = Product::query()->findOrFail($validated['child_product_id']);
+
+      $allowedChildTypes = $product->effectiveType() === ProductType::SemiFinished
+        ? [ProductType::RawMaterial]
+        : [ProductType::RawMaterial, ProductType::SemiFinished];
+
+      if (! in_array($child->effectiveType(), $allowedChildTypes, true)) {
+        throw ValidationException::withMessages([
+          'child_product_id' => $product->effectiveType() === ProductType::SemiFinished
+            ? 'Resep bahan jadi hanya boleh dari bahan baku.'
+            : 'Hanya bahan baku atau bahan jadi yang bisa dimasukkan ke resep.',
+        ]);
+      }
+
+      if (! $child->is_active) {
+        throw ValidationException::withMessages([
+          'child_product_id' => 'Bahan ini tidak aktif.',
+        ]);
+      }
+
+      $quantity = $this->quantityInStockUnit(
+        (float) $validated['quantity'],
+        $validated['unit'],
+        $child->unit,
+      );
+
+      BillOfMaterial::updateOrCreate(
+        [
+          'parent_product_id' => $product->id,
+          'child_product_id' => $validated['child_product_id'],
+        ],
+        [
+          'quantity' => $quantity,
+          'scrap_percentage' => $validated['scrap_percentage'] ?? 0,
+          'sequence' => $validated['sequence'] ?? 0,
+        ],
+      );
+
+      return redirect()->route('products.show', $product)->with('success', 'Bahan resep ditambahkan.');
+    } catch (ValidationException $e) {
+      throw $e;
+    } catch (\Throwable $e) {
+      report($e);
+
+      return response()->view('errors.timeout', [
+        'retryUrl' => route('products.show', $product),
+        'productsUrl' => route('products.index'),
+        'homeUrl' => url('/'),
+      ], \App\Support\ServerBusy::isServerBusy($e) ? 504 : 500);
     }
-
-    if (! $child->is_active) {
-      throw ValidationException::withMessages([
-        'child_product_id' => 'Bahan ini tidak aktif.',
-      ]);
-    }
-
-    $quantity = $this->quantityInStockUnit(
-      (float) $validated['quantity'],
-      $validated['unit'],
-      $child->unit,
-    );
-
-    BillOfMaterial::updateOrCreate(
-      [
-        'parent_product_id' => $product->id,
-        'child_product_id' => $validated['child_product_id'],
-      ],
-      [
-        'quantity' => $quantity,
-        'scrap_percentage' => $validated['scrap_percentage'] ?? 0,
-        'sequence' => $validated['sequence'] ?? 0,
-      ],
-    );
-
-    return redirect()->route('products.show', $product)->with('success', 'Bahan resep ditambahkan.');
   }
 
   public function updateBom(Request $request, Product $product, BillOfMaterial $bom)

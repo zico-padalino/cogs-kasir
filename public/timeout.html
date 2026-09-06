@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#5c4033">
+    <meta name="robots" content="noindex">
+    <title>Timeout — coba lagi</title>
+    <style>
+        :root {
+            --brand: #5c4033;
+            --bg: #f6f1ea;
+            --card: #ffffff;
+            --text: #1c1917;
+            --muted: #78716c;
+            --amber: #92400e;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--text);
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245, 158, 11, 0.16), transparent),
+                var(--bg);
+        }
+        .card {
+            width: 100%;
+            max-width: 22.5rem;
+            background: var(--card);
+            border: 1px solid rgba(92, 64, 51, 0.14);
+            border-radius: 1.35rem;
+            padding: 1.6rem 1.35rem 1.35rem;
+            text-align: center;
+            box-shadow: 0 18px 50px rgba(28, 25, 23, 0.12);
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: var(--amber);
+            font-family: system-ui, sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        h1 {
+            margin: 1rem 0 0.55rem;
+            font-size: 1.45rem;
+            line-height: 1.25;
+        }
+        p {
+            margin: 0;
+            color: var(--muted);
+            font-family: system-ui, sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .actions {
+            display: grid;
+            gap: 0.65rem;
+            margin-top: 1.35rem;
+        }
+        a.btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.75rem;
+            border-radius: 0.85rem;
+            text-decoration: none;
+            font-family: system-ui, sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .primary { background: var(--brand); color: #fff; }
+        .secondary {
+            background: #fff;
+            color: var(--brand);
+            border: 1px solid rgba(92, 64, 51, 0.18);
+        }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <div class="badge">Timeout / server sibuk</div>
+        <h1>Halaman terlalu lama dimuat</h1>
+        <p>Saat isi resep atau tambah menu, server melebihi batas waktu hosting. Coba buka lagi.</p>
+        <div class="actions">
+            <a class="btn primary" href="/products" id="retry">Kembali ke daftar menu</a>
+            <a class="btn secondary" href="/">Beranda</a>
+        </div>
+    </main>
+    <script>
+        (function () {
+            try {
+                var params = new URLSearchParams(location.search);
+                var retry = params.get('retry');
+                if (retry && retry.indexOf('/') === 0) {
+                    var a = document.getElementById('retry');
+                    a.href = retry;
+                    a.textContent = 'Coba buka lagi';
+                }
+            } catch (e) {}
+        })();
+    </script>
+</body>
+</html>

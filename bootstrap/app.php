@@ -40,4 +40,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+
+            if (! \App\Support\ServerBusy::isServerBusy($e)) {
+                return null;
+            }
+
+            report($e);
+
+            return response()
+                ->view('errors.timeout', \App\Support\ServerBusy::pageData($request), 504);
+        });
     })->create();

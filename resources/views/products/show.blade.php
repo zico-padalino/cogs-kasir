@@ -277,7 +277,7 @@
                                                 value="{{ $p->id }}"
                                                 @selected((string) $oldChildId === (string) $p->id)
                                             >
-                                                {{ $p->name }} — stok {{ $format::number($p->available_qty ?? 0) }} {{ $units::label($p->unit) }}
+                                                {{ $p->name }} ({{ $units::label($p->unit) }})
                                             </option>
                                         @endforeach
                                     </select>
@@ -301,7 +301,7 @@
                                                             value="{{ $p->id }}"
                                                             @selected($oldIsRaw && (string) $oldChildId === (string) $p->id)
                                                         >
-                                                            {{ $p->name }} — stok {{ $format::number($p->available_qty ?? 0) }} {{ $units::label($p->unit) }}
+                                                            {{ $p->name }} ({{ $units::label($p->unit) }})
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -324,7 +324,7 @@
                                                             value="{{ $p->id }}"
                                                             @selected($oldIsJadi && (string) $oldChildId === (string) $p->id)
                                                         >
-                                                            {{ $p->name }} — stok {{ $format::number($p->available_qty ?? 0) }} {{ $units::label($p->unit) }}
+                                                            {{ $p->name }} ({{ $units::label($p->unit) }})
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -651,26 +651,20 @@
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Stok siap jual</span>
-                        @php $menuStockQty = (float) ($product->available_qty ?? 0); @endphp
-                        <strong @class(['text-rose-700' => $menuStockQty < 0])>
-                            {{ $format::number($menuStockQty, 0) }} {{ $product->unit }}
-                            @if ($menuStockQty < 0)
-                                <span class="ml-1 text-xs font-semibold uppercase tracking-wide">minus</span>
-                            @endif
-                        </strong>
+                        <strong>{{ $format::number((float) ($product->available_qty ?? 0), 0) }} {{ $product->unit }}</strong>
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Biaya bahan</span>
-                        <strong data-recipe-side-material>{{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($materialCost) : '—' }}</strong>
+                        <strong data-recipe-side-material>{{ $materialCost > 0 ? $format::rupiah($materialCost) : '—' }}</strong>
                     </div>
                     <div class="recipe-summary-card__stat">
                         <span>Biaya lain</span>
-                        <strong data-recipe-side-overhead>{{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($overheadCost) : '—' }}</strong>
+                        <strong data-recipe-side-overhead>{{ $overheadCost > 0 ? $format::rupiah($overheadCost) : '—' }}</strong>
                     </div>
                     <div class="recipe-summary-card__modal">
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Estimasi modal / {{ $product->unit }}</p>
                         <p class="mt-1 text-2xl font-bold text-brand-700" data-recipe-side-modal>
-                            {{ $product->billOfMaterials->isNotEmpty() ? $format::rupiah($estimatedModal, 0) : 'Isi resep dulu' }}
+                            {{ $estimatedModal > 0 ? $format::rupiah($estimatedModal, 0) : ($product->billOfMaterials->isNotEmpty() ? 'Klik Hitung Modal' : 'Isi resep dulu') }}
                         </p>
                         @if ($product->unit_hpp > 0)
                             <p class="mt-1 text-xs text-slate-500">
