@@ -275,6 +275,10 @@
                 select.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
+
+        if (typeof window.initSearchableSelects === 'function') {
+            window.initSearchableSelects(form);
+        }
     };
 
     form.querySelectorAll('[data-waste-type]').forEach((input) => {

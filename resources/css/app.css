@@ -841,8 +841,21 @@
         @apply relative w-full;
     }
 
-    .searchable-select__native {
-        @apply pointer-events-none absolute h-px w-px overflow-hidden opacity-0;
+    .searchable-select__native,
+    select.searchable-select__native,
+    select.searchable-select__native.form-input {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        min-height: 0 !important;
+        max-height: 1px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        border: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
 
     .searchable-select__trigger {

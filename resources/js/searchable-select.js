@@ -39,6 +39,7 @@ function enhanceSelect(select) {
     select.parentNode.insertBefore(wrap, select);
     wrap.appendChild(select);
     select.classList.add('searchable-select__native');
+    select.classList.remove('form-input');
     select.tabIndex = -1;
     select.setAttribute('aria-hidden', 'true');
 
