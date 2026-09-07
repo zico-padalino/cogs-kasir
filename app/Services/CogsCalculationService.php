@@ -336,6 +336,8 @@ class CogsCalculationService
             'standard_cost' => $result->unitHpp,
         ]);
 
+        $this->bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
+
         $this->persistCalculation(
             result: $result,
             productId: $product->id,

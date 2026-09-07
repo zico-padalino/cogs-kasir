@@ -49,8 +49,8 @@
                         Pilih <strong>bahan</strong> atau <strong>bahan jadi</strong>, isi jumlah pakai, lalu <strong>Tambah ke Resep</strong>.
                         Saat menu terjual, stok bahan/bahan jadi ikut berkurang.
                     @endif
-                    Kolom <strong>Biaya</strong> dihitung otomatis dari harga stok.
-                    Setelah lengkap, klik <strong>Hitung Modal</strong> untuk menyimpan modal resmi.
+                    Kolom <strong>Harga / Biaya</strong> tersimpan di database (dari stok).
+                    Klik <strong>Hitung Modal</strong> untuk memperbarui dari harga stok terbaru dan menyimpan modal resmi.
                 </x-module-tip>
 
                 <x-module-form-card

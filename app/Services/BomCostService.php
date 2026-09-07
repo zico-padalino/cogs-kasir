@@ -132,4 +132,46 @@ class BomCostService
 
         return array_values($requirements);
     }
+
+    /**
+     * Simpan harga satuan & biaya baris resep ke DB (dari stok saat ini).
+     * Dipakai agar halaman resep tidak perlu hitung ulang lot setiap load.
+     */
+    public function cacheRecipeLineCosts(Product $product): float
+    {
+        $product->loadMissing('billOfMaterials.childProduct');
+
+        if ($product->billOfMaterials->isEmpty()) {
+            $product->forceFill(['recipe_material_cost' => 0])->save();
+
+            return 0.0;
+        }
+
+        $rollUp = $this->rollUpCost($product, 1);
+        $byChildId = [];
+
+        foreach ($rollUp['components'] ?? [] as $component) {
+            $byChildId[(int) ($component['product_id'] ?? 0)] = $component;
+        }
+
+        $total = 0.0;
+
+        foreach ($product->billOfMaterials as $bom) {
+            $component = $byChildId[(int) $bom->child_product_id] ?? null;
+            $unitCost = round((float) ($component['unit_cost'] ?? 0), 4);
+            $lineCost = round((float) ($component['total_cost'] ?? 0), 4);
+
+            $bom->forceFill([
+                'unit_cost' => $unitCost,
+                'line_cost' => $lineCost,
+            ])->save();
+
+            $total += $lineCost;
+        }
+
+        $total = round($total, 4);
+        $product->forceFill(['recipe_material_cost' => $total])->save();
+
+        return $total;
+    }
 }

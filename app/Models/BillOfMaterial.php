@@ -13,6 +13,8 @@ class BillOfMaterial extends Model
         'quantity',
         'scrap_percentage',
         'sequence',
+        'unit_cost',
+        'line_cost',
     ];
 
     protected function casts(): array
@@ -20,6 +22,8 @@ class BillOfMaterial extends Model
         return [
             'quantity' => 'decimal:6',
             'scrap_percentage' => 'decimal:4',
+            'unit_cost' => 'decimal:4',
+            'line_cost' => 'decimal:4',
         ];
     }
 

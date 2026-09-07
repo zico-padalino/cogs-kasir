@@ -78,12 +78,12 @@ class ProductController extends Controller
     }
   }
 
-  public function show(Product $product, BomCostService $bomCostService, OverheadAllocationService $overheadService)
+  public function show(Product $product, OverheadAllocationService $overheadService)
   {
     @set_time_limit(60);
 
     try {
-      return $this->renderRecipeShow($product, $bomCostService, $overheadService);
+      return $this->renderRecipeShow($product, $overheadService);
     } catch (\Throwable $e) {
       report($e);
 
@@ -180,7 +180,6 @@ class ProductController extends Controller
 
   private function renderRecipeShow(
     Product $product,
-    BomCostService $bomCostService,
     OverheadAllocationService $overheadService,
   ) {
     if ($product->effectiveType() === ProductType::RawMaterial) {
@@ -258,29 +257,38 @@ class ProductController extends Controller
       ->orderBy('name')
       ->get(['id', 'name', 'allocation_base', 'rate', 'description', 'is_active']);
 
-    // Hitung biaya hanya dari bahan di resep produk ini (bukan seluruh katalog).
+    // Biaya resep dibaca dari DB (diisi saat Hitung Modal / ubah resep) — tanpa hitung lot.
     $bomLineCosts = [];
     $materialCost = 0.0;
-    $overheadCost = 0.0;
-    $overheadDetails = [];
-    $estimatedModal = (float) ($product->unit_hpp ?: 0);
 
-    if ($product->billOfMaterials->isNotEmpty()) {
-      $rollUp = $bomCostService->rollUpCost($product, 1);
-      $materialCost = (float) ($rollUp['total_cost'] ?? 0);
-      $overhead = $overheadService->allocateForSale(
-        directMaterial: $materialCost,
-        units: 1,
-        overheadRateIds: $overheadRates->pluck('id')->all(),
-      );
-      $overheadCost = (float) ($overhead['total'] ?? 0);
-      $overheadDetails = $overhead['details'] ?? [];
-      $estimatedModal = $materialCost + $overheadCost;
-
-      foreach ($rollUp['components'] ?? [] as $component) {
-        $bomLineCosts[(int) $component['product_id']] = $component;
-      }
+    foreach ($product->billOfMaterials as $bom) {
+      $childId = (int) $bom->child_product_id;
+      $unitCost = (float) ($bom->unit_cost ?? 0);
+      $lineCost = (float) ($bom->line_cost ?? 0);
+      $bomLineCosts[$childId] = [
+        'product_id' => $childId,
+        'unit_cost' => $unitCost,
+        'total_cost' => $lineCost,
+      ];
+      $materialCost += $lineCost;
     }
+
+    if ($materialCost <= 0 && (float) ($product->recipe_material_cost ?? 0) > 0) {
+      $materialCost = (float) $product->recipe_material_cost;
+    } else {
+      $materialCost = round($materialCost, 4);
+    }
+
+    $overhead = $overheadService->allocateForSale(
+      directMaterial: $materialCost,
+      units: 1,
+      overheadRateIds: $overheadRates->pluck('id')->all(),
+    );
+    $overheadCost = (float) ($overhead['total'] ?? 0);
+    $overheadDetails = $overhead['details'] ?? [];
+    $estimatedModal = $materialCost > 0
+      ? $materialCost + $overheadCost
+      : (float) ($product->unit_hpp ?: 0);
 
     $bomChildren = $product->billOfMaterials
       ->pluck('childProduct')
@@ -355,7 +363,7 @@ class ProductController extends Controller
       ->with('success', 'Data berhasil dihapus.');
   }
 
-  public function storeBom(Request $request, Product $product)
+  public function storeBom(Request $request, Product $product, BomCostService $bomCostService)
   {
     @set_time_limit(60);
 
@@ -410,6 +418,8 @@ class ProductController extends Controller
         ],
       );
 
+      $bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
+
       return redirect()->route('products.show', $product)->with('success', 'Bahan resep ditambahkan.');
     } catch (ValidationException $e) {
       throw $e;
@@ -424,7 +434,7 @@ class ProductController extends Controller
     }
   }
 
-  public function updateBom(Request $request, Product $product, BillOfMaterial $bom)
+  public function updateBom(Request $request, Product $product, BillOfMaterial $bom, BomCostService $bomCostService)
   {
     if ($bom->parent_product_id !== $product->id) {
       abort(404);
@@ -457,16 +467,20 @@ class ProductController extends Controller
       'sequence' => $validated['sequence'] ?? $bom->sequence,
     ]);
 
+    $bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
+
     return redirect()->route('products.show', $product)->with('success', 'Resep diperbarui.');
   }
 
-  public function destroyBom(Product $product, BillOfMaterial $bom)
+  public function destroyBom(Product $product, BillOfMaterial $bom, BomCostService $bomCostService)
   {
     if ($bom->parent_product_id !== $product->id) {
       abort(404);
     }
 
     $bom->delete();
+
+    $bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
 
     return redirect()->route('products.show', $product)->with('success', 'Bahan dihapus dari resep.');
   }

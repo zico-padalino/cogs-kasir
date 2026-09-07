@@ -7,6 +7,7 @@ use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
 use App\Models\BillOfMaterial;
 use App\Models\Product;
+use App\Services\BomCostService;
 use App\Services\InventoryCostService;
 use App\Services\MaterialStockLogService;
 use App\Services\ProductDeletionService;
@@ -243,7 +244,7 @@ class BahanJadiController extends Controller
         return redirect()->route('bahan-jadi.index')->with('success', 'Bahan jadi dihapus.');
     }
 
-    public function storeBom(Request $request, Product $product)
+    public function storeBom(Request $request, Product $product, BomCostService $bomCostService)
     {
         $this->assertBahanJadi($product);
 
@@ -282,12 +283,14 @@ class BahanJadiController extends Controller
             sequence: $validated['sequence'] ?? 0,
         );
 
+        $bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
+
         return redirect()
             ->route('bahan-jadi.index')
             ->with('success', $child->name.' ditambahkan ke resep '.$product->name.'.');
     }
 
-    public function updateBom(Request $request, Product $product, BillOfMaterial $bom)
+    public function updateBom(Request $request, Product $product, BillOfMaterial $bom, BomCostService $bomCostService)
     {
         $this->assertBahanJadi($product);
 
@@ -321,10 +324,12 @@ class BahanJadiController extends Controller
             'sequence' => $validated['sequence'] ?? $bom->sequence,
         ]);
 
+        $bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
+
         return redirect()->route('bahan-jadi.index')->with('success', 'Resep diperbarui.');
     }
 
-    public function destroyBom(Product $product, BillOfMaterial $bom)
+    public function destroyBom(Product $product, BillOfMaterial $bom, BomCostService $bomCostService)
     {
         $this->assertBahanJadi($product);
 
@@ -333,6 +338,8 @@ class BahanJadiController extends Controller
         }
 
         $bom->delete();
+
+        $bomCostService->cacheRecipeLineCosts($product->fresh(['billOfMaterials.childProduct']));
 
         return redirect()->route('bahan-jadi.index')->with('success', 'Bahan dihapus dari resep.');
     }
