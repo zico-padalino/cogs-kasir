@@ -15,6 +15,7 @@ function initMaterialsListSearch() {
     const empty = list.querySelector('[data-materials-search-empty]');
     const countLabel = list.closest('.table-card')?.querySelector('.module-list-card__subtitle');
     const total = items.length;
+    const noun = (list.dataset.searchNoun || 'bahan').trim() || 'bahan';
 
     const apply = () => {
         const query = (searchInput.value || '').trim().toLowerCase();
@@ -33,8 +34,8 @@ function initMaterialsListSearch() {
 
         if (countLabel) {
             countLabel.textContent = query
-                ? `${visible} dari ${total} bahan`
-                : `${total} bahan terdaftar`;
+                ? `${visible} dari ${total} ${noun}`
+                : `${total} ${noun}`;
         }
     };
 

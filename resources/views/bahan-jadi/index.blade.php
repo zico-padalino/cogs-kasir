@@ -164,9 +164,19 @@
             </form>
         </x-module-form-card>
 
-        <x-table-card id="daftar-bahan" title="Daftar Bahan Jadi" :subtitle="$items->count().' item'">
+        <x-table-card id="daftar-bahan" title="Daftar Bahan Jadi" :subtitle="$items->count().' bahan jadi'">
             @if ($items->isNotEmpty())
-                <div class="materials-card-grid">
+                <div class="materials-card-grid" data-materials-list data-search-noun="bahan jadi">
+                    <div class="materials-search materials-card-grid__full">
+                        <input
+                            type="search"
+                            class="form-input"
+                            placeholder="Cari bahan jadi..."
+                            data-materials-search
+                            autocomplete="off"
+                        >
+                    </div>
+
                     @foreach ($items as $item)
                         @php
                             $bjQty = (float) ($item->available_qty ?? $item->availableQuantity());
@@ -180,6 +190,7 @@
                             ])
                             data-material-card
                             data-material-id="{{ $item->id }}"
+                            data-search="{{ strtolower($item->name.' '.$item->unit) }}"
                         >
                             <div class="material-card__top">
                                 <div class="min-w-0 flex-1">
@@ -374,6 +385,11 @@
                             </div>
                         </div>
                     @endforeach
+
+                    <div class="module-empty materials-card-grid__full hidden !py-8" data-materials-search-empty>
+                        <p class="module-empty__title">Tidak ada bahan jadi yang cocok</p>
+                        <p class="module-empty__hint">Coba kata kunci lain.</p>
+                    </div>
                 </div>
             @else
                 <p class="px-4 py-10 text-center text-sm text-slate-500 sm:px-5">Belum ada bahan jadi. Tambah di form atas.</p>
