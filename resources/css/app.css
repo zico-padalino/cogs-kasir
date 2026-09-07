@@ -8535,7 +8535,7 @@
     }
 
     .kds-board {
-        @apply grid flex-1 grid-cols-1 content-start gap-4 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3 2xl:grid-cols-4;
+        @apply grid flex-1 grid-cols-1 content-start gap-3 p-3 sm:grid-cols-2 sm:gap-4 sm:p-5 xl:grid-cols-3 2xl:grid-cols-4;
     }
 
     .kds-empty {
@@ -8585,15 +8585,15 @@
     }
 
     .kds-ticket-head {
-        @apply flex items-start justify-between gap-3 border-b border-slate-100 bg-[#faf7f2] px-4 py-3;
+        @apply flex items-start justify-between gap-3 border-b border-slate-100 bg-[#faf7f2] px-3.5 py-3 sm:px-4;
     }
 
     .kds-ticket-number {
-        @apply text-xl font-bold tracking-tight text-espresso;
+        @apply text-lg font-bold tracking-tight text-espresso sm:text-xl;
     }
 
     .kds-ticket-customer {
-        @apply mt-0.5 text-sm font-medium text-slate-600;
+        @apply mt-1 text-lg font-bold leading-snug text-slate-700 sm:text-xl;
     }
 
     .kds-ticket-head-side {
@@ -8601,7 +8601,7 @@
     }
 
     .kds-ticket-elapsed {
-        @apply font-mono text-lg font-bold tabular-nums text-slate-800;
+        @apply font-mono text-lg font-bold tabular-nums text-slate-800 sm:text-xl;
     }
 
     .kds-ticket-elapsed.is-warn {
@@ -8613,7 +8613,7 @@
     }
 
     .kds-ticket-badge {
-        @apply rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide;
+        @apply rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide sm:text-xs;
     }
 
     .kds-ticket-badge.is-bill {
@@ -8625,11 +8625,11 @@
     }
 
     .kds-ticket-meta {
-        @apply flex flex-wrap gap-1.5 px-4 pt-3;
+        @apply flex flex-wrap gap-2 px-3.5 pt-3 sm:px-4;
     }
 
     .kds-ticket-chip {
-        @apply rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700;
+        @apply rounded-lg bg-slate-100 px-3 py-1.5 text-base font-bold leading-none text-slate-800 sm:text-[0.95rem] xl:text-base;
     }
 
     .kds-ticket-chip-table {
@@ -8637,7 +8637,7 @@
     }
 
     .kds-ticket-items {
-        @apply flex flex-1 flex-col gap-1 px-3 py-3;
+        @apply flex flex-1 flex-col gap-1.5 px-2.5 py-3 sm:px-3;
     }
 
     .kds-ticket-item.is-done .kds-item-name {
@@ -8646,7 +8646,7 @@
 
     .kds-item-toggle,
     .kds-item-static {
-        @apply flex w-full items-start gap-2 rounded-xl px-2 py-2 text-left;
+        @apply flex w-full items-start gap-2.5 rounded-xl px-2 py-2.5 text-left sm:gap-3 sm:py-3;
     }
 
     .kds-item-toggle {
@@ -8654,7 +8654,7 @@
     }
 
     .kds-item-check {
-        @apply mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 border-brand-300 bg-white text-sm font-bold text-brand-700;
+        @apply mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-brand-300 bg-white text-base font-bold text-brand-700 sm:h-9 sm:w-9 sm:rounded-lg;
     }
 
     .kds-ticket-item.is-done .kds-item-check {
@@ -8662,23 +8662,23 @@
     }
 
     .kds-item-qty {
-        @apply mt-0.5 min-w-[2.25rem] shrink-0 text-base font-bold tabular-nums text-espresso;
+        @apply mt-0.5 min-w-[2.75rem] shrink-0 text-xl font-bold tabular-nums text-espresso sm:min-w-[2.5rem] sm:text-lg xl:text-xl;
     }
 
     .kds-item-body {
-        @apply flex min-w-0 flex-1 flex-col gap-0.5;
+        @apply flex min-w-0 flex-1 flex-col gap-1;
     }
 
     .kds-item-name {
-        @apply text-base font-semibold leading-snug text-slate-900;
+        @apply text-xl font-bold leading-snug text-slate-900 sm:text-lg xl:text-xl;
     }
 
     .kds-item-note {
-        @apply text-sm font-medium text-amber-800;
+        @apply text-base font-semibold leading-snug text-amber-800 sm:text-[0.95rem] xl:text-base;
     }
 
     .kds-item-addon {
-        @apply text-xs text-slate-500;
+        @apply text-base font-medium leading-snug text-slate-600 sm:text-sm xl:text-base;
     }
 
     .kds-ticket-foot {
@@ -8686,7 +8686,7 @@
     }
 
     .kds-serve-btn {
-        @apply w-full rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700;
+        @apply w-full rounded-xl bg-brand-600 px-3 py-3 text-base font-semibold text-white transition hover:bg-brand-700 sm:py-2.5 sm:text-sm xl:text-base;
     }
 
     .legal-shell {

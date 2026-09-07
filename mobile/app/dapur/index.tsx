@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,24 @@ import { AppScaffold } from '@/components/AppScaffold';
 import { seedKitchenIds } from '@/dapur/kitchenOrderTracker';
 import { onOrderSyncEvent } from '@/kasir/orderSyncEvents';
 import { colors, font, fontDisplay, radius, spacing } from '@/theme';
+
+/** Skala teks dapur: phone (full-width) vs tablet (≥700). */
+function dapurType(wide: boolean) {
+  return {
+    orderNumber: wide ? 18 : 20,
+    customer: wide ? 17 : 19,
+    elapsed: wide ? 17 : 19,
+    badge: wide ? 11 : 12,
+    chip: wide ? 14 : 16,
+    qty: wide ? 17 : 20,
+    itemName: wide ? 17 : 20,
+    itemNameLine: wide ? 22 : 26,
+    itemNote: wide ? 14 : 16,
+    itemAddon: wide ? 14 : 16,
+    serve: wide ? 15 : 17,
+    check: wide ? 44 : 48,
+  } as const;
+}
 
 function formatQty(qty: number): string {
   if (Math.abs(qty - Math.round(qty)) < 0.001) {
@@ -75,6 +94,9 @@ function splitNotes(notes?: string | null): { customer?: string; addons: string[
 
 export default function DapurBoardScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 700;
+  const type = useMemo(() => dapurType(isWide), [isWide]);
   const { pin } = useAuth();
   const [orders, setOrders] = useState<PosOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +242,7 @@ export default function DapurBoardScreen() {
               </Text>
             </View>
           ) : (
-            <View style={styles.grid}>
+            <View style={[styles.grid, isWide && styles.gridWide]}>
               {orders.map((order) => {
                 const items = order.items || [];
                 const done = items.filter((i) => i.is_delivered).length;
@@ -230,20 +252,30 @@ export default function DapurBoardScreen() {
                 return (
                   <View
                     key={order.id}
-                    style={[styles.ticket, isBill ? styles.ticketBill : styles.ticketPaid]}
+                    style={[
+                      styles.ticket,
+                      isWide && styles.ticketWide,
+                      isBill ? styles.ticketBill : styles.ticketPaid,
+                    ]}
                   >
                     <View style={styles.ticketHead}>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={styles.orderNumber} numberOfLines={1}>
+                        <Text style={[styles.orderNumber, { fontSize: type.orderNumber }]} numberOfLines={1}>
                           {order.order_number}
                         </Text>
-                        <Text style={styles.customer} numberOfLines={1}>
+                        <Text style={[styles.customer, { fontSize: type.customer }]} numberOfLines={2}>
                           {order.customer_note?.trim() || 'Tanpa nama'}
                         </Text>
                       </View>
                       <View style={styles.headSide}>
-                        <Text style={styles.elapsed}>{elapsed}</Text>
-                        <Text style={[styles.badge, isBill ? styles.badgeBill : styles.badgePaid]}>
+                        <Text style={[styles.elapsed, { fontSize: type.elapsed }]}>{elapsed}</Text>
+                        <Text
+                          style={[
+                            styles.badge,
+                            { fontSize: type.badge },
+                            isBill ? styles.badgeBill : styles.badgePaid,
+                          ]}
+                        >
                           {isBill ? 'Open' : 'Bayar'}
                         </Text>
                       </View>
@@ -251,16 +283,19 @@ export default function DapurBoardScreen() {
 
                     <View style={styles.chips}>
                       {order.order_type_label ? (
-                        <Text style={styles.chip} numberOfLines={1}>
+                        <Text style={[styles.chip, { fontSize: type.chip }]} numberOfLines={1}>
                           {order.order_type_icon || ''} {order.order_type_label}
                         </Text>
                       ) : null}
                       {order.table?.label ? (
-                        <Text style={[styles.chip, styles.chipTable]} numberOfLines={1}>
+                        <Text
+                          style={[styles.chip, styles.chipTable, { fontSize: type.chip }]}
+                          numberOfLines={1}
+                        >
                           🪑 {order.table.label}
                         </Text>
                       ) : null}
-                      <Text style={styles.chip}>
+                      <Text style={[styles.chip, { fontSize: type.chip }]}>
                         {done}/{items.length} siap
                       </Text>
                     </View>
@@ -277,14 +312,26 @@ export default function DapurBoardScreen() {
                             onPress={() => void toggleItem(item)}
                             disabled={busyItemId === item.id || !order.can_checklist_delivered}
                           >
-                            <View style={[styles.check, doneItem && styles.checkOn]}>
+                            <View
+                              style={[
+                                styles.check,
+                                { width: type.check, height: type.check },
+                                doneItem && styles.checkOn,
+                              ]}
+                            >
                               <Text style={styles.checkText}>{doneItem ? '✓' : ''}</Text>
                             </View>
-                            <Text style={styles.qty}>{formatQty(item.quantity)}×</Text>
+                            <Text style={[styles.qty, { fontSize: type.qty }]}>
+                              {formatQty(item.quantity)}×
+                            </Text>
                             <View style={{ flex: 1, minWidth: 0 }}>
                               <Text
-                                style={[styles.itemName, doneItem && styles.itemNameDone]}
-                                numberOfLines={2}
+                                style={[
+                                  styles.itemName,
+                                  { fontSize: type.itemName, lineHeight: type.itemNameLine },
+                                  doneItem && styles.itemNameDone,
+                                ]}
+                                numberOfLines={3}
                               >
                                 {item.product_name || 'Item'}
                               </Text>
@@ -300,12 +347,19 @@ export default function DapurBoardScreen() {
                                 </Text>
                               ) : null}
                               {notes.customer ? (
-                                <Text style={styles.itemNote} numberOfLines={2}>
+                                <Text
+                                  style={[styles.itemNote, { fontSize: type.itemNote }]}
+                                  numberOfLines={3}
+                                >
                                   {notes.customer}
                                 </Text>
                               ) : null}
                               {notes.addons.map((addon) => (
-                                <Text key={addon} style={styles.itemAddon} numberOfLines={1}>
+                                <Text
+                                  key={addon}
+                                  style={[styles.itemAddon, { fontSize: type.itemAddon }]}
+                                  numberOfLines={2}
+                                >
                                   {addon}
                                 </Text>
                               ))}
@@ -317,7 +371,7 @@ export default function DapurBoardScreen() {
 
                     {order.can_mark_served ? (
                       <Pressable style={styles.serveBtn} onPress={() => markServed(order)}>
-                        <Text style={styles.serveText}>Tandai selesai</Text>
+                        <Text style={[styles.serveText, { fontSize: type.serve }]}>Tandai selesai</Text>
                       </Pressable>
                     ) : null}
                   </View>
@@ -350,10 +404,14 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: spacing.md, gap: spacing.md },
   grid: {
+    flexDirection: 'column',
+    gap: spacing.md,
+  },
+  gridWide: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: spacing.sm,
+    rowGap: spacing.md,
   },
   empty: {
     marginTop: 48,
@@ -375,7 +433,7 @@ const styles = StyleSheet.create({
     ...font('400'),
   },
   ticket: {
-    width: '48.5%',
+    width: '100%',
     backgroundColor: colors.white,
     borderRadius: radius['2xl'],
     borderWidth: 1,
@@ -383,26 +441,28 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderLeftWidth: 4,
   },
+  ticketWide: {
+    width: '48.5%',
+  },
   ticketBill: { borderLeftColor: colors.blue700 },
   ticketPaid: { borderLeftColor: colors.brand600 },
   ticketHead: {
     flexDirection: 'row',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     backgroundColor: '#faf7f2',
     borderBottomWidth: 1,
     borderBottomColor: colors.slate100,
   },
-  orderNumber: { fontSize: 15, color: colors.espresso, ...fontDisplay('700') },
-  customer: { marginTop: 2, fontSize: 12, color: colors.slate600, ...font('600') },
+  orderNumber: { color: colors.espresso, ...fontDisplay('700') },
+  customer: { marginTop: 4, color: colors.slate700, ...font('700') },
   headSide: { alignItems: 'flex-end', gap: 4 },
-  elapsed: { fontSize: 14, color: colors.espresso, ...font('700') },
+  elapsed: { color: colors.espresso, ...font('700') },
   badge: {
     borderRadius: radius.full,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    fontSize: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     overflow: 'hidden',
     textTransform: 'uppercase',
     ...font('700'),
@@ -412,26 +472,25 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: 8,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   chip: {
     backgroundColor: colors.slate100,
-    color: colors.slate700,
-    borderRadius: radius.md,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    fontSize: 10,
+    color: colors.slate800,
+    borderRadius: radius.lg,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     overflow: 'hidden',
     maxWidth: '100%',
-    ...font('600'),
+    ...font('700'),
   },
   chipTable: { backgroundColor: colors.brand50, color: colors.brand800 },
-  items: { paddingHorizontal: spacing.xs, paddingVertical: spacing.sm, gap: 4 },
+  items: { paddingHorizontal: spacing.xs, paddingVertical: spacing.sm, gap: 6 },
   itemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
@@ -439,8 +498,6 @@ const styles = StyleSheet.create({
   },
   itemDone: { opacity: 0.72 },
   check: {
-    width: 44,
-    height: 44,
     borderRadius: radius.xl,
     borderWidth: 2.5,
     borderColor: colors.brand300,
@@ -454,37 +511,37 @@ const styles = StyleSheet.create({
   },
   checkText: { color: colors.white, fontSize: 22, ...font('700') },
   qty: {
-    minWidth: 28,
-    fontSize: 14,
+    minWidth: 36,
+    marginTop: 2,
     color: colors.espresso,
     ...font('700'),
   },
-  itemName: { fontSize: 14, color: colors.slate900, ...font('700') },
+  itemName: { color: colors.slate900, ...font('700') },
   itemNameDone: { color: colors.slate400, textDecorationLine: 'line-through' },
   itemCategory: {
     alignSelf: 'flex-start',
-    marginTop: 3,
+    marginTop: 4,
     borderRadius: radius.full,
     backgroundColor: colors.brand50,
     color: colors.brand800,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    fontSize: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    fontSize: 11,
     overflow: 'hidden',
     textTransform: 'uppercase',
     ...font('700'),
   },
   itemCategorySnack: { backgroundColor: colors.amber50, color: colors.amber800 },
-  itemNote: { marginTop: 2, fontSize: 11, color: colors.amber800, ...font('600') },
-  itemAddon: { marginTop: 1, fontSize: 11, color: colors.slate500, ...font('500') },
+  itemNote: { marginTop: 4, lineHeight: 20, color: colors.amber800, ...font('700') },
+  itemAddon: { marginTop: 2, lineHeight: 20, color: colors.slate600, ...font('600') },
   serveBtn: {
     margin: spacing.sm,
     marginTop: spacing.xs,
     backgroundColor: colors.brand600,
     borderRadius: radius.xl,
-    minHeight: 40,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  serveText: { color: colors.white, fontSize: 13, ...font('700') },
+  serveText: { color: colors.white, ...font('700') },
 });
