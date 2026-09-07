@@ -86,6 +86,7 @@ class SalesReportService
             'byDay' => $byDay,
             'omzet' => $omzet,
             'omzet_kotor' => $omzetKotor,
+            'omzet_penjualan' => $omzetPenjualan,
             'diskon_total' => $diskonTotal,
             'lost_total' => $lostTotal,
             'expense_total' => $expenseTotal,
@@ -212,6 +213,10 @@ class SalesReportService
                 'module' => 'Modul Kasir',
                 'detail' => 'Barang lost / waste stok (rusak, gagal, dll.)',
                 'items' => $this->lostProductSources($period, $rangeStart, $rangeEnd),
+            ],
+            'omzet_penjualan' => [
+                'module' => 'Hitung di dashboard',
+                'detail' => 'Omzet kotor − total diskon − total lost produk (belum dikurangi pengeluaran)',
             ],
             'gaji' => [
                 'module' => 'Modul Admin → Gaji Karyawan',

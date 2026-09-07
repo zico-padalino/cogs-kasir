@@ -80,12 +80,24 @@
                 </section>
             @endforeach
 
+            <section class="bg-brand-50/70 px-4 py-3">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <p class="text-sm font-semibold text-brand-900">Omzet tanpa lost &amp; diskon</p>
+                        <p class="mt-0.5 text-xs text-brand-800/80">
+                            Omzet kotor − diskon − lost produk
+                        </p>
+                    </div>
+                    <p class="text-sm font-bold tabular-nums text-brand-800">{{ $format::rupiah($omzet_penjualan ?? 0) }}</p>
+                </div>
+            </section>
+
             <section class="bg-emerald-50/60 px-4 py-3">
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div>
                         <p class="text-sm font-semibold text-emerald-900">Omzet bersih</p>
                         <p class="mt-0.5 text-xs text-emerald-800/80">
-                            Omzet kotor − diskon − lost produk − total pengeluaran
+                            Omzet tanpa lost &amp; diskon − total pengeluaran
                         </p>
                     </div>
                     <p class="text-sm font-bold tabular-nums text-emerald-800">{{ $format::rupiah($omzet) }}</p>
