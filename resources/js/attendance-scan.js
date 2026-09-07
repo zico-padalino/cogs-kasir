@@ -109,6 +109,8 @@ function bindScan(root) {
     const gpsPanel = root.querySelector('[data-scan-gps-panel]');
     const clockEl = root.querySelector('[data-scan-clock]');
     const hasLocation = root.getAttribute('data-has-location') === '1';
+    const requireLocation = root.getAttribute('data-require-location') !== '0';
+    const usesLocation = requireLocation && hasLocation;
 
     if (! form || ! video || ! canvas || ! employeeSelect) {
         return;
@@ -147,7 +149,7 @@ function bindScan(root) {
     };
 
     const requestGps = async ({ userInitiated = false } = {}) => {
-        if (! hasLocation || gpsBusy) {
+        if (! usesLocation || gpsBusy) {
             return;
         }
 
@@ -260,7 +262,8 @@ function bindScan(root) {
         }
 
         if (submit) {
-            submit.disabled = ! (canAct && cameraReady && gpsReady && hasLocation);
+            const locationOk = ! requireLocation || (usesLocation && gpsReady);
+            submit.disabled = ! (canAct && cameraReady && locationOk);
             submit.textContent = actionLabel(selectedMode);
             submit.classList.toggle('scan-submit-out', selectedMode === 'check_out');
         }
@@ -299,6 +302,14 @@ function bindScan(root) {
     };
 
     const bootGps = async () => {
+        if (! requireLocation) {
+            gpsReady = true;
+            if (gpsPanel) gpsPanel.hidden = true;
+            showGpsPrompt('Lokasi tidak diperlukan.', { error: false, showButton: false });
+            refreshSubmit();
+            return;
+        }
+
         if (! hasLocation) {
             showGpsPrompt('Lokasi toko belum diatur admin.', { error: true, showButton: false });
             refreshSubmit();
@@ -371,12 +382,17 @@ function bindScan(root) {
         }
 
         try {
-            if (! latInput.value || ! lngInput.value) {
-                await requestGps({ userInitiated: true });
-            }
+            if (requireLocation) {
+                if (! latInput.value || ! lngInput.value) {
+                    await requestGps({ userInitiated: true });
+                }
 
-            if (! latInput.value || ! lngInput.value) {
-                throw Object.assign(new Error('Lokasi GPS belum siap. Izinkan lokasi lalu coba lagi.'), { code: 1 });
+                if (! latInput.value || ! lngInput.value) {
+                    throw Object.assign(new Error('Lokasi GPS belum siap. Izinkan lokasi lalu coba lagi.'), { code: 1 });
+                }
+            } else {
+                latInput.value = '';
+                lngInput.value = '';
             }
 
             photoInput.value = capturePhoto(video, canvas);
@@ -384,7 +400,7 @@ function bindScan(root) {
             stopCamera(video);
             form.submit();
         } catch (error) {
-            showGpsPrompt(geolocationErrorMessage(error), { error: true, showButton: true });
+            showGpsPrompt(geolocationErrorMessage(error), { error: true, showButton: requireLocation });
             refreshSubmit();
         }
     });

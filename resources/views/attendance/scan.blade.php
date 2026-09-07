@@ -14,6 +14,7 @@
         data-clock-in="{{ $settings['clock_in'] }}"
         data-clock-out="{{ $settings['clock_out'] }}"
         data-has-location="{{ $settings['has_location'] ? '1' : '0' }}"
+        data-require-location="{{ ($settings['require_location'] ?? true) ? '1' : '0' }}"
     >
         <header class="scan-head">
             <div class="scan-mark" aria-hidden="true">{{ \App\Support\ShopSettings::initial() }}</div>
@@ -43,9 +44,11 @@
             <div class="scan-alert scan-alert-error">{{ $errors->first() }}</div>
         @endif
 
-        @unless ($settings['has_location'])
+        @if (($settings['require_location'] ?? true) && ! $settings['has_location'])
             <div class="scan-alert scan-alert-warn">Lokasi toko belum diatur admin — absensi belum bisa dikirim.</div>
-        @endunless
+        @elseif (! ($settings['require_location'] ?? true))
+            <div class="scan-alert scan-alert-ok">Mode tanpa lokasi aktif — absen cukup selfie.</div>
+        @endif
 
         <form action="{{ route('attendance.scan.store') }}" method="POST" class="scan-form" data-scan-form>
             @csrf
@@ -125,7 +128,7 @@
                 <p class="scan-camera-hint">Ambil selfie sebagai bukti absen. Tidak perlu daftar wajah.</p>
             </div>
 
-            <div class="scan-gps-panel" data-scan-gps-panel>
+            <div class="scan-gps-panel" data-scan-gps-panel @unless ($settings['require_location'] ?? true) hidden @endunless>
                 <p class="scan-gps" data-scan-gps>Membaca lokasi GPS…</p>
                 <button type="button" class="scan-gps-enable btn-secondary w-full" data-scan-gps-enable>
                     Izinkan lokasi

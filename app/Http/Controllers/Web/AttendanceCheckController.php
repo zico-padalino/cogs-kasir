@@ -64,27 +64,32 @@ class AttendanceCheckController extends Controller
             return redirect()->to($user->preferredLoginUrl())->with('error', 'Akun belum terhubung ke data karyawan.');
         }
 
+        $requireLocation = $attendanceService->requiresLocation();
+
         $validated = $request->validate([
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'latitude' => [$requireLocation ? 'required' : 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => [$requireLocation ? 'required' : 'nullable', 'numeric', 'between:-180,180'],
         ], [
             'latitude.required' => 'Lokasi GPS wajib diaktifkan.',
             'longitude.required' => 'Lokasi GPS wajib diaktifkan.',
         ]);
 
+        $lat = isset($validated['latitude']) ? (float) $validated['latitude'] : null;
+        $lng = isset($validated['longitude']) ? (float) $validated['longitude'] : null;
+
         try {
             if ($mode === 'check_out') {
                 $attendanceService->checkOut(
                     $employee,
-                    (float) $validated['latitude'],
-                    (float) $validated['longitude'],
+                    $lat,
+                    $lng,
                 );
                 $message = 'Absen pulang berhasil. Terima kasih.';
             } else {
                 $attendanceService->checkIn(
                     $employee,
-                    (float) $validated['latitude'],
-                    (float) $validated['longitude'],
+                    $lat,
+                    $lng,
                 );
                 $message = 'Absen masuk berhasil. Selamat bekerja.';
             }

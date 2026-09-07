@@ -5,7 +5,7 @@ return [
     |--------------------------------------------------------------------------
     | Attendance
     |--------------------------------------------------------------------------
-    | Absensi menggunakan selfie sebagai bukti dan GPS untuk validasi lokasi.
-    | Tidak ada pendaftaran atau pencocokan biometrik wajah.
+    | Absensi memakai selfie sebagai bukti. Validasi GPS opsional
+    | (Admin → Pengaturan → "Wajibkan lokasi").
     */
 ];

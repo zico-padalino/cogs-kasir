@@ -13,7 +13,7 @@ use Throwable;
 
 class ShopSettings
 {
-    public const CACHE_KEY = 'shop_settings.v11';
+    public const CACHE_KEY = 'shop_settings.v12';
 
     public const KEYS = [
         'shop_name',
@@ -22,6 +22,7 @@ class ShopSettings
         'qris_path',
         'qris_payload',
         'attendance_enabled',
+        'attendance_require_location',
         'attendance_clock_in',
         'attendance_clock_out',
         'attendance_early_minutes',
@@ -47,6 +48,7 @@ class ShopSettings
             'qris_path' => null,
             'qris_payload' => '',
             'attendance_enabled' => '1',
+            'attendance_require_location' => '1',
             'attendance_clock_in' => '08:00',
             'attendance_clock_out' => '17:00',
             'attendance_early_minutes' => '60',

@@ -44,10 +44,12 @@ class PublicAttendanceController extends Controller
             return back()->with('error', 'Absensi sedang nonaktif.');
         }
 
+        $requireLocation = $attendanceService->requiresLocation();
+
         $validated = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'latitude' => [$requireLocation ? 'required' : 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => [$requireLocation ? 'required' : 'nullable', 'numeric', 'between:-180,180'],
             'photo' => ['required', 'string'],
             'mode' => ['required', 'in:check_in,check_out'],
         ], [
@@ -76,12 +78,15 @@ class PublicAttendanceController extends Controller
             });
         }
 
+        $lat = isset($validated['latitude']) ? (float) $validated['latitude'] : null;
+        $lng = isset($validated['longitude']) ? (float) $validated['longitude'] : null;
+
         try {
             if ($validated['mode'] === 'check_out') {
                 $attendanceService->checkOut(
                     $employee,
-                    (float) $validated['latitude'],
-                    (float) $validated['longitude'],
+                    $lat,
+                    $lng,
                     $validated['photo'],
                 );
                 $message = 'Absen pulang berhasil — '.$employee->name;
@@ -89,8 +94,8 @@ class PublicAttendanceController extends Controller
                 $hadMissed = $attendanceService->missedCheckoutAttendance($employee) !== null;
                 $attendanceService->checkIn(
                     $employee,
-                    (float) $validated['latitude'],
-                    (float) $validated['longitude'],
+                    $lat,
+                    $lng,
                     $validated['photo'],
                 );
                 $message = 'Absen masuk berhasil — '.$employee->name;
@@ -113,8 +118,9 @@ class PublicAttendanceController extends Controller
                 'employee_name' => $employee->name,
                 'employee_code' => $employee->employee_code,
                 'mode' => $validated['mode'],
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'require_location' => $requireLocation,
             ],
             actorName: $employee->name,
         );

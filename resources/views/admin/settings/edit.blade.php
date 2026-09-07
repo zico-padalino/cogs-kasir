@@ -209,15 +209,35 @@
                 </p>
             </div>
 
-            <label class="flex items-center gap-2 text-sm text-slate-700">
+            <label class="flex items-start gap-2 text-sm text-slate-700">
                 <input
                     type="checkbox"
                     name="attendance_enabled"
                     value="1"
-                    class="rounded border-slate-300 text-brand-600"
+                    class="mt-0.5 rounded border-slate-300 text-brand-600"
                     @checked(old('attendance_enabled', $settings['attendance_enabled'] ?? '1') === '1')
                 >
-                Aktifkan absensi GPS
+                <span>
+                    <span class="font-medium text-slate-900">Aktifkan absensi</span>
+                    <span class="mt-0.5 block text-xs text-slate-500">Halaman scan QR &amp; kewajiban absen pegawai.</span>
+                </span>
+            </label>
+
+            <label class="flex items-start gap-2 text-sm text-slate-700">
+                <input
+                    type="checkbox"
+                    name="attendance_require_location"
+                    value="1"
+                    class="mt-0.5 rounded border-slate-300 text-brand-600"
+                    data-attendance-require-location
+                    @checked(old('attendance_require_location', $settings['attendance_require_location'] ?? '1') === '1')
+                >
+                <span>
+                    <span class="font-medium text-slate-900">Wajibkan lokasi (GPS)</span>
+                    <span class="mt-0.5 block text-xs text-slate-500">
+                        Centang = pegawai harus di area toko. Hilangkan centang = absen cukup selfie, tanpa GPS.
+                    </span>
+                </span>
             </label>
 
             <div>
@@ -292,7 +312,7 @@
                         required
                     >
                 </div>
-                <div>
+                <div data-attendance-radius-wrap>
                     <label class="form-label" for="attendance_radius_meters">Radius lokasi (meter)</label>
                     <input
                         type="number"
@@ -306,7 +326,7 @@
                         required
                     >
                 </div>
-                <div>
+                <div data-attendance-coord-wrap>
                     <label class="form-label" for="attendance_latitude">Latitude toko</label>
                     <input
                         type="text"
@@ -318,7 +338,7 @@
                         placeholder="-6.200000"
                     >
                 </div>
-                <div>
+                <div data-attendance-coord-wrap>
                     <label class="form-label" for="attendance_longitude">Longitude toko</label>
                     <input
                         type="text"
@@ -331,7 +351,7 @@
                     >
                 </div>
             </div>
-            <p class="text-xs text-slate-500">Salin koordinat dari Google Maps (klik kanan titik → koordinat). Contoh: -6.200000, 106.816666.</p>
+            <p class="text-xs text-slate-500" data-attendance-location-hint>Salin koordinat dari Google Maps (klik kanan titik → koordinat). Contoh: -6.200000, 106.816666.</p>
             <button type="button" class="btn-outline btn-sm" data-attendance-fill-gps>
                 Isi dari lokasi perangkat ini
             </button>
@@ -419,6 +439,31 @@
     </form>
 
     <script>
+        (function () {
+            var requireLocation = document.querySelector('[data-attendance-require-location]');
+            var radiusWrap = document.querySelector('[data-attendance-radius-wrap]');
+            var coordWraps = document.querySelectorAll('[data-attendance-coord-wrap]');
+            var locationHint = document.querySelector('[data-attendance-location-hint]');
+            var fillGps = document.querySelector('[data-attendance-fill-gps]');
+
+            function syncLocationFields() {
+                var enabled = ! requireLocation || requireLocation.checked;
+                if (radiusWrap) radiusWrap.classList.toggle('opacity-50', ! enabled);
+                coordWraps.forEach(function (el) {
+                    el.classList.toggle('opacity-50', ! enabled);
+                });
+                if (locationHint) {
+                    locationHint.textContent = enabled
+                        ? 'Salin koordinat dari Google Maps (klik kanan titik → koordinat). Contoh: -6.200000, 106.816666.'
+                        : 'Validasi lokasi nonaktif — pegawai absen cukup selfie tanpa GPS.';
+                }
+                if (fillGps) fillGps.hidden = ! enabled;
+            }
+
+            requireLocation?.addEventListener('change', syncLocationFields);
+            syncLocationFields();
+        })();
+
         document.querySelector('[data-attendance-fill-gps]')?.addEventListener('click', function () {
             if (! navigator.geolocation) {
                 alert('GPS tidak tersedia di perangkat ini.');

@@ -20,7 +20,13 @@
             </div>
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Radius GPS</p>
-                <p class="font-semibold text-slate-800">{{ number_format($settings['radius_meters'], 0) }} m</p>
+                <p class="font-semibold text-slate-800">
+                    @if ($settings['require_location'] ?? true)
+                        {{ number_format($settings['radius_meters'], 0) }} m
+                    @else
+                        Nonaktif
+                    @endif
+                </p>
             </div>
         </div>
 

@@ -171,6 +171,7 @@ class AttendanceService
 
         return [
             'enabled' => $this->isEnabled(),
+            'require_location' => $this->requiresLocation(),
             'clock_in' => $clockIn,
             'clock_out' => $clockOut,
             'early_minutes' => (int) ShopSettings::get('attendance_early_minutes', '60'),
@@ -182,6 +183,11 @@ class AttendanceService
             'required_user_ids' => $this->requiredUserIds(),
             'required_employee_ids' => $this->requiredEmployeeIds(),
         ];
+    }
+
+    public function requiresLocation(): bool
+    {
+        return ShopSettings::get('attendance_require_location', '1') === '1';
     }
 
     public function todayAttendance(Employee $employee): ?EmployeeAttendance
@@ -354,11 +360,19 @@ class AttendanceService
         return $earth * (2 * atan2(sqrt($a), sqrt(1 - $a)));
     }
 
-    public function assertWithinRadius(float $lat, float $lng): float
+    public function assertWithinRadius(?float $lat, ?float $lng): ?float
     {
+        if (! $this->requiresLocation()) {
+            return null;
+        }
+
         $settings = $this->settings();
         if (! $settings['has_location']) {
             throw new RuntimeException('Lokasi toko belum diatur di Admin → Pengaturan.');
+        }
+
+        if ($lat === null || $lng === null) {
+            throw new RuntimeException('Lokasi GPS wajib diaktifkan.');
         }
 
         $distance = $this->distanceMeters(
@@ -379,7 +393,7 @@ class AttendanceService
         return $distance;
     }
 
-    public function checkIn(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
+    public function checkIn(Employee $employee, ?float $lat = null, ?float $lng = null, ?string $photoBase64 = null): EmployeeAttendance
     {
         $attendance = $this->todayAttendance($employee);
         if (! $this->canCheckInNow($attendance, $employee)) {
@@ -422,7 +436,7 @@ class AttendanceService
         );
     }
 
-    public function checkOut(Employee $employee, float $lat, float $lng, ?string $photoBase64 = null): EmployeeAttendance
+    public function checkOut(Employee $employee, ?float $lat = null, ?float $lng = null, ?string $photoBase64 = null): EmployeeAttendance
     {
         $attendance = $this->openCheckoutAttendance($employee);
         if (! $attendance || ! $this->canCheckOutNow($attendance, $employee)) {

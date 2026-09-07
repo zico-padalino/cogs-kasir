@@ -71,10 +71,12 @@ class AttendanceApiController extends Controller
             return response()->json(['message' => 'Absensi sedang nonaktif.'], 422);
         }
 
+        $requireLocation = $attendanceService->requiresLocation();
+
         $validated = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'latitude' => [$requireLocation ? 'required' : 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => [$requireLocation ? 'required' : 'nullable', 'numeric', 'between:-180,180'],
             'photo' => ['required', 'string'],
             'mode' => ['required', 'in:check_in,check_out'],
         ], [
@@ -103,12 +105,15 @@ class AttendanceApiController extends Controller
             ], 422);
         }
 
+        $lat = isset($validated['latitude']) ? (float) $validated['latitude'] : null;
+        $lng = isset($validated['longitude']) ? (float) $validated['longitude'] : null;
+
         try {
             if ($validated['mode'] === 'check_out') {
                 $attendanceService->checkOut(
                     $employee,
-                    (float) $validated['latitude'],
-                    (float) $validated['longitude'],
+                    $lat,
+                    $lng,
                     $validated['photo'],
                 );
                 $message = 'Absen pulang berhasil — '.$employee->name;
@@ -116,8 +121,8 @@ class AttendanceApiController extends Controller
                 $hadMissed = $attendanceService->missedCheckoutAttendance($employee) !== null;
                 $attendanceService->checkIn(
                     $employee,
-                    (float) $validated['latitude'],
-                    (float) $validated['longitude'],
+                    $lat,
+                    $lng,
                     $validated['photo'],
                 );
                 $message = 'Absen masuk berhasil — '.$employee->name;

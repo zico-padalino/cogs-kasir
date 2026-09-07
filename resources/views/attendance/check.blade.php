@@ -24,36 +24,46 @@
             Masuk <strong>{{ $settings['clock_in'] }}</strong>
             <span aria-hidden="true">·</span>
             Pulang <strong>{{ $settings['clock_out'] }}</strong>
-            <span aria-hidden="true">·</span>
-            Radius <strong>{{ number_format($settings['radius_meters'], 0) }} m</strong>
+            @if ($settings['require_location'] ?? true)
+                <span aria-hidden="true">·</span>
+                Radius <strong>{{ number_format($settings['radius_meters'], 0) }} m</strong>
+            @else
+                <span aria-hidden="true">·</span>
+                <strong>Tanpa GPS</strong>
+            @endif
         </p>
 
-        @unless ($settings['has_location'])
+        @if (($settings['require_location'] ?? true) && ! $settings['has_location'])
             <div class="scan-alert scan-alert-warn">Lokasi toko belum diatur — hubungi admin.</div>
-        @endunless
+        @elseif (! ($settings['require_location'] ?? true))
+            <div class="scan-alert scan-alert-ok">Mode tanpa lokasi — absen tanpa GPS.</div>
+        @endif
 
-        <div class="attendance-gps-panel mt-4">
-            <div class="attendance-gps-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-8 w-8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z" />
-                    <circle cx="12" cy="10" r="2.5" />
-                </svg>
+        @if ($settings['require_location'] ?? true)
+            <div class="attendance-gps-panel mt-4">
+                <div class="attendance-gps-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-8 w-8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z" />
+                        <circle cx="12" cy="10" r="2.5" />
+                    </svg>
+                </div>
+                <p class="attendance-gps-title">Absen dengan lokasi GPS</p>
+                <p class="attendance-status" data-attendance-status>Membaca lokasi…</p>
             </div>
-            <p class="attendance-gps-title">Absen dengan lokasi GPS</p>
-            <p class="attendance-status" data-attendance-status>Membaca lokasi…</p>
-        </div>
+        @endif
 
         <form
             action="{{ $mode === 'check_out' ? route('attendance.check-out.store') : route('attendance.check-in.store') }}"
             method="POST"
             class="scan-form"
             data-attendance-form
+            data-require-location="{{ ($settings['require_location'] ?? true) ? '1' : '0' }}"
         >
             @csrf
-            <input type="hidden" name="latitude" data-attendance-lat>
-            <input type="hidden" name="longitude" data-attendance-lng>
+            <input type="hidden" name="latitude" data-attendance-lat value="">
+            <input type="hidden" name="longitude" data-attendance-lng value="">
 
-            <button type="submit" class="btn-primary w-full py-3.5 text-base" data-attendance-submit disabled>
+            <button type="submit" class="btn-primary w-full py-3.5 text-base" data-attendance-submit @disabled(($settings['require_location'] ?? true) && ! $settings['has_location'])>
                 {{ $mode === 'check_out' ? 'Absen Pulang' : 'Absen Masuk' }}
             </button>
         </form>
