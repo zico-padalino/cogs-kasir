@@ -36,22 +36,14 @@
             </div>
         </div>
 
-        @php
-            $minusMaterials = $materials->filter(fn ($m) => (float) $m->available_qty < 0)->values();
-        @endphp
-        @if ($minusMaterials->isNotEmpty())
-            <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950" role="alert">
-                <p class="font-semibold">{{ $minusMaterials->count() }} bahan stoknya minus — segera isi ulang</p>
-                <ul class="mt-2 grid gap-1 sm:grid-cols-2">
-                    @foreach ($minusMaterials->take(10) as $m)
-                        <li class="flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1.5 text-xs">
-                            <span class="font-medium">{{ $m->name }}</span>
-                            <span class="font-semibold tabular-nums text-rose-700">{{ $format::number($m->available_qty) }} {{ $m->unit }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        <x-stock-minus-alert
+            class="mb-4"
+            :items="$materials"
+            title="Stok bahan minus — segera isi ulang"
+            hint="Biasanya karena penjualan/pakai melebihi sisa. Tekan Isi ulang untuk langsung tambah stok bahan itu."
+            action-label="Isi ulang"
+            anchor-prefix="material-"
+        />
 
         <x-module-form-card :step="2" title="Tambah Bahan Baku" description="Isi nama, satuan, lalu pembelian.">
             <form action="{{ route('materials.store') }}" method="POST" class="material-add-form">
@@ -72,7 +64,12 @@
             </form>
         </x-module-form-card>
 
-        <x-table-card :step="2" title="Daftar Bahan Baku" :subtitle="$materials->count() . ' bahan terdaftar'">
+        <x-table-card
+            id="daftar-bahan"
+            :step="2"
+            title="Daftar Bahan Baku"
+            :subtitle="$materials->count() . ' bahan terdaftar'"
+        >
             @if ($materials->isNotEmpty())
                 <div class="materials-card-grid" data-materials-list>
                     <div class="materials-search materials-card-grid__full">
@@ -86,9 +83,15 @@
                     </div>
 
                     @foreach ($materials as $material)
+                        @php $isMinus = (float) $material->available_qty < 0; @endphp
                         <div
-                            class="module-item-card material-card"
+                            id="material-{{ $material->id }}"
+                            @class([
+                                'module-item-card material-card',
+                                'material-card--minus' => $isMinus,
+                            ])
                             data-material-card
+                            data-material-id="{{ $material->id }}"
                             data-search="{{ strtolower($material->name.' '.$material->unit) }}"
                         >
                             <div class="material-card__top">
@@ -115,14 +118,26 @@
                             </div>
 
                             <div class="material-card__actions">
-                                <details class="material-card__action material-card__action--primary">
-                                    <summary class="btn-primary btn-sm cursor-pointer list-none text-center">+ Tambah stok</summary>
+                                <details class="material-card__action material-card__action--primary" data-material-restock>
+                                    <summary class="btn-primary btn-sm cursor-pointer list-none text-center">
+                                        {{ $isMinus ? 'Isi ulang stok' : '+ Tambah stok' }}
+                                    </summary>
                                     <form action="{{ route('materials.receive') }}" method="POST" class="material-panel material-panel--green">
                                         @csrf
                                         <input type="hidden" name="product_id" value="{{ $material->id }}">
-                                        <p class="text-xs text-slate-600">
-                                            Satuan: <strong>{{ $material->unit }}</strong>
-                                        </p>
+                                        @if ($isMinus)
+                                            <p class="material-restock-hint">
+                                                Stok sekarang
+                                                <strong>{{ $format::number($material->available_qty) }} {{ $material->unit }}</strong>
+                                                — isi minimal
+                                                <strong>{{ $format::number(abs((float) $material->available_qty)) }} {{ $material->unit }}</strong>
+                                                agar kembali 0.
+                                            </p>
+                                        @else
+                                            <p class="text-xs text-slate-600">
+                                                Satuan: <strong>{{ $material->unit }}</strong>
+                                            </p>
+                                        @endif
                                         <x-material-purchase-fields :compact="true" :stock-unit-label="$material->unit" />
                                         <div>
                                             <label class="form-label text-xs">No. batch</label>

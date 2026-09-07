@@ -13,24 +13,14 @@
             <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ session('error') }}</div>
         @endif
 
-        @php
-            $minusBahanJadi = collect($items ?? [])->filter(fn ($item) => (float) ($item->available_qty ?? $item->availableQuantity()) < 0)->values();
-        @endphp
-        @if ($minusBahanJadi->isNotEmpty())
-            <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950" role="alert">
-                <p class="font-semibold">{{ $minusBahanJadi->count() }} bahan jadi stoknya minus — segera produksi / isi ulang</p>
-                <ul class="mt-2 grid gap-1 sm:grid-cols-2">
-                    @foreach ($minusBahanJadi->take(10) as $item)
-                        <li class="flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1.5 text-xs">
-                            <span class="font-medium">{{ $item->name }}</span>
-                            <span class="font-semibold tabular-nums text-rose-700">
-                                {{ $format::number($item->available_qty ?? $item->availableQuantity()) }} {{ $item->unit }}
-                            </span>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        <x-stock-minus-alert
+            class="mb-4"
+            :items="$items"
+            title="Stok bahan jadi minus — segera isi ulang"
+            hint="Tekan Isi ulang untuk buka Edit / Stok pada bahan jadi yang minus."
+            action-label="Isi ulang"
+            anchor-prefix="bahan-jadi-"
+        />
 
         <x-module-form-card :step="2" icon="🥣" title="Tambah Bahan Jadi" description="Contoh: bumbu nasgor, adonan, sirup — pilih bahan baku yang dipakai beserta jumlahnya.">
             <form action="{{ route('bahan-jadi.store') }}" method="POST" class="material-add-form">
@@ -174,22 +164,34 @@
             </form>
         </x-module-form-card>
 
-        <x-table-card title="Daftar Bahan Jadi" :subtitle="$items->count().' item'">
+        <x-table-card id="daftar-bahan" title="Daftar Bahan Jadi" :subtitle="$items->count().' item'">
             @if ($items->isNotEmpty())
                 <div class="materials-card-grid">
                     @foreach ($items as $item)
-                        <div class="module-item-card material-card">
+                        @php
+                            $bjQty = (float) ($item->available_qty ?? $item->availableQuantity());
+                            $bjMinus = $bjQty < 0;
+                        @endphp
+                        <div
+                            id="bahan-jadi-{{ $item->id }}"
+                            @class([
+                                'module-item-card material-card',
+                                'material-card--minus' => $bjMinus,
+                            ])
+                            data-material-card
+                            data-material-id="{{ $item->id }}"
+                        >
                             <div class="material-card__top">
                                 <div class="min-w-0 flex-1">
                                     <p class="material-card__title">{{ $item->name }}</p>
                                     <div class="mt-2 flex flex-wrap gap-2">
                                         <span @class([
                                             'module-stat-pill',
-                                            'module-stat-pill--minus' => (float) $item->available_qty < 0,
-                                            'module-stat-pill--stock' => (float) $item->available_qty >= 0,
+                                            'module-stat-pill--minus' => $bjMinus,
+                                            'module-stat-pill--stock' => ! $bjMinus,
                                         ])>
-                                            {{ $format::number($item->available_qty) }} {{ $item->unit }}
-                                            @if ((float) $item->available_qty < 0)
+                                            {{ $format::number($bjQty) }} {{ $item->unit }}
+                                            @if ($bjMinus)
                                                 · minus
                                             @endif
                                         </span>
@@ -313,11 +315,22 @@
                             </details>
 
                             <div class="material-card__actions material-card__actions--two">
-                                <details class="material-card__action">
-                                    <summary class="btn-outline btn-sm cursor-pointer list-none text-center">Edit / Stok</summary>
+                                <details class="material-card__action" data-material-restock>
+                                    <summary class="btn-outline btn-sm cursor-pointer list-none text-center">
+                                        {{ $bjMinus ? 'Isi ulang / Stok' : 'Edit / Stok' }}
+                                    </summary>
                                     <form action="{{ route('bahan-jadi.update', $item) }}" method="POST" class="material-panel">
                                         @csrf
                                         @method('PUT')
+                                        @if ($bjMinus)
+                                            <p class="material-restock-hint">
+                                                Stok sekarang
+                                                <strong>{{ $format::number($bjQty) }} {{ $item->unit }}</strong>
+                                                — isi minimal
+                                                <strong>{{ $format::number(abs($bjQty)) }} {{ $item->unit }}</strong>
+                                                agar kembali 0.
+                                            </p>
+                                        @endif
                                         <div>
                                             <label class="form-label">Nama</label>
                                             <input type="text" name="name" class="form-input" required value="{{ old('name', $item->name) }}">

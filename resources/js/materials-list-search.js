@@ -50,7 +50,73 @@ function initDetailsCancel() {
     });
 }
 
+function focusMaterialRestock(anchorId) {
+    if (! anchorId) {
+        return false;
+    }
+
+    const card = document.getElementById(anchorId);
+    if (! card) {
+        return false;
+    }
+
+    const searchInput = document.querySelector('[data-materials-search]');
+    if (searchInput && searchInput.value) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    document.querySelectorAll('.material-card.is-restock-focus').forEach((el) => {
+        el.classList.remove('is-restock-focus');
+    });
+
+    card.classList.remove('hidden');
+    card.classList.add('is-restock-focus');
+
+    const restock = card.querySelector('[data-material-restock]');
+    if (restock instanceof HTMLDetailsElement) {
+        restock.open = true;
+    }
+
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    window.setTimeout(() => {
+        const focusTarget = restock?.querySelector(
+            'input:not([type="hidden"]), select, textarea, button[type="submit"]'
+        );
+        if (focusTarget instanceof HTMLElement) {
+            focusTarget.focus({ preventScroll: true });
+        }
+    }, 280);
+
+    window.setTimeout(() => {
+        card.classList.remove('is-restock-focus');
+    }, 1800);
+
+    return true;
+}
+
+function initStockMinusRestock() {
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-stock-minus-restock]');
+        if (! button) {
+            return;
+        }
+
+        event.preventDefault();
+        const anchor = button.getAttribute('data-stock-minus-anchor')
+            || `material-${button.getAttribute('data-stock-minus-restock')}`;
+        focusMaterialRestock(anchor);
+    });
+
+    const hash = window.location.hash.replace(/^#/, '');
+    if (hash.startsWith('material-') || hash.startsWith('bahan-jadi-')) {
+        window.setTimeout(() => focusMaterialRestock(hash), 80);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMaterialsListSearch();
     initDetailsCancel();
+    initStockMinusRestock();
 });
