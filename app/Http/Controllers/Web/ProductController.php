@@ -83,7 +83,7 @@ class ProductController extends Controller
     @set_time_limit(60);
 
     try {
-      return $this->renderRecipeShow($product);
+      return $this->renderRecipeShow($product, $bomCostService, $overheadService);
     } catch (\Throwable $e) {
       report($e);
 
@@ -178,8 +178,11 @@ class ProductController extends Controller
     ]);
   }
 
-  private function renderRecipeShow(Product $product)
-  {
+  private function renderRecipeShow(
+    Product $product,
+    BomCostService $bomCostService,
+    OverheadAllocationService $overheadService,
+  ) {
     if ($product->effectiveType() === ProductType::RawMaterial) {
       return redirect()->route('materials.index');
     }
@@ -255,6 +258,37 @@ class ProductController extends Controller
       ->orderBy('name')
       ->get(['id', 'name', 'allocation_base', 'rate', 'description', 'is_active']);
 
+    // Hitung biaya hanya dari bahan di resep produk ini (bukan seluruh katalog).
+    $bomLineCosts = [];
+    $materialCost = 0.0;
+    $overheadCost = 0.0;
+    $overheadDetails = [];
+    $estimatedModal = (float) ($product->unit_hpp ?: 0);
+
+    if ($product->billOfMaterials->isNotEmpty()) {
+      $rollUp = $bomCostService->rollUpCost($product, 1);
+      $materialCost = (float) ($rollUp['total_cost'] ?? 0);
+      $overhead = $overheadService->allocateForSale(
+        directMaterial: $materialCost,
+        units: 1,
+        overheadRateIds: $overheadRates->pluck('id')->all(),
+      );
+      $overheadCost = (float) ($overhead['total'] ?? 0);
+      $overheadDetails = $overhead['details'] ?? [];
+      $estimatedModal = $materialCost + $overheadCost;
+
+      foreach ($rollUp['components'] ?? [] as $component) {
+        $bomLineCosts[(int) $component['product_id']] = $component;
+      }
+    }
+
+    $bomChildren = $product->billOfMaterials
+      ->pluck('childProduct')
+      ->filter()
+      ->unique('id')
+      ->values();
+    $this->hydrateAvailableQuantities($bomChildren);
+
     $emptyMaterials = collect();
 
     return view('products.show', [
@@ -269,12 +303,12 @@ class ProductController extends Controller
       'recipeMaterialsUrl' => route('products.recipe-materials', $product),
       'allowSemiFinishedInRecipe' => $product->effectiveType() !== ProductType::SemiFinished,
       'materialUnits' => $materialUnits,
-      'bomLineCosts' => [],
-      'materialCost' => 0.0,
-      'overheadCost' => 0.0,
-      'overheadDetails' => [],
+      'bomLineCosts' => $bomLineCosts,
+      'materialCost' => $materialCost,
+      'overheadCost' => $overheadCost,
+      'overheadDetails' => $overheadDetails,
       'overheadRates' => $overheadRates,
-      'estimatedModal' => (float) ($product->unit_hpp ?: 0),
+      'estimatedModal' => $estimatedModal,
       'format' => Format::class,
       'units' => MaterialUnits::class,
     ]);

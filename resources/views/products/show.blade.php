@@ -95,7 +95,7 @@
                                             <td>
                                                 <p class="font-semibold text-slate-900">{{ $child?->name ?? 'Bahan dihapus' }}</p>
                                                 <p class="mt-0.5 text-xs text-slate-400">
-                                                    stok: {{ $format::number($bom->quantity) }} {{ $units::label($child?->unit) }}
+                                                    stok: {{ $format::number((float) ($child->available_qty ?? 0)) }} {{ $units::label($child?->unit) }}
                                                 </p>
                                             </td>
                                             <td class="font-medium tabular-nums text-slate-800">
