@@ -5,15 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#5c4033">
     <meta name="robots" content="noindex">
-    <title>Server sibuk — muat ulang</title>
+    <title>503 · Service Unavailable — Kedai Tjoan</title>
     <style>
         :root {
-            --brand: #5c4033;
             --bg: #f6f1ea;
+            --ink: #1c1410;
+            --muted: #6b584a;
+            --brand: #5c4033;
             --card: #ffffff;
-            --text: #1c1917;
-            --muted: #78716c;
+            --line: #e0d5c8;
+            --badge-bg: #fff1f2;
+            --badge-line: #fecdd3;
+            --badge-ink: #be123c;
         }
+        .tone-amber { --badge-bg: #fffbeb; --badge-line: #fde68a; --badge-ink: #92400e; }
+        .tone-slate { --badge-bg: #f1f5f9; --badge-line: #cbd5e1; --badge-ink: #334155; }
+        .tone-rose { --badge-bg: #fff1f2; --badge-line: #fecdd3; --badge-ink: #be123c; }
         * { box-sizing: border-box; }
         body {
             margin: 0;
@@ -21,129 +28,64 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.25rem;
-            font-family: Georgia, "Times New Roman", serif;
-            color: var(--text);
+            padding: 24px;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            color: var(--ink);
             background:
-                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(92, 64, 51, 0.16), transparent),
-                var(--bg);
+                radial-gradient(circle at top right, rgba(92, 64, 51, 0.08), transparent 35%),
+                linear-gradient(180deg, #fbf7f2 0%, var(--bg) 100%);
         }
         .card {
             width: 100%;
-            max-width: 22.5rem;
+            max-width: 420px;
             background: var(--card);
-            border: 1px solid rgba(92, 64, 51, 0.14);
-            border-radius: 1.35rem;
-            padding: 1.6rem 1.35rem 1.35rem;
-            text-align: center;
-            box-shadow: 0 18px 50px rgba(28, 25, 23, 0.12);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 28px 24px;
+            box-shadow: 0 12px 40px rgba(28, 20, 16, 0.08);
         }
-        .icon {
-            font-size: 2.1rem;
-            line-height: 1;
-            margin-bottom: 0.7rem;
-            font-family: system-ui, sans-serif;
-        }
-        h1 {
-            margin: 0 0 0.55rem;
-            font-size: 1.35rem;
+        .badge {
+            display: inline-flex;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--badge-bg);
+            border: 1px solid var(--badge-line);
+            color: var(--badge-ink);
+            font-size: 12px;
             font-weight: 700;
-            color: var(--brand);
-            letter-spacing: -0.02em;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
         }
-        p {
-            margin: 0 0 1rem;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: var(--muted);
-        }
-        .actions {
-            display: flex;
-            flex-direction: column;
-            gap: 0.55rem;
-        }
-        .btn {
+        h1 { margin: 16px 0 8px; font-size: 1.55rem; line-height: 1.25; }
+        p { margin: 0 0 12px; color: var(--muted); font-size: 0.95rem; line-height: 1.55; }
+        .actions { display: grid; gap: 10px; margin-top: 22px; }
+        a.btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 2.85rem;
-            border-radius: 0.9rem;
-            border: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            font-size: 0.95rem;
-            font-weight: 650;
-            cursor: pointer;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 12px;
             text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
         }
-        .btn-primary {
-            background: var(--brand);
-            color: #fff;
-        }
-        .btn-primary:active { transform: scale(0.98); }
-        .btn-ghost {
-            background: #f5f5f4;
-            color: #44403c;
-        }
-        .hint {
-            margin-top: 0.9rem;
-            margin-bottom: 0;
-            font-size: 0.78rem;
-            color: #a8a29e;
-            font-family: system-ui, sans-serif;
-        }
-        #countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--brand); }
+        .btn-primary { background: var(--brand); color: #fff; }
+        .btn-secondary { background: #fff; color: var(--brand); border: 1px solid var(--line); }
+        .hint { margin-top: 18px; margin-bottom: 0; font-size: 0.8rem; color: #8a7360; }
     </style>
 </head>
-<body>
-    <div class="card">
-        <div class="icon" aria-hidden="true">⏳</div>
-        <h1>Server sedang sibuk</h1>
-        <p>
-            Koneksi penuh sementara. Tunggu sebentar, lalu muat ulang halaman
-            untuk lanjut pesan / kasir.
-        </p>
+<body class="tone-amber">
+    <main class="card" role="alert">
+        <div class="badge">503 · Service Unavailable</div>
+        <h1>Layanan sedang tidak tersedia</h1>
+        <p>Server sedang sibuk atau dalam pemeliharaan. Silakan coba lagi nanti.</p>
         <div class="actions">
-            <button type="button" class="btn btn-primary" id="btn-reload">Muat ulang sekarang</button>
-            <a class="btn btn-ghost" href="/pesan" id="btn-pesan">Kembali ke halaman pesan</a>
+    <a class="btn btn-primary" href="javascript:location.reload()">Coba lagi</a>
+    <a class="btn btn-secondary" href="/products">Daftar menu</a>
+    <a class="btn btn-secondary" href="/">Beranda</a>
         </div>
-        <p class="hint">Otomatis muat ulang dalam <span id="countdown">15</span> dtk · kode 503</p>
-    </div>
-    <script>
-        (function () {
-            var seconds = 15;
-            var el = document.getElementById('countdown');
-            var btn = document.getElementById('btn-reload');
-            var timer = null;
-            var stopped = false;
-
-            function go() {
-                try {
-                    var ref = document.referrer || '';
-                    if (ref && ref.indexOf(location.host) !== -1 && ref.indexOf('/503.html') === -1) {
-                        location.replace(ref);
-                        return;
-                    }
-                } catch (e) {}
-                location.reload();
-            }
-
-            btn.addEventListener('click', function () {
-                stopped = true;
-                if (timer) clearInterval(timer);
-                go();
-            });
-
-            timer = setInterval(function () {
-                if (stopped) return;
-                seconds -= 1;
-                if (el) el.textContent = String(Math.max(0, seconds));
-                if (seconds <= 0) {
-                    clearInterval(timer);
-                    go();
-                }
-            }, 1000);
-        })();
-    </script>
+        <p class="hint">Kalau berulang, tunggu 10–20 detik lalu refresh.</p>
+    </main>
 </body>
 </html>

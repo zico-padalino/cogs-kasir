@@ -1,3 +1,49 @@
+<?php
+
+/**
+ * One-off generator: static public/{code}.html error pages for CDN / hosting.
+ * Run: php scripts/generate-error-pages.php
+ */
+
+require __DIR__.'/../vendor/autoload.php';
+
+$app = require __DIR__.'/../bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+use App\Support\ErrorPages;
+
+function e_html(string $s): string
+{
+    return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+}
+
+$codes = [400, 401, 403, 404, 405, 408, 419, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524];
+$public = __DIR__.'/../public';
+
+foreach ($codes as $code) {
+    $page = ErrorPages::content($code);
+    $tone = e_html($page['tone'] ?? 'rose');
+    $badge = e_html($page['badge']);
+    $title = e_html($page['title']);
+    $message = e_html($page['message']);
+    $hint = isset($page['hint']) ? e_html($page['hint']) : null;
+    $showLogin = in_array($code, [401, 419], true);
+
+    $actions = $showLogin
+        ? <<<'HTML'
+            <a class="btn btn-primary" href="/">Masuk lagi</a>
+            <a class="btn btn-secondary" href="javascript:location.reload()">Muat ulang halaman</a>
+            <a class="btn btn-secondary" href="/">Beranda</a>
+        HTML
+        : <<<'HTML'
+            <a class="btn btn-primary" href="javascript:location.reload()">Coba lagi</a>
+            <a class="btn btn-secondary" href="/products">Daftar menu</a>
+            <a class="btn btn-secondary" href="/">Beranda</a>
+        HTML;
+
+    $hintHtml = $hint ? '<p class="hint">'.$hint.'</p>' : '';
+
+    $html = <<<HTML
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,7 +51,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#5c4033">
     <meta name="robots" content="noindex">
-    <title>504 · Gateway Timeout — Kedai Tjoan</title>
+    <title>{$badge} — Kedai Tjoan</title>
     <style>
         :root {
             --bg: #f6f1ea;
@@ -75,17 +121,23 @@
         .hint { margin-top: 18px; margin-bottom: 0; font-size: 0.8rem; color: #8a7360; }
     </style>
 </head>
-<body class="tone-amber">
+<body class="tone-{$tone}">
     <main class="card" role="alert">
-        <div class="badge">504 · Gateway Timeout</div>
-        <h1>Halaman terlalu lama dimuat</h1>
-        <p>Server tidak sempat menyelesaikan permintaan tepat waktu.</p>
+        <div class="badge">{$badge}</div>
+        <h1>{$title}</h1>
+        <p>{$message}</p>
         <div class="actions">
-    <a class="btn btn-primary" href="javascript:location.reload()">Coba lagi</a>
-    <a class="btn btn-secondary" href="/products">Daftar menu</a>
-    <a class="btn btn-secondary" href="/">Beranda</a>
+{$actions}
         </div>
-        <p class="hint">Kalau berulang, tunggu sebentar lalu refresh. Hosting mungkin sedang penuh.</p>
+        {$hintHtml}
     </main>
 </body>
 </html>
+HTML;
+
+    file_put_contents("{$public}/{$code}.html", $html);
+    echo "wrote public/{$code}.html\n";
+}
+
+copy("{$public}/504.html", "{$public}/timeout.html");
+echo "updated public/timeout.html\n";

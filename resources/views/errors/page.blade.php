@@ -1,0 +1,148 @@
+@php
+    use App\Support\ErrorPages;
+
+    $code = (int) ($code ?? 500);
+    $page = ErrorPages::content($code);
+    $links = ErrorPages::links();
+    $tone = $page['tone'] ?? 'rose';
+    $retryUrl = ! empty($retryUrl) ? $retryUrl : $links['retryUrl'];
+    $productsUrl = ! empty($productsUrl) ? $productsUrl : $links['productsUrl'];
+    $homeUrl = ! empty($homeUrl) ? $homeUrl : $links['homeUrl'];
+    $loginUrl = ! empty($loginUrl) ? $loginUrl : $links['loginUrl'];
+    $showLogin = in_array($code, [401, 419], true);
+@endphp
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#5c4033">
+    <meta name="robots" content="noindex">
+    <title>{{ $page['badge'] }} — Kedai Tjoan</title>
+    <style>
+        :root {
+            --bg: #f6f1ea;
+            --ink: #1c1410;
+            --muted: #6b584a;
+            --brand: #5c4033;
+            --card: #ffffff;
+            --line: #e0d5c8;
+            --badge-bg: #fff1f2;
+            --badge-line: #fecdd3;
+            --badge-ink: #be123c;
+        }
+        .tone-amber {
+            --badge-bg: #fffbeb;
+            --badge-line: #fde68a;
+            --badge-ink: #92400e;
+        }
+        .tone-slate {
+            --badge-bg: #f1f5f9;
+            --badge-line: #cbd5e1;
+            --badge-ink: #334155;
+        }
+        .tone-rose {
+            --badge-bg: #fff1f2;
+            --badge-line: #fecdd3;
+            --badge-ink: #be123c;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(92, 64, 51, 0.08), transparent 35%),
+                linear-gradient(180deg, #fbf7f2 0%, var(--bg) 100%);
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 28px 24px;
+            box-shadow: 0 12px 40px rgba(28, 20, 16, 0.08);
+        }
+        .badge {
+            display: inline-flex;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--badge-bg);
+            border: 1px solid var(--badge-line);
+            color: var(--badge-ink);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        h1 {
+            margin: 16px 0 8px;
+            font-size: 1.55rem;
+            line-height: 1.25;
+        }
+        p {
+            margin: 0 0 12px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.55;
+        }
+        .actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 22px;
+        }
+        a.btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .btn-primary {
+            background: var(--brand);
+            color: #fff;
+        }
+        .btn-secondary {
+            background: #fff;
+            color: var(--brand);
+            border: 1px solid var(--line);
+        }
+        .hint {
+            margin-top: 18px;
+            margin-bottom: 0;
+            font-size: 0.8rem;
+            color: #8a7360;
+        }
+    </style>
+</head>
+<body class="tone-{{ $tone }}">
+    <main class="card" role="alert">
+        <div class="badge">{{ $page['badge'] }}</div>
+        <h1>{{ $page['title'] }}</h1>
+        <p>{{ $page['message'] }}</p>
+        <div class="actions">
+            @if ($showLogin)
+                <a class="btn btn-primary" href="{{ $loginUrl }}">Masuk lagi</a>
+                <a class="btn btn-secondary" href="{{ $retryUrl }}">Muat ulang halaman</a>
+            @else
+                <a class="btn btn-primary" href="{{ $retryUrl }}">Coba lagi</a>
+                <a class="btn btn-secondary" href="{{ $productsUrl }}">Daftar menu</a>
+            @endif
+            <a class="btn btn-secondary" href="{{ $homeUrl }}">Beranda</a>
+        </div>
+        @if (! empty($page['hint']))
+            <p class="hint">{{ $page['hint'] }}</p>
+        @endif
+    </main>
+</body>
+</html>

@@ -46,13 +46,20 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            if (! \App\Support\ServerBusy::isServerBusy($e)) {
-                return null;
+            if (\App\Support\ServerBusy::isServerBusy($e)) {
+                report($e);
+
+                return response()
+                    ->view('errors.timeout', \App\Support\ServerBusy::pageData($request), 504);
             }
 
-            report($e);
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+                if (! view()->exists('errors.'.$status)) {
+                    return response()->view('errors.generic', ['code' => $status], $status);
+                }
+            }
 
-            return response()
-                ->view('errors.timeout', \App\Support\ServerBusy::pageData($request), 504);
+            return null;
         });
     })->create();
