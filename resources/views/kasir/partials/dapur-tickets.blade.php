@@ -26,7 +26,12 @@
     >
         <header class="kds-ticket-head">
             <div class="kds-ticket-head-main">
-                <p class="kds-ticket-number">{{ $order->order_number }}</p>
+                <div class="kds-ticket-number-row">
+                    <p class="kds-ticket-number">{{ $order->order_number }}</p>
+                    @if ($order->order_type)
+                        <span class="kds-ticket-type">{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
+                    @endif
+                </div>
                 <p class="kds-ticket-customer">{{ $order->customer_note ?: 'Tanpa nama' }}</p>
             </div>
             <div class="kds-ticket-head-side">
@@ -44,9 +49,6 @@
         </header>
 
         <div class="kds-ticket-meta">
-            @if ($order->order_type)
-                <span class="kds-ticket-chip">{{ $order->order_type->icon() }} {{ $order->order_type->label() }}</span>
-            @endif
             @if ($order->table)
                 <span class="kds-ticket-chip kds-ticket-chip-table">🪑 {{ $order->table->label }}</span>
             @endif

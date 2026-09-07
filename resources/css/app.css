@@ -8588,8 +8588,16 @@
         @apply flex items-start justify-between gap-3 border-b border-slate-100 bg-[#faf7f2] px-3.5 py-3 sm:px-4;
     }
 
+    .kds-ticket-number-row {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
     .kds-ticket-number {
         @apply text-lg font-bold tracking-tight text-espresso sm:text-xl;
+    }
+
+    .kds-ticket-type {
+        @apply inline-flex items-center rounded-lg bg-amber-100 px-2.5 py-1 text-base font-extrabold leading-none text-amber-900 sm:text-lg xl:text-xl;
     }
 
     .kds-ticket-customer {

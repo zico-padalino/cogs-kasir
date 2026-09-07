@@ -29,6 +29,7 @@ function dapurType(wide: boolean) {
     elapsed: wide ? 17 : 19,
     badge: wide ? 11 : 12,
     chip: wide ? 14 : 16,
+    orderType: wide ? 16 : 18,
     qty: wide ? 17 : 20,
     itemName: wide ? 17 : 20,
     itemNameLine: wide ? 22 : 26,
@@ -260,9 +261,16 @@ export default function DapurBoardScreen() {
                   >
                     <View style={styles.ticketHead}>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[styles.orderNumber, { fontSize: type.orderNumber }]} numberOfLines={1}>
-                          {order.order_number}
-                        </Text>
+                        <View style={styles.numberRow}>
+                          <Text style={[styles.orderNumber, { fontSize: type.orderNumber }]} numberOfLines={1}>
+                            {order.order_number}
+                          </Text>
+                          {order.order_type_label ? (
+                            <Text style={[styles.orderType, { fontSize: type.orderType }]} numberOfLines={1}>
+                              {order.order_type_icon || ''} {order.order_type_label}
+                            </Text>
+                          ) : null}
+                        </View>
                         <Text style={[styles.customer, { fontSize: type.customer }]} numberOfLines={2}>
                           {order.customer_note?.trim() || 'Tanpa nama'}
                         </Text>
@@ -282,11 +290,6 @@ export default function DapurBoardScreen() {
                     </View>
 
                     <View style={styles.chips}>
-                      {order.order_type_label ? (
-                        <Text style={[styles.chip, { fontSize: type.chip }]} numberOfLines={1}>
-                          {order.order_type_icon || ''} {order.order_type_label}
-                        </Text>
-                      ) : null}
                       {order.table?.label ? (
                         <Text
                           style={[styles.chip, styles.chipTable, { fontSize: type.chip }]}
@@ -455,7 +458,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.slate100,
   },
+  numberRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
   orderNumber: { color: colors.espresso, ...fontDisplay('700') },
+  orderType: {
+    backgroundColor: colors.amber100,
+    color: colors.amber800,
+    borderRadius: radius.lg,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    overflow: 'hidden',
+    ...font('700'),
+  },
   customer: { marginTop: 4, color: colors.slate700, ...font('700') },
   headSide: { alignItems: 'flex-end', gap: 4 },
   elapsed: { color: colors.espresso, ...font('700') },
