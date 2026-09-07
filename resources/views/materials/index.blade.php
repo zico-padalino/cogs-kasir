@@ -38,11 +38,13 @@
 
         <x-stock-minus-alert
             class="mb-4"
-            :items="$materials"
+            :items="$minusMaterials"
             title="Stok bahan minus — segera isi ulang"
-            hint="Biasanya karena penjualan/pakai melebihi sisa. Tekan Isi ulang untuk langsung tambah stok bahan itu."
+            hint="Biasanya karena penjualan/pakai melebihi sisa. Tekan Isi ulang untuk langsung buka bahan itu."
             action-label="Isi ulang"
             anchor-prefix="material-"
+            list-route="materials.index"
+            :format="$format"
         />
 
         <x-module-form-card :step="2" title="Tambah Bahan Baku" description="Isi nama, satuan, lalu pembelian.">
@@ -68,21 +70,39 @@
             id="daftar-bahan"
             :step="2"
             title="Daftar Bahan Baku"
-            :subtitle="$materials->count() . ' bahan terdaftar'"
+            :subtitle="$searchQuery !== ''
+                ? ($materials->total().' hasil · halaman '.$materials->currentPage().'/'.max(1, $materials->lastPage()))
+                : ($materials->total().' bahan · halaman '.$materials->currentPage().'/'.max(1, $materials->lastPage()))"
         >
-            @if ($materials->isNotEmpty())
-                <div class="materials-card-grid" data-materials-list>
-                    <div class="materials-search materials-card-grid__full">
-                        <input
-                            type="search"
-                            class="form-input"
-                            placeholder="Cari bahan baku..."
-                            data-materials-search
-                            autocomplete="off"
-                        >
-                    </div>
+            @if ($materials->total() > 0 || $searchQuery !== '' || $focusId)
+                <div class="materials-card-grid" data-materials-list data-materials-server-search="1">
+                    <form
+                        method="GET"
+                        action="{{ route('materials.index') }}"
+                        class="materials-search materials-card-grid__full"
+                        data-materials-search-form
+                    >
+                        <div class="materials-search__row">
+                            <input
+                                type="search"
+                                name="q"
+                                class="form-input"
+                                placeholder="Cari bahan baku..."
+                                value="{{ $searchQuery }}"
+                                data-materials-search
+                                autocomplete="off"
+                            >
+                            <button type="submit" class="btn-outline btn-sm shrink-0">Cari</button>
+                            @if ($searchQuery !== '' || $focusId)
+                                <a href="{{ route('materials.index') }}" class="btn-outline btn-sm shrink-0">Reset</a>
+                            @endif
+                        </div>
+                        <p class="form-hint mt-1.5">
+                            Ditampilkan per 20 bahan. Cari nama, atau pakai tombol halaman di bawah.
+                        </p>
+                    </form>
 
-                    @foreach ($materials as $material)
+                    @forelse ($materials as $material)
                         @php $isMinus = (float) $material->available_qty < 0; @endphp
                         <div
                             id="material-{{ $material->id }}"
@@ -291,12 +311,23 @@
                                 </p>
                             @endif
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="module-empty materials-card-grid__full !py-8">
+                            <p class="module-empty__title">Tidak ada bahan yang cocok</p>
+                            <p class="module-empty__hint">Coba kata kunci lain, atau reset pencarian.</p>
+                        </div>
+                    @endforelse
 
                     <div class="module-empty materials-card-grid__full hidden !py-8" data-materials-search-empty>
                         <p class="module-empty__title">Tidak ada bahan yang cocok</p>
                         <p class="module-empty__hint">Coba kata kunci lain.</p>
                     </div>
+
+                    @if ($materials->hasPages())
+                        <div class="pagination-wrap materials-card-grid__full mt-2">
+                            {{ $materials->links() }}
+                        </div>
+                    @endif
                 </div>
 
                 <x-slot:footer>

@@ -6,6 +6,11 @@ function initMaterialsListSearch() {
         return;
     }
 
+    // Server-side search + pagination: submit form (Enter / tombol Cari).
+    if (list.dataset.materialsServerSearch === '1') {
+        return;
+    }
+
     const items = list.querySelectorAll('[data-material-card]');
     const empty = list.querySelector('[data-materials-search-empty]');
     const countLabel = list.closest('.table-card')?.querySelector('.module-list-card__subtitle');
@@ -61,7 +66,7 @@ function focusMaterialRestock(anchorId) {
     }
 
     const searchInput = document.querySelector('[data-materials-search]');
-    if (searchInput && searchInput.value) {
+    if (searchInput && searchInput.value && document.querySelector('[data-materials-list]')?.dataset.materialsServerSearch !== '1') {
         searchInput.value = '';
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
     }

@@ -7,6 +7,7 @@ use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInventoryReceiptRequest;
 use App\Models\InventoryLot;
+use App\Models\InventoryReservation;
 use App\Models\MaterialStockLog;
 use App\Models\Product;
 use App\Services\InventoryCostService;
@@ -18,33 +19,177 @@ use App\Support\MaterialUnits;
 use App\Support\StockQuantity;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class InventoryController extends Controller
 {
-    public function index(InventoryCostService $inventoryService)
+    public function index(Request $request)
     {
-        $materials = $this->loadMaterials($inventoryService);
+        @set_time_limit(60);
 
-        $stockLogs = collect();
-        $historyPeriod = 'day';
-        $historyDate = now()->toDateString();
+        try {
+            $validated = $request->validate([
+                'q' => ['nullable', 'string', 'max:100'],
+                'page' => ['nullable', 'integer', 'min:1'],
+                'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+                'focus' => ['nullable', 'integer', 'min:1'],
+            ]);
 
-        if (Schema::hasTable('material_stock_logs')) {
-            $stockLogs = $this->queryStockLogs('day', $historyDate);
+            $search = trim((string) ($validated['q'] ?? ''));
+            $perPage = (int) ($validated['per_page'] ?? 20);
+            $focusId = isset($validated['focus']) ? (int) $validated['focus'] : null;
+
+            $materials = $this->paginateMaterials($search, $perPage, $focusId);
+            $minusMaterials = $this->loadMinusMaterials(20);
+
+            $stockLogs = collect();
+            $historyPeriod = 'day';
+            $historyDate = now()->toDateString();
+
+            if (Schema::hasTable('material_stock_logs')) {
+                $stockLogs = $this->queryStockLogs('day', $historyDate);
+            }
+
+            return view('materials.index', [
+                'materials' => $materials,
+                'minusMaterials' => $minusMaterials,
+                'searchQuery' => $search,
+                'focusId' => $focusId,
+                'stockLogs' => $stockLogs,
+                'historyPeriod' => $historyPeriod,
+                'historyDate' => $historyDate,
+                'historyUrl' => route('materials.history'),
+                'format' => Format::class,
+                'units' => MaterialUnits::class,
+                'unitPresets' => MaterialUnits::presets(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->view('errors.timeout', [
+                'retryUrl' => route('materials.index'),
+                'productsUrl' => route('products.index'),
+                'homeUrl' => url('/'),
+            ], \App\Support\ServerBusy::isServerBusy($e) ? 504 : 500);
+        }
+    }
+
+    /**
+     * Paket halaman daftar bahan — jangan load seluruh katalog sekaligus.
+     */
+    private function paginateMaterials(
+        string $search,
+        int $perPage,
+        ?int $focusId,
+    ): LengthAwarePaginator {
+        $query = Product::query()
+            ->where('type', ProductType::RawMaterial->value)
+            ->where('is_active', true)
+            ->withSum('inventoryLots as lots_sum', 'quantity_remaining')
+            ->with(['inventoryLots' => fn ($q) => $q
+                ->where('quantity_remaining', '>', 0)
+                ->orderByDesc('received_at')
+                ->orderByDesc('id')])
+            ->orderBy('name');
+
+        if ($focusId) {
+            $query->where('id', $focusId);
+        } elseif ($search !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $search).'%';
+            $query->where(function ($builder) use ($like) {
+                $builder->where('name', 'like', $like)
+                    ->orWhere('sku', 'like', $like)
+                    ->orWhere('unit', 'like', $like);
+            });
         }
 
-        return view('materials.index', [
-            'materials' => $materials,
-            'stockLogs' => $stockLogs,
-            'historyPeriod' => $historyPeriod,
-            'historyDate' => $historyDate,
-            'historyUrl' => route('materials.history'),
-            'format' => Format::class,
-            'units' => MaterialUnits::class,
-            'unitPresets' => MaterialUnits::presets(),
-        ]);
+        /** @var LengthAwarePaginator $paginator */
+        $paginator = $query->paginate($perPage)->withQueryString();
+        $this->hydrateMaterials($paginator->getCollection());
+
+        return $paginator;
+    }
+
+    /**
+     * Alert stok minus — hanya ambil bahan yang lot-nya negatif (ringan).
+     */
+    private function loadMinusMaterials(int $limit = 20): Collection
+    {
+        $items = Product::query()
+            ->where('type', ProductType::RawMaterial->value)
+            ->where('is_active', true)
+            ->whereRaw(
+                '(select coalesce(sum(quantity_remaining), 0) from inventory_lots where inventory_lots.product_id = products.id) < 0'
+            )
+            ->withSum('inventoryLots as lots_sum', 'quantity_remaining')
+            ->orderByRaw(
+                '(select coalesce(sum(quantity_remaining), 0) from inventory_lots where inventory_lots.product_id = products.id) asc'
+            )
+            ->limit($limit)
+            ->get(['id', 'name', 'unit', 'type', 'is_active', 'unit_hpp', 'standard_cost']);
+
+        $this->hydrateMaterials($items, loadLots: false);
+
+        return $items->filter(fn (Product $product) => (float) $product->available_qty < 0)->values();
+    }
+
+    /**
+     * @param  Collection<int, Product>  $materials
+     */
+    private function hydrateMaterials(Collection $materials, bool $loadLots = true): void
+    {
+        if ($materials->isEmpty()) {
+            return;
+        }
+
+        $ids = $materials->pluck('id')->all();
+        $reservedByProduct = [];
+
+        if (Product::inventoryReservationsEnabled() && Schema::hasTable('inventory_reservations')) {
+            $reservedByProduct = InventoryReservation::query()
+                ->whereIn('product_id', $ids)
+                ->selectRaw('product_id, COALESCE(SUM(quantity), 0) as qty')
+                ->groupBy('product_id')
+                ->pluck('qty', 'product_id')
+                ->all();
+        }
+
+        foreach ($materials as $product) {
+            $onHand = $product->getAttribute('lots_sum');
+            if ($onHand === null) {
+                $onHand = $loadLots
+                    ? (float) $product->inventoryLots->sum('quantity_remaining')
+                    : (float) $product->inventoryLots()->sum('quantity_remaining');
+            }
+            $onHand = (float) $onHand;
+            $reserved = (float) ($reservedByProduct[$product->id] ?? 0);
+            $available = round($onHand - $reserved, 6);
+
+            if (! config('pos.allow_negative_stock', true)) {
+                $available = max(0.0, $available);
+            }
+
+            $product->available_qty = $available;
+
+            $positiveLots = $loadLots
+                ? $product->inventoryLots->where('quantity_remaining', '>', 0)
+                : collect();
+
+            $totalQty = (float) $positiveLots->sum('quantity_remaining');
+            if ($totalQty > 0) {
+                $totalValue = (float) $positiveLots->sum(
+                    fn (InventoryLot $lot) => (float) $lot->quantity_remaining * (float) $lot->unit_cost
+                );
+                $product->avg_cost = $totalValue / $totalQty;
+            } else {
+                $product->avg_cost = $product->effectiveUnitHpp();
+            }
+
+            $product->is_minus = $available < 0;
+        }
     }
 
     public function pdf(Request $request, InventoryCostService $inventoryService)
@@ -660,22 +805,6 @@ class InventoryController extends Controller
         );
 
         return redirect()->route('materials.index')->with('success', 'Batch stok dihapus.');
-    }
-
-    private function loadMaterials(InventoryCostService $inventoryService)
-    {
-        return Product::query()
-            ->where('type', ProductType::RawMaterial->value)
-            ->where('is_active', true)
-            ->with(['inventoryLots' => fn ($q) => $q->orderByDesc('received_at')])
-            ->orderBy('name')
-            ->get()
-            ->map(function (Product $product) use ($inventoryService) {
-                $product->available_qty = $product->availableQuantity();
-                $product->avg_cost = $inventoryService->getWeightedAverageCost($product);
-
-                return $product;
-            });
     }
 
     /**

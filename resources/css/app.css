@@ -707,6 +707,14 @@
         @apply sticky top-0 z-10 -mx-1 bg-white/95 px-1 pb-1 backdrop-blur-sm;
     }
 
+    .materials-search__row {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .materials-search__row .form-input {
+        @apply min-w-0 flex-1;
+    }
+
     .materials-card-grid {
         @apply grid grid-cols-1 items-start gap-3 p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 md:p-5 xl:grid-cols-3;
     }
@@ -2655,7 +2663,7 @@
     }
 
     .stock-minus-alert__cta {
-        @apply shrink-0 rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400;
+        @apply inline-flex shrink-0 items-center justify-center rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white no-underline shadow-sm transition hover:bg-rose-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400;
     }
 
     .stock-minus-alert__more {

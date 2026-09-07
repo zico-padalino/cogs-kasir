@@ -5,6 +5,8 @@
     'actionLabel' => 'Isi ulang',
     'limit' => 8,
     'anchorPrefix' => 'material-',
+    'listRoute' => null,
+    'format' => \App\Support\Format::class,
 ])
 
 @php
@@ -60,6 +62,9 @@
                     $unit = (string) data_get($item, 'unit', '');
                     $qty = $resolveQty($item);
                     $need = abs($qty);
+                    $focusUrl = $listRoute
+                        ? route($listRoute, ['focus' => $id, 'q' => $name]).'#'.$anchorPrefix.$id
+                        : null;
                 @endphp
                 <li class="stock-minus-alert__item">
                     <div class="stock-minus-alert__meta">
@@ -69,14 +74,20 @@
                             <span class="stock-minus-alert__need">Perlu isi ≥ {{ $format::number($need) }} {{ $unit }}</span>
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        class="stock-minus-alert__cta"
-                        data-stock-minus-restock="{{ $id }}"
-                        data-stock-minus-anchor="{{ $anchorPrefix.$id }}"
-                    >
-                        {{ $actionLabel }}
-                    </button>
+                    @if ($focusUrl)
+                        <a href="{{ $focusUrl }}" class="stock-minus-alert__cta">
+                            {{ $actionLabel }}
+                        </a>
+                    @else
+                        <button
+                            type="button"
+                            class="stock-minus-alert__cta"
+                            data-stock-minus-restock="{{ $id }}"
+                            data-stock-minus-anchor="{{ $anchorPrefix.$id }}"
+                        >
+                            {{ $actionLabel }}
+                        </button>
+                    @endif
                 </li>
             @endforeach
         </ul>
