@@ -65,6 +65,43 @@
                 <span class="badge max-lg:hidden {{ $order->status->badgeClass() }}">{{ $order->status->label() }}</span>
             </div>
             <span class="network-status" data-network-status role="status" aria-live="polite">Memeriksa koneksi...</span>
+            @if (($negativeStockItems ?? collect())->isNotEmpty())
+                <details class="pos-stock-minus-toolbar" data-pos-stock-minus>
+                    <summary
+                        class="pos-stock-minus-toolbar__btn"
+                        title="Stok minus — segera isi ulang"
+                        aria-label="Stok minus {{ $negativeStockItems->count() }} item"
+                    >
+                        <svg class="pos-btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                        <span class="pos-stock-minus-toolbar__label">Stok −</span>
+                        <span class="pos-stock-minus-toolbar__count">{{ $negativeStockItems->count() }}</span>
+                    </summary>
+                    <div class="pos-stock-minus-toolbar__panel" role="alert">
+                        <div class="pos-stock-minus-toolbar__panel-head">
+                            <strong>Stok minus — segera isi ulang</strong>
+                            <span>{{ $negativeStockItems->count() }} item</span>
+                        </div>
+                        <ul class="pos-stock-minus-toolbar__list">
+                            @foreach ($negativeStockItems->take(8) as $item)
+                                <li>
+                                    <span class="pos-stock-minus-toolbar__name">{{ $item['name'] }}</span>
+                                    <span class="pos-stock-minus-toolbar__qty">
+                                        {{ $format::number($item['qty']) }} {{ $item['unit'] }}
+                                        <span class="pos-stock-minus-toolbar__type">· {{ $item['type_label'] }}</span>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                        @if ($negativeStockItems->count() > 8)
+                            <p class="pos-stock-minus-toolbar__more">+{{ $negativeStockItems->count() - 8 }} item lainnya — isi ulang di COGS / Bahan Baku</p>
+                        @else
+                            <p class="pos-stock-minus-toolbar__more">Isi ulang stok di modul COGS / Bahan Baku.</p>
+                        @endif
+                    </div>
+                </details>
+            @endif
             <button
                 type="button"
                 class="pos-notify-bell"
@@ -103,29 +140,6 @@
         </header>
 
         <div class="pos-body">
-            @if (($negativeStockItems ?? collect())->isNotEmpty())
-                <div class="pos-stock-minus-alert" role="alert">
-                    <div class="pos-stock-minus-alert__head">
-                        <strong>Stok minus — segera isi ulang</strong>
-                        <span>{{ $negativeStockItems->count() }} item</span>
-                    </div>
-                    <ul class="pos-stock-minus-alert__list">
-                        @foreach ($negativeStockItems->take(8) as $item)
-                            <li>
-                                <span>{{ $item['name'] }}</span>
-                                <span class="pos-stock-minus-alert__qty">
-                                    {{ $format::number($item['qty']) }} {{ $item['unit'] }}
-                                    · {{ $item['type_label'] }}
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                    @if ($negativeStockItems->count() > 8)
-                        <p class="pos-stock-minus-alert__more">+{{ $negativeStockItems->count() - 8 }} item lainnya di COGS</p>
-                    @endif
-                </div>
-            @endif
-
             <div class="pos-main-col">
                 @if ($order->isKasirEditable())
                     @include('kasir.partials.pos-order-bar', [

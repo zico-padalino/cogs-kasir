@@ -735,6 +735,29 @@ export function initItemDeliverToggle() {
     initDeliverModal();
 }
 
+function initPosStockMinusToolbar(root) {
+    const details = root.querySelector('[data-pos-stock-minus]');
+    if (! details) {
+        return;
+    }
+
+    document.addEventListener('click', (event) => {
+        if (! details.open) {
+            return;
+        }
+        if (details.contains(event.target)) {
+            return;
+        }
+        details.open = false;
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && details.open) {
+            details.open = false;
+        }
+    });
+}
+
 export function initKasirPos() {
     const root = document.getElementById('kasir-pos');
     if (! root) {
@@ -751,6 +774,7 @@ export function initKasirPos() {
     initPosPendingPanel(root);
     initPosFlash(root);
     initItemDeliverToggle(root);
+    initPosStockMinusToolbar(root);
 
     const tabs = root.querySelectorAll('[data-kasir-tab]');
     const panels = root.querySelectorAll('[data-kasir-panel]');
