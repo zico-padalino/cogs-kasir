@@ -23,27 +23,19 @@ class BomCostService
             throw new RuntimeException("BOM terlalu dalam untuk produk {$product->sku}");
         }
 
+        // Bahan jadi sebagai komponen resep menu: pakai harga stok (sama konsumsi kasir),
+        // jangan drill ke resep bahan bakunya — itu yang bikin harga/kg beda antar layar.
+        if ($depth > 0 && $product->effectiveType() === ProductType::SemiFinished) {
+            return $this->leafCost($product, $quantity);
+        }
+
         $bomItems = $product->billOfMaterials()
             ->with('childProduct')
             ->orderBy('sequence')
             ->get();
 
         if ($bomItems->isEmpty()) {
-            $unitCost = $product->effectiveCostingMethod() === CostingMethod::Standard
-                ? $product->effectiveUnitHpp()
-                : $this->inventoryCostService->getWeightedAverageCost($product);
-
-            return [
-                'product_id' => $product->id,
-                'sku' => $product->sku,
-                'name' => $product->name,
-                'type' => $product->effectiveType()->value,
-                'quantity' => $quantity,
-                'unit_cost' => round($unitCost, 4),
-                'total_cost' => round($unitCost * $quantity, 4),
-                'is_leaf' => true,
-                'components' => [],
-            ];
+            return $this->leafCost($product, $quantity);
         }
 
         $components = [];
@@ -77,6 +69,28 @@ class BomCostService
             'total_cost' => round($totalMaterialCost, 4),
             'is_leaf' => false,
             'components' => $components,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function leafCost(Product $product, float $quantity): array
+    {
+        $unitCost = $product->effectiveCostingMethod() === CostingMethod::Standard
+            ? $product->effectiveUnitHpp()
+            : $this->inventoryCostService->getWeightedAverageCost($product);
+
+        return [
+            'product_id' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'type' => $product->effectiveType()->value,
+            'quantity' => $quantity,
+            'unit_cost' => round($unitCost, 4),
+            'total_cost' => round($unitCost * $quantity, 4),
+            'is_leaf' => true,
+            'components' => [],
         ];
     }
 
